@@ -1,0 +1,236 @@
+.root {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.header:disabled {
+  cursor: default;
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryStrong {
+  color: var(--text-primary);
+}
+
+.summaryMuted {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.summaryOk {
+  color: color-mix(in srgb, #2f9e44 72%, var(--text-secondary));
+}
+
+.summaryError {
+  color: var(--text-error);
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.28;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease, opacity 0.15s ease;
+}
+
+.header:hover:not(:disabled) .chevron {
+  opacity: 0.5;
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+.panel {
+  margin-top: 4px;
+}
+
+.panelOpen {
+  animation: graphPanelIn 0.16s ease;
+}
+
+@keyframes graphPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panelMeta {
+  font-size: 11px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  word-break: break-all;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.statItem {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.statValue {
+  color: var(--text-primary);
+}
+
+.tableWrap {
+  overflow: auto;
+  max-height: 180px;
+  margin-top: 4px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.table th,
+.table td {
+  padding: 4px 0;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-overlay-border) 45%, transparent);
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.table th {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+}
+
+.table td {
+  color: var(--text-primary);
+  font-family: Consolas, 'Courier New', monospace;
+}
+
+.table tr:last-child td,
+.table tr:last-child th {
+  border-bottom: none;
+}
+
+.moreRows {
+  margin-top: 4px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+
+.codeHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.codeFile {
+  color: var(--text-primary);
+}
+
+.codeBlock {
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.55;
+  font-family: Consolas, 'Courier New', monospace;
+  color: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.section {
+  margin-top: 8px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionTitle {
+  margin-bottom: 3px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+.sectionList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sectionItem {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  font-family: Consolas, 'Courier New', monospace;
+  word-break: break-word;
+}
+
+.rawBody {
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.55;
+  font-family: Consolas, 'Courier New', monospace;
+  color: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rawBodyError {
+  color: var(--text-error);
+  font-family: inherit;
+}

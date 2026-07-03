@@ -1,0 +1,8 @@
+dist/
+node_modules/
+src-tauri/
+public/
+*.min.js
+*.min.css
+pnpm-lock.yaml
+package-lock.json

@@ -1,0 +1,220 @@
+.root {
+  max-width: 960px;
+  padding-bottom: 40px;
+}
+
+.refreshButton {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.refreshButton:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--text-secondary) 35%, var(--border-subtle));
+}
+
+.refreshButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.countLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.emptyState {
+  padding: 28px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
+.table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.portCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.monoCell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-secondary);
+}
+
+.processCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.processName {
+  color: var(--text-primary);
+  cursor: help;
+  width: fit-content;
+}
+
+.pidLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.hintCell {
+  max-width: 280px;
+  color: var(--text-primary);
+}
+
+.commandLine {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge_loomManaged {
+  color: #7dd3fc;
+  background: color-mix(in srgb, #7dd3fc 12%, transparent);
+}
+
+.badge_knownExternal {
+  color: #fbbf24;
+  background: color-mix(in srgb, #fbbf24 12%, transparent);
+}
+
+.badge_external {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+}
+
+.badge_protected {
+  color: #f87171;
+  background: color-mix(in srgb, #f87171 12%, transparent);
+}
+
+.killButton {
+  all: unset;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--text-error) 35%, var(--border-subtle));
+  color: var(--text-error);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.killButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
+}
+
+.killButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.confirmList {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.confirmList li {
+  word-break: break-all;
+}
+
+.permissionModalContent {
+  max-width: 480px;
+}
+
+.permissionModalTitle {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.permissionModalDescription {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.permissionTips {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.permissionTips li + li {
+  margin-top: 6px;
+}

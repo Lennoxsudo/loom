@@ -1,0 +1,16 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}

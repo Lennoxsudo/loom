@@ -1,0 +1,82 @@
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 1px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-hover) 25%, transparent);
+  border: 1px solid var(--border-subtle);
+  gap: 1px;
+}
+
+.segmentedCompact {
+  height: 20px;
+}
+
+.segment {
+  all: unset;
+  box-sizing: border-box;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.segmentedCompact .segment {
+  height: 16px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.segment:hover {
+  color: var(--text-primary);
+}
+
+.segmentActivePlan {
+  background: color-mix(in srgb, var(--text-warning) 12%, transparent);
+  color: var(--text-warning);
+}
+
+.segmentActiveAllow {
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+}
+
+.composerModePill {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.composerModePillPlan {
+  background: color-mix(in srgb, var(--text-warning) 12%, var(--bg-hover));
+  color: color-mix(in srgb, var(--text-warning) 88%, var(--text-primary));
+}
+
+.composerModePillAllow {
+  background: color-mix(in srgb, var(--bg-hover) 88%, var(--bg-panel));
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+}
+
+.composerModePill:hover {
+  filter: brightness(1.06);
+}

@@ -1,0 +1,1 @@
+export { EditorDiffPanel } from './EditorDiffPanel';

@@ -1,0 +1,144 @@
+.menuWrap {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.trigger {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--bg-input) 88%, var(--bg-panel));
+  color: var(--text-accent);
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.trigger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--text-accent) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--bg-hover) 70%, var(--bg-input));
+}
+
+.triggerOpen {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-accent) 28%, transparent);
+}
+
+.trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-accent);
+  opacity: 0.85;
+  transition: transform var(--transition-fast);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 220;
+  min-width: 100%;
+  max-width: min(320px, 72vw);
+  max-height: 280px;
+  overflow: auto;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-dropdown);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groupLabel {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.groupLabel:not(:first-child) {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  text-align: left;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.item:hover,
+.itemActive {
+  background: var(--bg-list-hover);
+}
+
+.itemRemote {
+  color: var(--text-secondary);
+}
+
+.itemRemote:hover,
+.itemRemote.itemActive {
+  color: var(--text-primary);
+}
+
+.itemMarker {
+  flex-shrink: 0;
+  width: 10px;
+  color: var(--text-accent);
+  font-weight: 700;
+}
+
+.itemLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,115 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-panel);
+  color: var(--text-primary);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--chat-header-height);
+  min-height: var(--chat-header-height);
+  padding: 0 8px 0 10px;
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.headerSelector {
+  flex: 1;
+  min-width: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.headerIconButton {
+  all: unset;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.headerIconButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.headerIconButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.headerMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-dropdown);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.headerMenuItem {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.headerMenuItem:hover {
+  background: var(--bg-hover);
+}
+
+.headerMenuItemDanger:hover {
+  background: color-mix(in srgb, var(--text-error) 10%, var(--bg-hover));
+  color: var(--text-error);
+}
+
+.headerMenuItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.headerMenuWrap {
+  position: relative;
+}
+
+.contentArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.bottomDock {
+  flex-shrink: 0;
+  min-width: 0;
+}

@@ -1,0 +1,72 @@
+.root {
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--surface-overlay-soft);
+  border: 1px solid var(--surface-overlay-border);
+  margin-bottom: 0;
+}
+
+.header {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerExpanded {
+  border-bottom-color: var(--surface-overlay-border);
+}
+
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  transition:
+    transform 0.2s ease,
+    opacity 0.15s ease;
+}
+
+.header:hover .arrow,
+.header:focus-visible .arrow {
+  opacity: 0.7;
+}
+
+.arrowExpanded {
+  transform: rotate(180deg);
+}
+
+.content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.contentExpanded {
+  grid-template-rows: 1fr;
+}
+
+.contentInner {
+  overflow: hidden;
+  max-height: 300px;
+  opacity: 0;
+  padding: 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  transition: opacity 0.2s ease, padding 0.3s ease;
+}
+
+.contentInnerExpanded {
+  overflow: auto;
+  opacity: 1;
+  padding: 10px 12px;
+}

@@ -1,0 +1,154 @@
+.titleBar {
+  height: 30px;
+  width: 100%;
+  background: var(--bg-header);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-primary);
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-primary);
+  user-select: none;
+  -webkit-app-region: drag;
+  position: relative;
+}
+
+.projectName {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.leftSection {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  padding-left: 15px;
+  gap: 8px;
+}
+
+.title {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.menuContainer {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+}
+
+.menuButton:hover {
+  background-color: var(--bg-hover);
+}
+
+.menuButtonOpen {
+  background-color: var(--bg-list-active);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background-color: var(--bg-dropdown);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.dropdownItem {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.dropdownItem:hover {
+  background-color: var(--bg-button);
+  color: var(--text-inverse);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.agentButton {
+  background: none;
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 2px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  -webkit-app-region: no-drag;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  margin-right: 4px;
+}
+
+.agentButton:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--text-accent);
+}
+
+.windowControls {
+  display: flex;
+  height: 100%;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.windowButton {
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+  cursor: default;
+}
+
+.windowButton:hover {
+  background-color: var(--bg-hover);
+}
+
+.closeButton {
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+  cursor: default;
+}
+
+.closeButton:hover {
+  background-color: #e81123;
+  color: white;
+}

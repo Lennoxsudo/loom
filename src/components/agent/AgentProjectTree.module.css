@@ -1,0 +1,363 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 8px;
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.headerButton {
+  all: unset;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.headerButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.headerButtonActive {
+  background: color-mix(in srgb, var(--text-accent) 14%, var(--bg-hover));
+  color: var(--text-accent);
+}
+
+.filterIcon {
+  display: block;
+  width: 12px;
+  height: 8px;
+  border-top: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  position: relative;
+}
+
+.filterIcon::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 2px;
+  top: 50%;
+  height: 1.5px;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+
+.emptyProjects {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.projectGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.projectItem {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.projectItem:hover {
+  background: var(--bg-hover);
+}
+
+.projectItemActive {
+  color: var(--text-primary);
+}
+
+.projectRow {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.projectActions {
+  display: none;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.projectItem:hover .projectActions,
+.projectRow:focus-visible ~ .projectActions,
+.projectActions:focus-within {
+  display: flex;
+}
+
+.projectLeadingIcon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chevron {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--text-secondary);
+  opacity: 0;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.projectItem:hover .projectRow .chevron,
+.projectRow:focus-visible .chevron {
+  opacity: 1;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.folderIcon {
+  width: 14px;
+  height: 11px;
+  border: 1.5px solid var(--text-secondary);
+  border-radius: 2px;
+  position: relative;
+  opacity: 1;
+  transition: opacity 0.12s ease;
+}
+
+.projectItem:hover .projectRow .folderIcon,
+.projectRow:focus-visible .folderIcon {
+  opacity: 0;
+}
+
+.folderIcon::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -1px;
+  width: 7px;
+  height: 3px;
+  border: 1.5px solid var(--text-secondary);
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+}
+
+.projectName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.emptyThreads {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+.emptyThreadsLeading {
+  width: var(--session-leading-width, 19px);
+  height: var(--session-leading-width, 19px);
+  flex-shrink: 0;
+}
+
+.threadItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.threadTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.threadLeading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--session-leading-width, 19px);
+  height: var(--session-leading-width, 19px);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.threadItem:hover {
+  background: var(--bg-hover);
+}
+
+.threadItemActive {
+  background: var(--bg-list-active);
+}
+
+.threadButton {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.threadTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.threadTime {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.branchIcon {
+  width: 10px;
+  height: 10px;
+  position: relative;
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.branchIcon::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-secondary);
+}
+
+.branchIcon::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 5px;
+  border-left: 1.5px solid var(--text-secondary);
+  border-bottom: 1.5px solid var(--text-secondary);
+  border-bottom-left-radius: 3px;
+}
+
+.threadActions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.threadItem:hover .threadActions {
+  display: flex;
+}
+
+.iconButton {
+  all: unset;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.iconButton:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.renameInput {
+  grid-column: 1 / -1;
+  flex: 1;
+  margin: 4px 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-focus);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+}

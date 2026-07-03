@@ -1,0 +1,243 @@
+.shell {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--bg-input) 28%, var(--bg-panel));
+  border: 1px solid color-mix(in srgb, var(--border-primary) 88%, transparent);
+  border-radius: 12px;
+  overflow: visible;
+  transition:
+    border-color var(--transition-normal),
+    background-color var(--transition-normal);
+}
+
+.card:focus-within {
+  border-color: color-mix(in srgb, var(--border-focus) 70%, var(--border-primary));
+  background: color-mix(in srgb, var(--bg-input) 38%, var(--bg-panel));
+}
+
+.cardDragOver {
+  border-color: var(--border-focus);
+  background: color-mix(in srgb, var(--border-focus) 6%, var(--bg-panel)) !important;
+}
+
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+
+.imageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.imageThumb {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: var(--surface-overlay-soft);
+}
+
+.imageThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeImageButton {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.fileGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 4px;
+}
+
+.fileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  max-width: 180px;
+}
+
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.removeFileButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.attachButton {
+  all: unset;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.attachButton:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.attachButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.textarea {
+  flex: 1;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  font-size: 13px;
+  resize: none;
+  outline: none;
+  overflow-y: hidden;
+  max-height: 120px;
+  min-height: 22px;
+  line-height: 1.5;
+  font-family: inherit;
+  padding: 0;
+}
+
+.textarea::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 82%, var(--bg-panel));
+}
+
+.sendButton {
+  all: unset;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  cursor: default;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.sendButtonActive {
+  background: var(--text-accent);
+  color: var(--bg-panel);
+  cursor: pointer;
+}
+
+.sendButtonActive:hover {
+  opacity: 0.85;
+  transform: scale(1.04);
+}
+
+.sendButtonActive:active {
+  transform: scale(0.94);
+}
+
+.sendButtonStop {
+  background: color-mix(in srgb, var(--chat-stop-fg) 14%, transparent);
+  color: var(--chat-stop-fg);
+  cursor: pointer;
+}
+
+.sendButtonStop:hover {
+  background: color-mix(in srgb, var(--chat-stop-fg) 22%, transparent);
+}
+
+.sendButtonDisabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  position: relative;
+  z-index: 2;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.footerDivider {
+  width: 1px;
+  height: 14px;
+  background: color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  flex-shrink: 0;
+}

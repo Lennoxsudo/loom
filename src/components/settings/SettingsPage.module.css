@@ -1,0 +1,283 @@
+.root {
+  max-width: 920px;
+  padding-bottom: 40px;
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pageHeaderRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.pageDescription {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+.sectionHeading {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+}
+
+.monoPath {
+  font-size: 11px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading {
+  padding: 24px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.messageSuccess {
+  border: 1px solid color-mix(in srgb, #6ee7a0 28%, var(--border-subtle));
+  background: color-mix(in srgb, #6ee7a0 8%, transparent);
+  color: color-mix(in srgb, #6ee7a0 70%, var(--text-primary));
+}
+
+.messageError {
+  border: 1px solid color-mix(in srgb, var(--text-error) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
+  color: var(--text-error);
+}
+
+.messageClose {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.messageClose:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.deleteModal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.deleteModalContent {
+  min-width: 300px;
+  max-width: 400px;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-sidebar);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.deleteModalTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.deleteModalText {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.deleteModalButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cancelButton {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.cancelButton:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.cancelButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.confirmDeleteButton {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-error);
+  border: 1px solid color-mix(in srgb, var(--text-error) 30%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.confirmDeleteButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-error) 14%, transparent);
+}
+
+.confirmDeleteButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.primaryButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bg-primary, #1e1e1e);
+  background: var(--text-primary);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.primaryButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.secondaryButton:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.saveButton {
+  composes: primaryButton;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay-soft);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-accent) 16%, transparent);
+}
+
+.ghostAddButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.ghostAddButton:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+}

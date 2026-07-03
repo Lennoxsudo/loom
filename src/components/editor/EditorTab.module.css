@@ -1,0 +1,119 @@
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 120px;
+  max-width: 200px;
+  height: var(--editor-tab-height, 35px);
+  padding: 0 8px 0 10px;
+  gap: 6px;
+  border-top: 1px solid transparent;
+  border-right: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab[data-active='true'] {
+  background: var(--bg-editor);
+  border-top-color: var(--border-focus);
+  color: var(--text-primary);
+  /* 盖住标签栏底部分割线，避免与顶栏 accent 形成双线 */
+  margin-bottom: -1px;
+  padding-bottom: 1px;
+}
+
+.tab[data-active='true']:hover {
+  background: var(--bg-editor);
+}
+
+.tabDragging {
+  opacity: 0.5;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deletedMark {
+  margin-left: 4px;
+  color: var(--text-error);
+}
+
+.close,
+.dirtyDot {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition:
+    opacity var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.tab:hover .close,
+.tab[data-active='true'] .close,
+.tab:hover .dirtyDot,
+.tab[data-active='true'] .dirtyDot {
+  opacity: 1;
+}
+
+.close:hover:not(:disabled) {
+  background: var(--bg-list-hover);
+  color: var(--text-primary);
+}
+
+.close:disabled,
+.dirtyDot:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.closeGlyph {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.dirtyDot {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-accent);
+}
+
+.dirtyDot:hover:not(:disabled) {
+  background: var(--bg-list-hover);
+}

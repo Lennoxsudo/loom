@@ -1,0 +1,81 @@
+/* Base Reset & Typography */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family:
+    'Segoe UI',
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-size: 13px;
+  line-height: normal;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Input Elements */
+input,
+textarea,
+select {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--border-focus);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+/* Monaco current line override */
+.monaco-editor .view-overlays .current-line,
+.monaco-editor .margin-view-overlays .current-line,
+.monaco-editor .view-overlays .current-line-exact,
+.monaco-editor .margin-view-overlays .current-line.current-line-margin,
+.monaco-editor .margin-view-overlays .current-line.current-line-margin.current-line-margin-both {
+  background-color: var(--editor-line-highlight) !important;
+  border-color: var(--editor-line-highlight-border) !important;
+}
+
+.monaco-editor .margin-view-overlays .current-line.current-line-margin.current-line-margin-both {
+  border-right-color: transparent !important;
+}
+
+/* Helper Classes */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,341 @@
+.card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--surface-overlay-border);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--bg-button) 12%, transparent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--surface-overlay-border);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.iconWrap {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--bg-button) 18%, var(--bg-sidebar));
+  color: var(--bg-button);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--bg-button);
+  background: color-mix(in srgb, var(--bg-button) 14%, var(--bg-sidebar));
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeDone {
+  color: color-mix(in srgb, #2f9e44 88%, var(--text-primary));
+  background: color-mix(in srgb, #2f9e44 14%, var(--bg-sidebar));
+}
+
+.badgeError {
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 12%, var(--bg-sidebar));
+}
+
+.body {
+  padding: 10px 12px 12px;
+}
+
+.bodyDone {
+  padding: 8px 12px 10px;
+}
+
+.viewportGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.viewportWrap {
+  width: min(100%, 420px);
+}
+
+.viewportWrapMulti {
+  width: min(calc(50% - 5px), 280px);
+  flex: 1 1 200px;
+}
+
+.viewport {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-secondary) 6%, var(--bg-sidebar));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 8px 24px color-mix(in srgb, var(--bg-button) 10%, transparent);
+}
+
+.viewportDone {
+  height: auto;
+  line-height: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.imageLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 800ms ease;
+}
+
+.imageVisible {
+  opacity: 1;
+}
+
+.imageDone {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(56vh, 420px);
+  object-fit: contain;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text-secondary) 6%, var(--bg-sidebar));
+}
+
+.imageClickable {
+  cursor: pointer;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.imageClickable:hover {
+  opacity: 0.92;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.imageClickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.fileNameOverlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 8px 6px;
+  font-size: 10px;
+  color: color-mix(in srgb, white 88%, var(--text-secondary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.62), transparent);
+  pointer-events: none;
+}
+
+.glassLayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  background: color-mix(in srgb, var(--bg-sidebar) 42%, transparent);
+  backdrop-filter: blur(14px) saturate(1.25);
+  border: 1px solid color-mix(in srgb, white 16%, var(--border-subtle));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 12%, transparent);
+  transition:
+    opacity 700ms ease,
+    backdrop-filter 700ms ease;
+}
+
+.glassRevealing {
+  opacity: 0;
+  backdrop-filter: blur(0px) saturate(1);
+  pointer-events: none;
+}
+
+.glassShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 38%,
+    color-mix(in srgb, white 18%, transparent) 50%,
+    transparent 62%,
+    transparent 100%
+  );
+  transform: translateX(-130%);
+  animation: glassSweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.glassNoise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: radial-gradient(circle at 20% 20%, white 0.6px, transparent 0.7px);
+  background-size: 4px 4px;
+  pointer-events: none;
+}
+
+.centerContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 92%;
+}
+
+.sparkles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sparkle {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bg-button);
+  opacity: 0.35;
+  box-shadow: 0 0 8px var(--bg-button);
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+.sparkle:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.sparkle:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.status {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: var(--text-primary);
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  font-style: italic;
+  opacity: 0.9;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 3px;
+  vertical-align: baseline;
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  opacity: 0.6;
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.errorText {
+  margin: 0;
+  padding: 0 12px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-error);
+  white-space: pre-wrap;
+}
+
+@keyframes glassSweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+@keyframes dotBounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}

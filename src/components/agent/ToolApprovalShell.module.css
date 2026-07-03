@@ -1,0 +1,128 @@
+.shell {
+  --approval-line: var(--surface-overlay-border, rgba(255, 255, 255, 0.08));
+  --approval-surface: color-mix(in srgb, var(--bg-sidebar, #1e1e1e) 96%, transparent);
+  --approval-fg-muted: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
+  --approval-fg-subtle: color-mix(in srgb, var(--text-secondary) 62%, var(--bg-app));
+
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--approval-line);
+  background: var(--approval-surface);
+  overflow: hidden;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.shellPending:hover {
+  border-color: color-mix(in srgb, var(--text-warning, #d4a574) 22%, var(--approval-line));
+}
+
+.shellDenied {
+  opacity: 0.92;
+}
+
+.shellResolved {
+  opacity: 0.88;
+}
+
+.body {
+  padding: 11px 13px;
+}
+
+.bodyCompact {
+  padding: 9px 13px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.header:last-child {
+  margin-bottom: 0;
+}
+
+.toolName {
+  font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--approval-fg-muted);
+  letter-spacing: 0.01em;
+}
+
+.actionLabel {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--approval-fg-subtle);
+  padding: 2px 0;
+}
+
+.detail {
+  margin: 0;
+  padding: 9px 11px;
+  font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--approval-line) 100%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 80%, transparent);
+}
+
+.compactRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--approval-fg-muted);
+}
+
+.compactRow strong,
+.compactRow .highlight {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.deniedNote {
+  color: var(--approval-fg-subtle);
+  font-size: 11px;
+}
+
+.badgeDel {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-error) 78%, var(--text-primary));
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-error) 14%, transparent);
+}
+
+.fileChip {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.added {
+  color: color-mix(in srgb, #6ecf8f 82%, var(--text-primary));
+  margin-left: 6px;
+}
+
+.removed {
+  color: color-mix(in srgb, var(--text-error) 82%, var(--text-primary));
+  margin-left: 4px;
+}

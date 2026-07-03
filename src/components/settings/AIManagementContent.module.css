@@ -1,0 +1,263 @@
+.pathBlock {
+  margin-bottom: 14px;
+}
+
+.pathLabel {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+}
+
+.pathRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.pathDisplay {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.pathCopyButton {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pathCopyButton:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.promptList {
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, transparent);
+  overflow: hidden;
+}
+
+.promptRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.15s ease;
+}
+
+.promptRow:last-child {
+  border-bottom: none;
+}
+
+.promptRow:hover {
+  background: color-mix(in srgb, var(--text-secondary) 4%, transparent);
+}
+
+.promptMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.promptName {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.promptPreview {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.promptMeta {
+  margin-top: 6px;
+  font-size: 10px;
+  color: color-mix(in srgb, var(--text-secondary) 68%, transparent);
+}
+
+.promptActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-top: 2px;
+  opacity: 0.42;
+  transition: opacity 0.15s ease;
+}
+
+.promptRow:hover .promptActions,
+.promptActions:focus-within {
+  opacity: 1;
+}
+
+.iconBtn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iconBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+}
+
+.iconBtnDanger:hover {
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 12%, transparent);
+}
+
+.emptyState {
+  padding: 28px 16px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+
+.formBlock {
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 50%, transparent);
+}
+
+.formField {
+  margin-bottom: 12px;
+}
+
+.formField:last-of-type {
+  margin-bottom: 0;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+}
+
+.formLabelRequired {
+  color: var(--text-error);
+  margin-left: 3px;
+}
+
+.formInput,
+.formTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay-soft);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-accent) 16%, transparent);
+}
+
+.formTextarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.formFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cancelBtn {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.saveBtn {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bg-primary, #1e1e1e);
+  background: var(--text-primary);
+  cursor: pointer;
+}
+
+.saveBtn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.saveBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

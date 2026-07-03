@@ -1,0 +1,148 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.wrap {
+  position: relative;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.providerWrap {
+  flex-shrink: 0;
+}
+
+.profileWrap {
+  min-width: 0;
+  max-width: 112px;
+  flex-shrink: 0;
+}
+
+.modelWrap {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: min(220px, 100%);
+}
+
+.anchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.modelWrap .anchor {
+  width: 100%;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  transition:
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.pill:hover,
+.pillOpen {
+  opacity: 0.92;
+}
+
+.pillLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.chevron {
+  opacity: 0.55;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-normal);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  min-width: 120px;
+  padding: 4px;
+  background: var(--bg-dropdown);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdownPortal {
+  position: fixed;
+  z-index: 10000;
+}
+
+.dropdownScrollable {
+  max-height: 240px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.profileDropdown {
+  min-width: 140px;
+  max-width: min(280px, calc(100vw - 24px));
+}
+
+.modelDropdown {
+  min-width: 140px;
+  max-width: min(320px, calc(100vw - 24px));
+}
+
+.dropdownItem {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: transparent;
+  font-size: 11px;
+  line-height: 1.4;
+  transition: background-color var(--transition-fast);
+}
+
+.modelDropdown .dropdownItem {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownItem:hover {
+  background: var(--bg-list-hover);
+}
+
+.dropdownItemActive {
+  color: var(--text-accent);
+  background: var(--surface-accent-soft);
+}

@@ -1,0 +1,108 @@
+.root {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryStrong {
+  color: var(--text-primary);
+}
+
+.summaryOk {
+  color: color-mix(in srgb, #2f9e44 72%, var(--text-secondary));
+}
+
+.summaryError {
+  color: var(--text-error);
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.32;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease, opacity 0.15s ease;
+}
+
+.header:hover .chevron {
+  opacity: 0.55;
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+.panel {
+  margin-top: 2px;
+}
+
+.panelOpen {
+  animation: browserPanelIn 0.18s ease;
+}
+
+@keyframes browserPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.meta {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.body {
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.55;
+  font-family: Consolas, 'Courier New', monospace;
+  color: color-mix(in srgb, var(--text-primary) 92%, var(--text-secondary));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bodyError {
+  color: var(--text-error);
+  font-family: inherit;
+}

@@ -1,0 +1,115 @@
+/* Common Layout Utilities */
+.flexRow {
+  display: flex;
+  flex-direction: row;
+}
+
+.flexCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.itemsCenter {
+  align-items: center;
+}
+
+.justifyBetween {
+  justify-content: space-between;
+}
+
+.flex1 {
+  flex: 1;
+}
+
+/* Common Button Styles */
+.button {
+  padding: 6px 14px;
+  background-color: var(--bg-button);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.button:hover {
+  background-color: var(--bg-button-hover);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonSecondary {
+  padding: 6px 14px;
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.buttonSecondary:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--text-secondary);
+}
+
+/* Common Input Styles */
+.input {
+  padding: 6px 8px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Common Panel Styles */
+.panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.panelContent {
+  padding: 12px;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background-color: var(--border-subtle);
+  margin: 8px 0;
+}
+
+.dividerVertical {
+  width: 1px;
+  background-color: var(--border-subtle);
+  margin: 0 8px;
+}

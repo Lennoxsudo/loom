@@ -1,0 +1,190 @@
+.imageGenPanel {
+  margin-top: 16px;
+}
+
+.imageGenTabContent {
+  margin-top: 16px;
+}
+
+.modelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modelRow + .modelRow {
+  margin-top: 6px;
+}
+
+.iconBtn {
+  all: unset;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--bg-button);
+  color: var(--text-inverse);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast);
+}
+
+.iconBtn:hover {
+  background: var(--bg-button-hover);
+}
+
+.iconBtnDanger {
+  background: color-mix(in srgb, var(--text-error) 82%, var(--bg-button));
+}
+
+.iconBtnDanger:hover {
+  background: color-mix(in srgb, var(--text-error) 92%, var(--bg-button));
+}
+
+.fetchBtn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--surface-overlay-soft);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.fetchBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--border-primary);
+}
+
+.fetchBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fetchedList {
+  margin-top: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 2px;
+  background: var(--surface-overlay-soft);
+}
+
+.fetchedItem {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color var(--transition-fast);
+}
+
+.fetchedItem:hover {
+  background: var(--bg-hover);
+}
+
+.fetchedHint {
+  margin: 0 0 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.errorText {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-error);
+}
+
+.saveBtn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: var(--bg-button);
+  color: var(--text-inverse);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast);
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: var(--bg-button-hover);
+}
+
+.saveBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.testRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.testBtn {
+  align-self: flex-start;
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.testBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-primary);
+}
+
+.testBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.testResultSuccess,
+.testResultError {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.testResultSuccess {
+  color: var(--text-success, #4ade80);
+}
+
+.testResultError {
+  color: var(--text-error);
+}

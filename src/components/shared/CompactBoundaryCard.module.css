@@ -1,0 +1,46 @@
+.compactWrap {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 12px;
+}
+
+.compactCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 92%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--surface-elevated, rgba(255, 255, 255, 0.03));
+  color: var(--text-muted, #9aa0a6);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compactHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compactToggle {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--accent, #4a9eff);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.summaryBody {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  color: var(--text-secondary, #c4c7c5);
+  font-size: 12px;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+}

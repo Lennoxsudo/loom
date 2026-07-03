@@ -1,0 +1,288 @@
+.secondaryButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.configList {
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, transparent);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sectionHeading {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+}
+
+.skillCard {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.15s ease;
+}
+
+.skillCard:last-child {
+  border-bottom: none;
+}
+
+.skillCard:hover {
+  background: color-mix(in srgb, var(--text-secondary) 4%, transparent);
+}
+
+.skillCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.skillCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.skillCardName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skillCardPreview {
+  margin-top: 3px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skillCardActions {
+  display: flex;
+  gap: 2px;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.skillCard:hover .skillCardActions,
+.skillCardActions:focus-within {
+  opacity: 1;
+}
+
+.skillActionBtn,
+.skillDeleteBtn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.skillActionBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+}
+
+.skillDeleteBtn:hover {
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 12%, transparent);
+}
+
+.skillCardBody {
+  padding: 0 14px 14px;
+}
+
+.skillNewForm {
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 45%, transparent);
+}
+
+.skillFormField {
+  margin-bottom: 12px;
+}
+
+.skillFormLabel {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+}
+
+.skillFormInput,
+.skillTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay-soft);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.skillFormInput:focus,
+.skillTextarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-accent) 16%, transparent);
+}
+
+.skillTextarea {
+  min-height: 120px;
+  margin-top: 0;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.skillCardFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skillSaveBtn {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bg-primary, #1e1e1e);
+  background: var(--text-primary);
+  cursor: pointer;
+}
+
+.skillSaveBtn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.skillSaveBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.skillCancelBtn {
+  all: unset;
+  box-sizing: border-box;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.skillCancelBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.skillsEmpty {
+  padding: 28px 16px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  font-size: 12px;
+  text-align: center;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+
+.skillScopeGroup {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--text-secondary) 5%, transparent);
+}
+
+.skillScopeBtn {
+  all: unset;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.skillScopeBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.skillScopeBtnActive {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  font-weight: 500;
+}
+
+.section {
+  margin-bottom: 8px;
+}
+
+.sectionDescription {
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}

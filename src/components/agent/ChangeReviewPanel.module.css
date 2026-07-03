@@ -1,0 +1,356 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  min-height: 0;
+}
+
+.dock {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: stretch;
+  min-height: 0;
+  position: relative;
+}
+
+.previewSlot {
+  display: flex;
+  flex-shrink: 0;
+  min-height: 0;
+  min-width: 0;
+}
+
+.previewPanel {
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  flex-shrink: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.previewBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.previewBody > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.previewEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.previewSlot > * {
+  height: 100%;
+}
+
+.panelCollapsed {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 100;
+  width: auto;
+  background: transparent;
+  border-left: none;
+  padding: 0;
+}
+
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.toggleButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-secondary) 28%, var(--border-subtle));
+}
+
+.toggleButton:active {
+  transform: scale(0.94);
+}
+
+.toggleButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.chevronIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.empty {
+  padding: 16px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.bulkActions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bulkButton {
+  all: unset;
+  flex: 1;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+}
+
+.acceptAll {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-accent) 12%, transparent);
+}
+
+.discardAll {
+  color: var(--text-secondary);
+}
+
+.row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rowSelected {
+  background: color-mix(in srgb, var(--text-accent) 6%, transparent);
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.rowHeader:hover {
+  background: var(--bg-hover);
+}
+
+.fileNameButton {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+  padding: 2px 0;
+}
+
+.fileNameButton:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fileNameButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.actionButton {
+  all: unset;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+}
+
+.diffBlock {
+  margin: 0;
+  padding: 8px 12px 12px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.diffLoading,
+.diffError {
+  padding: 8px 12px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.addLine {
+  color: #2ea043;
+}
+
+.removeLine {
+  color: #f85149;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.fileToolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  flex-wrap: wrap;
+}
+
+.toolbarButton {
+  all: unset;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+}
+
+.toolbarButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.saveButton {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-accent) 12%, transparent);
+}
+
+.diffLines {
+  max-height: 320px;
+  overflow: auto;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 1.45;
+  background: var(--bg-secondary);
+}
+
+.hunkHeader {
+  padding: 4px 12px;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.diffLine {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.diffLineNo {
+  flex-shrink: 0;
+  width: 52px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.diffLineContent {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.contextLine {
+  color: var(--text-primary);
+}

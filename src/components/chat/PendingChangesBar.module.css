@@ -1,0 +1,214 @@
+.wrap {
+  overflow: hidden;
+}
+
+.wrapInline {
+  margin: 12px 0 4px;
+  padding: 8px 10px 6px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-sidebar) 72%, transparent);
+}
+
+.wrapInline .header {
+  padding: 0 2px 6px;
+}
+
+.wrapInline .headerExpanded {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 65%, transparent);
+  margin-bottom: 2px;
+  padding-bottom: 8px;
+}
+
+.wrapInline .row {
+  padding: 6px 2px;
+}
+
+.wrapOverlay {
+  margin: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-sidebar) 88%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 8px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+  user-select: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.wrapOverlay .header {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--text-secondary) 4%, transparent);
+}
+
+.wrapOverlay .headerExpanded {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  opacity: 0.75;
+}
+
+.title {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  text-transform: none;
+}
+
+.count {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.chevron {
+  display: inline-flex;
+  transition: transform 0.18s ease;
+  opacity: 0.7;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.wrapOverlay .list {
+  padding: 2px 0 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 5px 2px;
+}
+
+.wrapOverlay .row {
+  padding: 6px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+}
+
+.row + .row {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
+}
+
+.fileArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fileButton {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 400;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  opacity: 0.92;
+  transition: opacity 0.15s ease;
+}
+
+.fileButton:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--text-secondary) 50%, transparent);
+  text-underline-offset: 2px;
+}
+
+.stats {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.02em;
+}
+
+.statAdded {
+  color: color-mix(in srgb, #3ecf8e 70%, var(--text-secondary));
+}
+
+.statRemoved {
+  color: color-mix(in srgb, var(--text-error) 75%, var(--text-secondary));
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  all: unset;
+  box-sizing: border-box;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  line-height: 1.3;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.actionBtn:hover {
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+  color: var(--text-secondary);
+}
+
+.actionAccept:hover {
+  color: var(--text-primary);
+}
+
+.actionRollback:hover {
+  color: color-mix(in srgb, var(--text-error) 85%, var(--text-primary));
+}
+
+.listScrollable {
+  overflow-y: auto;
+}

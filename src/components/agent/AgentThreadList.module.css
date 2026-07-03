@@ -1,0 +1,136 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.emptyLeading {
+  width: var(--session-leading-width, 19px);
+  height: var(--session-leading-width, 19px);
+  flex-shrink: 0;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: 8px;
+}
+
+.leading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--session-leading-width, 19px);
+  height: var(--session-leading-width, 19px);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.item:hover {
+  background: var(--bg-hover);
+}
+
+.itemActive {
+  background: var(--bg-list-active);
+}
+
+.mainButton {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.preview {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding-right: 4px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.item:hover .actions,
+.itemActive .actions {
+  opacity: 1;
+}
+
+.iconButton {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--bg-list-hover);
+  color: var(--text-primary);
+}
+
+.renameInput {
+  grid-column: 1 / -1;
+  flex: 1;
+  margin: 6px 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-focus);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}

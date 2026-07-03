@@ -1,0 +1,116 @@
+.root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+}
+
+.rootIconOnly {
+  cursor: pointer;
+  gap: 0;
+}
+
+.usage {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.usageWarning {
+  color: var(--text-warning);
+}
+
+.usageDanger {
+  color: var(--text-error);
+}
+
+.ring {
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+}
+
+.track {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 2.5;
+}
+
+.progress {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.progressWarning {
+  stroke: var(--text-warning);
+}
+
+.progressDanger {
+  stroke: var(--text-error);
+}
+
+.tooltip {
+  position: fixed;
+  padding: 8px 10px;
+  background: var(--bg-dropdown);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  box-shadow: var(--shadow-md);
+}
+
+.tooltipVisible {
+  opacity: 1;
+}
+
+.tooltipHeader {
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--text-primary);
+}
+
+.tooltipHeaderWarning {
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--text-warning);
+}
+
+.tooltipHeaderDanger {
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--text-error);
+}
+
+.tooltipSub {
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotNormal {
+  background: color-mix(in srgb, var(--text-warning) 88%, var(--text-primary));
+}
+
+.dotWarning {
+  background: var(--text-warning);
+}
+
+.dotDanger {
+  background: var(--text-error);
+}

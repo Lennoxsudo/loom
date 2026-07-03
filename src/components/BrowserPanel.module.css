@@ -1,0 +1,138 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-editor);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-header) 92%, transparent);
+}
+
+.navGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.iconBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+  border-color: var(--border-subtle);
+}
+
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.urlInput {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-input) 88%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-mono, 'JetBrains Mono', 'Cascadia Code', Consolas, monospace);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.urlInput::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  font-family: inherit;
+}
+
+.urlInput:focus {
+  border-color: color-mix(in srgb, var(--text-secondary) 35%, var(--border-subtle));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-accent, #007acc) 14%, transparent);
+}
+
+.goBtn {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 450;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.goBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 28%, var(--border-subtle));
+}
+
+.statusBar {
+  padding: 7px 12px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.statusLoading {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-accent, #007acc) 6%, transparent);
+}
+
+.statusWarning {
+  color: #e8c87a;
+  background: color-mix(in srgb, #e8c87a 8%, transparent);
+}
+
+.statusError {
+  color: #f0a0a0;
+  background: color-mix(in srgb, #f0a0a0 8%, transparent);
+}
+
+.frameWrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+
+.frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #fff;
+}

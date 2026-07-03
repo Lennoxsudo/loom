@@ -1,0 +1,32 @@
+.root {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  color: var(--text-inverse);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font: inherit;
+  text-align: left;
+}
+
+.root:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.text {
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

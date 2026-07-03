@@ -1,0 +1,127 @@
+.root {
+  max-width: 920px;
+  padding-bottom: 40px;
+}
+
+.patternList {
+  margin-bottom: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 50%, transparent);
+}
+
+.patternEmpty {
+  padding: 14px 10px;
+  font-size: 11px;
+  text-align: center;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+
+.patternItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  margin-bottom: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.patternItem:last-child {
+  margin-bottom: 0;
+}
+
+.patternItem:hover {
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
+}
+
+.patternText {
+  min-width: 0;
+  font-size: 11px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deleteButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.deleteButton:hover {
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 10%, transparent);
+}
+
+.inputGroup {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay-soft);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-accent) 16%, transparent);
+}
+
+.primaryButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bg-primary, #1e1e1e);
+  background: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.primaryButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -1,0 +1,352 @@
+.shell {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.sideIndicators {
+  position: absolute;
+  right: 100%;
+  bottom: 10px;
+  margin-right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  z-index: 12;
+}
+
+.sideIndicatorWrap {
+  position: relative;
+  pointer-events: auto;
+}
+
+.sideIndicatorCapsule {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 84px;
+  min-height: 26px;
+  padding: 5px 8px 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-sidebar) 80%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.sideIndicatorCapsule:hover,
+.sideIndicatorCapsuleOpen {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-sidebar) 94%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 24%, transparent);
+}
+
+.sideIndicatorLabel {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.sideIndicatorMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.sideIndicatorCount {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sideIndicatorChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  transition: transform var(--transition-normal);
+}
+
+.sideIndicatorChevronOpen {
+  transform: rotate(180deg);
+}
+
+.sideIndicatorDropdown {
+  position: absolute;
+  right: calc(100% + 8px);
+  bottom: 0;
+  min-width: 148px;
+  max-width: 240px;
+  max-height: 220px;
+  overflow: hidden auto;
+  padding: 4px;
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  background: var(--bg-dropdown);
+  box-shadow: var(--shadow-md);
+  z-index: 220;
+}
+
+.sideIndicatorList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sideIndicatorItem {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.sideIndicatorItem:hover:not(:disabled) {
+  background: var(--bg-list-hover);
+}
+
+.sideIndicatorItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sideIndicatorEmpty {
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.card {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    background-color var(--transition-normal);
+}
+
+.card:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus), var(--shadow-sm);
+}
+
+.cardDragOver {
+  border-color: var(--border-focus);
+  background: color-mix(in srgb, var(--border-focus) 8%, var(--bg-panel)) !important;
+}
+
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.imageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.imageThumb {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+}
+
+.imageThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeButton {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.fileGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  max-width: 180px;
+}
+
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 6px;
+  align-items: flex-end;
+}
+
+.attachButton {
+  all: unset;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.attachButton:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+}
+
+.attachButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.textarea {
+  flex: 1;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  overflow-y: hidden;
+  max-height: 160px;
+  min-height: 24px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 10px;
+  flex-wrap: wrap;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.contextRing {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.sendButton {
+  all: unset;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.sendActive {
+  background: var(--bg-button);
+  color: var(--text-inverse);
+  cursor: pointer;
+}
+
+.sendStop {
+  background: var(--chat-stop-bg);
+  color: var(--chat-stop-fg);
+  cursor: pointer;
+}
+
+.sendDisabled {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  opacity: 0.6;
+}

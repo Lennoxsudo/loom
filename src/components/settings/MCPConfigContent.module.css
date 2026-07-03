@@ -1,0 +1,225 @@
+.root {
+  max-width: 920px;
+  padding-bottom: 40px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pageTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.configPath {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sectionHeading {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+}
+
+.serverList {
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, transparent);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.serverCard {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.serverCard:last-child {
+  border-bottom: none;
+}
+
+.serverCard:hover {
+  background: color-mix(in srgb, var(--text-secondary) 4%, transparent);
+}
+
+.serverCardDisabled {
+  opacity: 0.62;
+}
+
+.serverHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.serverInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.serverName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.serverMeta {
+  margin-top: 3px;
+  font-size: 11px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.serverActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.serverCard:hover .serverActions,
+.serverActions:focus-within {
+  opacity: 1;
+}
+
+.actionBtn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.actionBtn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+}
+
+.actionBtnDanger:hover {
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 12%, transparent);
+}
+
+.serverBody {
+  padding: 0 14px 12px;
+}
+
+.toolsList {
+  margin-top: 8px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.toolItem {
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.toolItem:hover {
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.addForm {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 45%, transparent);
+}
+
+.formField {
+  margin-bottom: 10px;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+}
+
+.formFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.emptyState {
+  padding: 24px 16px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  font-size: 12px;
+  text-align: center;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+
+.statusBadge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.statusRunning {
+  color: color-mix(in srgb, #6ee7a0 80%, var(--text-primary));
+  background: color-mix(in srgb, #6ee7a0 10%, transparent);
+}
+
+.statusStopped {
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}

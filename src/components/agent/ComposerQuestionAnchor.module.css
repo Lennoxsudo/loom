@@ -1,0 +1,17 @@
+.anchor {
+  position: relative;
+  overflow: visible;
+}
+
+.overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 35;
+  pointer-events: none;
+}
+
+.overlay > * {
+  pointer-events: auto;
+}

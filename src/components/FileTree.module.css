@@ -1,0 +1,183 @@
+.container {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.virtualList {
+  position: relative;
+}
+
+.row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 26px;
+  animation: fadeInRow 0.1s ease-out;
+}
+
+@keyframes fadeInRow {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.createRow {
+  padding-left: 10px;
+}
+
+.loadingRow {
+  padding-left: 44px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+}
+
+.createInputContainer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  background-color: var(--bg-list-active);
+}
+
+.iconSpacer {
+  width: 12px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconSpacerSmall {
+  width: 12px;
+}
+
+.createInput {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-focus);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 2px 4px;
+  outline: none;
+}
+
+.treeRow {
+  cursor: pointer;
+  padding: 2px 5px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.treeRowFile {
+  cursor: grab;
+}
+
+.treeRowActive {
+  border-color: var(--border-focus);
+}
+
+.treeRowSelected {
+  color: var(--text-inverse);
+  background-color: var(--bg-list-active);
+}
+
+.treeRowClipboard {
+  box-shadow: inset 0 0 0 1px rgba(110, 168, 255, 0.18);
+}
+
+.treeRowCut {
+  opacity: 0.64;
+  border-style: dashed;
+}
+
+.treeRowDropTarget {
+  background-color: var(--bg-list-hover);
+  border: 1px dashed var(--border-focus);
+}
+
+.treeRowDragging {
+  opacity: 0.5;
+}
+
+.treeRow:hover:not(.treeRowActive):not(.treeRowDropTarget) {
+  background-color: var(--bg-list-hover);
+}
+
+.expandIcon {
+  display: inline-block;
+  font-size: 10px;
+  transform: rotate(0deg);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-secondary);
+  will-change: transform;
+}
+
+.expandIconExpanded {
+  transform: rotate(90deg);
+}
+
+.fileIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+}
+
+.fileIconDraggable {
+  cursor: grab;
+}
+
+.fileIconDraggable:hover {
+  transform: scale(1.1);
+}
+
+.fileName {
+  font-size: 13px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.1s ease;
+}
+
+.clipboardBadge {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-left: auto;
+  opacity: 0.88;
+}
+
+.clipboardBadgeCopy {
+  background: #6ca2ff;
+  box-shadow: 0 0 0 1px rgba(108, 162, 255, 0.18);
+}
+
+.clipboardBadgeCut {
+  background: #e8b15d;
+  box-shadow: 0 0 0 1px rgba(232, 177, 93, 0.16);
+}

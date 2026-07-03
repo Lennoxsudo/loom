@@ -1,0 +1,150 @@
+.container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary, #1e1e1e);
+  border-radius: 8px;
+  border-left: 4px solid;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+  pointer-events: auto;
+}
+
+.toast.leaving {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast.success {
+  border-left-color: #4caf50;
+}
+
+.toast.success .icon {
+  color: #4caf50;
+}
+
+.toast.error {
+  border-left-color: #f44336;
+}
+
+.toast.error .icon {
+  color: #f44336;
+}
+
+.toast.warning {
+  border-left-color: #ff9800;
+}
+
+.toast.warning .icon {
+  color: #ff9800;
+}
+
+.toast.info {
+  border-left-color: #2196f3;
+}
+
+.toast.info .icon {
+  color: #2196f3;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary, #e0e0e0);
+  margin-bottom: 2px;
+}
+
+.message {
+  font-size: 13px;
+  color: var(--text-secondary, #b0b0b0);
+  word-wrap: break-word;
+}
+
+.action {
+  margin-top: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-color, #0078d4);
+  background: transparent;
+  border: 1px solid var(--accent-color, #0078d4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action:hover {
+  background: var(--accent-color, #0078d4);
+  color: white;
+}
+
+.close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #808080);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close:hover {
+  color: var(--text-primary, #e0e0e0);
+}
+
+.close svg {
+  width: 100%;
+  height: 100%;
+}

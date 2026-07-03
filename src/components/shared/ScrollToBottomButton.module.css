@@ -1,0 +1,67 @@
+.button {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+  color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
+  background: color-mix(in srgb, var(--bg-sidebar) 80%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+  animation: scrollToBottomIn 0.2s ease;
+}
+
+.button:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-sidebar) 94%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 24%, transparent);
+}
+
+.button:active {
+  transform: translateX(-50%) scale(0.96);
+  opacity: 0.88;
+}
+
+.button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-accent) 42%, transparent);
+  outline-offset: 2px;
+}
+
+.icon {
+  display: block;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  opacity: 0.82;
+  transition: opacity 0.15s ease;
+}
+
+.button:hover .icon {
+  opacity: 1;
+}
+
+@keyframes scrollToBottomIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

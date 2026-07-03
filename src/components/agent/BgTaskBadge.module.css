@@ -1,0 +1,157 @@
+.wrap {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  z-index: 6;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+  color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
+  background: color-mix(in srgb, var(--bg-sidebar) 80%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+  animation: badgeIn 0.2s ease;
+}
+
+.badge:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-sidebar) 94%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 24%, transparent);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #d4a574 80%, #ffffff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, #d4a574 18%, transparent);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes badgeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 260px;
+  max-width: 360px;
+  padding: 6px;
+  background: var(--bg-dropdown);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 220;
+  animation: popoverIn 0.15s ease;
+}
+
+@keyframes popoverIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+}
+
+.popoverTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.killAllBtn {
+  all: unset;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-error) 80%, var(--text-secondary));
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.killAllBtn:hover {
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
+  color: var(--text-error);
+}
+
+.taskList {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.taskRow:hover {
+  background: var(--bg-list-hover);
+}
+
+.taskCmd {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.killBtn {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary));
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.killBtn:hover {
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 10%, transparent);
+}

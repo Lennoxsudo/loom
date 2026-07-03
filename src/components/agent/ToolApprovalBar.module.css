@@ -1,0 +1,214 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.barFooter {
+  padding: 7px 12px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--surface-overlay-border, rgba(255, 255, 255, 0.08)) 100%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft, rgba(255, 255, 255, 0.04)) 55%, transparent);
+}
+
+.barHeader {
+  flex-shrink: 0;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.pendingMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary));
+}
+
+.pendingDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--text-warning, #c9a227) 70%, #ffffff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-warning, #c9a227) 16%, transparent);
+  animation: approvalPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes approvalPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rejectButton,
+.approveButton {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.rejectButton {
+  color: color-mix(in srgb, #e8a0a0 90%, var(--text-primary));
+  background: transparent;
+  border: 1px solid color-mix(in srgb, #f14c4c 20%, transparent);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.rejectButton:hover {
+  color: #f0b0b0;
+  background: color-mix(in srgb, #f14c4c 10%, transparent);
+  border-color: color-mix(in srgb, #f14c4c 40%, transparent);
+}
+
+.approveButton {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2f9e44, #3fb34f);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.approveButton:hover {
+  background: linear-gradient(135deg, #3fb34f, #4fc45f);
+  box-shadow: 0 1px 6px color-mix(in srgb, #2f9e44 30%, transparent);
+}
+
+.approveButton:active,
+.rejectButton:active {
+  opacity: 0.82;
+}
+
+/* Header layout (inline with tool rows / command cards) */
+.barHeader .actions {
+  gap: 4px;
+}
+
+.barHeader .rejectButton,
+.barHeader .approveButton {
+  padding: 3px 10px;
+  border-radius: 7px;
+}
+
+.barHeader .rejectButton {
+  border: 1px solid color-mix(in srgb, var(--surface-overlay-border) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
+}
+
+.barHeader .rejectButton:hover {
+  background: color-mix(in srgb, var(--surface-overlay-soft) 85%, transparent);
+}
+
+.barHeader .approveButton {
+  border: 1px solid color-mix(in srgb, var(--surface-overlay-border) 95%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 88%, #fff);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 2px 0;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--text-secondary) 80%, var(--text-primary));
+}
+
+.badge::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badgeApproved::before {
+  background: color-mix(in srgb, #6ecf8f 85%, var(--text-primary));
+}
+
+.badgeDenied::before {
+  background: color-mix(in srgb, var(--text-error) 85%, var(--text-primary));
+}
+
+.outcomeLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary));
+}
+
+.outcomeApproved {
+  color: color-mix(in srgb, #6ecf8f 75%, var(--text-primary));
+}
+
+.outcomeDenied {
+  color: color-mix(in srgb, var(--text-error) 78%, var(--text-primary));
+}
+
+
+.barHeader .badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-overlay-soft) 100%, transparent);
+  border: 1px solid color-mix(in srgb, var(--surface-overlay-border) 100%, transparent);
+}
+
+.barHeader .badge::before {
+  display: none;
+}
+
+.barHeader .badgeApproved {
+  color: color-mix(in srgb, #6ecf8f 75%, var(--text-primary));
+}
+
+.barHeader .badgeDenied {
+  color: color-mix(in srgb, var(--text-error) 78%, var(--text-primary));
+}

@@ -1,0 +1,33 @@
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background-color: var(--bg-scrollbar);
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--bg-scrollbar-thumb);
+  border-radius: 5px;
+  border: 2px solid var(--bg-app);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--bg-scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

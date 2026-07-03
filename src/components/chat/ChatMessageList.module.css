@@ -1,0 +1,62 @@
+.emptyWrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 14%;
+  color: var(--text-secondary);
+  gap: 10px;
+  user-select: none;
+}
+
+.emptyTitle {
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.listWrap {
+  --chat-content-inset: 16px;
+  --chat-scrollbar-size: 8px;
+
+  flex: 1;
+  height: 100%;
+  position: relative;
+  min-height: 1px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pinnedUserOverlay {
+  position: absolute;
+  top: 0;
+  left: var(--chat-content-inset);
+  right: calc(var(--chat-content-inset) + var(--chat-scrollbar-size));
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pinnedUserOverlay > * {
+  width: 100%;
+  pointer-events: auto;
+}
+
+.messageList {
+  padding: 10px 12px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

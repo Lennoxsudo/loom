@@ -1,0 +1,120 @@
+/* Adapted from https://uiverse.io/JkHuger/ugly-shrimp-50 (MIT, JkHuger) */
+
+.spinner {
+  --session-loader-square: 3px;
+  --session-loader-step: 5px;
+  --session-loader-color: var(--text-secondary);
+  --session-loader-color-active: var(--text-primary);
+  --session-loader-duration: 675ms;
+
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  width: calc(var(--session-loader-square) * 3 + var(--session-loader-step) * 2);
+  height: calc(var(--session-loader-square) * 3 + var(--session-loader-step) * 2);
+}
+
+.square {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--session-loader-square);
+  height: var(--session-loader-square);
+  background: var(--session-loader-color);
+  animation: sessionLoaderFade var(--session-loader-duration) ease-in-out infinite alternate;
+}
+
+.square:nth-child(1) {
+  transform: translate(
+    calc(-50% - var(--session-loader-step)),
+    calc(-50% - var(--session-loader-step))
+  );
+  animation-delay: 0ms;
+}
+
+.square:nth-child(2) {
+  transform: translate(-50%, calc(-50% - var(--session-loader-step)));
+  animation-delay: 75ms;
+}
+
+.square:nth-child(3) {
+  transform: translate(
+    calc(-50% + var(--session-loader-step)),
+    calc(-50% - var(--session-loader-step))
+  );
+  animation-delay: 150ms;
+  animation-direction: alternate;
+}
+
+.square:nth-child(4) {
+  transform: translate(calc(-50% - var(--session-loader-step)), -50%);
+  animation-delay: 225ms;
+}
+
+.square:nth-child(5) {
+  transform: translate(-50%, -50%);
+  animation-delay: 300ms;
+}
+
+.square:nth-child(6) {
+  transform: translate(calc(-50% + var(--session-loader-step)), -50%);
+  animation-delay: 375ms;
+}
+
+.square:nth-child(7) {
+  transform: translate(
+    calc(-50% - var(--session-loader-step)),
+    calc(-50% + var(--session-loader-step))
+  );
+  animation-delay: 450ms;
+}
+
+.square:nth-child(8) {
+  transform: translate(-50%, calc(-50% + var(--session-loader-step)));
+  animation-delay: 525ms;
+}
+
+.square:nth-child(9) {
+  transform: translate(
+    calc(-50% + var(--session-loader-step)),
+    calc(-50% + var(--session-loader-step))
+  );
+  animation-delay: 600ms;
+}
+
+@keyframes sessionLoaderFade {
+  from {
+    opacity: 0;
+    background: var(--session-loader-color);
+  }
+
+  to {
+    opacity: 1;
+    background: var(--session-loader-color-active);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .square:nth-child(n + 2) {
+    display: none;
+  }
+
+  .square:nth-child(1) {
+    transform: translate(-50%, -50%);
+    animation: sessionLoaderFadeReduced var(--session-loader-duration) ease-in-out infinite
+      alternate;
+    animation-delay: 0ms;
+  }
+}
+
+@keyframes sessionLoaderFadeReduced {
+  from {
+    opacity: 0.35;
+    background: var(--session-loader-color);
+  }
+
+  to {
+    opacity: 1;
+    background: var(--session-loader-color-active);
+  }
+}
