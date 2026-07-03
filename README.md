@@ -20,7 +20,7 @@ Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-i
 
 <!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-> **Status:** early open-source release (`0.1.0` manifest; feature milestone ~v0.14.x). Under active development — expect rapid changes.
+> **Status:** first open-source release (`v0.1.0`). Under active development — expect rapid changes.
 
 Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
@@ -151,21 +151,15 @@ Custom agents live in project `.claude/agents/` or `~/.claude/agents/` as Markdo
 | [AGENTS.md](./AGENTS.md) | Contributor & AI-agent development context, directory layout, conventions |
 | [SECURITY.md](./SECURITY.md) | Security policy and vulnerability reporting |
 | [NOTICE](./NOTICE) | Third-party component attributions |
-| [功能清单.md](./功能清单.md) | Full feature inventory (Chinese) |
-| [开发进度.md](./开发进度.md) | Milestones & version history (Chinese) |
 
 ## Roadmap
 
-| Version | Highlights |
-|---------|------------|
-| v0.9.0 | MCP integration, modular AI tools, i18n |
-| v0.10.0 | Change review, Rules, Git workspace, automation |
-| v0.11.0 | Anthropic Extended Thinking |
-| v0.12.0 | Full sub-agent orchestration |
-| v0.13.0 | Prompt Caching, tool-approval UI, auto routing, tool-schema consolidation |
-| v0.14.x | Built-in CBM code graph, auto context compaction, modular core system prompt |
+This is the first public release. Planned / under consideration:
 
-Planned: database connectors, plugin system/marketplace, further context-caching improvements.
+- Database connectors (MySQL / PostgreSQL / Redis)
+- Plugin system & marketplace
+- Continuous integration and prebuilt release binaries
+- Further context-caching and performance improvements
 
 ## Contributing
 
