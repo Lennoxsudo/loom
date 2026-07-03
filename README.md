@@ -1,105 +1,190 @@
+<div align="center">
+
 # Loom
 
-Loom 是一个基于 **Tauri 2 + React 19 + TypeScript** 的桌面代码编辑器与本地开发工作台。它将代码编辑、项目检索、AI Agent、MCP、终端、内嵌浏览器、Live Server 与 Git 工作区整合在同一工作流中——目标不是「带聊天框的编辑器」，而是可本地运行的 AI 辅助 IDE。
+**An AI-native desktop code editor & local development workbench.**
 
-**当前版本：0.1.0**（早期开源版本，功能持续迭代中）
+Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-in code knowledge graph, terminal, embedded browser, Live Server and Git — all in one local workflow.
 
-## 功能概览
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-2021-000000?logo=rust&logoColor=white)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-### 编辑器与工作区
+**English** · [简体中文](./README.zh-CN.md)
 
-- Monaco 多标签编辑、分屏、拖拽重排
-- 文件树、图片预览、自动保存
-- Rust 驱动的全局全文搜索
-- Live Server 静态预览与热重载
+</div>
 
-### AI 与 Agent
+<!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-- 支持 OpenAI、Anthropic、Gemini、Ollama
-- 流式输出、工具调用、思考块、图片附件
-- 按项目分会话；配置与历史保存在本地
-- 子代理编排（Explore / Plan / general-purpose 及自定义代理）
-- 工具审批（always / request / deny）、自动模型路由
-- 上下文预算与会话级压缩
+> **Status:** early open-source release (`0.1.0` manifest; feature milestone ~v0.14.x). Under active development — expect rapid changes.
 
-### 工具与扩展
+Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
-- 内置文件、终端、搜索、Git、浏览器、网页抓取等 Agent 工具
-- **代码图谱（CBM）**：内置 `codebase-memory` sidecar，提供 `graph_index` / `graph_query` / `graph_trace` 三件套
-- MCP 多服务器管理（tools / resources / prompts）
-- Skills 技能加载、图片生成、符号定义跳转
+## Table of Contents
 
-### Git 与自动化
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Local Data](#local-data)
+- [Sub-agent Orchestration](#sub-agent-orchestration)
+- [Documentation](#documentation)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Security](#security)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
-- 可视化 Git 工作区（暂存、提交、分支、Stash、Log、Blame 等）
-- 自动化规则（定时 / cron / 文件变更触发）
-- 多文件变更审查与 Diff 预览
+## Features
 
-### 其他
+### 🧩 Editor & Workspace
 
-- 简体中文 / English
-- Agent 独立窗口、内嵌终端（xterm + PTY）
-- 内嵌浏览器面板
+- Monaco editor: multi-tab, horizontal/vertical split panes, drag-to-rearrange, minimap, 12+ configurable settings
+- File tree with virtual scrolling, lazy loading, drag-move, image preview and autosave
+- Rust-powered global full-text & glob search
+- Live Server: Axum static host + file watching + SSE hot reload
 
-## 快速开始
+### 🤖 AI & Agents
 
-### 环境要求
+- Multiple providers: **OpenAI, Anthropic, Gemini, Ollama** — streaming output, tool calls, thinking blocks, vision/image attachments
+- Single global agent config; **per-project conversations with disk as the single source of truth**
+- Tool approval modes (`always` / `request` / `deny`) and per-agent capabilities (`canExecuteCommands`, `canAccessBrowser`, `canUseGit`, `canUseMcp`)
+- Auto model routing with a configurable fallback chain
+- Anthropic Extended Thinking + Prompt Caching; automatic context compaction with session persistence
+
+### 👥 Sub-agent Orchestration
+
+- Delegate via `Agent` / `Task` (Claude Code-style) to **Explore / Plan / general-purpose** or custom `.claude/agents/*.md`
+- Parallel execution, nesting (depth 5), Fork, git-worktree isolation, MCP inheritance and observability metrics
+
+### 🛠️ Tools & Code Graph
+
+- **21 unified tools**: `term`, `read`, `edit`, `write`, `delete_file`, `search`, `finfo`, `git`, `sym`, `fetch`, `browser`, `ask`, `todo`, `skill`, `graph_index` / `graph_query` / `graph_trace`, and sub-agent tools
+- **Built-in code knowledge graph (CBM)**: a bundled [`codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) sidecar exposing `graph_*` tools with Cypher queries and a 3D graph UI
+- **MCP**: multi-server lifecycle, tools / resources / prompts, Claude config sync
+- Skills, image generation, and symbol-definition jump (TS/TSX/Vue)
+
+### 🌿 Git & Automation
+
+- Visual Git workspace: stage/commit/push, branches, stash, log, blame, merge
+- Automation rules: `interval` / `cron` / `file_change` triggers
+- Multi-file change review with diff preview
+
+### 🌐 Other
+
+- Internationalization (简体中文 / English)
+- Standalone agent window, embedded terminal (xterm + PTY), embedded browser
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| Frontend | React 19, TypeScript 5.8, Vite 7, Zustand, Monaco Editor, `@dnd-kit`, `react-virtuoso`, `xterm` |
+| Desktop | Tauri 2, Rust 2021, Tokio, Axum, Reqwest, Notify, `portable-pty` |
+| Testing | Vitest, Testing Library, jsdom, fast-check; Cargo Test |
+
+## Getting Started
+
+### Prerequisites
 
 - Node.js 18+
-- Rust / Cargo 及对应桌面工具链
-- Windows 需 WebView2 与 Visual Studio Build Tools
+- Rust toolchain (Cargo)
+- Windows: WebView2 + Visual Studio Build Tools
 
-### 开发
+### Run in development
 
 ```bash
-git clone https://github.com/Lennoxsudo/loom.git
-cd loom
+git clone https://github.com/Lennoxsudo/Aiasprrato.git
+cd Aiasprrato
 npm install
-npm run fetch:cbm      # 下载代码图谱 sidecar（开发/打包前需要）
-npm run tauri dev      # 启动开发模式
+npm run fetch:cbm      # download the code-graph sidecar (required before dev/build)
+npm run tauri dev      # start the app in dev mode (Vite + Tauri)
 ```
 
-### 构建与测试
+### Build & test
 
 ```bash
-npm run tauri:build    # 打包桌面应用（会自动 fetch CBM）
-npm test               # 前端测试
-npm run lint           # ESLint
-cd src-tauri && cargo test   # Rust 测试
+npm run tauri:build          # package the desktop app (auto-fetches CBM)
+npm test                     # frontend tests (Vitest)
+npm run lint                 # ESLint
+npm run format               # Prettier
+cd src-tauri && cargo test   # Rust tests
 ```
 
-首次运行前，请在 **设置 → AI 配置** 中填入所用模型的 API Key 与 Endpoint。
+## Configuration
 
-## 数据存储
+On first launch, open **Settings → AI** and add the API key / endpoint for each provider you use. MCP servers are configured under **Settings → MCP**, and the code graph under **Settings → Code Graph**.
 
-用户数据保存在本机，不会进入 git 仓库：
+## Local Data
 
-| 内容 | 典型路径（Windows） |
-|------|---------------------|
-| Agent 配置与会话 | `%APPDATA%\com.administrator.loom\agent-data\` |
-| AI Provider 配置 | `%USERPROFILE%\Loom\ai-config.json` |
-| 代码图谱索引 | `%APPDATA%\Loom\cbm\` |
+User data stays on your machine and is never committed to the repository:
 
-## 技术栈
+| Data | Typical location (Windows) |
+|------|----------------------------|
+| Agent config & conversations | `%APPDATA%\\io.github.lennoxsudo.loom\\` |
+| AI provider config | `%USERPROFILE%\\Loom\\ai-config.json` |
+| Code graph index cache | `%APPDATA%\\Loom\\cbm\\` |
 
-| 层 | 技术 |
-|----|------|
-| 前端 | React 19、TypeScript、Vite 7、Zustand、Monaco Editor |
-| 桌面 | Tauri 2、Rust、Tokio、Axum |
-| 测试 | Vitest、Testing Library、Cargo Test |
+API keys and provider credentials are stored locally only.
 
-## 文档
+## Sub-agent Orchestration
 
-| 文档 | 说明 |
-|------|------|
-| [AGENTS.md](./AGENTS.md) | 贡献者与 AI 代理的开发上下文 |
-| [SECURITY.md](./SECURITY.md) | 安全漏洞报告 |
-| [NOTICE](./NOTICE) | 第三方组件声明 |
+The main agent delegates to sub-agents through Claude Code-style tools; all providers run through a unified `runAgentLoop`.
 
-## 贡献
+| Entry point | Description |
+|-------------|-------------|
+| `Agent` / `Task` | Recommended; `subagent_type` selects a built-in or custom agent |
+| `run_subagent` / `run_subagents` | Legacy-compatible names; support parallel runs |
 
-欢迎 Issue 与 Pull Request。修改代码前建议阅读 [AGENTS.md](./AGENTS.md) 了解目录结构与开发约定。
+**Built-in types:** Explore (read-only exploration), Plan (read-only planning), general-purpose (writable, nestable).
 
-## 许可证
+Custom agents live in project `.claude/agents/` or `~/.claude/agents/` as Markdown files (YAML frontmatter + prompt body). Concurrency, context budget and tool rounds are decided by the main agent at call time (`allowed_tools`, `max_tool_rounds`, `context_budget`).
 
-[Apache-2.0](./LICENSE)
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [AGENTS.md](./AGENTS.md) | Contributor & AI-agent development context, directory layout, conventions |
+| [SECURITY.md](./SECURITY.md) | Security policy and vulnerability reporting |
+| [NOTICE](./NOTICE) | Third-party component attributions |
+| [功能清单.md](./功能清单.md) | Full feature inventory (Chinese) |
+| [开发进度.md](./开发进度.md) | Milestones & version history (Chinese) |
+
+## Roadmap
+
+| Version | Highlights |
+|---------|------------|
+| v0.9.0 | MCP integration, modular AI tools, i18n |
+| v0.10.0 | Change review, Rules, Git workspace, automation |
+| v0.11.0 | Anthropic Extended Thinking |
+| v0.12.0 | Full sub-agent orchestration |
+| v0.13.0 | Prompt Caching, tool-approval UI, auto routing, tool-schema consolidation |
+| v0.14.x | Built-in CBM code graph, auto context compaction, modular core system prompt |
+
+Planned: database connectors, plugin system/marketplace, further context-caching improvements.
+
+## Contributing
+
+Contributions are welcome — please open an issue or pull request.
+
+- Read [AGENTS.md](./AGENTS.md) first to understand the directory structure and conventions.
+- Conventions: TypeScript strict mode, function components + hooks, CSS Modules, fine-grained Zustand selectors.
+- Please run `npm run lint` and `npm test` (and `cargo test` for Rust changes) before submitting a PR.
+
+## Security
+
+Loom can execute commands, read/write files and make network requests on the host machine. Only use it with code and providers you trust, and review tool calls before approving them. To report a vulnerability, see [SECURITY.md](./SECURITY.md).
+
+## License
+
+Licensed under the [Apache License 2.0](./LICENSE). Third-party notices are listed in [NOTICE](./NOTICE).
+
+## Acknowledgements
+
+- [Tauri](https://tauri.app/), [React](https://react.dev/), [Monaco Editor](https://microsoft.github.io/monaco-editor/), [Zustand](https://github.com/pmndrs/zustand), [xterm.js](https://xtermjs.org/)
+- [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (MIT) — powers the built-in code knowledge graph
+- Anthropic's Claude Code — inspiration for the sub-agent model
