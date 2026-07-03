@@ -20,7 +20,7 @@
 
 <!-- TODO: 在此处放一张应用截图或演示 GIF，例如 ![Loom](docs/assets/screenshot.png) -->
 
-> **状态：**首个开源版本（`v0.1.0`）。持续活跃开发中，变化较快。
+> **状态：** 首个开源版本 · `v0.1.0` · 持续活跃开发中，变化较快。
 
 Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 辅助的 IDE：Agent 可以读写你的代码、调用工具、编排子代理，并通过内置的代码知识图谱理解你的项目。
 
@@ -52,7 +52,12 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 
 - 多 Provider：**OpenAI、Anthropic、Gemini、Ollama** — 流式输出、工具调用、思考块、图片附件
 - 单 Agent 全局配置；**按项目分会话，磁盘为唯一真相源**
-- 工具审批模式（`always` / `request` / `deny`）与按 Agent 能力开关（`canExecuteCommands`、`canAccessBrowser`、`canUseGit`、`canUseMcp`）
+- **工具审批模式** — 执行前如何对待工具调用：
+  - `always` — 自动执行，不询问
+  - `request` — 先征求用户同意
+  - `deny` — 禁止调用
+- **Agent 能力开关** — 控制 Agent 可使用的权限：
+  - `canExecuteCommands` · `canAccessBrowser` · `canUseGit` · `canUseMcp`
 - 自动模型路由与 fallback 链
 - Anthropic Extended Thinking + Prompt Caching；自动上下文压缩与会话持久化
 
@@ -63,15 +68,27 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 
 ### 🛠️ 工具与代码图谱
 
-- **21 个统一工具**：`term`、`read`、`edit`、`write`、`delete_file`、`search`、`finfo`、`git`、`sym`、`fetch`、`browser`、`ask`、`todo`、`skill`、`graph_index` / `graph_query` / `graph_trace`，以及子代理工具
-- **内置代码知识图谱（CBM）**：捆绑 [`codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) sidecar，提供 `graph_*` 工具、Cypher 查询与 3D 图谱 UI
+Loom 提供 **21 个统一 Agent 工具**，按类别划分如下：
+
+| 类别 | 工具 |
+|------|------|
+| 文件与搜索 | `read`、`edit`、`write`、`delete_file`、`search`、`finfo`、`sym` |
+| 终端与网络 | `term`、`fetch`、`browser` |
+| Git 与工作流 | `git`、`ask`、`todo`、`skill` |
+| 代码图谱（CBM） | `graph_index`、`graph_query`、`graph_trace` |
+| 子代理 | `Agent`、`Task`、`run_subagent`、`run_subagents` |
+
+- **内置代码知识图谱（CBM）**：捆绑 [`codebase-memory`](https://github.com/DeusData/codebase-memory-mcp) sidecar（`npm run fetch:cbm` 下载），支持 Cypher 查询与 3D 图谱 UI
 - **MCP**：多服务器生命周期、tools / resources / prompts、Claude 配置联动
 - Skills 技能、图片生成、符号定义跳转（TS/TSX/Vue）
 
 ### 🌿 Git 与自动化
 
 - 可视化 Git 工作区：暂存/提交/推送、分支、Stash、Log、Blame、合并
-- 自动化规则：`interval` / `cron` / `file_change` 触发器
+- **自动化规则** — 触发器类型：
+  - `interval` — 按固定间隔执行
+  - `cron` — 按 cron 表达式定时执行
+  - `file_change` — 监听文件变更时执行
 - 多文件变更审查与 Diff 预览
 
 ### 🌐 其他
@@ -98,8 +115,8 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 ### 开发运行
 
 ```bash
-git clone https://github.com/Lennoxsudo/Aiasprrato.git
-cd Aiasprrato
+git clone https://github.com/Lennoxsudo/loom.git
+cd loom
 npm install
 npm run fetch:cbm      # 下载代码图谱 sidecar（开发/打包前必需）
 npm run tauri dev      # 启动开发模式（Vite + Tauri）
@@ -125,9 +142,9 @@ cd src-tauri && cargo test   # Rust 测试
 
 | 内容 | 典型路径（Windows） |
 |------|---------------------|
-| Agent 配置与会话 | `%APPDATA%\\io.github.lennoxsudo.loom\\` |
-| AI Provider 配置 | `%USERPROFILE%\\Loom\\ai-config.json` |
-| 代码图谱索引缓存 | `%APPDATA%\\Loom\\cbm\\` |
+| Agent 配置与会话 | `%APPDATA%\com.administrator.loom\agent-data\` |
+| AI Provider 配置 | `%USERPROFILE%\Loom\ai-config.json` |
+| 代码图谱索引缓存 | `%APPDATA%\Loom\cbm\` |
 
 API Key 与凭据仅保存在本地。
 
@@ -140,9 +157,20 @@ API Key 与凭据仅保存在本地。
 | `Agent` / `Task` | 推荐；`subagent_type` 选择内置或自定义代理 |
 | `run_subagent` / `run_subagents` | 兼容旧工具名；支持并行 |
 
-**内置类型：**Explore（只读探索）、Plan（只读规划）、general-purpose（可写、可嵌套）。
+**内置类型：** Explore（只读探索）、Plan（只读规划）、general-purpose（可写、可嵌套）。
 
-自定义代理放在项目 `.claude/agents/` 或 `~/.claude/agents/`（Markdown + YAML frontmatter）。并发、上下文预算、工具轮次由主代理在调用参数中决定（`allowed_tools`、`max_tool_rounds`、`context_budget`）。
+**自定义代理** — Markdown + YAML frontmatter，放在：
+
+- `.claude/agents/`（项目级）
+- `~/.claude/agents/`（用户级）
+
+**调用时限制**（由主代理在调用参数中指定，非设置页硬编码）：
+
+| 参数 | 说明 |
+|------|------|
+| `allowed_tools` | 子代理允许使用的工具 |
+| `max_tool_rounds` | 最大工具调用轮次 |
+| `context_budget` | 本次运行的上下文预算 |
 
 ## 文档
 
@@ -180,5 +208,5 @@ Loom 可在宿主机上执行命令、读写文件并发起网络请求。请只
 ## 致谢
 
 - [Tauri](https://tauri.app/)、[React](https://react.dev/)、[Monaco Editor](https://microsoft.github.io/monaco-editor/)、[Zustand](https://github.com/pmndrs/zustand)、[xterm.js](https://xtermjs.org/)
-- [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)（MIT）— 驱动内置代码知识图谱
+- [codebase-memory](https://github.com/DeusData/codebase-memory-mcp)（MIT）— 驱动内置代码知识图谱
 - Anthropic Claude Code — 子代理模型的灵感来源

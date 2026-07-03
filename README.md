@@ -20,7 +20,7 @@ Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-i
 
 <!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-> **Status:** first open-source release (`v0.1.0`). Under active development — expect rapid changes.
+> **Status:** First open-source release · `v0.1.0` · Under active development — expect rapid changes.
 
 Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
@@ -52,7 +52,12 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 
 - Multiple providers: **OpenAI, Anthropic, Gemini, Ollama** — streaming output, tool calls, thinking blocks, vision/image attachments
 - Single global agent config; **per-project conversations with disk as the single source of truth**
-- Tool approval modes (`always` / `request` / `deny`) and per-agent capabilities (`canExecuteCommands`, `canAccessBrowser`, `canUseGit`, `canUseMcp`)
+- **Tool approval** — how each tool runs before execution:
+  - `always` — run without asking
+  - `request` — ask for approval first
+  - `deny` — block the tool
+- **Agent capability switches** — what the agent is allowed to do:
+  - `canExecuteCommands` · `canAccessBrowser` · `canUseGit` · `canUseMcp`
 - Auto model routing with a configurable fallback chain
 - Anthropic Extended Thinking + Prompt Caching; automatic context compaction with session persistence
 
@@ -63,15 +68,27 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 
 ### 🛠️ Tools & Code Graph
 
-- **21 unified tools**: `term`, `read`, `edit`, `write`, `delete_file`, `search`, `finfo`, `git`, `sym`, `fetch`, `browser`, `ask`, `todo`, `skill`, `graph_index` / `graph_query` / `graph_trace`, and sub-agent tools
-- **Built-in code knowledge graph (CBM)**: a bundled [`codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp) sidecar exposing `graph_*` tools with Cypher queries and a 3D graph UI
+Loom exposes **21 unified agent tools**, grouped as follows:
+
+| Group | Tools |
+|-------|-------|
+| Files & search | `read`, `edit`, `write`, `delete_file`, `search`, `finfo`, `sym` |
+| Terminal & network | `term`, `fetch`, `browser` |
+| Git & workflow | `git`, `ask`, `todo`, `skill` |
+| Code graph (CBM) | `graph_index`, `graph_query`, `graph_trace` |
+| Sub-agents | `Agent`, `Task`, `run_subagent`, `run_subagents` |
+
+- **Built-in code knowledge graph (CBM)**: bundled [`codebase-memory`](https://github.com/DeusData/codebase-memory-mcp) sidecar (`npm run fetch:cbm`) — Cypher queries and a 3D graph UI
 - **MCP**: multi-server lifecycle, tools / resources / prompts, Claude config sync
 - Skills, image generation, and symbol-definition jump (TS/TSX/Vue)
 
 ### 🌿 Git & Automation
 
 - Visual Git workspace: stage/commit/push, branches, stash, log, blame, merge
-- Automation rules: `interval` / `cron` / `file_change` triggers
+- **Automation rules** — trigger types:
+  - `interval` — run on a fixed interval
+  - `cron` — run on a cron schedule
+  - `file_change` — run when watched files change
 - Multi-file change review with diff preview
 
 ### 🌐 Other
@@ -98,8 +115,8 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 ### Run in development
 
 ```bash
-git clone https://github.com/Lennoxsudo/Aiasprrato.git
-cd Aiasprrato
+git clone https://github.com/Lennoxsudo/loom.git
+cd loom
 npm install
 npm run fetch:cbm      # download the code-graph sidecar (required before dev/build)
 npm run tauri dev      # start the app in dev mode (Vite + Tauri)
@@ -125,9 +142,9 @@ User data stays on your machine and is never committed to the repository:
 
 | Data | Typical location (Windows) |
 |------|----------------------------|
-| Agent config & conversations | `%APPDATA%\\io.github.lennoxsudo.loom\\` |
-| AI provider config | `%USERPROFILE%\\Loom\\ai-config.json` |
-| Code graph index cache | `%APPDATA%\\Loom\\cbm\\` |
+| Agent config & conversations | `%APPDATA%\com.administrator.loom\agent-data\` |
+| AI provider config | `%USERPROFILE%\Loom\ai-config.json` |
+| Code graph index cache | `%APPDATA%\Loom\cbm\` |
 
 API keys and provider credentials are stored locally only.
 
@@ -142,7 +159,18 @@ The main agent delegates to sub-agents through Claude Code-style tools; all prov
 
 **Built-in types:** Explore (read-only exploration), Plan (read-only planning), general-purpose (writable, nestable).
 
-Custom agents live in project `.claude/agents/` or `~/.claude/agents/` as Markdown files (YAML frontmatter + prompt body). Concurrency, context budget and tool rounds are decided by the main agent at call time (`allowed_tools`, `max_tool_rounds`, `context_budget`).
+**Custom agents** — Markdown + YAML frontmatter in:
+
+- `.claude/agents/` (project)
+- `~/.claude/agents/` (user)
+
+**Call-time limits** (set by the main agent, not hard-coded in settings):
+
+| Parameter | Purpose |
+|-----------|---------|
+| `allowed_tools` | Which tools the sub-agent may use |
+| `max_tool_rounds` | Maximum tool-call rounds |
+| `context_budget` | Context window budget for the run |
 
 ## Documentation
 
@@ -180,5 +208,5 @@ Licensed under the [Apache License 2.0](./LICENSE). Third-party notices are list
 ## Acknowledgements
 
 - [Tauri](https://tauri.app/), [React](https://react.dev/), [Monaco Editor](https://microsoft.github.io/monaco-editor/), [Zustand](https://github.com/pmndrs/zustand), [xterm.js](https://xtermjs.org/)
-- [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (MIT) — powers the built-in code knowledge graph
+- [codebase-memory](https://github.com/DeusData/codebase-memory-mcp) (MIT) — powers the built-in code knowledge graph
 - Anthropic's Claude Code — inspiration for the sub-agent model
