@@ -154,7 +154,7 @@ mod windows_impl {
 
 #[cfg(target_os = "linux")]
 mod linux_impl {
-    use landlock::{AccessFs, PathBeneath, PathFd, Ruleset, ABI};
+    use landlock::{AccessFs, CompatLevel, Compatible, PathBeneath, PathFd, Ruleset, ABI};
 
     /// Apply Landlock filesystem restrictions to the **current thread**.
     ///
@@ -165,25 +165,39 @@ mod linux_impl {
     /// - `read_roots`: paths allowed for read-only access
     /// - `write_roots`: paths allowed for read+write access
     ///
-    /// **BestEffort**: If the kernel doesn't support Landlock or has an older
-    /// ABI, this function logs a warning and returns `Ok(())` instead of
-    /// failing. This prevents command execution from breaking on systems
-    /// without Landlock support. The application-layer checks (L1) remain
-    /// as the fallback.
+    /// **BestEffort**: If the kernel doesn't support Landlock at all, this
+    /// function logs a warning and returns `Ok(())` instead of failing.
+    /// V1 access rights are required (`HardRequirement`); V2–V7 rights are
+    /// opportunistically handled (`BestEffort`) and silently dropped on
+    /// older kernels. This prevents command execution from breaking on
+    /// systems without Landlock support. The application-layer checks (L1)
+    /// remain as the fallback.
     ///
     /// **Network gap**: Landlock only restricts filesystem access, not network
     /// egress. Linux OS-level network isolation (equivalent to macOS Seatbelt's
     /// `(deny network*)`) is not available via Landlock and remains a gap.
     /// Network access control on Linux relies entirely on L1 (`validate_network`).
     pub fn apply_landlock(read_roots: &[String], write_roots: &[String]) -> Result<(), String> {
-        // Probe the best available ABI. On kernels without Landlock, this
-        // returns ABI::Unsupported and create() will fail — we handle that
-        // gracefully below.
-        let abi = ABI::V2;
-
+        // Use the crate's recommended two-tier ABI strategy:
+        //
+        // 1. HardRequirement + V1: guarantees the kernel supports at least the
+        //    first Landlock ABI (Linux 5.13+). If not, `handle_access` returns
+        //    an error and we fall back to application-layer checks.
+        //
+        // 2. BestEffort + V7: opportunistically handles access rights from
+        //    newer ABIs (V2–V7). Unsupported rights are silently dropped by
+        //    the crate — no error, no crash.
+        //
+        // Path rules use V7 access sets with BestEffort (inherited from the
+        // ruleset) so that on newer kernels, operations like `rename` between
+        // directories (AccessFs::Refer, V2+) are allowed within roots.
         let mut ruleset = match Ruleset::default()
-            .handle_access(AccessFs::from_all(abi))
-            .map_err(|e| format!("Landlock handle_access 失败: {e}"))?
+            .set_compatibility(CompatLevel::HardRequirement)
+            .handle_access(AccessFs::from_all(ABI::V1))
+            .map_err(|e| format!("Landlock handle_access (V1) 失败: {e}"))?
+            .set_compatibility(CompatLevel::BestEffort)
+            .handle_access(AccessFs::from_all(ABI::V7))
+            .map_err(|e| format!("Landlock handle_access (V7) 失败: {e}"))?
             .create()
         {
             Ok(rs) => rs,
@@ -199,7 +213,8 @@ mod linux_impl {
             }
         };
 
-        // Allow read access to readable roots
+        // Allow read access to readable roots.
+        // Uses V7 access set; BestEffort (inherited) drops unsupported rights.
         for root in read_roots {
             let fd = match PathFd::new(root) {
                 Ok(fd) => fd,
@@ -208,7 +223,7 @@ mod linux_impl {
                     continue;
                 }
             };
-            ruleset = match ruleset.add_rule(PathBeneath::new(fd, AccessFs::from_read(abi))) {
+            ruleset = match ruleset.add_rule(PathBeneath::new(fd, AccessFs::from_read(ABI::V7))) {
                 Ok(rs) => rs,
                 Err(e) => {
                     eprintln!("Landlock: 跳过无法添加规则的路径 {root}: {e}");
@@ -217,7 +232,7 @@ mod linux_impl {
             };
         }
 
-        // Allow read+write access to writable roots
+        // Allow read+write access to writable roots.
         for root in write_roots {
             let fd = match PathFd::new(root) {
                 Ok(fd) => fd,
@@ -226,7 +241,7 @@ mod linux_impl {
                     continue;
                 }
             };
-            ruleset = match ruleset.add_rule(PathBeneath::new(fd, AccessFs::from_all(abi))) {
+            ruleset = match ruleset.add_rule(PathBeneath::new(fd, AccessFs::from_all(ABI::V7))) {
                 Ok(rs) => rs,
                 Err(e) => {
                     eprintln!("Landlock: 跳过无法添加规则的路径 {root}: {e}");

