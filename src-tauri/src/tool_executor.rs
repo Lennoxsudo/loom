@@ -166,7 +166,7 @@ pub fn execute_tool(
                 execute_get_file_info(&args, project_path)
             }
         }
-        "fetch_web_content" => execute_fetch_web_content(&args),
+        "fetch_web_content" => execute_fetch_web_content(&args, sandbox_ctx),
         "load_skill" => execute_load_skill(&args, project_path, app_data_path),
         _ => Err(format!("Unknown backend tool: {}", tool_name)),
     };
@@ -690,10 +690,41 @@ fn execute_get_file_info(
     Ok(serde_json::to_string_pretty(&info).unwrap_or_else(|_| format!("{:?}", info)))
 }
 
-fn execute_fetch_web_content(args: &serde_json::Value) -> Result<String, String> {
+fn execute_fetch_web_content(
+    args: &serde_json::Value,
+    sandbox_ctx: &SandboxContext,
+) -> Result<String, String> {
     let url = args["url"]
         .as_str()
         .ok_or("Missing required parameter: url")?;
+
+    // L3: Validate network access — fetch_web_content is inherently a network
+    // operation.  When network is disabled (and not in trusted mode), reject
+    // the request before any HTTP call is made.  This prevents SSRF and data
+    // exfiltration even when the sandbox network mode is set to "off".
+    if !sandbox_ctx.is_trusted() && !sandbox_ctx.network_enabled {
+        let err = format!(
+            "网络访问被禁止（当前档位未启用网络）。fetch_web_content 请求: {}",
+            url
+        );
+        crate::audit_log::log_decision(
+            "ai",
+            "network",
+            url,
+            "denied",
+            Some(&err),
+            &sandbox_ctx.access_mode,
+        );
+        return Err(err);
+    }
+    crate::audit_log::log_decision(
+        "ai",
+        "network",
+        url,
+        "allowed",
+        Some("trusted or network enabled"),
+        &sandbox_ctx.access_mode,
+    );
 
     let method = args["method"].as_str().map(|s| s.to_string());
     let headers = args["headers"].as_object().map(|obj| {
@@ -1054,5 +1085,57 @@ mod tests {
         
         assert_eq!(msgs_anthropic[1].role, "tool");
         assert_eq!(msgs_anthropic[1].content, serde_json::Value::String("file contents".to_string()));
+    }
+
+    #[test]
+    fn test_fetch_web_content_blocked_when_network_disabled() {
+        let sandbox_ctx = SandboxContext {
+            readable_roots: vec![],
+            writable_roots: vec![],
+            access_mode: "auto".to_string(),
+            network_enabled: false,
+        };
+        let args = serde_json::json!({"url": "https://evil.com/exfil"});
+        let result = execute_fetch_web_content(&args, &sandbox_ctx);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("网络访问被禁止"));
+    }
+
+    #[test]
+    fn test_fetch_web_content_allowed_when_network_enabled() {
+        let sandbox_ctx = SandboxContext {
+            readable_roots: vec![],
+            writable_roots: vec![],
+            access_mode: "auto".to_string(),
+            network_enabled: true,
+        };
+        let args = serde_json::json!({"url": "https://127.0.0.1:1/nonexistent"});
+        // Network is enabled, so validation passes — the actual HTTP request
+        // will fail with a connection error, not a sandbox denial.
+        let result = execute_fetch_web_content(&args, &sandbox_ctx);
+        assert!(result.is_err()); // connection refused, not sandbox block
+        let err = result.unwrap_err();
+        assert!(
+            !err.contains("网络访问被禁止"),
+            "should not be blocked by sandbox when network is enabled"
+        );
+    }
+
+    #[test]
+    fn test_fetch_web_content_allowed_in_trusted_mode() {
+        let sandbox_ctx = SandboxContext {
+            readable_roots: vec![],
+            writable_roots: vec![],
+            access_mode: "full_access".to_string(),
+            network_enabled: false,
+        };
+        let args = serde_json::json!({"url": "https://127.0.0.1:1/nonexistent"});
+        let result = execute_fetch_web_content(&args, &sandbox_ctx);
+        assert!(result.is_err()); // connection refused, not sandbox block
+        let err = result.unwrap_err();
+        assert!(
+            !err.contains("网络访问被禁止"),
+            "trusted mode should bypass network check"
+        );
     }
 }

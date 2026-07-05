@@ -353,6 +353,13 @@ automation::agent_automation_record_run,
                 let _ = config_paths::migrate_legacy_app_data_dir(&app_data_dir);
             }
 
+            // P2: Configure on-disk audit log persistence so sandbox
+            // decisions survive application restarts.
+            if let Ok(config_dir) = config_paths::dot_config_dir() {
+                let _ = std::fs::create_dir_all(&config_dir);
+                audit_log::set_log_file(config_dir.join("audit.log"));
+            }
+
             // 显式设置窗口图标（从嵌入的 PNG 解码为 RGBA）
             let icon_bytes = include_bytes!("../icons/icon.png");
             if let Ok(img) = image::load_from_memory(icon_bytes) {

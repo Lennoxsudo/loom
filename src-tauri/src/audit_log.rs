@@ -2,10 +2,12 @@
 //!
 //! Every sandbox validation (read, write, command, network, dangerous command)
 //! records a structured entry. Entries are kept in an in-memory ring buffer
-//! capped at [`MAX_AUDIT_ENTRIES`]. The buffer can be queried via Tauri
+//! capped at [`MAX_AUDIT_ENTRIES`] **and** appended to a JSONL file on disk
+//! so they survive application restarts. The buffer can be queried via Tauri
 //! commands for the frontend audit log panel.
 
 use serde::Serialize;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
 
@@ -44,8 +46,46 @@ const MAX_AUDIT_ENTRIES: usize = 500;
 static AUDIT_LOG: Lazy<Mutex<Vec<AuditEntry>>> =
     Lazy::new(|| Mutex::new(Vec::new()));
 
+/// Optional on-disk log file path (JSONL). Set once during app startup via
+/// [`set_log_file`]. When set, every recorded entry is appended to this file
+/// in addition to the in-memory ring buffer, ensuring audit data survives
+/// application restarts.
+static AUDIT_FILE: Lazy<Mutex<Option<PathBuf>>> =
+    Lazy::new(|| Mutex::new(None));
+
+/// Set the on-disk audit log file path. Called once during app startup.
+/// When set, [`record`] appends each entry as a JSON line to this file.
+pub fn set_log_file(path: PathBuf) {
+    if let Ok(mut f) = AUDIT_FILE.lock() {
+        *f = Some(path);
+    }
+}
+
 /// Record a single audit entry.
+///
+/// The entry is stored in the in-memory ring buffer **and** appended to the
+/// on-disk JSONL file (if configured via [`set_log_file`]). Disk write
+/// failures are silently ignored — the in-memory buffer remains the source
+/// of truth for the current session, and the file is best-effort persistence.
 pub fn record(entry: AuditEntry) {
+    // Append to disk first (best-effort) so the entry survives even if the
+    // in-memory push panics for some reason.
+    if let Ok(file_guard) = AUDIT_FILE.lock() {
+        if let Some(ref path) = *file_guard {
+            if let Ok(json) = serde_json::to_string(&entry) {
+                use std::io::Write;
+                // Open in append mode; create if missing.
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(path)
+                {
+                    let _ = writeln!(f, "{json}");
+                }
+            }
+        }
+    }
+
     if let Ok(mut log) = AUDIT_LOG.lock() {
         log.push(entry);
         if log.len() > MAX_AUDIT_ENTRIES {
@@ -92,10 +132,16 @@ pub fn get_entries(limit: Option<usize>) -> Vec<AuditEntry> {
         .collect()
 }
 
-/// Clear all audit entries.
+/// Clear all audit entries, both in-memory and on-disk.
 pub fn clear() {
     if let Ok(mut log) = AUDIT_LOG.lock() {
         log.clear();
+    }
+    // Truncate the on-disk file as well.
+    if let Ok(file_guard) = AUDIT_FILE.lock() {
+        if let Some(ref path) = *file_guard {
+            let _ = std::fs::File::create(path); // truncate
+        }
     }
 }
 
@@ -224,5 +270,51 @@ mod tests {
         // Newest first: allowed entry was added last
         assert!(entries[0].reason.is_none(), "allowed entry should have no reason");
         assert!(entries[1].reason.is_some(), "denied entry should have a reason");
+    }
+
+    #[test]
+    fn disk_persistence_writes_jsonl() {
+        let _guard = TEST_LOCK.lock().unwrap();
+        let p = "test://dp/";
+
+        // Use a unique temp file so concurrent tests don't interfere.
+        let temp = std::env::temp_dir().join(format!(
+            "loom_audit_test_{}.jsonl",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+
+        set_log_file(temp.clone());
+        log_decision("ai", "read", &format!("{p}entry1"), "denied", Some("outside roots"), "auto");
+        log_decision("ai", "write", &format!("{p}entry2"), "allowed", None, "auto");
+
+        // Read the file back and verify it contains 2 JSONL lines.
+        let content = std::fs::read_to_string(&temp).expect("audit log file should exist");
+        let lines: Vec<&str> = content.trim().lines().collect();
+        assert_eq!(lines.len(), 2, "expected 2 JSONL entries on disk");
+
+        // Each line must be valid JSON with the expected fields.
+        let e1: serde_json::Value =
+            serde_json::from_str(lines[0]).expect("first line must be valid JSON");
+        assert_eq!(e1["action"], "read");
+        assert_eq!(e1["decision"], "denied");
+
+        let e2: serde_json::Value =
+            serde_json::from_str(lines[1]).expect("second line must be valid JSON");
+        assert_eq!(e2["action"], "write");
+        assert_eq!(e2["decision"], "allowed");
+
+        // clear() should truncate the file.
+        clear();
+        let after = std::fs::read_to_string(&temp).unwrap_or_default();
+        assert!(after.is_empty(), "clear() should truncate the on-disk file");
+
+        // Cleanup: unset the log file so other tests don't write to it.
+        if let Ok(mut f) = AUDIT_FILE.lock() {
+            *f = None;
+        }
+        let _ = std::fs::remove_file(&temp);
     }
 }

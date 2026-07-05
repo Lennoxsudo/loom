@@ -4,14 +4,43 @@
 //!
 //! | Platform | Mechanism | Effect |
 //! |----------|-----------|--------|
-//! | Windows  | Job Object | Child processes killed when Loom exits; cannot escape |
-//! | Linux    | Landlock   | Filesystem restricted to readable/writable roots |
-//! | macOS    | Seatbelt   | Filesystem + network restricted via `sandbox-exec` |
+//! | Windows  | Job Object | Process lifecycle only — child processes killed when Loom exits |
+//! | Linux    | Landlock   | Filesystem restricted to readable/writable roots (kernel-enforced) |
+//! | macOS    | Seatbelt   | Filesystem + network restricted via `sandbox-exec` (kernel-enforced) |
+//!
+//! ## Windows Limitations (Important)
+//!
+//! The Windows Job Object provides **process lifecycle isolation only**:
+//! it ensures all child processes are killed when Loom exits
+//! (`KILL_ON_JOB_CLOSE`) and that unhandled exceptions crash the process
+//! (`DIE_ON_UNHANDLED_EXCEPTION`).
+//!
+//! It does **NOT** provide filesystem or network isolation. On Windows,
+//! all file/network access control is enforced solely at L1 (application
+//! layer) via `validate_read`, `validate_write`, `validate_network`, and
+//! `validate_command_file_access`. A compromised agent process that calls
+//! Win32 APIs directly could bypass these application-layer checks.
+//!
+//! Full kernel-level filesystem isolation on Windows would require a
+//! write-restricted token approach:
+//! 1. `CreateRestrictedToken` with `WRITE_RESTRICTED` to create a token
+//!    that can only write to objects granting access to a specific SID
+//! 2. `AllocateAndInitializeSid` to create a synthetic `sandbox-write` SID
+//! 3. `SetEntriesInAcl` + `SetNamedSecurityInfo` to add the SID to the
+//!    project directory's DACL
+//! 4. `CreateProcessAsUserW` to spawn the child with the restricted token
+//!
+//! This is a known gap and tracked as a future enhancement.
 //!
 //! On non-target platforms, all functions are no-ops.
 
 // ============================================================================
 // Windows implementation — Job Object (P1)
+//
+// IMPORTANT: The Job Object provides process lifecycle management ONLY.
+// It does NOT restrict filesystem, network, or registry access.
+// See the module-level documentation for details on Windows limitations
+// and the roadmap for write-restricted token support.
 // ============================================================================
 
 #[cfg(windows)]
@@ -21,7 +50,7 @@ mod windows_impl {
     use windows_sys::Win32::System::JobObjects::{
         AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
         SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-        JOB_OBJECT_LIMIT_BREAKAWAY_OK, JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION,
+        JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION,
         JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
     };
     use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE};
@@ -32,8 +61,13 @@ mod windows_impl {
     unsafe impl Send for SafeHandle {}
     unsafe impl Sync for SafeHandle {}
 
-    /// Global Job Object handle. When Loom exits, the handle is closed by the OS
-    /// and all assigned processes are killed (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE).
+    /// Global Job Object handle. When Loom exits, the handle is closed by
+    /// the OS and all assigned processes are killed.
+    ///
+    /// NOTE: This does NOT prevent processes from escaping the Job Object
+    /// via `CreateProcess` with `CREATE_BREAKAWAY_FROM_JOB`. We deliberately
+    /// do NOT set `BREAKAWAY_OK` — instead, breakaway attempts will fail,
+    /// keeping all descendants inside the Job Object.
     static JOB_HANDLE: OnceLock<SafeHandle> = OnceLock::new();
 
     fn ensure_job_object() -> Result<HANDLE, String> {
@@ -46,10 +80,17 @@ mod windows_impl {
             return Err("CreateJobObjectW 失败".to_string());
         }
 
+        // KILL_ON_JOB_CLOSE: When the Job Object handle is closed (including
+        //   process exit/crash), all processes in the job are terminated.
+        // DIE_ON_UNHANDLED_EXCEPTION: An unhandled exception in any process
+        //   in the job terminates the entire job.
+        //
+        // We deliberately omit BREAKAWAY_OK: without it, child processes
+        // cannot use CREATE_BREAKAWAY_FROM_JOB to escape, ensuring ALL
+        // descendants remain in the Job Object and are killed on Loom exit.
         let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
-        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-            | JOB_OBJECT_LIMIT_BREAKAWAY_OK
-            | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
+        limits.BasicLimitInformation.LimitFlags =
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
 
         let result = unsafe {
             SetInformationJobObject(
@@ -123,35 +164,86 @@ mod linux_impl {
     ///
     /// - `read_roots`: paths allowed for read-only access
     /// - `write_roots`: paths allowed for read+write access
+    ///
+    /// **BestEffort**: If the kernel doesn't support Landlock or has an older
+    /// ABI, this function logs a warning and returns `Ok(())` instead of
+    /// failing. This prevents command execution from breaking on systems
+    /// without Landlock support. The application-layer checks (L1) remain
+    /// as the fallback.
+    ///
+    /// **Network gap**: Landlock only restricts filesystem access, not network
+    /// egress. Linux OS-level network isolation (equivalent to macOS Seatbelt's
+    /// `(deny network*)`) is not available via Landlock and remains a gap.
+    /// Network access control on Linux relies entirely on L1 (`validate_network`).
     pub fn apply_landlock(read_roots: &[String], write_roots: &[String]) -> Result<(), String> {
+        // Probe the best available ABI. On kernels without Landlock, this
+        // returns ABI::Unsupported and create() will fail — we handle that
+        // gracefully below.
         let abi = ABI::V2;
-        let mut ruleset = Ruleset::default()
+
+        let mut ruleset = match Ruleset::default()
             .handle_access(AccessFs::from_all(abi))
             .map_err(|e| format!("Landlock handle_access 失败: {e}"))?
             .create()
-            .map_err(|e| format!("Landlock create 失败: {e}"))?;
+        {
+            Ok(rs) => rs,
+            Err(e) => {
+                // Landlock not available on this kernel — fail open but log.
+                // Application-layer checks (validate_read/write/command) remain.
+                eprintln!(
+                    "Landlock: kernel does not support Landlock ({}), \
+                     falling back to application-layer only",
+                    e
+                );
+                return Ok(());
+            }
+        };
 
         // Allow read access to readable roots
         for root in read_roots {
-            let fd = PathFd::new(root)
-                .map_err(|e| format!("Landlock: 无法打开路径 {root}: {e}"))?;
-            ruleset = ruleset
-                .add_rule(PathBeneath::new(fd, AccessFs::from_read(abi)))
-                .map_err(|e| format!("Landlock add_rule(read) 失败 for {root}: {e}"))?;
+            let fd = match PathFd::new(root) {
+                Ok(fd) => fd,
+                Err(e) => {
+                    eprintln!("Landlock: 跳过无法打开的路径 {root}: {e}");
+                    continue;
+                }
+            };
+            ruleset = match ruleset.add_rule(PathBeneath::new(fd, AccessFs::from_read(abi))) {
+                Ok(rs) => rs,
+                Err(e) => {
+                    eprintln!("Landlock: 跳过无法添加规则的路径 {root}: {e}");
+                    continue;
+                }
+            };
         }
 
         // Allow read+write access to writable roots
         for root in write_roots {
-            let fd = PathFd::new(root)
-                .map_err(|e| format!("Landlock: 无法打开路径 {root}: {e}"))?;
-            ruleset = ruleset
-                .add_rule(PathBeneath::new(fd, AccessFs::from_all(abi)))
-                .map_err(|e| format!("Landlock add_rule(write) 失败 for {root}: {e}"))?;
+            let fd = match PathFd::new(root) {
+                Ok(fd) => fd,
+                Err(e) => {
+                    eprintln!("Landlock: 跳过无法打开的路径 {root}: {e}");
+                    continue;
+                }
+            };
+            ruleset = match ruleset.add_rule(PathBeneath::new(fd, AccessFs::from_all(abi))) {
+                Ok(rs) => rs,
+                Err(e) => {
+                    eprintln!("Landlock: 跳过无法添加规则的路径 {root}: {e}");
+                    continue;
+                }
+            };
         }
 
-        ruleset
-            .restrict_self()
-            .map_err(|e| format!("Landlock restrict_self 失败: {e}"))?;
+        // BestEffort: if restrict_self fails (e.g. unprivileged user on old
+        // kernel), don't crash the spawn — log and continue.
+        if let Err(e) = ruleset.restrict_self() {
+            eprintln!(
+                "Landlock: restrict_self 失败 ({}), \
+                 子进程将在无 Landlock 限制下运行（应用层校验仍然生效）",
+                e
+            );
+        }
 
         Ok(())
     }
@@ -160,13 +252,20 @@ mod linux_impl {
     /// This function stores the roots so that `pre_exec` can call `apply_landlock`.
     ///
     /// Returns a closure suitable for `Command::pre_exec()`.
+    ///
+    /// **BestEffort**: The closure never returns `Err` — if Landlock fails,
+    /// the child runs without OS-level isolation but application-layer checks
+    /// still apply. This prevents command execution from breaking on systems
+    /// without Landlock support.
     pub fn make_pre_exec_hook(
         read_roots: Vec<String>,
         write_roots: Vec<String>,
     ) -> Box<dyn FnMut() -> std::io::Result<()> + Send + Sync> {
         Box::new(move || {
-            apply_landlock(&read_roots, &write_roots)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+            // BestEffort: apply_landlock always returns Ok, so this never
+            // fails the spawn. On unsupported kernels, it's a no-op.
+            let _ = apply_landlock(&read_roots, &write_roots);
+            Ok(())
         })
     }
 
@@ -236,6 +335,26 @@ mod macos_impl {
         profile.push_str("(allow file-write* (subpath \"/tmp\"))\n");
         profile.push_str("(allow file-read* (subpath \"/private/tmp\"))\n");
         profile.push_str("(allow file-write* (subpath \"/private/tmp\"))\n");
+
+        // System library/framework read whitelist (required for dyld to load
+        // shared libraries and launch binaries). Without these, (deny default)
+        // blocks dyld from reading the shared cache and system frameworks,
+        // causing most commands to fail at launch.
+        profile.push_str("(allow file-read* (subpath \"/usr/lib\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/usr/share\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/usr/bin\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/bin\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/sbin\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/System\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/Library\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/etc\"))\n");
+        profile.push_str("(allow file-read* (subpath \"/private/etc\"))\n");
+        // dyld shared cache
+        profile.push_str("(allow file-read* (subpath \"/private/var/db/dyld\"))\n");
+        // Device files
+        profile.push_str("(allow file-read* (subpath \"/dev\"))\n");
+        profile.push_str("(allow file-write* (subpath \"/dev/null\"))\n");
+        profile.push_str("(allow file-write* (subpath \"/dev/urandom\"))\n");
 
         // Network
         if network_enabled {
@@ -383,5 +502,24 @@ mod tests {
         let wrapped = wrap_with_seatbelt("ls -la", &[], &["/tmp/p".to_string()], false);
         assert!(wrapped.starts_with("sandbox-exec -p "));
         assert!(wrapped.contains("ls -la"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn seatbelt_profile_includes_system_library_paths() {
+        let profile = generate_seatbelt_profile(
+            &["/Users/test/project".to_string()],
+            &["/Users/test/project".to_string()],
+            false,
+        );
+        // dyld needs these to launch binaries
+        assert!(profile.contains("\"/usr/lib\""), "must allow reading /usr/lib");
+        assert!(profile.contains("\"/System\""), "must allow reading /System");
+        assert!(profile.contains("\"/bin\""), "must allow reading /bin");
+        assert!(profile.contains("\"/usr/bin\""), "must allow reading /usr/bin");
+        assert!(
+            profile.contains("\"/private/var/db/dyld\""),
+            "must allow reading dyld shared cache"
+        );
     }
 }
