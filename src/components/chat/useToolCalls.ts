@@ -155,8 +155,20 @@ function needsChatApproval(
     return true;
   }
   if (accessMode === 'auto') {
-    // auto 模式：命令、文件写入/变更、Git 操作、MCP 工具均需审批
-    return summary.type === 'command' || summary.type === 'file' || summary.type === 'git' || summary.type === 'mcp';
+    // auto 模式：仅删除文件、危险命令模式、显式标记需审批的工具才弹卡片
+    // 普通写入/编辑、普通命令执行、Git 操作、MCP 工具直接放行
+    if (summary.type === 'command') {
+      // 命令类：只有匹配危险模式（rm -rf, sudo, git push 等）才需审批
+      return requiresConfirmation(toolCall.function.name, parsedArgs, accessMode);
+    }
+    if (summary.type === 'file') {
+      // 文件类：只有删除操作才需审批
+      const action = typeof parsedArgs.action === 'string' ? parsedArgs.action.toLowerCase() : '';
+      const toolName = toolCall.function.name.toLowerCase();
+      return toolName.includes('delete') || action === 'delete';
+    }
+    // git / mcp 直接放行
+    return false;
   }
   return requiresConfirmation(toolCall.function.name, parsedArgs, accessMode);
 }

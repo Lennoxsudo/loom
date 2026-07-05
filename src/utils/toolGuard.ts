@@ -66,7 +66,7 @@ const DEFAULT_ACCESS_MODE_POLICIES: Record<AgentAccessMode, AccessModePolicy> = 
     blockCriticalPatterns: false,
   },
   auto: {
-    confirmCommands: true,
+    confirmCommands: false,
     confirmWrites: false,
     blockCriticalPatterns: false,
   },
@@ -216,18 +216,18 @@ export function requiresConfirmation(
   accessMode: AgentAccessMode,
   policy: GuardPolicy = DEFAULT_GUARD_POLICY
 ): boolean {
-  // Critical dangerous patterns ALWAYS require confirmation, even in
-  // full_access mode. This ensures commands like `rm -rf /` and `git push`
-  // can never execute without explicit user approval.
+  // full_access 模式：全部放行，不做任何审批拦截
+  if (accessMode === 'full_access') {
+    return false;
+  }
+
+  // Critical dangerous patterns require confirmation in non-full_access modes.
+  // This ensures commands like `rm -rf /` and `git push` can never execute
+  // without explicit user approval in read_only / auto modes.
   const criticalRules = matchDangerousRules(toolName, args, policy);
   const patternRules = criticalRules.filter((rule) => rule.patterns && rule.patterns.length > 0);
   if (patternRules.length > 0) {
     return true;
-  }
-
-  // full_access 模式：除危险模式外，全部工具直接放行，不做审批拦截
-  if (accessMode === 'full_access') {
-    return false;
   }
 
   const resolvedName = resolveToUnderlyingTool(toolName);

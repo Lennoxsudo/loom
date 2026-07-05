@@ -82,7 +82,10 @@ export function shouldRequestApproval(accessMode: AgentAccessMode, toolName: str
   if (accessMode !== 'auto') {
     return false;
   }
-  return isCommandTool(toolName) || isWriteOrMutateTool(toolName);
+  // auto 模式：仅删除文件需要审批。
+  // 普通命令执行、文件写入/编辑由 requiresConfirmation 按危险模式判断。
+  const normalized = normalizeToolNameForAccess(toolName);
+  return normalized === 'delete_file';
 }
 
 export function isToolFilteredInReadOnlyProviderList(toolName: string): boolean {

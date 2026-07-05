@@ -23,12 +23,12 @@ describe('agentAccessMode', () => {
     expect(shouldBlockTool('read_only', 'run_command')).toBe(true);
   });
 
-  it('requests approval for commands and write tools in auto mode', () => {
-    expect(shouldRequestApproval('auto', 'run_command')).toBe(true);
-    expect(shouldRequestApproval('auto', 'write')).toBe(true);
-    expect(shouldRequestApproval('auto', 'edit_file')).toBe(true);
+  it('requests approval only for delete_file in auto mode', () => {
+    expect(shouldRequestApproval('auto', 'run_command')).toBe(false);
+    expect(shouldRequestApproval('auto', 'write')).toBe(false);
+    expect(shouldRequestApproval('auto', 'edit_file')).toBe(false);
     expect(shouldRequestApproval('auto', 'delete_file')).toBe(true);
-    expect(shouldRequestApproval('auto', 'create_folder')).toBe(true);
+    expect(shouldRequestApproval('auto', 'create_folder')).toBe(false);
     expect(shouldRequestApproval('auto', 'read')).toBe(false);
     expect(shouldRequestApproval('auto', 'search_content')).toBe(false);
     expect(shouldRequestApproval('full_access', 'run_command')).toBe(false);

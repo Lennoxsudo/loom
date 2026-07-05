@@ -430,22 +430,28 @@ describe('ToolGuard', () => {
 });
 
 describe('requiresConfirmation', () => {
-  it('always confirms dangerous command patterns', () => {
+  it('confirms dangerous command patterns in auto mode', () => {
     expect(
-      requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'full_access')
+      requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'auto')
     ).toBe(true);
   });
 
-  it('confirms commands in auto mode', () => {
-    expect(requiresConfirmation('run_command', { command: 'npm test' }, 'auto')).toBe(true);
+  it('skips dangerous command patterns in full_access mode', () => {
+    expect(
+      requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'full_access')
+    ).toBe(false);
+  });
+
+  it('skips normal commands in auto mode', () => {
+    expect(requiresConfirmation('run_command', { command: 'npm test' }, 'auto')).toBe(false);
   });
 
   it('skips normal commands in full_access mode', () => {
     expect(requiresConfirmation('run_command', { command: 'npm test' }, 'full_access')).toBe(false);
   });
 
-  it('always confirms delete_file', () => {
-    expect(requiresConfirmation('delete_file', { path: '/tmp/a.txt' }, 'full_access')).toBe(true);
+  it('skips delete_file in full_access mode', () => {
+    expect(requiresConfirmation('delete_file', { path: '/tmp/a.txt' }, 'full_access')).toBe(false);
   });
 });
 
