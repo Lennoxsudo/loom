@@ -231,13 +231,7 @@ export function requiresConfirmation(
   }
 
   const resolvedName = resolveToUnderlyingTool(toolName);
-  const rules = matchDangerousRules(toolName, args, policy);
-  const patternRules = rules.filter((rule) => rule.patterns && rule.patterns.length > 0);
-  if (patternRules.length > 0) {
-    return true;
-  }
-
-  const explicitConfirmRules = rules.filter((rule) => rule.requiresConfirmation);
+  const explicitConfirmRules = criticalRules.filter((rule) => rule.requiresConfirmation);
   if (explicitConfirmRules.length > 0) {
     return true;
   }

