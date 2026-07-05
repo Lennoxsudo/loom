@@ -14,6 +14,7 @@ use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
 
 use crate::sandbox::{self, SandboxState};
+use crate::sandbox_os;
 
 // ============================================================================
 // Terminal Buffer - Ring buffer for terminal output
@@ -388,6 +389,132 @@ fn enrich_terminal_path() -> String {
     parts.join(if cfg!(target_os = "windows") { ";" } else { ":" })
 }
 
+// ============================================================================
+// P1: Environment sanitization — strip secrets, inject whitelist only
+// ============================================================================
+
+/// Environment variable whitelist for AI-spawned processes.
+///
+/// Only these variables are passed through to child processes. Everything else
+/// (including API keys, tokens, credentials) is stripped to prevent leakage.
+const ENV_WHITELIST: &[&str] = &[
+    // System essentials (Windows)
+    "SYSTEMROOT",
+    "SYSTEMDRIVE",
+    "WINDIR",
+    "TEMP",
+    "TMP",
+    "PROGRAMFILES",
+    "PROGRAMFILES(X86)",
+    "PROGRAMDATA",
+    "COMPUTERNAME",
+    "USERNAME",
+    "USERDOMAIN",
+    "APPDATA",
+    "LOCALAPPDATA",
+    "USERPROFILE",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "PATHEXT",
+    "COMSPEC",
+    "NUMBER_OF_PROCESSORS",
+    "PROCESSOR_ARCHITECTURE",
+    "OS",
+    // System essentials (Unix)
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TERM",
+    "SHELL",
+    "TMPDIR",
+    // Development tooling (safe, non-secret)
+    "PATH",
+    "RUST_BACKTRACE",
+    "RUST_LOG",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+    "GOPATH",
+    "GOROOT",
+    "JAVA_HOME",
+    "NODE_OPTIONS",
+    "NPM_CONFIG_CACHE",
+    "PYTHONPATH",
+    "VIRTUAL_ENV",
+    // Locale
+    "TZ",
+];
+
+/// Variable name substrings that indicate secrets — denied even if somehow
+/// in the whitelist (defense-in-depth).
+const SECRET_PATTERNS: &[&str] = &[
+    "KEY",
+    "SECRET",
+    "TOKEN",
+    "PASSWORD",
+    "PASSWD",
+    "CREDENTIAL",
+    "API_KEY",
+    "APIKEY",
+    "AUTH",
+    "PRIVATE",
+    "CERT",
+    "SSHPASS",
+    "GPG",
+    "AWS_",
+    "AZURE_",
+    "GITHUB_",
+    "GITLAB_",
+    "OPENAI_",
+    "ANTHROPIC_",
+    "GOOGLE_",
+    "STRIPE_",
+    "DATABASE_URL",
+    "DSN",
+];
+
+/// Sanitize the environment for AI-spawned processes.
+///
+/// Returns a filtered `HashMap` containing only whitelisted variables, with
+/// any secret-containing names removed. This prevents the AI agent from
+/// accessing API keys, tokens, or credentials via inherited environment.
+pub fn sanitize_environment() -> std::collections::HashMap<String, String> {
+    let mut env: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+
+    for key in ENV_WHITELIST {
+        if let Ok(value) = std::env::var(key) {
+            // Defense-in-depth: never pass through variables that look like
+            // secrets, even if they're in the whitelist.
+            let upper = key.to_ascii_uppercase();
+            if SECRET_PATTERNS.iter().any(|p| upper.contains(p)) {
+                continue;
+            }
+            env.insert(key.to_string(), value);
+        }
+    }
+
+    // Always inject the enriched PATH so tools are findable
+    env.insert("PATH".to_string(), enrich_terminal_path());
+
+    env
+}
+
+/// Apply sanitized environment to a `std::process::Command`.
+pub fn apply_sanitized_env(cmd: &mut std::process::Command) {
+    cmd.env_clear();
+    for (k, v) in sanitize_environment() {
+        cmd.env(k, v);
+    }
+}
+
+/// Apply sanitized environment to a `tokio::process::Command`.
+fn apply_sanitized_env_tokio(cmd: &mut tokio::process::Command) {
+    cmd.env_clear();
+    for (k, v) in sanitize_environment() {
+        cmd.env(k, v);
+    }
+}
+
 fn printable_ratio(text: &str) -> f64 {
     let total = text.chars().count().max(1) as f64;
     let printable = text
@@ -491,7 +618,13 @@ pub fn create_terminal_internal(
     if let Some(ref dir) = working_dir {
         cmd.cwd(dir);
     }
-    cmd.env("PATH", enrich_terminal_path());
+
+    // P1: Sanitize environment — strip secrets, inject whitelist only.
+    // PTY terminals spawned for AI sessions must not inherit API keys/tokens.
+    cmd.env_clear();
+    for (k, v) in sanitize_environment() {
+        cmd.env(k, v);
+    }
 
     let mut shell_type = primary_shell.to_string();
     let mut spawn_result = pair.slave.spawn_command(cmd);
@@ -673,7 +806,16 @@ pub fn write_to_terminal(
     terminal_id: Option<String>,
     source: Option<String>,
     state: State<'_, TerminalState>,
+    sandbox_state: State<'_, crate::sandbox::SandboxState>,
 ) -> Result<(), String> {
+    // P0: When AI writes to PTY, validate that command execution is allowed.
+    // This prevents the AI from bypassing `execute_command` restrictions by
+    // writing directly to the PTY terminal.
+    if source.as_deref() == Some("ai") {
+        let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
+        sandbox_ctx.validate_command_allowed()?;
+    }
+
     let active = state
         .active_terminal_id
         .lock()
@@ -1079,7 +1221,9 @@ pub async fn execute_command(
 
     let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
     sandbox_ctx.validate_command_allowed()?;
+    sandbox_ctx.validate_dangerous_command(&command)?;
     sandbox_ctx.validate_network(&command)?;
+    sandbox_ctx.validate_command_file_access(&command)?;
     if let Some(ref dir) = working_dir {
         sandbox_ctx.validate_command_cwd(Some(std::path::Path::new(dir)))?;
     }
@@ -1158,6 +1302,39 @@ pub async fn execute_command(
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
 
+    // P1: Sanitize environment — strip secrets, inject whitelist only
+    apply_sanitized_env_tokio(&mut cmd);
+
+    // P2: Linux Landlock — restrict filesystem in child before exec
+    #[cfg(target_os = "linux")]
+    {
+        if !sandbox_ctx.is_trusted() && !sandbox_ctx.writable_roots.is_empty() {
+            let read_roots = sandbox_ctx.effective_readable_roots().to_vec();
+            let write_roots = sandbox_ctx.writable_roots.clone();
+            unsafe {
+                cmd.pre_exec(sandbox_os::make_landlock_pre_exec(read_roots, write_roots));
+            }
+        }
+    }
+
+    // P2: macOS Seatbelt — wrap command with sandbox-exec profile
+    #[cfg(target_os = "macos")]
+    {
+        if !sandbox_ctx.is_trusted() && !sandbox_ctx.writable_roots.is_empty() {
+            let profile = sandbox_os::generate_seatbelt_profile(
+                sandbox_ctx.effective_readable_roots(),
+                &sandbox_ctx.writable_roots,
+                sandbox_ctx.network_enabled,
+            );
+            cmd = tokio::process::Command::new("sandbox-exec");
+            cmd.args(["-p", &profile, "sh", "-c", &actual_command]);
+            cmd.stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .stdin(Stdio::null());
+            apply_sanitized_env_tokio(&mut cmd);
+        }
+    }
+
     // Hide console window on Windows
     #[cfg(target_os = "windows")]
     {
@@ -1173,6 +1350,11 @@ pub async fn execute_command(
     }
 
     let mut child = cmd.spawn().map_err(|e| format!("启动命令失败: {e}"))?;
+
+    // P1: Assign process to Job Object for OS-level isolation
+    if let Some(pid) = child.id() {
+        let _ = sandbox_os::assign_process_to_job(pid);
+    }
 
     let stdout = child.stdout.take().ok_or("无法获取 stdout")?;
     let stderr = child.stderr.take().ok_or("无法获取 stderr")?;
@@ -1399,7 +1581,9 @@ pub fn execute_command_bg(
 
     let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
     sandbox_ctx.validate_command_allowed()?;
+    sandbox_ctx.validate_dangerous_command(&command)?;
     sandbox_ctx.validate_network(&command)?;
+    sandbox_ctx.validate_command_file_access(&command)?;
     if let Some(ref dir) = working_dir {
         sandbox_ctx.validate_command_cwd(Some(std::path::Path::new(dir)))?;
     }
@@ -1410,6 +1594,40 @@ pub fn execute_command_bg(
     cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
+
+    // P1: Sanitize environment — strip secrets, inject whitelist only
+    apply_sanitized_env(&mut cmd);
+
+    // P2: Linux Landlock — restrict filesystem in child before exec
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::process::CommandExt;
+        if !sandbox_ctx.is_trusted() && !sandbox_ctx.writable_roots.is_empty() {
+            let read_roots = sandbox_ctx.effective_readable_roots().to_vec();
+            let write_roots = sandbox_ctx.writable_roots.clone();
+            unsafe {
+                cmd.pre_exec(sandbox_os::make_landlock_pre_exec(read_roots, write_roots));
+            }
+        }
+    }
+
+    // P2: macOS Seatbelt — wrap command with sandbox-exec profile
+    #[cfg(target_os = "macos")]
+    {
+        if !sandbox_ctx.is_trusted() && !sandbox_ctx.writable_roots.is_empty() {
+            let profile = sandbox_os::generate_seatbelt_profile(
+                sandbox_ctx.effective_readable_roots(),
+                &sandbox_ctx.writable_roots,
+                sandbox_ctx.network_enabled,
+            );
+            cmd = std::process::Command::new("sandbox-exec");
+            cmd.args(["-p", &profile, "sh", "-c", &command]);
+            cmd.stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .stdin(Stdio::null());
+            apply_sanitized_env(&mut cmd);
+        }
+    }
 
     #[cfg(target_os = "windows")]
     {
@@ -1426,6 +1644,10 @@ pub fn execute_command_bg(
 
     let mut child = cmd.spawn().map_err(|e| format!("启动后台命令失败: {e}"))?;
     let pid = child.id();
+
+    // P1: Assign process to Job Object for OS-level isolation
+    let _ = sandbox_os::assign_process_to_job(pid);
+
     let stdout_handle = child.stdout.take();
     let stderr_handle = child.stderr.take();
 

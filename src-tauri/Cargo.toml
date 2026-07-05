@@ -54,3 +54,16 @@ futures-util = "0.3"
 notify = "6"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "net", "time", "fs", "process"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
+
+# P1 sandbox: Windows Job Object + restricted token for OS-level process isolation
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+    "Win32_Security",
+] }
+
+# P2 sandbox: Linux Landlock for kernel-level filesystem isolation
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = "0.4"

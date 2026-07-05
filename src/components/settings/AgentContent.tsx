@@ -30,10 +30,11 @@ import {
   SettingsSelect,
   SettingsToggle,
 } from './SettingsPrimitives';
+import { AuditLogPanel } from '../agent/AuditLogPanel';
 
 type AccessMode = 'read_only' | 'auto' | 'full_access';
 
-export type AgentSettingsSection = 'general' | 'behavior' | 'subagent';
+export type AgentSettingsSection = 'general' | 'behavior' | 'subagent' | 'audit';
 
 export type AgentContentProps = {
   variant?: 'page' | 'panel';
@@ -164,7 +165,9 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
       ? t.settingsAgent.nav.general
       : section === 'behavior'
         ? t.settingsAgent.groups.behavior
-        : t.settingsAgent.subagent.title;
+        : section === 'subagent'
+          ? t.settingsAgent.subagent.title
+          : 'Audit Log';
 
   const renderStoragePath = (panel = false) => {
     if (loading) {
@@ -299,6 +302,16 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
                 />
               }
             />
+          </section>
+        )}
+
+        {section === 'audit' && (
+          <section className={panelStyles.block}>
+            <h3 className={panelStyles.blockTitle}>Sandbox Audit Log</h3>
+            <p className={panelStyles.blockDesc} style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
+              Structured record of every sandbox decision (allow/deny) for AI tool calls.
+            </p>
+            <AuditLogPanel />
           </section>
         )}
       </>

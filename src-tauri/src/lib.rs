@@ -20,6 +20,8 @@ mod mcp;
 mod terminal;
 mod tool_executor;
 mod sandbox;
+mod sandbox_os;
+mod audit_log;
 
 mod config_paths;
 mod debug_log;
@@ -338,8 +340,15 @@ automation::agent_automation_record_run,
             cbm::commands::cbm_ui_status,
             cbm::commands::cbm_start_ui,
             cbm::commands::cbm_stop_ui,
+            // P2: Audit log commands
+            audit_log::get_audit_logs,
+            audit_log::clear_audit_logs,
+            audit_log::audit_log_count,
         ])
         .setup(|app| {
+            // P1: Initialize OS-level sandbox (Windows Job Object)
+            sandbox_os::init_sandbox();
+
             if let Ok(app_data_dir) = app.path().app_data_dir() {
                 let _ = config_paths::migrate_legacy_app_data_dir(&app_data_dir);
             }
@@ -413,7 +422,7 @@ mod tests {
         let path = unique_temp_path("read_file_content_ok");
         fs::write(&path, "hello from test").expect("write temp file");
 
-        let result = file_ops::read_file_content(path.clone());
+        let result = file_ops::read_file_content_impl(&path);
 
         assert_eq!(result.expect("read file content"), "hello from test");
         let _ = fs::remove_file(path);
@@ -423,7 +432,7 @@ mod tests {
     fn read_file_content_returns_error_on_missing_file() {
         let path = unique_temp_path("read_file_content_missing");
 
-        let result = file_ops::read_file_content(path);
+        let result = file_ops::read_file_content_impl(&path);
 
         let err = result.expect_err("expected error for missing file");
         assert!(err.starts_with("\u{8bfb}\u{53d6}\u{5931}\u{8d25}:"));
@@ -434,10 +443,10 @@ mod tests {
         let path = unique_temp_path("read_file_tool_limits");
         fs::write(&path, "l1\nl2\nl3\n").expect("write temp file");
 
-        let result = file_ops::read_file_content_tool(ReadFileToolRequest {
-            file_path: path.clone(),
-            max_bytes: None,
-            max_lines: Some(1),
+let result = file_ops::read_file_content_tool_impl(ReadFileToolRequest {
+file_path: path.clone(),
+max_bytes: None,
+max_lines: Some(1),
             start_line: Some(2),
             encoding: None,
             search: None,
@@ -455,10 +464,10 @@ mod tests {
         let path = unique_temp_path("read_file_tool_binary");
         fs::write(&path, vec![0u8, 159u8, 0u8]).expect("write binary file");
 
-        let result = file_ops::read_file_content_tool(ReadFileToolRequest {
-            file_path: path.clone(),
-            max_bytes: None,
-            max_lines: None,
+let result = file_ops::read_file_content_tool_impl(ReadFileToolRequest {
+file_path: path.clone(),
+max_bytes: None,
+max_lines: None,
             start_line: None,
             encoding: None,
             search: None,
@@ -618,7 +627,7 @@ mod tests {
         fs::write(&nm_f, "hello from node_modules\n").expect("write ignored file");
 
         let results =
-            file_ops::search_in_folder(root.clone(), "hello".to_string(), false, 100, 5_000_000, None, None, None, None)
+            file_ops::search_in_folder_impl(root.clone(), "hello".to_string(), false, 100, 5_000_000, None, None, None, None)
                 .expect("search ok");
 
         assert!(results.iter().any(|r| r.path == f1));
@@ -650,7 +659,7 @@ mod tests {
         let dist_file = format!("{dist_dir}{}ignore.ts", std::path::MAIN_SEPARATOR);
         fs::write(&dist_file, "ignore").expect("write dist file");
 
-        let results = file_ops::glob_search_files(root.clone(), "**/*.ts".to_string(), Some(50), None, None)
+        let results = file_ops::glob_search_files_impl(root.clone(), "**/*.ts".to_string(), Some(50), None, None)
             .expect("glob ok");
 
         let root_slash = root.replace('\\', "/");
@@ -971,7 +980,7 @@ mod tests {
         fs::write(&file1, "fn main() {}").expect("write main.rs");
 
         let result =
-            file_ops::get_file_tree(Some(root.clone()), Some(3), Some(false)).expect("get tree ok");
+            file_ops::get_file_tree_impl(Some(root.clone()), Some(3), Some(false)).expect("get tree ok");
 
         assert_eq!(result.root_path, root);
         assert!(result.tree.contains("src/"));
@@ -997,12 +1006,12 @@ mod tests {
         fs::write(&deep_file, "deep").expect("write deep file");
 
         let result1 =
-            file_ops::get_file_tree(Some(root.clone()), Some(1), Some(false)).expect("get tree ok");
+            file_ops::get_file_tree_impl(Some(root.clone()), Some(1), Some(false)).expect("get tree ok");
         assert!(result1.tree.contains("level1/"));
         assert!(!result1.tree.contains("level2/"));
 
         let result2 =
-            file_ops::get_file_tree(Some(root.clone()), Some(2), Some(false)).expect("get tree ok");
+            file_ops::get_file_tree_impl(Some(root.clone()), Some(2), Some(false)).expect("get tree ok");
         assert!(result2.tree.contains("level1/"));
         assert!(result2.tree.contains("level2/"));
         assert!(!result2.tree.contains("level3/"));
@@ -1029,7 +1038,7 @@ mod tests {
         fs::create_dir_all(&git_dir).expect("create .git");
 
         let result =
-            file_ops::get_file_tree(Some(root.clone()), Some(3), Some(false)).expect("get tree ok");
+            file_ops::get_file_tree_impl(Some(root.clone()), Some(3), Some(false)).expect("get tree ok");
 
         assert!(result.tree.contains("src/"));
         assert!(result.tree.contains("app.ts"));
@@ -1052,7 +1061,7 @@ mod tests {
         fs::write(&file2, "readme").expect("write README.md");
 
         let result =
-            file_ops::get_file_tree(Some(root.clone()), Some(3), Some(true)).expect("get tree ok");
+            file_ops::get_file_tree_impl(Some(root.clone()), Some(3), Some(true)).expect("get tree ok");
 
         assert!(result.tree.contains("src/"));
         assert!(!result.tree.contains("main.rs"));
@@ -1066,7 +1075,7 @@ mod tests {
     #[test]
     fn get_file_tree_returns_error_for_nonexistent_path() {
         let nonexistent = unique_temp_path("nonexistent_dir");
-        let result = file_ops::get_file_tree(Some(nonexistent), Some(3), Some(false));
+        let result = file_ops::get_file_tree_impl(Some(nonexistent), Some(3), Some(false));
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("路径不存在"));
     }
@@ -1076,7 +1085,7 @@ mod tests {
         let file_path = unique_temp_path("not_a_dir");
         fs::write(&file_path, "content").expect("write file");
 
-        let result = file_ops::get_file_tree(Some(file_path.clone()), Some(3), Some(false));
+        let result = file_ops::get_file_tree_impl(Some(file_path.clone()), Some(3), Some(false));
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不是目录"));
 
@@ -1088,7 +1097,7 @@ mod tests {
         let path = unique_temp_path("file_info_test");
         fs::write(&path, "hello world").expect("write file");
 
-        let result = file_ops::get_file_info(path.clone()).expect("get file info ok");
+        let result = file_ops::get_file_info_impl(path.clone()).expect("get file info ok");
 
         assert!(result.exists);
         assert_eq!(result.file_type, "file");
@@ -1103,7 +1112,7 @@ mod tests {
     #[test]
     fn get_file_info_returns_exists_false_for_nonexistent_file() {
         let nonexistent = unique_temp_path("nonexistent");
-        let result = file_ops::get_file_info(nonexistent).expect("get file info ok");
+        let result = file_ops::get_file_info_impl(nonexistent).expect("get file info ok");
 
         assert!(!result.exists);
         assert_eq!(result.file_type, "unknown");
@@ -1115,7 +1124,7 @@ mod tests {
         let dir = unique_temp_dir("file_info_dir");
         fs::create_dir_all(&dir).expect("create dir");
 
-        let result = file_ops::get_file_info(dir.clone()).expect("get file info ok");
+        let result = file_ops::get_file_info_impl(dir.clone()).expect("get file info ok");
 
         assert!(result.exists);
         assert_eq!(result.file_type, "directory");
@@ -1139,7 +1148,7 @@ mod tests {
         let path = unique_temp_path("file_info_timestamps");
         fs::write(&path, "test").expect("write file");
 
-        let result = file_ops::get_file_info(path.clone()).expect("get file info ok");
+        let result = file_ops::get_file_info_impl(path.clone()).expect("get file info ok");
 
         assert!(result.created.is_some() || result.modified.is_some());
         assert!(result.modified.is_some());

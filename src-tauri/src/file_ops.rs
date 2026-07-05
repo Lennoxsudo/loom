@@ -13,7 +13,7 @@ use std::time::UNIX_EPOCH;
 use tauri::Emitter;
 use tauri::State;
 
-use crate::sandbox::{self, SandboxState};
+use crate::sandbox::{self, CallSource, SandboxState};
 
 // ============================================================================
 // File Operation History (in-memory, per-session)
@@ -962,6 +962,47 @@ pub fn search_in_folder(
     file_glob: Option<String>,
     exclude: Option<String>,
     context_lines: Option<usize>,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Result<Vec<SearchFileResult>, String> {
+    let q = query.trim();
+    if q.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let root = Path::new(&folder_path);
+    if !root.exists() {
+        return Err("folder does not exist".to_string());
+    }
+
+    // P0: validate read access for AI-originated calls
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(root, CallSource::from_str(source.as_deref()))?;
+
+    search_in_folder_impl(
+        folder_path,
+        query,
+        case_sensitive,
+        max_results,
+        max_file_size,
+        use_regex,
+        file_glob,
+        exclude,
+        context_lines,
+    )
+}
+
+/// Core implementation without sandbox validation — callers must validate beforehand.
+pub fn search_in_folder_impl(
+    folder_path: String,
+    query: String,
+    case_sensitive: bool,
+    max_results: usize,
+    max_file_size: u64,
+    use_regex: Option<bool>,
+    file_glob: Option<String>,
+    exclude: Option<String>,
+    context_lines: Option<usize>,
 ) -> Result<Vec<SearchFileResult>, String> {
     let q = query.trim();
     if q.is_empty() {
@@ -1124,6 +1165,33 @@ pub fn glob_search_files(
     max_results: Option<usize>,
     exclude: Option<String>,
     max_depth: Option<usize>,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Result<Vec<String>, String> {
+    let p = pattern.trim();
+    if p.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let root = Path::new(&root_path);
+    if !root.exists() {
+        return Err("root path does not exist".to_string());
+    }
+
+    // P0: validate read access for AI-originated calls
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(root, CallSource::from_str(source.as_deref()))?;
+
+    glob_search_files_impl(root_path, pattern, max_results, exclude, max_depth)
+}
+
+/// Core implementation without sandbox validation — callers must validate beforehand.
+pub fn glob_search_files_impl(
+    root_path: String,
+    pattern: String,
+    max_results: Option<usize>,
+    exclude: Option<String>,
+    max_depth: Option<usize>,
 ) -> Result<Vec<String>, String> {
     let p = pattern.trim();
     if p.is_empty() {
@@ -1248,13 +1316,35 @@ pub fn read_dir_shallow(path: &str) -> Vec<FileNode> {
 
 // Tauri 命令：供前端调用
 #[tauri::command]
-pub fn open_folder(folder_path: String) -> Vec<FileNode> {
+pub fn open_folder(
+    folder_path: String,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Vec<FileNode> {
+    // P0: validate read access for AI-originated calls
+    if sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(Path::new(&folder_path), CallSource::from_str(source.as_deref()))
+        .is_err()
+    {
+        return Vec::new();
+    }
     read_dir_shallow(&folder_path)
 }
 
 // Tauri 命令：懒加载读取某个文件夹的 children
 #[tauri::command]
-pub fn read_folder_children(folder_path: String) -> Vec<FileNode> {
+pub fn read_folder_children(
+    folder_path: String,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Vec<FileNode> {
+    // P0: validate read access for AI-originated calls
+    if sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(Path::new(&folder_path), CallSource::from_str(source.as_deref()))
+        .is_err()
+    {
+        return Vec::new();
+    }
     read_dir_shallow(&folder_path)
 }
 
@@ -1263,13 +1353,21 @@ pub fn read_folder_children(folder_path: String) -> Vec<FileNode> {
 // ============================================================================
 
 #[tauri::command]
-pub fn read_file_content(file_path: String) -> Result<String, String> {
-    println!(
-        "\u{6b63}\u{5728}\u{5c1d}\u{8bd5}\u{8bfb}\u{53d6}\u{6587}\u{4ef6}: {}",
-        file_path
-    );
+pub fn read_file_content(
+    file_path: String,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Result<String, String> {
+    // P0: validate read access for AI-originated calls
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(Path::new(&file_path), CallSource::from_str(source.as_deref()))?;
 
-    let file = match fs::File::open(&file_path) {
+    read_file_content_impl(&file_path)
+}
+
+/// Core implementation without sandbox validation — callers must validate beforehand.
+pub fn read_file_content_impl(file_path: &str) -> Result<String, String> {
+    let file = match fs::File::open(file_path) {
         Ok(f) => f,
         Err(err) => return Err(format!("读取失败: {}", err)),
     };
@@ -1286,7 +1384,7 @@ pub fn read_file_content(file_path: String) -> Result<String, String> {
 
     // Re-open and read the full content with lossy UTF-8 conversion
     // to handle files with minor encoding issues gracefully
-    let bytes = match fs::read(&file_path) {
+    let bytes = match fs::read(file_path) {
         Ok(b) => b,
         Err(err) => return Err(format!("读取失败: {}", err)),
     };
@@ -1295,7 +1393,22 @@ pub fn read_file_content(file_path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn read_file_content_tool(req: ReadFileToolRequest) -> Result<ReadFileToolResult, String> {
+pub fn read_file_content_tool(
+    req: ReadFileToolRequest,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Result<ReadFileToolResult, String> {
+    // P0: validate read access for AI-originated calls
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(Path::new(&req.file_path), CallSource::from_str(source.as_deref()))?;
+
+    read_file_content_tool_impl(req)
+}
+
+/// Core implementation without sandbox validation — callers must validate beforehand.
+pub fn read_file_content_tool_impl(
+    req: ReadFileToolRequest,
+) -> Result<ReadFileToolResult, String> {
     let file = fs::File::open(&req.file_path).map_err(|e| format!("读取失败: {}", e))?;
     let file_size = file.metadata().map(|m| m.len()).unwrap_or(0);
 
@@ -1701,13 +1814,15 @@ pub fn write_file_content(
     prepend: Option<bool>,
     if_not_exists: Option<bool>,
     template_vars: Option<std::collections::HashMap<String, String>>,
+    source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<WriteFileResult, String> {
     use std::time::Instant;
     let start = Instant::now();
 
     let path = PathBuf::from(&file_path);
-    sandbox::current_sandbox_context(&sandbox_state).validate_write(&path)?;
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_write(&path, CallSource::from_str(source.as_deref()))?;
 
     // if_not_exists check
     if if_not_exists.unwrap_or(false) && path.exists() {
@@ -1832,10 +1947,11 @@ fn uuid_suffix() -> String {
 pub fn create_file(
     app: tauri::AppHandle,
     file_path: String,
+    source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     sandbox::current_sandbox_context(&sandbox_state)
-        .validate_write(std::path::Path::new(&file_path))?;
+        .validate_write(std::path::Path::new(&file_path), CallSource::from_str(source.as_deref()))?;
     println!("正在创建文件: {}", file_path);
     match fs::write(&file_path, "") {
         Ok(_) => {
@@ -1853,9 +1969,11 @@ pub fn create_file(
 pub fn create_folder(
     app: tauri::AppHandle,
     folder_path: String,
+    source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<(), String> {
-    sandbox::current_sandbox_context(&sandbox_state).validate_write(Path::new(&folder_path))?;
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_write(Path::new(&folder_path), CallSource::from_str(source.as_deref()))?;
     println!("正在创建文件夹: {}", folder_path);
     match fs::create_dir_all(&folder_path) {
         Ok(_) => {
@@ -2046,9 +2164,11 @@ pub fn apply_search_replace_all(
 pub fn edit_file(
     app: tauri::AppHandle,
     req: EditFileRequest,
+    source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<EditFileResult, String> {
-    sandbox::current_sandbox_context(&sandbox_state).validate_write(Path::new(&req.file_path))?;
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_write(Path::new(&req.file_path), CallSource::from_str(source.as_deref()))?;
     // Read file
     let path = PathBuf::from(&req.file_path);
     let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
@@ -2258,6 +2378,32 @@ pub fn get_file_tree(
     root_path: Option<String>,
     max_depth: Option<usize>,
     dirs_only: Option<bool>,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Result<FileTreeResult, String> {
+    let path_str = root_path.ok_or("未指定根目录路径")?;
+    let path = Path::new(&path_str);
+
+    if !path.exists() {
+        return Err(format!("路径不存在: {}", path_str));
+    }
+
+    if !path.is_dir() {
+        return Err(format!("路径不是目录: {}", path_str));
+    }
+
+    // P0: validate read access for AI-originated calls
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_read(path, CallSource::from_str(source.as_deref()))?;
+
+    get_file_tree_impl(Some(path_str), max_depth, dirs_only)
+}
+
+/// Core implementation without sandbox validation — callers must validate beforehand.
+pub fn get_file_tree_impl(
+    root_path: Option<String>,
+    max_depth: Option<usize>,
+    dirs_only: Option<bool>,
 ) -> Result<FileTreeResult, String> {
     let path_str = root_path.ok_or("未指定根目录路径")?;
     let path = Path::new(&path_str);
@@ -2364,7 +2510,24 @@ fn get_permissions_string(metadata: &fs::Metadata) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn get_file_info(path: String) -> Result<FileInfo, String> {
+pub fn get_file_info(
+    path: String,
+    source: Option<String>,
+    sandbox_state: State<'_, SandboxState>,
+) -> Result<FileInfo, String> {
+    let path_obj = Path::new(&path);
+
+    // P0: validate read access for AI-originated calls (check before returning info)
+    if path_obj.exists() {
+        sandbox::current_sandbox_context(&sandbox_state)
+            .validate_read(path_obj, CallSource::from_str(source.as_deref()))?;
+    }
+
+    get_file_info_impl(path)
+}
+
+/// Core implementation without sandbox validation — callers must validate beforehand.
+pub fn get_file_info_impl(path: String) -> Result<FileInfo, String> {
     let path_obj = Path::new(&path);
 
     if !path_obj.exists() {
@@ -2482,13 +2645,15 @@ pub fn copy_file_or_folder(
     destination: String,
     overwrite: Option<bool>,
     root_path: Option<String>,
+    op_source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     let src = resolve_path_with_root(&root_path, &source)?;
     let dest = resolve_path_with_root(&root_path, &destination)?;
     let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
-    sandbox_ctx.validate_write(&src)?;
-    sandbox_ctx.validate_write(&dest)?;
+    let call_src = CallSource::from_str(op_source.as_deref());
+    sandbox_ctx.validate_write(&src, call_src)?;
+    sandbox_ctx.validate_write(&dest, call_src)?;
     let should_overwrite = overwrite.unwrap_or(false);
 
     if !src.exists() {
@@ -2536,6 +2701,7 @@ pub fn move_file_or_folder(
     new_path: String,
     overwrite: Option<bool>,
     root_path: Option<String>,
+    op_source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     println!(
@@ -2546,8 +2712,9 @@ pub fn move_file_or_folder(
     let src = resolve_path_with_root(&root_path, &old_path)?;
     let dest = resolve_path_with_root(&root_path, &new_path)?;
     let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
-    sandbox_ctx.validate_write(&src)?;
-    sandbox_ctx.validate_write(&dest)?;
+    let call_src = CallSource::from_str(op_source.as_deref());
+    sandbox_ctx.validate_write(&src, call_src)?;
+    sandbox_ctx.validate_write(&dest, call_src)?;
     let should_overwrite = overwrite.unwrap_or(false);
 
     if !src.exists() {
@@ -2611,10 +2778,12 @@ pub fn delete_file_or_folder(
     path: String,
     permanent: Option<bool>,
     root_path: Option<String>,
+    op_source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     let target = resolve_path_with_root(&root_path, &path)?;
-    sandbox::current_sandbox_context(&sandbox_state).validate_write(&target)?;
+    sandbox::current_sandbox_context(&sandbox_state)
+        .validate_write(&target, CallSource::from_str(op_source.as_deref()))?;
 
     if !target.exists() {
         return Err(format!("路径不存在: {}", path));
@@ -2661,6 +2830,7 @@ pub fn file_ops_tool(
     permanent: Option<bool>,
     conflict: Option<String>,
     root_path: Option<String>,
+    op_source: Option<String>,
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<FileOpsToolResult, String> {
     let conflict_mode = conflict.unwrap_or_else(|| "error".to_string());
@@ -2719,6 +2889,15 @@ pub fn file_ops_tool(
             .or(source.as_deref())
             .ok_or("restore 需要提供 path 参数 (原始路径)")?;
 
+        // P2: Restore spawns a subprocess — must go through sandbox validation
+        let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
+        sandbox_ctx.validate_command_allowed()?;
+        // Restore target must be within writable roots (it's a write operation)
+        sandbox_ctx.validate_write(std::path::Path::new(restore_path), CallSource::from_str(op_source.as_deref()))?;
+        crate::audit_log::log_decision(
+            "ai", "restore", restore_path, "allowed", None, &sandbox_ctx.access_mode,
+        );
+
         #[cfg(target_os = "windows")]
         {
             let ps_script = format!(
@@ -2734,8 +2913,17 @@ pub fn file_ops_tool(
                 "#,
                 restore_path.replace('\\', "\\\\").replace('"', "\\\"")
             );
-            let output = std::process::Command::new("powershell")
-                .args(["-NoProfile", "-NonInteractive", "-Command", &ps_script])
+            let mut cmd = std::process::Command::new("powershell");
+            cmd.args(["-NoProfile", "-NonInteractive", "-Command", &ps_script]);
+            // P2: Sanitize environment — strip secrets, inject whitelist only
+            crate::terminal::apply_sanitized_env(&mut cmd);
+            // P2: Assign to Job Object for OS-level isolation
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            let output = cmd
                 .output()
                 .map_err(|e| format!("执行 PowerShell 恢复失败: {}", e))?;
 
@@ -2857,12 +3045,13 @@ pub fn file_ops_tool(
     }
 
     let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
+    let call_src = CallSource::from_str(op_source.as_deref());
     for p in &resolved_paths {
-        sandbox_ctx.validate_write(p)?;
+        sandbox_ctx.validate_write(p, call_src)?;
     }
     for (src, dst) in &source_dest_pairs {
-        sandbox_ctx.validate_write(src)?;
-        sandbox_ctx.validate_write(dst)?;
+        sandbox_ctx.validate_write(src, call_src)?;
+        sandbox_ctx.validate_write(dst, call_src)?;
     }
 
     // --- Execute operations ---
@@ -3066,13 +3255,14 @@ mod tests {
     fn read_only_sandbox_blocks_create_file_target_path() {
         use crate::sandbox::SandboxContext;
 
-        let ctx = SandboxContext {
-            access_mode: "read_only".to_string(),
-            writable_roots: vec!["C:\\project".to_string()],
-            network_enabled: false,
-        };
+let ctx = SandboxContext {
+access_mode: "read_only".to_string(),
+writable_roots: vec!["C:\\project".to_string()],
+readable_roots: vec![],
+network_enabled: false,
+};
         assert!(ctx
-            .validate_write(std::path::Path::new("C:\\project\\new.txt"))
+            .validate_write(std::path::Path::new("C:\\project\\new.txt"), crate::sandbox::CallSource::Ai)
             .is_err());
     }
 }

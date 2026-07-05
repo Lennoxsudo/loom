@@ -55,6 +55,17 @@ export function AgentSettingsNav({
           },
         ],
       },
+      {
+        id: 'security',
+        label: 'Security',
+        items: [
+          {
+            id: 'audit',
+            label: 'Audit Log',
+            icon: <SettingsIcon size={14} />,
+          },
+        ],
+      },
     ],
     [t]
   );

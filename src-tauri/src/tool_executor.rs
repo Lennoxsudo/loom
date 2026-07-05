@@ -7,6 +7,7 @@
 //! without involving the frontend React layer.
 
 use crate::file_ops;
+use crate::sandbox::{CallSource, SandboxContext};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -109,6 +110,7 @@ pub fn execute_tool(
     tool_call: &serde_json::Value,
     project_path: Option<&str>,
     app_data_path: Option<&str>,
+    sandbox_ctx: &SandboxContext,
 ) -> ToolExecutionResult {
     let tool_call_id = tool_call["id"].as_str().unwrap_or("").to_string();
     let tool_name = tool_call["function"]["name"]
@@ -121,12 +123,49 @@ pub fn execute_tool(
         serde_json::from_str(args_str).unwrap_or_else(|_| serde_json::json!({}));
 
     let result = match tool_name.as_str() {
-        "read_file" => execute_read_file(&args, project_path),
-        "list_directory" => execute_list_directory(&args, project_path),
-        "get_file_tree" => execute_get_file_tree(&args, project_path),
-        "search_files" => execute_search_files(&args, project_path),
-        "search_content" => execute_search_content(&args, project_path),
-        "get_file_info" => execute_get_file_info(&args, project_path),
+        "read_file" => {
+            // P0: validate read access before executing
+            if let Err(e) = validate_read_paths(&args, project_path, sandbox_ctx) {
+                Err(e)
+            } else {
+                execute_read_file(&args, project_path)
+            }
+        }
+        "list_directory" => {
+            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                Err(e)
+            } else {
+                execute_list_directory(&args, project_path)
+            }
+        }
+        "get_file_tree" => {
+            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                Err(e)
+            } else {
+                execute_get_file_tree(&args, project_path)
+            }
+        }
+        "search_files" => {
+            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                Err(e)
+            } else {
+                execute_search_files(&args, project_path)
+            }
+        }
+        "search_content" => {
+            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                Err(e)
+            } else {
+                execute_search_content(&args, project_path)
+            }
+        }
+        "get_file_info" => {
+            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                Err(e)
+            } else {
+                execute_get_file_info(&args, project_path)
+            }
+        }
         "fetch_web_content" => execute_fetch_web_content(&args),
         "load_skill" => execute_load_skill(&args, project_path, app_data_path),
         _ => Err(format!("Unknown backend tool: {}", tool_name)),
@@ -153,10 +192,11 @@ pub fn execute_all_tools(
     tool_calls: &[serde_json::Value],
     project_path: Option<&str>,
     app_data_path: Option<&str>,
+    sandbox_ctx: &SandboxContext,
 ) -> Vec<ToolExecutionResult> {
     tool_calls
         .iter()
-        .map(|tc| execute_tool(tc, project_path, app_data_path))
+        .map(|tc| execute_tool(tc, project_path, app_data_path, sandbox_ctx))
         .collect()
 }
 
@@ -293,6 +333,68 @@ fn resolve_path(raw: &str, project_path: Option<&str>) -> String {
     }
 }
 
+// ============================================================================
+// P0: Read-access validation helpers
+// ============================================================================
+
+/// Validate read access for the `read_file` tool which may take an array of paths.
+fn validate_read_paths(
+    args: &serde_json::Value,
+    project_path: Option<&str>,
+    sandbox_ctx: &SandboxContext,
+) -> Result<(), String> {
+    let paths: Vec<String> = if args["path"].is_array() {
+        args["path"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|v| v.as_str())
+            .map(|s| s.to_string())
+            .collect()
+    } else if args["paths"].is_array() {
+        args["paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|v| v.as_str())
+            .map(|s| s.to_string())
+            .collect()
+    } else {
+        args["path"]
+            .as_str()
+            .or_else(|| args["file_path"].as_str())
+            .map(|s| vec![s.to_string()])
+            .unwrap_or_default()
+    };
+
+    for p in &paths {
+        let resolved = resolve_path(p, project_path);
+        sandbox_ctx.validate_read(Path::new(&resolved), CallSource::Ai)?;
+    }
+    Ok(())
+}
+
+/// Validate read access for tools that take a single path/folder argument
+/// (list_directory, get_file_tree, search_files, search_content, get_file_info).
+fn validate_read_path_arg(
+    args: &serde_json::Value,
+    project_path: Option<&str>,
+    sandbox_ctx: &SandboxContext,
+) -> Result<(), String> {
+    let path = args["path"]
+        .as_str()
+        .or_else(|| args["directory"].as_str())
+        .or_else(|| args["root_path"].as_str())
+        .or_else(|| args["folder_path"].as_str())
+        .or(project_path);
+
+    if let Some(p) = path {
+        let resolved = resolve_path(p, project_path);
+        sandbox_ctx.validate_read(Path::new(&resolved), CallSource::Ai)?;
+    }
+    Ok(())
+}
+
 fn execute_read_file(
     args: &serde_json::Value,
     project_path: Option<&str>,
@@ -348,7 +450,7 @@ fn execute_read_file(
             around_line,
         };
 
-        let result = file_ops::read_file_content_tool(req)?;
+        let result = file_ops::read_file_content_tool_impl(req)?;
 
         if result.is_binary {
             if let Some(ref info) = result.binary_info {
@@ -444,7 +546,7 @@ fn execute_get_file_tree(
     let max_depth = args["max_depth"].as_u64().map(|v| v as usize);
     let dirs_only = args["dirs_only"].as_bool();
 
-    let result = file_ops::get_file_tree(Some(resolved), max_depth, dirs_only)?;
+    let result = file_ops::get_file_tree_impl(Some(resolved), max_depth, dirs_only)?;
 
     Ok(result.tree)
 }
@@ -469,7 +571,7 @@ fn execute_search_files(
     let exclude = args["exclude"].as_str().map(|s| s.to_string());
     let max_depth = args["max_depth"].as_u64().map(|v| v as usize);
 
-    let results = file_ops::glob_search_files(
+    let results = file_ops::glob_search_files_impl(
         resolved,
         pattern.to_string(),
         max_results,
@@ -520,7 +622,7 @@ fn execute_search_content(
     let exclude = args["exclude"].as_str().map(|s| s.to_string());
     let context_lines = args["context_lines"].as_u64().map(|v| v as usize);
 
-    let results = file_ops::search_in_folder(
+    let results = file_ops::search_in_folder_impl(
         resolved,
         query.to_string(),
         case_sensitive,
@@ -583,7 +685,7 @@ fn execute_get_file_info(
         .ok_or("Missing required parameter: path")?;
 
     let resolved = resolve_path(path, project_path);
-    let info = file_ops::get_file_info(resolved)?;
+    let info = file_ops::get_file_info_impl(resolved)?;
 
     Ok(serde_json::to_string_pretty(&info).unwrap_or_else(|_| format!("{:?}", info)))
 }

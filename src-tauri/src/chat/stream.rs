@@ -480,10 +480,12 @@ pub async fn run_stream_with_tool_chain(
             sr.tool_calls.len()
         );
 
+        let sandbox_ctx = crate::sandbox::app_sandbox_context(app);
         let results = tool_executor::execute_all_tools(
             &sr.tool_calls,
             project_path,
             tc_config.app_data_path.as_deref(),
+            &sandbox_ctx,
         );
 
         // Emit progress event for each tool execution

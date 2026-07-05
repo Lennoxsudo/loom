@@ -48,6 +48,7 @@ export class ReadFileHandler implements ToolHandler<'read'> {
 
         const result = await invoke<ReadFileToolResult>('read_file_content_tool', {
           req: readArgs,
+          source: 'ai',
         });
 
         if (result.is_binary) {
@@ -129,6 +130,7 @@ export class EditFileHandler implements ToolHandler<'edit'> {
             newString: newStr,
             replaceAll,
           },
+          source: 'ai',
         });
       };
 
@@ -233,6 +235,7 @@ class WriteFileHandler implements ToolHandler<'write'> {
         prepend: isPrepend,
         ifNotExists: args.if_not_exists ?? false,
         templateVars: args.template_vars,
+        source: 'ai',
       });
 
       // if_not_exists 跳过写入

@@ -12,6 +12,7 @@ export async function setSandboxContext(projectPath?: string): Promise<void> {
   await invoke('set_sandbox_context', {
     accessMode: mode,
     writableRoots: trimmedPath ? [trimmedPath] : [],
+    readableRoots: trimmedPath ? [trimmedPath] : [],
     networkEnabled: mode === 'full_access',
   });
 }

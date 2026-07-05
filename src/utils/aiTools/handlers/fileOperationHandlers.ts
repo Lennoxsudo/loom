@@ -31,6 +31,7 @@ class CopyFileHandler implements ToolHandler<'copy_file'> {
         destination: resolvedDestination,
         overwrite: args.overwrite ?? false,
         rootPath,
+        opSource: 'ai',
       });
 
       return {
@@ -72,6 +73,7 @@ class MoveFileHandler implements ToolHandler<'move_file'> {
         newPath: resolvedDestination,
         overwrite: args.overwrite ?? false,
         rootPath,
+        opSource: 'ai',
       });
 
       return {
@@ -110,6 +112,7 @@ class DeleteFileHandler implements ToolHandler<'delete_file'> {
           path: resolvedPath,
           permanent,
           rootPath,
+          opSource: 'ai',
         });
 
         return {
@@ -154,7 +157,7 @@ class CreateFolderHandler implements ToolHandler<'create_folder'> {
       }
 
       const resolvedPath = resolvePathWithBaseDir(args.path, context?.baseDir);
-      await invoke('create_folder', { folderPath: resolvedPath });
+      await invoke('create_folder', { folderPath: resolvedPath, source: 'ai' });
 
       return {
         tool_call_id: '',
@@ -180,7 +183,7 @@ class GetFileInfoHandler implements ToolHandler<'get_file_info'> {
       }
 
       const resolvedPath = resolvePathWithBaseDir(args.path, context?.baseDir);
-      const info = await invoke<FileInfo>('get_file_info', { path: resolvedPath });
+      const info = await invoke<FileInfo>('get_file_info', { path: resolvedPath, source: 'ai' });
 
       if (!info.exists) {
         return {

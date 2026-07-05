@@ -45,6 +45,7 @@ test('read_file wraps args in req for tool command', async () => {
       maxLines: 10,
       maxBytes: 2048,
     },
+    source: 'ai',
   });
 });
 
@@ -85,6 +86,7 @@ test('search_files uses glob_search_files with baseDir', async () => {
     rootPath: 'D:/proj',
     pattern: '**/*.ts',
     maxResults: 50,
+    source: 'ai',
   });
   expect(result.output).toContain('D:/proj/src/App.tsx');
 });
@@ -107,6 +109,7 @@ test('delete_file invokes delete_file_or_folder with root', async () => {
     path: 'D:/proj/a.txt',
     permanent: false,
     rootPath: 'D:/proj',
+    opSource: 'ai',
   });
   expect(result.output).toContain('回收站');
   expect(result.files_changed).toEqual(['D:/proj/a.txt']);
@@ -128,6 +131,7 @@ test('create_folder uses project root for relative path', async () => {
 
   expect(invokeMock).toHaveBeenCalledWith('create_folder', {
     folderPath: 'D:/proj/test',
+    source: 'ai',
   });
   expect(result.output).toContain('D:/proj/test');
   expect(result.files_changed).toEqual(['D:/proj/test']);
@@ -152,6 +156,7 @@ test('list_directory resolves relative path against baseDir and uses read_folder
 
   expect(invokeMock).toHaveBeenCalledWith('read_folder_children', {
     folderPath: 'D:/proj/test',
+    source: 'ai',
   });
   expect(result.output).toContain('目录内容 (D:/proj/test)');
   expect(result.output).toContain('📁 src');
@@ -182,6 +187,7 @@ test('get_file_info uses project root for relative path', async () => {
 
   expect(invokeMock).toHaveBeenCalledWith('get_file_info', {
     path: 'D:/proj/test.txt',
+    source: 'ai',
   });
   expect(result.output).toContain('D:/proj/test.txt');
 });

@@ -115,6 +115,7 @@ class SearchFilesHandler implements ToolHandler<'search_files'> {
           maxResults,
           exclude,
           maxDepth,
+          source: 'ai',
         });
 
         if (!results || results.length === 0) {
@@ -178,6 +179,7 @@ class SearchContentHandler implements ToolHandler<'search_content'> {
           fileGlob,
           exclude,
           contextLines,
+          source: 'ai',
         });
 
         if (results.length === 0) {
@@ -234,6 +236,7 @@ class SearchBothHandler implements ToolHandler<'search_both'> {
           pattern: searchQuery,
           maxResults,
           exclude,
+          source: 'ai',
         }),
         invoke<SearchResultWithPath[]>('search_in_folder', {
           folderPath: resolvedPath,
@@ -245,6 +248,7 @@ class SearchBothHandler implements ToolHandler<'search_both'> {
           fileGlob,
           exclude,
           contextLines,
+          source: 'ai',
         }),
       ]);
 
@@ -297,7 +301,7 @@ class ListDirectoryHandler implements ToolHandler<'list_directory'> {
       const dirsOnly = args.dirs_only === true;
 
       try {
-        const nodes = await invoke<Array<{ name: string; is_dir: boolean }>>('read_folder_children', { folderPath: resolvedPath });
+        const nodes = await invoke<Array<{ name: string; is_dir: boolean }>>('read_folder_children', { folderPath: resolvedPath, source: 'ai' });
 
         if (!Array.isArray(nodes) || nodes.length === 0) {
           return { tool_call_id: '', output: `目录内容 (${resolvedPath}):\n\n(空目录 / 不存在 / 无权限)` };
@@ -347,6 +351,7 @@ class GetFileTreeHandler implements ToolHandler<'get_file_tree'> {
           rootPath: resolvedPath,
           maxDepth,
           dirsOnly,
+          source: 'ai',
         });
 
         return { tool_call_id: '', output: result.tree };
