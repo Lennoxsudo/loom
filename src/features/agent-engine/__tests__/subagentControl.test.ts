@@ -77,6 +77,7 @@ describe('Subagent Controllability & Approval Tests', () => {
     ];
 
     vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
       if (cmd === 'load_ai_config') return '{}';
       if (cmd === 'set_sandbox_context') return null;

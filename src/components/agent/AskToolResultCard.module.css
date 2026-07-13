@@ -1,62 +1,44 @@
+/* Ask result — taste-skill-v1: liquid-glass header, compact spec rows */
+
 .card {
+  --ask-accent: color-mix(in srgb, #3d9970 78%, var(--text-secondary));
+  --ask-accent-soft: color-mix(in srgb, var(--ask-accent) 9%, transparent);
+  --ask-accent-border: color-mix(in srgb, var(--ask-accent) 22%, transparent);
+
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   margin-bottom: 6px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--surface-overlay-border) 90%, transparent);
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--text-accent) 6%, var(--surface-overlay-soft)) 0%,
-    color-mix(in srgb, var(--surface-overlay-soft) 100%, var(--bg-sidebar)) 28%,
-    color-mix(in srgb, var(--bg-sidebar) 96%, transparent) 100%
-  );
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 95%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 36%, var(--bg-sidebar));
   overflow: hidden;
-  box-shadow: 0 1px 0 color-mix(in srgb, #ffffff 3%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent),
+    0 6px 20px color-mix(in srgb, var(--bg-app) 35%, transparent);
 }
 
 .cardError {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--text-error) 8%, var(--surface-overlay-soft)) 0%,
-    color-mix(in srgb, var(--surface-overlay-soft) 100%, var(--bg-sidebar)) 32%,
-    color-mix(in srgb, var(--bg-sidebar) 96%, transparent) 100%
-  );
-  border-color: color-mix(in srgb, var(--text-error) 22%, var(--surface-overlay-border));
-}
-
-.inner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  min-height: 32px;
-  padding: 6px 12px;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  gap: 6px;
+  --ask-accent: color-mix(in srgb, var(--text-error) 85%, var(--text-secondary));
 }
 
 .headerRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  width: 100%;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 62%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 7%, transparent);
 }
 
 .category {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--text-accent);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -65,92 +47,109 @@
   color: var(--text-error);
 }
 
-.categoryIcon {
+.statusPill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--text-accent) 14%, transparent);
-  color: var(--text-accent);
-}
-
-.categoryIconError {
-  background: color-mix(in srgb, var(--text-error) 14%, transparent);
-  color: var(--text-error);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ask-accent-border);
+  background: var(--ask-accent-soft);
+  color: var(--ask-accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .answers {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 14px 10px;
+}
+
+.answersCompact {
+  padding-top: 8px;
+  padding-bottom: 11px;
+}
+
+.answerRow {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 8px;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
+  grid-template-columns: minmax(72px, 108px) minmax(0, 1fr);
+  gap: 10px 14px;
+  align-items: baseline;
+  padding: 8px 0;
+  animation: askRowIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--row-index, 0) * 55ms);
+}
+
+.answersCompact .answerRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  padding: 0;
+}
+
+.answerRow + .answerRow {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
 }
 
 .questionHeader {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--text-secondary);
-  font-size: 11px;
-  white-space: nowrap;
 }
 
-.answerChip {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  max-width: 100%;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
-  color: var(--text-primary);
-  font-size: 12px;
+.answersCompact .questionHeader {
+  font-size: 11px;
+}
+
+.answerValue {
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.35;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px 2px 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
-  color: var(--text-secondary);
-  font-size: 11px;
+.answersCompact .answerValue {
+  font-size: 14px;
   font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.statusSuccess {
-  background: color-mix(in srgb, #2f9e44 12%, transparent);
-  color: color-mix(in srgb, #2f9e44 88%, var(--text-primary));
-}
-
-.statusError {
-  background: color-mix(in srgb, var(--text-error) 12%, transparent);
-  color: var(--text-error);
-}
-
-.statusIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  font-size: 10px;
-  line-height: 1;
 }
 
 .errorText {
+  margin: 0;
+  padding: 10px 14px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text-error) 16%, var(--border-subtle));
   color: var(--text-error);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
   word-break: break-word;
+}
+
+@keyframes askRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answerRow {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .headerRow {
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--surface-overlay-soft) 85%, var(--bg-sidebar));
+  }
 }

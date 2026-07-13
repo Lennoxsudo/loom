@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { coerceProjectPath, normalizeProjectPath } from '../components/agent/utils';
+import { coerceProjectPath, normalizeProjectPath } from '../shared/lib/projectPath';
 import type { AgentConversationState } from '../types/chat';
 
 type AgentStatus = 'online' | 'busy' | 'offline';

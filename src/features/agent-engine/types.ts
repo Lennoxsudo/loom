@@ -9,37 +9,26 @@
  */
 
 import type { ToolResult } from '../../types/ai';
-import type { AIProvider } from '../agentPersistence';
+import type { AIProvider } from '../../utils/agentPersistence';
 
-import type {
-  QuestionInput,
-  UserAnswer,
-  ToolName,
-  GetToolArgs,
-} from './toolArgs';
+import type { ToolName, GetToolArgs } from './toolArgs';
+import type { EngineHostCallbacks } from './events';
 
 /**
  * 工具执行上下文
  *
  * 提供工具执行时所需的环境信息。
+ * UI 宿主通过回调注入（见 {@link EngineHostCallbacks}），引擎不依赖 React 组件。
  */
-export interface ToolContext {
+export interface ToolContext extends EngineHostCallbacks {
   /** 当前工作目录的基础路径 */
   baseDir?: string;
   /** 当前 Agent ID */
   agentId?: string;
   /** 当前会话 ID（用于会话隔离，如 Todo 清单） */
   conversationId?: string;
-  /** 向用户提问的回调（用于 `ask_user_question` 工具） */
-  onAskUserQuestion?: (agentId: string, questions: QuestionInput[]) => Promise<UserAnswer[]>;
   /** 当前工具调用的 ID（用于关联子代理任务 taskId 等） */
   toolCallId?: string;
-  /** 子代理工具审批回调 */
-  onRequestToolApproval?: (req: {
-    taskId: string;
-    toolName: string;
-    detailPreview: string;
-  }) => Promise<'approve' | 'reject'>;
   /** 父级（主聊天）当前的 AI 服务商，子代理用于继承模型 */
   parentProvider?: AIProvider;
   /** 父级（主聊天）当前的模型 ID，子代理用于继承模型 */

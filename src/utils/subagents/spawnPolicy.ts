@@ -1,4 +1,4 @@
-import type { ToolContext } from '../aiTools/types';
+import type { ToolContext } from '../../features/agent-engine/types';
 
 /** Matches the main agent tool loop default in useAgentToolCalls. */
 export const DEFAULT_SUBAGENT_MAX_ROUNDS = 10;

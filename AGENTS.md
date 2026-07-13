@@ -49,8 +49,10 @@ loom/
 │   │   └── ...
 │   ├── hooks/
 │   ├── stores/          # 9 个 Zustand store
+│   ├── features/
+│   │   └── agent-engine/  # 工具 schema、Handler、执行器、引擎事件
+│   ├── shared/lib/        # pathUtils、projectPath、imageGenSizes
 │   ├── utils/
-│   │   ├── aiTools/     # 工具 schema、Handler、执行器
 │   │   ├── subagents/   # 子代理注册、spawn、嵌套
 │   │   ├── runAgentLoop.ts
 │   │   ├── coreSystemPrompt.ts
@@ -88,13 +90,14 @@ loom/
 
 ### 工具系统
 
-入口：`src/utils/aiTools/`
+入口：`src/features/agent-engine/`
 
 | 层级 | 文件 |
 |------|------|
 | Schema | `definitions.ts`（21 个主工具） |
 | 归一化 | `argsParser.ts`、`schema.ts`（含 legacy 别名） |
-| 执行 | `executor.ts`、`registry.ts`（13 个 Handler 模块） |
+| 执行 | `toolExecutor.ts`、`registry.ts`（13 个 Handler 模块） |
+| 边界 | `events.ts`（`EngineHostCallbacks` / `agentEngineEvents`） |
 
 工具输出**直接返回完整内容**，不做截断或压缩。
 

@@ -1,8 +1,14 @@
 import { normalizePathForCompare } from '../../utils/pathUtils';
 import { type Agent, type AIProvider } from '../../utils/agentPersistence';
-import type { ToolCall } from '../../utils/aiTools';
-import { parseToolArguments, findBestToolMatch, resolveUnderlyingToolName } from '../../utils/aiTools';
+import type { ToolCall } from '../../types/ai';
+// Import leaf modules only — avoid features/agent-engine index (pulls toolExecutor/registry).
+import { parseToolArguments } from '../../features/agent-engine/argsParser';
+import { findBestToolMatch } from '../../features/agent-engine/toolMatcher';
+import { resolveUnderlyingToolName } from '../../features/agent-engine/toolRouter';
 import { applyContextBudget } from '../../utils/contextBudget';
+import { coerceProjectPath, normalizeProjectPath } from '../../shared/lib/projectPath';
+
+export { coerceProjectPath, normalizeProjectPath } from '../../shared/lib/projectPath';
 import {
   buildCoreSystemPrompt,
   buildRuntimeIdentityPrompt,
@@ -435,16 +441,6 @@ export function finalizeThinkingMessage(message: ChatMessage): ChatMessage {
     thinkingStartedAt,
     thinkingEndedAt,
   };
-}
-
-export function coerceProjectPath(path: unknown): string {
-  if (typeof path === 'string') return path;
-  if (path == null) return '';
-  return String(path);
-}
-
-export function normalizeProjectPath(path: unknown): string {
-  return coerceProjectPath(path).trim().replace(/\\/g, '/').toLowerCase();
 }
 
 function normalizeSelectedConversationIdByProject(

@@ -13,8 +13,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 // Mock runAgentLoop
 const runAgentLoopMock = vi.fn();
-vi.mock('../../runAgentLoop', () => ({
+vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
+  buildForkMessages: (messages: any) => messages ?? [],
+  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
 }));
 
 describe('RunSubagentsHandler Registry', () => {
@@ -45,10 +47,13 @@ describe('RunSubagentsHandler Execution', () => {
   });
 
   it('should start all parallel tasks without a concurrency cap', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' }
-    ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    const parentAgent = { id: 'parent-id', provider: 'openai', model: 'gpt-4o' };
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return parentAgent;
+      if (cmd === 'get_agents') return [parentAgent];
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
 
     const startOrder: number[] = [];
     let activeCount = 0;
@@ -82,10 +87,13 @@ describe('RunSubagentsHandler Execution', () => {
   });
 
   it('should aggregate successes and failures and not fail the entire batch', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' }
-    ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    const parentAgent = { id: 'parent-id', provider: 'openai', model: 'gpt-4o' };
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return parentAgent;
+      if (cmd === 'get_agents') return [parentAgent];
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
 
     // Task 1 succeeds, Task 2 fails
     runAgentLoopMock
@@ -125,6 +133,7 @@ describe('RunSubagentsHandler Execution', () => {
 
   it('should exclude run_subagent and run_subagents from subagents capabilities', async () => {
     vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return { id: 'parent-id', provider: 'openai', model: 'gpt-4o' };
       if (cmd === 'get_agents') return [{ id: 'parent-id', provider: 'openai', model: 'gpt-4o' }];
       if (cmd === 'load_ai_config') return '{}';
       return null;
@@ -146,10 +155,13 @@ describe('RunSubagentsHandler Execution', () => {
   });
 
   it('should verify context.toolCallId is passed inside executeToolCall', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' }
-    ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    const parentAgent = { id: 'parent-id', provider: 'openai', model: 'gpt-4o' };
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return parentAgent;
+      if (cmd === 'get_agents') return [parentAgent];
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
     runAgentLoopMock.mockResolvedValue({ finalText: 'Done', steps: 1 });
 
     const toolCall = {
@@ -171,10 +183,13 @@ describe('RunSubagentsHandler Execution', () => {
   });
 
   it('should run run_subagents end-to-end via executeToolCall successfully', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' }
-    ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    const parentAgent = { id: 'parent-id', provider: 'openai', model: 'gpt-4o' };
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return parentAgent;
+      if (cmd === 'get_agents') return [parentAgent];
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
     runAgentLoopMock.mockResolvedValue({ finalText: 'Task accomplished successfully', steps: 1 });
 
     const toolCall = {

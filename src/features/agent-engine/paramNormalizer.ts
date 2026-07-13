@@ -430,7 +430,230 @@ export function normalizeToolArgs(
     }
   }
 
+  // ask / ask_user_question — models often pass questions as a plain string or single object
+  if (toolName === 'ask' || toolName === 'ask_user_question') {
+    normalizeAskToolArgs(result);
+  }
+
   return result;
+}
+
+const DEFAULT_ASK_OPTIONS = [
+  { label: '是', description: '确认 / 同意' },
+  { label: '否', description: '拒绝 / 不同意' },
+  { label: '其他', description: '需要补充说明或另有选择' },
+] as const;
+
+/**
+ * Coerce loose ask-tool payloads into the schema shape:
+ * `{ questions: Array<{ header, question, options[] }> }`.
+ *
+ * Common model mistakes:
+ * - `questions: "你的偏好是？"` (string)
+ * - `questions: "{...}"` / `"[{...}]"` (JSON string)
+ * - `questions: { question: "..." }` (single object)
+ * - top-level `question` instead of `questions`
+ * - options missing or provided as string labels
+ */
+function normalizeAskToolArgs(result: Record<string, unknown>): void {
+  // Alias: singular `question` → `questions`
+  if (result.questions === undefined && result.question !== undefined) {
+    result.questions = result.question;
+    // Keep singular only when it is the free-text field of a single question object later.
+  }
+
+  let raw = result.questions;
+
+  // JSON string → parse
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (
+      (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+      (trimmed.startsWith('{') && trimmed.endsWith('}'))
+    ) {
+      try {
+        raw = JSON.parse(trimmed) as unknown;
+      } catch {
+        // keep as plain string question text
+      }
+    }
+  }
+
+  // Single object → array
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    raw = [raw];
+  }
+
+  // Plain string → one free-form question
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    const topHeader =
+      (typeof result.header === 'string' && result.header.trim()) ||
+      (typeof result.title === 'string' && result.title.trim()) ||
+      '';
+    raw = text
+      ? [
+          {
+            header: topHeader ? shortHeader(topHeader, 0) : shortHeader(text, 0),
+            question: text,
+            options: DEFAULT_ASK_OPTIONS.map((o) => ({ ...o })),
+          },
+        ]
+      : [];
+  }
+
+  if (!Array.isArray(raw)) {
+    result.questions = raw;
+    return;
+  }
+
+  result.questions = raw.map((item, index) => {
+    // Array of strings: ["q1", "q2"]
+    if (typeof item === 'string') {
+      const text = item.trim() || `问题 ${index + 1}`;
+      return {
+        header: shortHeader(text, index),
+        question: text,
+        options: DEFAULT_ASK_OPTIONS.map((o) => ({ ...o })),
+      };
+    }
+
+    if (!item || typeof item !== 'object') {
+      return {
+        header: `问题${index + 1}`,
+        question: String(item ?? ''),
+        options: DEFAULT_ASK_OPTIONS.map((o) => ({ ...o })),
+      };
+    }
+
+    const q = { ...(item as Record<string, unknown>) };
+
+    // Nested JSON string fields
+    for (const key of ['options', 'choices', 'answers'] as const) {
+      if (typeof q[key] === 'string') {
+        const s = String(q[key]).trim();
+        if (s.startsWith('[')) {
+          try {
+            q[key] = JSON.parse(s);
+          } catch {
+            // leave as string; normalizeOptions will handle
+          }
+        }
+      }
+    }
+
+    const questionText =
+      (typeof q.question === 'string' && q.question.trim()) ||
+      (typeof q.prompt === 'string' && q.prompt.trim()) ||
+      (typeof q.text === 'string' && q.text.trim()) ||
+      (typeof q.content === 'string' && q.content.trim()) ||
+      `问题 ${index + 1}`;
+
+    let header =
+      (typeof q.header === 'string' && q.header.trim()) ||
+      (typeof q.title === 'string' && q.title.trim()) ||
+      (typeof q.label === 'string' && q.label.trim()) ||
+      shortHeader(questionText, index);
+    // Schema/handler expect non-empty header; handler truncates to 12 chars.
+    if (header.length > 12) {
+      header = header.slice(0, 12);
+    }
+
+    const options = normalizeAskOptions(
+      q.options ?? q.choices ?? q.answers ?? q.opts
+    );
+
+    const multiSelect =
+      typeof q.multiSelect === 'boolean'
+        ? q.multiSelect
+        : typeof q.multiple === 'boolean'
+          ? q.multiple
+          : undefined;
+
+    const normalized: Record<string, unknown> = {
+      header,
+      question: questionText,
+      options,
+    };
+    if (multiSelect !== undefined) {
+      normalized.multiSelect = multiSelect;
+    }
+    return normalized;
+  });
+}
+
+function shortHeader(text: string, index: number): string {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return `问题${index + 1}`;
+  // Prefer first few CJK/words as a short tag
+  if (cleaned.length <= 12) return cleaned;
+  return cleaned.slice(0, 12);
+}
+
+function normalizeAskOptions(raw: unknown): Array<{ label: string; description: string }> {
+  if (raw == null) {
+    return DEFAULT_ASK_OPTIONS.map((o) => ({ ...o }));
+  }
+
+  let list: unknown = raw;
+  if (typeof list === 'string') {
+    const trimmed = list.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        list = JSON.parse(trimmed);
+      } catch {
+        // comma / newline separated labels
+        list = trimmed
+          .split(/[,，\n;；]/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+    } else {
+      list = trimmed
+        .split(/[,，\n;；]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+
+  if (!Array.isArray(list) || list.length === 0) {
+    return DEFAULT_ASK_OPTIONS.map((o) => ({ ...o }));
+  }
+
+  const options = list.map((item, i) => {
+    if (typeof item === 'string') {
+      const label = item.trim() || `选项${i + 1}`;
+      return { label, description: label };
+    }
+    if (item && typeof item === 'object') {
+      const obj = item as Record<string, unknown>;
+      const label =
+        (typeof obj.label === 'string' && obj.label.trim()) ||
+        (typeof obj.name === 'string' && obj.name.trim()) ||
+        (typeof obj.value === 'string' && obj.value.trim()) ||
+        (typeof obj.text === 'string' && obj.text.trim()) ||
+        `选项${i + 1}`;
+      const description =
+        (typeof obj.description === 'string' && obj.description.trim()) ||
+        (typeof obj.desc === 'string' && obj.desc.trim()) ||
+        label;
+      return { label, description };
+    }
+    const label = String(item ?? `选项${i + 1}`);
+    return { label, description: label };
+  });
+
+  // Handler requires 2–4 options
+  if (options.length === 1) {
+    options.push({ label: '其他', description: '其他选择或补充说明' });
+  }
+  if (options.length > 4) {
+    return options.slice(0, 4);
+  }
+  if (options.length < 2) {
+    return DEFAULT_ASK_OPTIONS.map((o) => ({ ...o }));
+  }
+  return options;
 }
 
 function applyMergedToolNormalizations(result: Record<string, unknown>, toolName: string): void {

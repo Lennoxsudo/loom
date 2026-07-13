@@ -2,12 +2,18 @@ import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
 import type { AgentToolArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
-import { getAgent, type AIProvider } from '../../agentPersistence';
-import { spawnSubagent } from '../../subagents/spawn';
-import { isSubagentsEnabled, SUBAGENT_DISABLED_SUMMARY } from '../../subagents/bootstrap';
-import { resolveSubagentTypeName } from '../../subagents/registry';
+import { getAgent, type AIProvider } from '../../../utils/agentPersistence';
+import type { SubagentResult } from '../../../types/subagent';
+import { isSubagentsEnabled, SUBAGENT_DISABLED_SUMMARY } from '../../../utils/subagents/bootstrap';
+import { resolveSubagentTypeName } from '../../../utils/subagents/registry';
 
-function formatSubagentToolResult(result: Awaited<ReturnType<typeof spawnSubagent>>): ToolResult {
+/** Lazy import breaks registry ↔ spawn ↔ runAgentLoop ↔ agent-engine cycle at module load time. */
+async function loadSpawnSubagent() {
+  const mod = await import('../../../utils/subagents/spawn');
+  return mod.spawnSubagent;
+}
+
+function formatSubagentToolResult(result: SubagentResult): ToolResult {
   if (result.status === 'succeeded') {
     let output = result.summary;
     if (result.artifacts?.length) {
@@ -72,6 +78,8 @@ async function executeAgentTool(
   if (!isSubagentsEnabled()) {
     return { tool_call_id: '', output: SUBAGENT_DISABLED_SUMMARY };
   }
+
+  const spawnSubagent = await loadSpawnSubagent();
 
   if (spawnOptions.async) {
     spawnSubagent(spawnOptions).catch((err) => {

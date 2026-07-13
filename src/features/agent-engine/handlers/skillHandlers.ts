@@ -12,7 +12,7 @@ import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
 import type { LoadSkillArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
-import { loadSkillContent } from '../../skills';
+import { loadSkillContent } from '../../../utils/skills';
 
 /**
  * 加载 Skill 完整内容处理器

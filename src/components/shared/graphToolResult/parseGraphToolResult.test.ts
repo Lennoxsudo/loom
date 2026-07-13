@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatGraphOutput } from '../../../utils/aiTools/handlers/graphHandlers';
+import { formatGraphOutput } from '../../../features/agent-engine/handlers/graphHandlers';
 import { parseGraphToolResult } from './parseGraphToolResult';
 
 describe('parseGraphToolResult', () => {

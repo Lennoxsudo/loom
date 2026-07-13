@@ -7,7 +7,7 @@
  */
 
 import type { ToolCall } from '../../types/ai';
-import { mapClaudeToolName } from '../subagents/toolMapping';
+import { mapClaudeToolName } from '../../utils/subagents/toolMapping';
 import { findBestToolMatch } from './toolMatcher';
 
 interface ExtractResult {

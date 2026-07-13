@@ -1,4 +1,4 @@
-import { normalizeTerminalTextOutput } from './aiTools/terminalText';
+import { normalizeTerminalTextOutput } from '../features/agent-engine/terminalText';
 
 export type ParsedCommandExec = {
   command: string;

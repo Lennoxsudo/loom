@@ -398,7 +398,7 @@ export default defineConfig(async () => ({
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary'],
       include: [
-        'src/utils/aiTools/**/*.ts',
+        'src/features/agent-engine/**/*.ts',
         'src/stores/**/*.ts',
         'src/utils/agentPersistence.ts',
         'src/utils/agentTools.ts',
@@ -406,8 +406,8 @@ export default defineConfig(async () => ({
         'src/utils/contextBudget.ts',
       ],
       exclude: [
-        'src/utils/aiTools/__tests__/**',
-        'src/utils/aiTools/types.ts',
+        'src/features/agent-engine/__tests__/**',
+        'src/features/agent-engine/types.ts',
         'src/utils/__tests__/**',
         'src/stores/__tests__/**',
         '**/*.test.ts',

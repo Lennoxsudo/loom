@@ -270,7 +270,7 @@ const LoadSkillSchema = ToolParametersSchema.extend({
   skill_name: z.string(),
 });
 
-import { IMAGE_GENERATION_SIZES, SENSENOVA_IMAGE_SIZES } from '../../components/settings/types';
+import { IMAGE_GENERATION_SIZES, SENSENOVA_IMAGE_SIZES } from '../../shared/lib/imageGenSizes';
 
 const GenerateImageSchema = ToolParametersSchema.extend({
   prompt: z.string(),

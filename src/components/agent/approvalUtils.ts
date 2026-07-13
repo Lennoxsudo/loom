@@ -6,7 +6,7 @@ import {
 } from '../../utils/agentTools';
 import type { AgentAccessMode } from '../../types/settings';
 import { requiresConfirmation } from '../../utils/toolGuard';
-import type { ToolCall } from '../../utils/aiTools';
+import type { ToolCall } from '../../features/agent-engine';
 import type { ChatApprovalActionType, ChatApprovalSummary } from '../chat/types';
 
 export interface ApprovalSummaryLabels {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePathWithBaseDir } from '../aiTools/argsParser';
+import { resolvePathWithBaseDir } from '../../features/agent-engine/argsParser';
 import {
   isAbsolutePath,
   isPathUnderRoot,

@@ -1,8 +1,17 @@
+/* Inline question panel — taste-skill-v1 */
+
 .panel {
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--text-primary) 7%, transparent);
-  background: color-mix(in srgb, var(--bg-panel) 94%, var(--bg-primary));
-  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.2);
+  --iq-accent: color-mix(in srgb, #3d9970 78%, var(--text-secondary));
+  --iq-accent-soft: color-mix(in srgb, var(--iq-accent) 9%, transparent);
+  --iq-accent-border: color-mix(in srgb, var(--iq-accent) 22%, transparent);
+
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 95%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 97%, var(--bg-app));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent),
+    0 10px 40px color-mix(in srgb, var(--bg-app) 65%, transparent);
   overflow: hidden;
 }
 
@@ -10,40 +19,54 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 11px 16px 10px;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 68%, var(--bg-panel));
+  backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 7%, transparent);
 }
 
 .headerMain {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
 .title {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
-  letter-spacing: 0.02em;
 }
 
 .progress {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 45%, transparent);
+  font-size: 10px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .progressComplete {
-  color: color-mix(in srgb, #2f9e44 78%, var(--text-secondary));
+  border-color: var(--iq-accent-border);
+  background: var(--iq-accent-soft);
+  color: var(--iq-accent);
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -51,95 +74,142 @@
   all: unset;
   box-sizing: border-box;
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .cancelBtn:hover {
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 20%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
+}
+
+.cancelBtn:active {
+  transform: scale(0.98);
 }
 
 .confirmBtn {
   all: unset;
   box-sizing: border-box;
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: 7px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .confirmBtnEnabled {
   cursor: pointer;
-  background: var(--text-accent);
-  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--iq-accent) 32%, transparent);
+  background: var(--iq-accent);
+  color: var(--bg-app);
 }
 
 .confirmBtnEnabled:hover {
-  background: color-mix(in srgb, var(--text-accent) 90%, #ffffff);
+  background: color-mix(in srgb, var(--iq-accent) 94%, #ffffff);
+}
+
+.confirmBtnEnabled:active {
+  transform: scale(0.98);
 }
 
 .confirmBtnDisabled {
   cursor: not-allowed;
-  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
-}
-
-.divider {
-  height: 1px;
-  margin: 0 16px;
-  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 68%, transparent);
 }
 
 .body {
-  padding: 12px 16px 14px;
-  max-height: min(48vh, 380px);
+  padding: 12px 14px 14px;
+  max-height: min(46vh, 380px);
   overflow-y: auto;
+  background: color-mix(in srgb, var(--bg-panel) 99%, var(--bg-app));
 }
 
 .questions {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.questionBlock {
+  padding: 12px 0;
+  animation: iqBlockIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--block-index, 0) * 70ms);
+}
+
+.questionBlock:first-child {
+  padding-top: 0;
 }
 
 .questionBlock + .questionBlock {
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--text-primary) 5%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+}
+
+.questionBlockAnswered .questionHeader {
+  color: var(--iq-accent);
+}
+
+.questionHeader {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
+  transition: color 0.18s ease;
+}
+
+.questionPrompt {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
 }
 
 .questionMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.category {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
+  margin: -4px 0 8px;
 }
 
 .multiHint {
   font-size: 10px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
-.optionList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: 7px;
+}
+
+.optionGridSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.optionGrid > .optionTile:last-child:nth-child(odd):not(:only-child) {
+  grid-column: 1 / -1;
 }
 
 .optionTile {
@@ -147,21 +217,37 @@
   box-sizing: border-box;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 9px;
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
+  min-height: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, var(--bg-panel));
   cursor: pointer;
   text-align: left;
-  transition: background-color 0.15s ease;
+  animation: iqOptIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--block-index, 0) * 70ms + var(--opt-index, 0) * 40ms + 80ms);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .optionTile:hover {
-  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-overlay-soft) 58%, var(--bg-panel));
+}
+
+.optionTile:active {
+  transform: scale(0.985);
 }
 
 .optionTileSelected {
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  border-color: var(--iq-accent-border);
+  background: var(--iq-accent-soft);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--iq-accent) 10%, transparent);
 }
 
 .optionControl {
@@ -169,33 +255,34 @@
   height: 14px;
   margin-top: 2px;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--text-secondary) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 32%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
+    border-color 0.18s ease,
+    background-color 0.18s ease;
 }
 
 .optionControlSquare {
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .optionControlSelected {
-  border-color: var(--text-accent);
+  border-color: var(--iq-accent);
+  background: color-mix(in srgb, var(--iq-accent) 12%, transparent);
 }
 
 .optionControlDot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--text-accent);
+  background: var(--iq-accent);
 }
 
 .optionControlCheck {
-  color: var(--text-accent);
+  color: var(--iq-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -209,10 +296,11 @@
 }
 
 .optionLabel {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.35;
-  font-weight: 400;
-  color: color-mix(in srgb, var(--text-primary) 86%, var(--text-secondary));
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary));
 }
 
 .optionTileSelected .optionLabel {
@@ -220,7 +308,52 @@
 }
 
 .optionDesc {
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.4;
-  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
+  color: var(--text-secondary);
+}
+
+@keyframes iqBlockIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes iqOptIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .questionBlock,
+  .optionTile,
+  .cancelBtn,
+  .confirmBtnEnabled {
+    animation: none;
+    transition: none;
+  }
+
+  .optionTile:active,
+  .cancelBtn:active,
+  .confirmBtnEnabled:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .headerBar {
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--bg-panel) 98%, var(--bg-app));
+  }
 }

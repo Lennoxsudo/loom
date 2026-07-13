@@ -11,8 +11,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 // Mock runAgentLoop with controllable implementations
 const runAgentLoopMock = vi.fn();
-vi.mock('../../runAgentLoop', () => ({
+vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
+  buildForkMessages: (messages: any) => messages ?? [],
+  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
 }));
 
 describe('Subagent E2E Smoke Tests', () => {
@@ -34,7 +36,12 @@ describe('Subagent E2E Smoke Tests', () => {
     const mockAgents = [
       { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
     ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
+      if (cmd === 'get_agents') return mockAgents;
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
 
     // Each subagent runs one read-only tool step and succeeds
     runAgentLoopMock.mockImplementation(async (opts: any) => {
@@ -114,7 +121,12 @@ describe('Subagent E2E Smoke Tests', () => {
     const mockAgents = [
       { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
     ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
+      if (cmd === 'get_agents') return mockAgents;
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
 
     // One subagent gets cancelled via abort, the other succeeds
     runAgentLoopMock
@@ -171,7 +183,12 @@ describe('Subagent E2E Smoke Tests', () => {
     const mockAgents = [
       { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
     ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
+      if (cmd === 'get_agents') return mockAgents;
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
 
     runAgentLoopMock.mockRejectedValue(new Error('Network timeout'));
 
@@ -199,7 +216,12 @@ describe('Subagent E2E Smoke Tests', () => {
     const mockAgents = [
       { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
     ];
-    vi.mocked(invoke).mockResolvedValue(mockAgents);
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
+      if (cmd === 'get_agents') return mockAgents;
+      if (cmd === 'load_ai_config') return '{}';
+      return null;
+    });
     useSettingsStore.setState({ agentAccessMode: 'auto' });
 
     // Simulate: subagent runs, hits a non-read-only tool, gets approval, then succeeds

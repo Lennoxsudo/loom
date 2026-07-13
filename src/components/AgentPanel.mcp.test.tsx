@@ -63,8 +63,8 @@ vi.mock('../utils/agentPersistence', () => ({
   createDefaultAgent: vi.fn(),
 }));
 
-vi.mock('../utils/aiTools', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../utils/aiTools')>();
+vi.mock('../features/agent-engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../features/agent-engine')>();
   return {
     ...actual,
     AI_TOOLS: [],

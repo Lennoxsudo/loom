@@ -8,7 +8,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { logError } from '../utils/errorHandling';
-import { normalizeProjectPath } from '../components/agent/utils';
+import { normalizeProjectPath } from '../shared/lib/projectPath';
 import type {
   CursorStyle,
   CursorBlinking,

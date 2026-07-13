@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import type { QuestionInput, UserAnswer } from '../../utils/aiTools/toolArgs';
+import React, { useState, type CSSProperties } from 'react';
+import type { QuestionInput, UserAnswer } from '../../features/agent-engine/toolArgs';
 import { useTranslation } from '../../i18n';
 import styles from './InlineQuestionPanel.module.css';
 
@@ -74,24 +74,35 @@ const InlineQuestionPanel: React.FC<InlineQuestionPanelProps> = ({
         </div>
       </div>
 
-      <div className={styles.divider} aria-hidden="true" />
-
       <div className={styles.body}>
         <div className={styles.questions}>
           {questions.map((q, qIndex) => {
             const selected = selections[qIndex] || [];
             const isMulti = q.multiSelect || false;
+            const useSingleColumn = q.options.length <= 1;
+            const isAnswered = selected.length > 0;
 
             return (
-              <div key={qIndex} className={styles.questionBlock}>
-                {(q.header || isMulti) && (
+              <div
+                key={qIndex}
+                className={`${styles.questionBlock} ${
+                  isAnswered ? styles.questionBlockAnswered : ''
+                }`}
+                style={{ '--block-index': qIndex } as CSSProperties}
+              >
+                {q.header ? <span className={styles.questionHeader}>{q.header}</span> : null}
+                {q.question ? <p className={styles.questionPrompt}>{q.question}</p> : null}
+                {isMulti ? (
                   <div className={styles.questionMeta}>
-                    {q.header && <span className={styles.category}>{q.header}</span>}
-                    {isMulti && <span className={styles.multiHint}>{t.agentInline.multiSelectHint}</span>}
+                    <span className={styles.multiHint}>{t.agentInline.multiSelectHint}</span>
                   </div>
-                )}
+                ) : null}
 
-                <div className={styles.optionList}>
+                <div
+                  className={`${styles.optionGrid} ${
+                    useSingleColumn ? styles.optionGridSingle : ''
+                  }`}
+                >
                   {q.options.map((opt, optIndex) => {
                     const isSelected = selected.includes(opt.label);
 
@@ -104,6 +115,12 @@ const InlineQuestionPanel: React.FC<InlineQuestionPanelProps> = ({
                         className={`${styles.optionTile} ${
                           isSelected ? styles.optionTileSelected : ''
                         }`}
+                        style={
+                          {
+                            '--block-index': qIndex,
+                            '--opt-index': optIndex,
+                          } as CSSProperties
+                        }
                       >
                         <span
                           className={`${styles.optionControl} ${

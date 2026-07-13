@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AI_TOOLS, executeToolCall, type ToolCall } from './aiTools';
+import { AI_TOOLS, executeToolCall, type ToolCall } from '../features/agent-engine';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({

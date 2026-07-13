@@ -2,11 +2,11 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import type { ChatMessage, ProviderRequestMessage } from '../types/chat';
 import type { ToolDefinition, ToolResult } from '../types/ai';
-import type { ToolCall } from './aiTools';
-import { executeToolCall } from './aiTools';
-import { toAnthropicTools, toGeminiTools, toOpenAITools } from './aiTools/converters';
-import { subagentResourceLock } from './aiTools/subagentResourceLock';
-import type { ToolContext } from './aiTools/types';
+import type { ToolCall } from '../features/agent-engine';
+import { executeToolCall } from '../features/agent-engine';
+import { toAnthropicTools, toGeminiTools, toOpenAITools } from '../features/agent-engine/converters';
+import { subagentResourceLock } from '../features/agent-engine/subagentResourceLock';
+import type { ToolContext } from '../features/agent-engine/types';
 import {
   toProviderRequestMessages,
   buildContextForRequest,
@@ -21,8 +21,8 @@ import {
   shouldRequestApproval,
 } from './agentAccessMode';
 import { requiresConfirmation } from './toolGuard';
-import { resolveSubagentStreamToolCalls } from './aiTools/finalizeStreamToolCalls';
-import { looksLikePseudoToolCall } from './aiTools/compatToolCalls';
+import { resolveSubagentStreamToolCalls } from '../features/agent-engine/finalizeStreamToolCalls';
+import { looksLikePseudoToolCall } from '../features/agent-engine/compatToolCalls';
 import { beginSandboxExecution, endSandboxExecution } from './agentSandbox';
 
 const DUPLICATE_TOOL_SKIP_MESSAGE =

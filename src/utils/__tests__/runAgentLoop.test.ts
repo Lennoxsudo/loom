@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { runAgentLoop } from '../runAgentLoop';
-import { executeToolCall } from '../aiTools/toolExecutor';
+import { executeToolCall } from '../../features/agent-engine/toolExecutor';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -31,7 +31,7 @@ const emitEvent = (eventName: string, payload: unknown) => {
   }
 };
 
-vi.mock('../aiTools/toolExecutor', () => ({
+vi.mock('../features/agent-engine/toolExecutor', () => ({
   executeToolCall: vi.fn(async (toolCall: { id: string }) => ({
     tool_call_id: toolCall.id,
     output: 'mock output',

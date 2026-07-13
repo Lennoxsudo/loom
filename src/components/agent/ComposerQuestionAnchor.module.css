@@ -12,6 +12,28 @@
   pointer-events: none;
 }
 
+.overlay::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  top: -120vh;
+  bottom: -8px;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg-app) 78%, transparent);
+  backdrop-filter: blur(6px) saturate(120%);
+}
+
 .overlay > * {
+  position: relative;
+  z-index: 1;
   pointer-events: auto;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .overlay::before {
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--bg-app) 92%, transparent);
+  }
 }

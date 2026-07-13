@@ -2,7 +2,7 @@
  * Built-in code knowledge graph (CBM) tool handlers.
  */
 
-import { invokeWithTimeout } from '../../cbmRuntime';
+import { invokeWithTimeout } from '../../../utils/cbmRuntime';
 import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
 import type { GraphIndexArgs, GraphQueryArgs, GraphTraceArgs } from '../toolArgs';

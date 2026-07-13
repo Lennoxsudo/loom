@@ -12,7 +12,7 @@ import {
   TODO_UPDATED_EVENT,
   type TodoItem,
   type TodoStatus,
-} from '../../utils/aiTools/todoStore';
+} from '../../features/agent-engine/todoStore';
 import { useTranslation } from '../../i18n';
 import { TodoInProgressIndicator } from './TodoInProgressIndicator';
 import styles from './TodoListBar.module.css';

@@ -10,7 +10,7 @@ import {
   resolvePathWithBaseDir,
   resolveUnderlyingToolName,
   type ToolCall,
-} from '../../../utils/aiTools';
+} from '../../../features/agent-engine';
 import { attachSubagentRunsSnapshot } from '../../../utils/subagents/persistSubagentRuns';
 import { useSubagentStore } from '../../../stores/useSubagentStore';
 import {
@@ -25,7 +25,7 @@ import {
 } from '../../../utils/agentAccessMode';
 import { requiresConfirmation } from '../../../utils/toolGuard';
 import { beginSandboxExecution, endSandboxExecution } from '../../../utils/agentSandbox';
-import type { QuestionInput, UserAnswer } from '../../../utils/aiTools/toolArgs';
+import type { QuestionInput, UserAnswer } from '../../../features/agent-engine/toolArgs';
 import { buildPendingSessionKey, createAssistantMessageId } from '../utils';
 import type { PendingFileChange } from '../utils';
 import { normalizePathForCompare } from '../../../utils/pathUtils';

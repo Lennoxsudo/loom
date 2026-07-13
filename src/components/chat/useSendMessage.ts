@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { estimateMessageTokens } from '../../utils/contextBudget';
-import { sanitizeMessagesForIpc } from '../../utils/aiTools';
+import { sanitizeMessagesForIpc } from '../../features/agent-engine';
 import { toChatPanelProviderRequestMessages, VISION_UNSUPPORTED_ERROR } from './types';
 import { buildChatContextUsage } from './contextUsage';
 import { buildConversationPayload } from './conversationPersist';

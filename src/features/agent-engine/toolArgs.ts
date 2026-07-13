@@ -169,7 +169,7 @@ export type LoadSkillArgs = {
   skill_name: string;
 };
 
-import type { ImageGenerationSize, SenseNovaImageSize } from '../../components/settings/types';
+import type { ImageGenerationSize, SenseNovaImageSize } from '../../shared/lib/imageGenSizes';
 
 export type GenerateImageArgs = {
   prompt: string;

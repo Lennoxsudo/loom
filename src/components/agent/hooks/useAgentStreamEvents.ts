@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { logDebug } from '../../../utils/errorHandling';
 import { isManualCancelError, finalizeThinkingMessage } from '../utils';
 import { finalizeStreamMessage } from '../../../utils/streamChunkSeparation';
-import { resolveStreamCompletionToolCalls } from '../../../utils/aiTools/streamCompletionToolCalls';
+import { resolveStreamCompletionToolCalls } from '../../../features/agent-engine/streamCompletionToolCalls';
 import { appendExecutedToolToMessage, flushQueuedChunksForMessageIfNeeded } from './agentStreamEventHelpers';
 import { updateAgentConversationById, updateAgentMessageById } from './agentConversationUpdates';
 import { calibrateTokenEstimation } from '../../../utils/contextBudget';
@@ -16,7 +16,7 @@ import type {
   StreamChunkQueueItem,
   ChatMessage,
 } from '../../../types/chat';
-import type { ToolCall } from '../../../utils/aiTools';
+import type { ToolCall } from '../../../features/agent-engine';
 import type { AIProvider } from '../../../utils/agentPersistence';
 import type { AgentRuntimeSnapshot } from '../utils';
 

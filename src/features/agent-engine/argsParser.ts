@@ -9,7 +9,7 @@
  * @module aiTools/argsParser
  */
 
-import { isAbsolutePath, resolveContainedPath } from '../pathUtils';
+import { isAbsolutePath, resolveContainedPath } from '../../shared/lib/pathUtils';
 
 /**
  * 将相对路径解析为绝对路径，并在提供 baseDir 时强制收口到工作区内。

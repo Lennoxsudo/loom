@@ -1,10 +1,17 @@
 /**
- * AI 工具系统入口模块
+ * Agent engine public API (formerly `utils/aiTools`).
  *
- * @module aiTools
+ * UI hosts should import from `features/agent-engine` and inject host callbacks
+ * via {@link ToolContext} / {@link EngineHostCallbacks}. Prefer path containment
+ * helpers from `shared/lib/pathUtils`.
+ *
+ * @module features/agent-engine
  */
 
 export type { ToolCall, ToolResult } from '../../types/ai';
+export type { ToolContext, ToolHandler } from './types';
+export type { EngineHostCallbacks, AgentEngineEventMap } from './events';
+export { agentEngineEvents } from './events';
 export { AI_TOOLS } from './definitions';
 export { parseToolArguments, resolvePathWithBaseDir, sanitizeMessagesForIpc, sanitizeStringForIpc } from './argsParser';
 export { toAnthropicTools, toOpenAITools, toGeminiTools } from './converters';

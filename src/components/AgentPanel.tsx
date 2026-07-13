@@ -49,9 +49,9 @@ import {
   AI_TOOLS,
   filterToolsByContext,
   dedupeToolsByName,
-} from '../utils/aiTools';
+} from '../features/agent-engine';
 import type { ToolDefinition } from '../types/ai';
-import type { QuestionInput, UserAnswer } from '../utils/aiTools/toolArgs';
+import type { QuestionInput, UserAnswer } from '../features/agent-engine/toolArgs';
 import { useToolStore } from '../stores/useToolStore';
 import { useImageGenConfig } from '../hooks/useImageGenConfig';
 import {
@@ -67,7 +67,7 @@ import { useAgentStreamingQueue } from './agent/hooks/useAgentStreamingQueue';
 import {
   useAgentStreamEvents,
 } from './agent/hooks/useAgentStreamEvents';
-import { extractKnownToolNamesFromProviderTools } from '../utils/aiTools/streamCompletionToolCalls';
+import { extractKnownToolNamesFromProviderTools } from '../features/agent-engine/streamCompletionToolCalls';
 import { useAgentStreamControl } from './agent/hooks/useAgentStreamControl';
 import { useAgentSendMessage } from './agent/hooks/useAgentSendMessage';
 import { useAgentConversationPersistence } from './agent/hooks/useAgentConversationPersistence';

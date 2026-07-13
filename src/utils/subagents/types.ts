@@ -47,6 +47,6 @@ export interface SpawnSubagentOptions {
   spawnMode?: SubagentSpawnMode;
   parentProvider: string;
   parentModel: string;
-  parentContext?: import('../aiTools/types').ToolContext;
+  parentContext?: import('../../features/agent-engine/types').ToolContext;
   parentToolNames?: string[];
 }

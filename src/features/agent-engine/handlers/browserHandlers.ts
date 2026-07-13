@@ -12,7 +12,7 @@ import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler } from '../types';
 import type { ControlBrowserArgs, FetchWebContentArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
-import { browserController } from '../../browserController';
+import { browserController } from '../../../utils/browserController';
 import { validateFetchUrl, checkFetchPermission } from '../webFetchUtils';
 import { getCachedContent, setCachedContent } from '../webFetchCache';
 

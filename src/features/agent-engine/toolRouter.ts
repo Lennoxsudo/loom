@@ -1,6 +1,5 @@
 import type { ToolCall, ToolResult } from '../../types/ai';
 import type { ToolContext } from './types';
-import { getToolHandler } from './registry';
 import { parseToolArguments } from './argsParser';
 import { normalizeToolArgs } from './paramNormalizer';
 // New merged tool names (short) + legacy merged names for backward compatibility
@@ -102,6 +101,8 @@ export async function executeMergedToolCall(
     };
   }
 
+  // Lazy import avoids registry ↔ handlers ↔ bootstrap ↔ settings ↔ toolRouter cycle.
+  const { getToolHandler } = await import('./registry');
   const handler = getToolHandler(routed.toolName as never);
   if (!handler) {
     return { tool_call_id: id, output: '', error: `未找到处理器: ${routed.toolName}` };
@@ -116,7 +117,7 @@ export async function executeMergedToolCall(
     });
     result.tool_call_id = id;
 
-return result;
+    return result;
   } catch (error) {
     return { tool_call_id: id, output: '', error: `工具执行失败: ${error}` };
   }

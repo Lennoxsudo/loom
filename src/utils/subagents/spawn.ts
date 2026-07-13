@@ -5,8 +5,8 @@ import { reconcileProviderRequest, type LoadedAiConfig } from '../aiProviderRunt
 import { runAgentLoop, buildForkMessages, filterToolsForSubagentType } from '../runAgentLoop';
 import { loadSkillsContext, loadSkillContent } from '../skills';
 import { estimateTokens } from '../contextBudget';
-import { getSubagentSystemPrompt } from '../aiTools/subagentPrompt';
-import type { ToolContext } from '../aiTools/types';
+import { getSubagentSystemPrompt } from '../../features/agent-engine/subagentPrompt';
+import type { ToolContext } from '../../features/agent-engine/types';
 import type { SubagentResult, SubagentMetrics } from '../../types/subagent';
 import type { ChatMessage } from '../../types/chat';
 import { useSubagentStore } from '../../stores/useSubagentStore';

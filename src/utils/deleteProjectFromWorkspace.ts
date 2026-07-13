@@ -6,7 +6,8 @@ import {
   getProjectState,
   projectStorageKey,
 } from './agentPersistence';
-import { collectImagePathsFromMessages, normalizeProjectPath } from '../components/agent/utils';
+import { collectImagePathsFromMessages } from '../components/agent/utils';
+import { normalizeProjectPath } from '../shared/lib/projectPath';
 import { removeProjectStateBackupFromLocalStorage } from '../components/agent/hooks/useAgentInit';
 import type { ChatMessage } from '../types/chat';
 

@@ -11,8 +11,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 // Mock runAgentLoop
 const runAgentLoopMock = vi.fn();
-vi.mock('../../runAgentLoop', () => ({
+vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
+  buildForkMessages: (messages: any) => messages ?? [],
+  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
 }));
 
 describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
@@ -43,6 +45,7 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
       enableSubagents: true,
     });
     vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
       if (cmd === 'load_ai_config') return '{}';
       return null;
@@ -63,7 +66,15 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
 
     const runs = useSubagentStore.getState().runs;
     const run = Object.values(runs)[0];
-    expect(run.task.allowedTools).toEqual(['read', 'search', 'finfo', 'sym', 'fetch']);
+    expect(run.task.allowedTools).toEqual([
+      'read',
+      'search',
+      'finfo',
+      'sym',
+      'fetch',
+      'graph_query',
+      'graph_trace',
+    ]);
   });
 
   it('should let explicit allowed_tools override preset tools', async () => {
@@ -145,6 +156,7 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
 
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'load_ai_config') return mockAIConfig;
+      if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
       return null;
     });
@@ -175,6 +187,7 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
 
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'load_ai_config') return mockAIConfig;
+      if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
       return null;
     });

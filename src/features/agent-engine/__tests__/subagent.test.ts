@@ -3,7 +3,7 @@ import { getToolHandler, hasToolHandler } from '../registry';
 import { RunSubagentHandler } from '../handlers/subagentHandlers';
 import { useSubagentStore } from '../../../stores/useSubagentStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { SUBAGENT_DISABLED_SUMMARY } from '../../subagents/bootstrap';
+import { SUBAGENT_DISABLED_SUMMARY } from '../../../utils/subagents/bootstrap';
 import { invoke } from '@tauri-apps/api/core';
 
 // Mock Tauri invoke
@@ -13,8 +13,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 // Mock runAgentLoop
 const runAgentLoopMock = vi.fn();
-vi.mock('../../runAgentLoop', () => ({
+vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
+  buildForkMessages: (messages: any) => messages ?? [],
+  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
 }));
 
 describe('RunSubagentHandler Registry', () => {
@@ -52,6 +54,7 @@ describe('RunSubagentHandler Execution', () => {
     useSettingsStore.setState({ enableSubagents: true });
     useSubagentStore.setState({ runs: {} });
     vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
       if (cmd === 'load_ai_config') return '{}';
       return null;

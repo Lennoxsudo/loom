@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { QuestionInput, UserAnswer } from '../../utils/aiTools/toolArgs';
+import type { QuestionInput, UserAnswer } from '../../features/agent-engine/toolArgs';
 import InlineQuestionPanel from './InlineQuestionPanel';
 import styles from './ComposerQuestionAnchor.module.css';
 

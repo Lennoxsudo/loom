@@ -47,30 +47,13 @@ export const DEFAULT_IMAGE_GENERATION_CONFIG: ImageGenerationConfig = {
   organizationId: '',
 };
 
-export const IMAGE_GENERATION_SIZES = [
-  '256x256',
-  '512x512',
-  '1024x1024',
-  '1792x1024',
-  '1024x1792',
-] as const;
-
-export const SENSENOVA_IMAGE_SIZES = [
-  '1664x2496',
-  '2496x1664',
-  '1760x2368',
-  '2368x1760',
-  '1824x2272',
-  '2272x1824',
-  '2048x2048',
-  '2752x1536',
-  '1536x2752',
-  '3072x1376',
-  '1344x3136',
-] as const;
-
-export type ImageGenerationSize = (typeof IMAGE_GENERATION_SIZES)[number];
-export type SenseNovaImageSize = (typeof SENSENOVA_IMAGE_SIZES)[number];
+// Size constants live in shared/lib so agent-engine does not depend on UI settings types.
+export {
+  IMAGE_GENERATION_SIZES,
+  SENSENOVA_IMAGE_SIZES,
+  type ImageGenerationSize,
+  type SenseNovaImageSize,
+} from '../../shared/lib/imageGenSizes';
 
 /**
  * An entry in the auto-routing fallback chain.

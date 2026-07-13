@@ -11,7 +11,7 @@ import {
   toAnthropicTools,
   toGeminiTools,
   toOpenAITools,
-} from '../../utils/aiTools';
+} from '../../features/agent-engine';
 import { useSubagentStore } from '../../stores/useSubagentStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { bootstrapSubagentFromToolArgs, isSubagentsEnabled } from '../../utils/subagents/bootstrap';
@@ -51,7 +51,7 @@ import type {
 import { useNotification } from '../../contexts/NotificationContext';
 import { useTranslation } from '../../i18n';
 import type { AIProvider } from '../../utils/visionCapabilities';
-import type { QuestionInput, UserAnswer } from '../../utils/aiTools/toolArgs';
+import type { QuestionInput, UserAnswer } from '../../features/agent-engine/toolArgs';
 import { logDebug } from '../../utils/errorHandling';
 
 const CHAT_APPROVAL_TOOL_NAME = 'chat_approval_request';

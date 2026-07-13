@@ -10,7 +10,7 @@ import {
   toOpenAITools,
   toAnthropicTools,
   toGeminiTools,
-} from '../utils/aiTools';
+} from '../features/agent-engine';
 import { isToolBlockedInPlanMode } from '../utils/agentTools';
 import { isImageFilePath } from '../utils/fileTreeUtils';
 import { extractVisionCapabilities } from '../utils/visionCapabilities';
@@ -66,7 +66,7 @@ import { finalizeStreamMessage } from '../utils/streamChunkSeparation';
 import type { PendingFileChange } from './chat/types';
 import TodoListBar from './agent/TodoListBar';
 import ComposerQuestionAnchor from './agent/ComposerQuestionAnchor';
-import type { QuestionInput, UserAnswer } from '../utils/aiTools/toolArgs';
+import type { QuestionInput, UserAnswer } from '../features/agent-engine/toolArgs';
 import { PlusIcon } from './shared/Icons';
 
 export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPanelProps) {

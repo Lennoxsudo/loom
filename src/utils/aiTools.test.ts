@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 
-import { executeToolCall } from './aiTools';
-import type { ToolCall } from './aiTools';
+import { executeToolCall } from '../features/agent-engine';
+import type { ToolCall } from '../features/agent-engine';
 
 const invokeMock = vi.hoisted(() => vi.fn());
 
@@ -28,7 +28,7 @@ test('read_file wraps args in req for tool command', async () => {
     function: {
       name: 'read_file',
       arguments: JSON.stringify({
-        path: 'D:/project/file.txt',
+        path: 'D:\\project/file.txt',
         start_line: 2,
         max_lines: 10,
         max_bytes: 2048,
@@ -40,7 +40,7 @@ test('read_file wraps args in req for tool command', async () => {
 
   expect(invokeMock).toHaveBeenCalledWith('read_file_content_tool', {
     req: {
-      filePath: 'D:/project/file.txt',
+      filePath: 'D:\\project/file.txt',
       startLine: 2,
       maxLines: 10,
       maxBytes: 2048,
@@ -57,19 +57,19 @@ test('apply_patch returns an unknown tool error', async () => {
       name: 'apply_patch',
       arguments: JSON.stringify({
         patch: '*** Begin Patch\n*** End Patch',
-        base_dir: 'D:/proj',
+        base_dir: 'D:\\proj',
       }),
     },
   };
 
-  const result = await executeToolCall(toolCall, { baseDir: 'D:/proj' });
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
 
   expect(invokeMock).not.toHaveBeenCalledWith('apply_patch', expect.anything());
   expect(result.error).toContain('未知的工具');
 });
 
 test('search_files uses glob_search_files with baseDir', async () => {
-  invokeMock.mockResolvedValue(['D:/proj/src/App.tsx', 'D:/proj/src/main.ts']);
+  invokeMock.mockResolvedValue(['D:\\proj/src/App.tsx', 'D:\\proj/src/main.ts']);
 
   const toolCall: ToolCall = {
     id: 'tool-search-files',
@@ -80,15 +80,15 @@ test('search_files uses glob_search_files with baseDir', async () => {
     },
   };
 
-  const result = await executeToolCall(toolCall, { baseDir: 'D:/proj' });
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
 
   expect(invokeMock).toHaveBeenCalledWith('glob_search_files', {
-    rootPath: 'D:/proj',
+    rootPath: 'D:\\proj',
     pattern: '**/*.ts',
     maxResults: 50,
     source: 'ai',
   });
-  expect(result.output).toContain('D:/proj/src/App.tsx');
+  expect(result.output).toContain('D:\\proj/src/App.tsx');
 });
 
 test('delete_file invokes delete_file_or_folder with root', async () => {
@@ -99,20 +99,20 @@ test('delete_file invokes delete_file_or_folder with root', async () => {
     type: 'function',
     function: {
       name: 'delete_file',
-      arguments: JSON.stringify({ path: 'D:/proj/a.txt' }),
+      arguments: JSON.stringify({ path: 'D:\\proj\\a.txt' }),
     },
   };
 
-  const result = await executeToolCall(toolCall, { baseDir: 'D:/proj' });
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
 
   expect(invokeMock).toHaveBeenCalledWith('delete_file_or_folder', {
-    path: 'D:/proj/a.txt',
+    path: 'D:\\proj\\a.txt',
     permanent: false,
-    rootPath: 'D:/proj',
+    rootPath: 'D:\\proj',
     opSource: 'ai',
   });
   expect(result.output).toContain('回收站');
-  expect(result.files_changed).toEqual(['D:/proj/a.txt']);
+  expect(result.files_changed).toEqual(['D:\\proj\\a.txt']);
 });
 
 test('create_folder uses project root for relative path', async () => {
@@ -127,20 +127,20 @@ test('create_folder uses project root for relative path', async () => {
     },
   };
 
-  const result = await executeToolCall(toolCall, { baseDir: 'D:/proj' });
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
 
   expect(invokeMock).toHaveBeenCalledWith('create_folder', {
-    folderPath: 'D:/proj/test',
+    folderPath: 'D:\\proj\\test',
     source: 'ai',
   });
-  expect(result.output).toContain('D:/proj/test');
-  expect(result.files_changed).toEqual(['D:/proj/test']);
+  expect(result.output).toContain('D:\\proj\\test');
+  expect(result.files_changed).toEqual(['D:\\proj\\test']);
 });
 
 test('list_directory resolves relative path against baseDir and uses read_folder_children', async () => {
   invokeMock.mockResolvedValue([
-    { name: 'src', path: 'D:/proj/test/src', is_dir: true },
-    { name: 'a.txt', path: 'D:/proj/test/a.txt', is_dir: false },
+    { name: 'src', path: 'D:\\proj/test/src', is_dir: true },
+    { name: 'a.txt', path: 'D:\\proj/test/a.txt', is_dir: false },
   ]);
 
   const toolCall: ToolCall = {
@@ -152,13 +152,13 @@ test('list_directory resolves relative path against baseDir and uses read_folder
     },
   };
 
-  const result = await executeToolCall(toolCall, { baseDir: 'D:/proj' });
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
 
   expect(invokeMock).toHaveBeenCalledWith('read_folder_children', {
-    folderPath: 'D:/proj/test',
+    folderPath: 'D:\\proj\\test',
     source: 'ai',
   });
-  expect(result.output).toContain('目录内容 (D:/proj/test)');
+  expect(result.output).toContain('目录内容 (D:\\proj\\test)');
   expect(result.output).toContain('📁 src');
   expect(result.output).toContain('📄 a.txt');
 });
@@ -166,7 +166,7 @@ test('list_directory resolves relative path against baseDir and uses read_folder
 test('get_file_info uses project root for relative path', async () => {
   invokeMock.mockResolvedValue({
     exists: true,
-    path: 'D:/proj/test.txt',
+    path: 'D:\\proj\\test.txt',
     file_type: 'file',
     size_bytes: 12,
     size_human: '12 B',
@@ -183,11 +183,11 @@ test('get_file_info uses project root for relative path', async () => {
     },
   };
 
-  const result = await executeToolCall(toolCall, { baseDir: 'D:/proj' });
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
 
   expect(invokeMock).toHaveBeenCalledWith('get_file_info', {
-    path: 'D:/proj/test.txt',
+    path: 'D:\\proj\\test.txt',
     source: 'ai',
   });
-  expect(result.output).toContain('D:/proj/test.txt');
+  expect(result.output).toContain('D:\\proj\\test.txt');
 });

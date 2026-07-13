@@ -1,5 +1,5 @@
-import type { ToolCall, ToolResult } from './aiTools';
-import { isKnownToolName } from './aiTools';
+import type { ToolCall, ToolResult } from '../features/agent-engine';
+import { isKnownToolName } from '../features/agent-engine';
 import type { AgentAccessMode } from '../types/settings';
 
 const MERGED_TOOL_RESOLVE: Record<string, string> = {

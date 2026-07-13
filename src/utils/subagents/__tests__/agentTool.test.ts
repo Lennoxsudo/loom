@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getToolHandler, hasToolHandler } from '../../aiTools/registry';
-import { AgentToolHandler } from '../../aiTools/handlers/agentToolHandler';
+import { getToolHandler, hasToolHandler } from '../../../features/agent-engine/registry';
+import { AgentToolHandler } from '../../../features/agent-engine/handlers/agentToolHandler';
 import { invoke } from '@tauri-apps/api/core';
 
 vi.mock('@tauri-apps/api/core', () => ({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AI_TOOLS } from './aiTools/definitions';
+import { AI_TOOLS } from '../features/agent-engine/definitions';
 
 describe('delete_file tool definition', () => {
   it('is exposed in AI_TOOLS for the model', () => {

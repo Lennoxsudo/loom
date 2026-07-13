@@ -7,9 +7,26 @@ import { normalizeToolArgs } from './paramNormalizer';
 import { isMergedToolName, executeMergedToolCall } from './toolRouter';
 import { toolCache, executeWithCache } from './toolCache';
 import { validateToolParameters } from './schema';
-import { mcpClient } from '../mcpClient';
+import { mcpClient } from '../../utils/mcpClient';
 import { resolvePathWithBaseDir } from './argsParser';
-import { normalizePathForCompare } from '../pathUtils';
+import { normalizePathForCompare } from '../../shared/lib/pathUtils';
+import { agentEngineEvents } from './events';
+
+function emitToolStart(toolName: string, toolCallId: string, context?: ToolContext): void {
+  agentEngineEvents.emit('toolCallStart', { toolName, toolCallId });
+  context?.onToolCall?.({ toolName, toolCallId });
+}
+
+function emitToolEnd(
+  toolName: string,
+  toolCallId: string,
+  success: boolean,
+  context?: ToolContext,
+  error?: string
+): void {
+  agentEngineEvents.emit('toolCallEnd', { toolName, toolCallId, success, error });
+  context?.onToolCallEnd?.({ toolName, toolCallId, success, error });
+}
 
 export async function executeToolCall(
   toolCall: ToolCall,
@@ -18,26 +35,34 @@ export async function executeToolCall(
   const { id, function: func } = toolCall;
   const { name, arguments: argsStr } = func;
 
+  emitToolStart(name, id, context);
+
   try {
     const rawArgsStr = typeof argsStr === 'string' ? argsStr : JSON.stringify(argsStr ?? {});
 
     if (isMergedToolName(name)) {
-      return executeMergedToolCall(toolCall, context);
+      const merged = await executeMergedToolCall(toolCall, context);
+      emitToolEnd(name, id, !merged.error, context, merged.error);
+      return merged;
     }
 
     // MCP 工具路由：mcp_<serverId>__<toolName> 格式
     if (name.startsWith('mcp_')) {
-      return executeMcpToolCall(toolCall);
+      const mcpResult = await executeMcpToolCall(toolCall);
+      emitToolEnd(name, id, !mcpResult.error, context, mcpResult.error);
+      return mcpResult;
     }
 
     let args: Record<string, unknown>;
     try {
       args = parseToolArguments(rawArgsStr) as Record<string, unknown>;
     } catch (parseError) {
+      const err = `参数解析失败: ${parseError}`;
+      emitToolEnd(name, id, false, context, err);
       return {
         tool_call_id: id,
         output: '',
-        error: `参数解析失败: ${parseError}`,
+        error: err,
       };
     }
 
@@ -46,10 +71,12 @@ export async function executeToolCall(
     // Validate parameters with Zod schema
     const validationResult = validateToolParameters(name, args);
     if (!validationResult.success) {
+      const err = `参数验证失败: ${validationResult.error}`;
+      emitToolEnd(name, id, false, context, err);
       return {
         tool_call_id: id,
         output: '',
-        error: `参数验证失败: ${validationResult.error}`,
+        error: err,
       };
     }
     args = validationResult.data;
@@ -78,21 +105,25 @@ export async function executeToolCall(
         );
         
         result.tool_call_id = id;
-
+        emitToolEnd(name, id, !result.error, context, result.error);
         return result;
       }
     }
 
+    const unknownErr = `未知的工具: ${name}。可用工具: ${getAvailableToolNames().join(', ')}`;
+    emitToolEnd(name, id, false, context, unknownErr);
     return {
       tool_call_id: id,
       output: '',
-      error: `未知的工具: ${name}。可用工具: ${getAvailableToolNames().join(', ')}`,
+      error: unknownErr,
     };
   } catch (error) {
+    const err = `工具执行失败: ${error}`;
+    emitToolEnd(name, id, false, context, err);
     return {
       tool_call_id: id,
       output: '',
-      error: `工具执行失败: ${error}`,
+      error: err,
     };
   }
 }

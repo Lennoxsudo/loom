@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ToolGuard, DEFAULT_GUARD_POLICY, SlidingWindowRateLimiter, requiresConfirmation } from '../toolGuard';
-import type { ToolCall, ToolResult } from '../aiTools';
+import type { ToolCall, ToolResult } from '../../features/agent-engine';
 
 function createToolCall(name: string, args: Record<string, unknown> = {}): ToolCall {
   return {

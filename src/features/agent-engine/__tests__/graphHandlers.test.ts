@@ -16,13 +16,13 @@ describe('graphHandlers', () => {
     const handler = graphHandlers.find((item) => item.name === 'graph_index');
     expect(handler).toBeDefined();
     const result = await handler!.execute(
-      { action: 'status', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' }
+      { action: 'status', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_index',
       action: 'status',
-      payload: { repo_path: 'D:/proj' },
+      payload: { repo_path: 'D:\\proj' },
     });
     expect(result.output).toContain('graph_index');
   });
@@ -31,14 +31,14 @@ describe('graphHandlers', () => {
     vi.mocked(invoke).mockResolvedValue('{"results":[]}');
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
-      { action: 'query', query: 'MATCH (f:Function) RETURN f LIMIT 5', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'query', query: 'MATCH (f:Function) RETURN f LIMIT 5', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
       action: 'query',
       payload: {
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
         query: 'MATCH (f:Function) RETURN f LIMIT 5',
       },
     });
@@ -47,24 +47,24 @@ describe('graphHandlers', () => {
 
   it('rejects graph_query query without query string', async () => {
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
-    const result = await handler!.execute({ action: 'query' }, { baseDir: 'D:/proj' });
+    const result = await handler!.execute({ action: 'query' }, { baseDir: 'D:\\proj' });
     expect(result.error).toBeTruthy();
   });
 
   it('maps graph_trace changes action to cbm_graph invoke', async () => {
     vi.mocked(invoke).mockResolvedValue('{"changes":[]}');
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
-    await handler!.execute({ action: 'changes', repo_path: 'D:/proj' }, { baseDir: 'D:/proj' });
+    await handler!.execute({ action: 'changes', repo_path: 'D:\\proj' }, { baseDir: 'D:\\proj' });
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_trace',
       action: 'changes',
-      payload: { repo_path: 'D:/proj' },
+      payload: { repo_path: 'D:\\proj' },
     });
   });
 
   it('rejects invalid graph_query action', async () => {
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
-    const result = await handler!.execute({ action: 'nope' as 'search' }, { baseDir: 'D:/proj' });
+    const result = await handler!.execute({ action: 'nope' as 'search' }, { baseDir: 'D:\\proj' });
     expect(result.error).toBeTruthy();
   });
 
@@ -352,15 +352,15 @@ expect(output).not.toContain('.src.stores');
 
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
-      { action: 'snippet', name_pattern: 'MyClass', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'snippet', name_pattern: 'MyClass', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
 
     expect(invoke).toHaveBeenCalledTimes(2);
     expect(invoke).toHaveBeenNthCalledWith(1, 'cbm_graph', {
       tool: 'graph_query',
       action: 'search',
-      payload: { name_pattern: 'MyClass', limit: 5, repo_path: 'D:/proj' },
+      payload: { name_pattern: 'MyClass', limit: 5, repo_path: 'D:\\proj' },
     });
     expect(invoke).toHaveBeenNthCalledWith(2, 'cbm_graph', {
       tool: 'graph_query',
@@ -368,7 +368,7 @@ expect(output).not.toContain('.src.stores');
       payload: {
         name_pattern: 'MyClass',
         qualified_name: 'mod::MyClass',
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
     });
     expect(result.output).toContain('MyClass');
@@ -376,7 +376,7 @@ expect(output).not.toContain('.src.stores');
 
   it('snippet without qualified_name or name_pattern returns error', async () => {
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
-    const result = await handler!.execute({ action: 'snippet' }, { baseDir: 'D:/proj' });
+    const result = await handler!.execute({ action: 'snippet' }, { baseDir: 'D:\\proj' });
     expect(result.error).toBeTruthy();
     expect(invoke).not.toHaveBeenCalled();
   });
@@ -385,8 +385,8 @@ expect(output).not.toContain('.src.stores');
     vi.mocked(invoke).mockRejectedValue(new Error('expected token type 0, got 85 at pos 0'));
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
-      { action: 'query', query: 'Function', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'query', query: 'Function', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.error).toBeTruthy();
     expect(result.error).toContain('MATCH');
@@ -411,8 +411,8 @@ expect(output).not.toContain('.src.stores');
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
-      { action: 'trace', function_name: 'increment', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'trace', function_name: 'increment', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
 
     // 3 calls: trace + 2 fallback queries
@@ -445,8 +445,8 @@ expect(output).not.toContain('.src.stores');
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
-      { action: 'trace', function_name: 'missing', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'trace', function_name: 'missing', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
 
     expect(result.output).toContain('No relationships found');
@@ -465,8 +465,8 @@ expect(output).not.toContain('.src.stores');
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
-      { action: 'trace', function_name: 'foo', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'trace', function_name: 'foo', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
 
     // Only 1 call — no fallback
@@ -533,7 +533,7 @@ expect(output).not.toContain('.src.stores');
 
   it('rejects code action without pattern', async () => {
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
-    const result = await handler!.execute({ action: 'code' }, { baseDir: 'D:/proj' });
+    const result = await handler!.execute({ action: 'code' }, { baseDir: 'D:\\proj' });
     expect(result.error).toBeTruthy();
     expect(result.error).toContain('pattern');
     expect(result.error).toContain('action=code');
@@ -543,14 +543,14 @@ expect(output).not.toContain('.src.stores');
     vi.mocked(invoke).mockResolvedValue(JSON.stringify({ results: [] }));
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     await handler!.execute(
-      { action: 'code', code: 'TODO', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'code', code: 'TODO', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
       action: 'code',
       payload: expect.objectContaining({
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
         pattern: 'TODO',
       }),
     });
@@ -578,9 +578,9 @@ expect(output).not.toContain('.src.stores');
         action: 'code',
         name_pattern: 'useImageLoader',
         pattern: 'import',
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:/proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.output).toContain('useImageLoader');
     expect(result.output).not.toContain('component');
@@ -629,14 +629,14 @@ expect(output).not.toContain('.src.stores');
       {
         action: 'query',
         query: 'MATCH (n) RETURN DISTINCT labels(n)',
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:/proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
       action: 'schema',
-      payload: { repo_path: 'D:/proj' },
+      payload: { repo_path: 'D:\\proj' },
     });
     expect(result.output).toContain('Function');
     expect(result.output).toContain('Routed');
@@ -652,8 +652,8 @@ expect(output).not.toContain('.src.stores');
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     await handler!.execute(
-      { action: 'search', relationship: 'HTTP_CALLS', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'search', relationship: 'HTTP_CALLS', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
@@ -679,7 +679,7 @@ expect(output).not.toContain('.src.stores');
       '{"projects":[{"name":"D-foo","root_path":"D:/foo","nodes":1,"edges":2}]}',
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
-    const result = await handler!.execute({ action: 'list' }, { baseDir: 'D:/proj' });
+    const result = await handler!.execute({ action: 'list' }, { baseDir: 'D:\\proj' });
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_index',
       action: 'list',
@@ -702,14 +702,14 @@ expect(output).not.toContain('.src.stores');
 
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     await handler!.execute(
-      { action: 'snippet', name_pattern: 'use*', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'snippet', name_pattern: 'use*', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
 
     expect(invoke).toHaveBeenNthCalledWith(1, 'cbm_graph', {
       tool: 'graph_query',
       action: 'search',
-      payload: { name_pattern: '^use.*$', limit: 5, repo_path: 'D:/proj' },
+      payload: { name_pattern: '^use.*$', limit: 5, repo_path: 'D:\\proj' },
     });
   });
 
@@ -725,9 +725,9 @@ const result = await handler!.execute(
 {
 action: 'query',
 query: 'MATCH ()-[r:IMPORTS]-() RETURN type(r), count(r) AS cnt',
-repo_path: 'D:/proj',
+repo_path: 'D:\\proj',
 },
-{ baseDir: 'D:/proj' },
+{ baseDir: 'D:\\proj' },
 );
 expect(result.output).toContain('Node labels');
 expect(result.output).toContain('Edge types');
@@ -759,8 +759,8 @@ expect(result.output).toContain('incorrect values');
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
-      { action: 'changes', function_name: 'products.ts', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'changes', function_name: 'products.ts', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.output).toContain('products.ts');
     expect(result.output).not.toContain('node_modules');
@@ -781,9 +781,9 @@ expect(result.output).toContain('incorrect values');
       {
         action: 'query',
         query: 'MATCH (n)-[r]->(m) RETURN type(r), count(*)',
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:/proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.output).toContain('Node labels');
     expect(result.output).toContain('Edge types');
@@ -802,9 +802,9 @@ expect(result.output).toContain('incorrect values');
       {
         action: 'query',
         query: 'MATCH (n) RETURN labels(n), count(n)',
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:/proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.output).toContain('Node labels');
     expect(result.output).toContain('Module');
@@ -823,9 +823,9 @@ expect(result.output).toContain('incorrect values');
       {
         action: 'query',
         query: "MATCH (a)-[r]->(b) RETURN type(r) AS rel, a.name",
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:/proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.output).toContain('Found 1 result');
     expect(result.output).not.toContain('incorrect values');
@@ -839,9 +839,9 @@ expect(result.output).toContain('incorrect values');
       {
         action: 'query',
         query: 'MATCH path = (n)-[r]->(m) RETURN path LIMIT 5',
-        repo_path: 'D:/proj',
+        repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:/proj' },
+      { baseDir: 'D:\\proj' },
     );
     expect(result.output).toContain('path variables');
     expect(result.output).toContain('graph_trace');
@@ -871,8 +871,8 @@ expect(result.output).toContain('incorrect values');
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
-      { action: 'trace', function_name: 'TheWelcome', repo_path: 'D:/proj' },
-      { baseDir: 'D:/proj' },
+      { action: 'trace', function_name: 'TheWelcome', repo_path: 'D:\\proj' },
+      { baseDir: 'D:\\proj' },
     );
 
     expect(invoke).toHaveBeenCalledTimes(3);

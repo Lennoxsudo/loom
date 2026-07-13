@@ -99,5 +99,56 @@ describe('paramNormalizer', () => {
       expect(result.qn_pattern).toContain('getProductById');
       expect(result.qn_pattern).toContain('^');
     });
+
+    it('coerces ask questions string into a one-item array with default options', () => {
+      const result = normalizeToolArgs(
+        { questions: '你更偏好 React 还是 Vue？' },
+        'ask',
+      );
+      expect(Array.isArray(result.questions)).toBe(true);
+      const qs = result.questions as Array<Record<string, unknown>>;
+      expect(qs).toHaveLength(1);
+      expect(qs[0].question).toBe('你更偏好 React 还是 Vue？');
+      expect(qs[0].header).toBeTruthy();
+      expect(Array.isArray(qs[0].options)).toBe(true);
+      expect((qs[0].options as unknown[]).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('parses ask questions JSON string and fills missing option descriptions', () => {
+      const result = normalizeToolArgs(
+        {
+          questions: JSON.stringify([
+            {
+              header: '框架',
+              question: '选哪个？',
+              options: [{ label: 'React' }, { label: 'Vue' }],
+            },
+          ]),
+        },
+        'ask',
+      );
+      const qs = result.questions as Array<Record<string, unknown>>;
+      expect(qs[0].header).toBe('框架');
+      const opts = qs[0].options as Array<{ label: string; description: string }>;
+      expect(opts).toHaveLength(2);
+      expect(opts[0].description).toBe('React');
+    });
+
+    it('wraps a single ask question object into an array', () => {
+      const result = normalizeToolArgs(
+        {
+          questions: {
+            question: '是否继续？',
+            options: ['是', '否'],
+          },
+        },
+        'ask_user_question',
+      );
+      const qs = result.questions as Array<Record<string, unknown>>;
+      expect(qs).toHaveLength(1);
+      expect(qs[0].question).toBe('是否继续？');
+      const opts = qs[0].options as Array<{ label: string }>;
+      expect(opts.map((o) => o.label)).toEqual(['是', '否']);
+    });
   });
 });

@@ -12,7 +12,7 @@ import {
   estimateMessageTokens,
   estimateToolsTokens,
 } from '../../utils/contextBudget';
-import { AI_TOOLS } from '../../utils/aiTools/definitions';
+import { AI_TOOLS } from '../../features/agent-engine/definitions';
 import {
   buildContextForRequest,
   THINKING_PROMPT_MARKER,

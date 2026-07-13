@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test } from 'vitest';
-import { formatGraphOutput } from '../../utils/aiTools/handlers/graphHandlers';
+import { formatGraphOutput } from '../../features/agent-engine/handlers/graphHandlers';
 import { I18nProvider } from '../../i18n';
 import GraphToolResultCard from './GraphToolResultCard';
 import type { Message } from './types';

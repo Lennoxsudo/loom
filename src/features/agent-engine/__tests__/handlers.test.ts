@@ -8,7 +8,7 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
 
-vi.mock('../../../browserController', () => ({
+vi.mock('../../../utils/browserController', () => ({
   browserController: {
     open: vi.fn(),
     navigate: vi.fn(),
