@@ -683,6 +683,14 @@ export const enUS: I18nMessages = {
       fileDidNotExist: 'did not exist',
       binarySkipped: 'binary skipped',
     },
+    userMessage: {
+      edit: 'Edit message',
+      editAria: 'Edit user message',
+      editHint: 'Enter to send · Esc to cancel · rolls back later file changes and removes AI replies',
+      cancelEdit: 'Cancel',
+      resend: 'Send',
+      resending: 'Sending…',
+    },
     review: {
       addComment: 'Add comment',
       editComment: 'Edit',

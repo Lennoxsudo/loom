@@ -675,6 +675,14 @@ export interface I18nMessages {
       fileDidNotExist: string;
       binarySkipped: string;
     };
+    userMessage: {
+      edit: string;
+      editAria: string;
+      editHint: string;
+      cancelEdit: string;
+      resend: string;
+      resending: string;
+    };
     review: {
       addComment: string;
       editComment: string;

@@ -1608,7 +1608,7 @@ export default function AgentPanel({
   }, []);
 
   // Send message hook
-  const { sendMessage } = useAgentSendMessage({
+  const { sendMessage, resendFromUserMessage } = useAgentSendMessage({
     draftMessage,
     selectedAgentId: agent?.id ?? null,
     selectedAgent,
@@ -1641,11 +1641,21 @@ export default function AgentPanel({
     getCurrentThreadSettings: collectCurrentThreadSettings,
     sendFailedText: t.errors.sendFailed,
     visionUnsupportedError: VISION_UNSUPPORTED_ERROR,
+    stopStreaming: handleStopStreaming,
+    onSetPendingChangesBySession: setPendingChangesBySession,
+    onFilesChanged: (paths) => onFilesChangedRef.current?.(paths),
   });
 
   const handleSendCurrentMessage = useCallback(async () => {
     await sendMessage();
   }, [sendMessage]);
+
+  const handleResendFromUserMessage = useCallback(
+    async (messageId: string, newText: string) => {
+      await resendFromUserMessage(messageId, newText);
+    },
+    [resendFromUserMessage]
+  );
 
   const handleSwitchProject = useCallback(
     async (
@@ -2158,6 +2168,7 @@ export default function AgentPanel({
                           getLayoutCache={getLayoutCache}
                           onApproveTool={approve}
                           onRejectTool={reject}
+                          onResendFromUserMessage={handleResendFromUserMessage}
                         />
                       )}
                     </div>

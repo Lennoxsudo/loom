@@ -1,0 +1,124 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 75%;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-inverse);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bubbleEditing {
+  padding: 8px 10px;
+}
+
+.editor {
+  width: 100%;
+  min-height: 64px;
+  max-height: 240px;
+  resize: vertical;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-inverse);
+  font-size: 13px;
+  line-height: 1.55;
+  font-family: inherit;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.editor:focus {
+  border-color: color-mix(in srgb, var(--text-accent) 55%, transparent);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.iconButton,
+.sendButton,
+.cancelButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.iconButton {
+  width: 26px;
+  height: 26px;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.iconButton:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sendButton {
+  padding: 4px 10px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-accent) 35%, transparent);
+}
+
+.sendButton:hover {
+  background: color-mix(in srgb, var(--text-accent) 28%, transparent);
+}
+
+.sendButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cancelButton:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.editHint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}

@@ -677,6 +677,14 @@ export const zhCN: I18nMessages = {
       fileDidNotExist: '当时不存在',
       binarySkipped: '二进制已跳过',
     },
+    userMessage: {
+      edit: '编辑消息',
+      editAria: '编辑用户消息',
+      editHint: 'Enter 发送 · Esc 取消 · 将回滚后续文件改动并移除 AI 回复',
+      cancelEdit: '取消',
+      resend: '发送',
+      resending: '发送中…',
+    },
     review: {
       addComment: '添加评论',
       editComment: '编辑',

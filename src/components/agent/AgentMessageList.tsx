@@ -18,6 +18,8 @@ interface AgentMessageListProps {
   onRejectTool?: (messageId: string) => void;
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
   getLayoutCache?: () => UserMessageLayoutCache;
+  onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  userMessageEditDisabled?: boolean;
 }
 
 const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProps>(
@@ -33,6 +35,8 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
       onRejectTool,
       onUserMessageLayout,
       getLayoutCache,
+      onResendFromUserMessage,
+      userMessageEditDisabled,
     },
     ref,
   ) {
@@ -102,6 +106,8 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
             onApproveTool={onApproveTool}
             onRejectTool={onRejectTool}
             onUserMessageLayout={onUserMessageLayout}
+            onResendFromUserMessage={onResendFromUserMessage}
+            userMessageEditDisabled={userMessageEditDisabled}
           />
         ))}
       </>

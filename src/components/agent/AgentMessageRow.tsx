@@ -1,16 +1,15 @@
-import { convertFileSrc } from '@tauri-apps/api/core';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ThinkingBlock from './ThinkingBlock';
 import ToolResultMessage from './ToolResultMessage';
 import ProviderSwitchNotice from './ProviderSwitchNotice';
-import { FileTypeIcon } from '../shared/FileTypeIcon';
 import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers';
 import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
 import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
 import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
 import type { ChatMessage } from '../../types/chat';
 import CompactBoundaryCard from '../shared/CompactBoundaryCard';
+import UserMessageBubble from './UserMessageBubble';
 
 export type AgentGroupedItem =
   | { kind: 'msg'; message: ChatMessage }
@@ -26,6 +25,9 @@ interface AgentMessageRowProps {
   onApproveTool?: (messageId: string) => void;
   onRejectTool?: (messageId: string) => void;
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
+  /** Edit + resend a user message (rolls back later file changes / AI output). */
+  onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  userMessageEditDisabled?: boolean;
 }
 
 function getReadDisplayName(m: ChatMessage) {
@@ -80,6 +82,8 @@ export default function AgentMessageRow({
   onApproveTool,
   onRejectTool,
   onUserMessageLayout,
+  onResendFromUserMessage,
+  userMessageEditDisabled = false,
 }: AgentMessageRowProps) {
   if (item.kind === 'readGroup') {
     return (
@@ -324,99 +328,12 @@ export default function AgentMessageRow({
 
   if (isUser) {
     return (
-      <div
-        id={`msg-${message.id}`}
-        ref={(element) => onUserMessageLayout?.(message.id, element)}
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-start',
-          gap: '6px',
-          marginBottom: '8px',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '75%',
-            padding: '10px 14px',
-            borderRadius: '14px 14px 4px 14px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            color: 'var(--text-inverse)',
-            fontSize: '13px',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-          }}
-        >
-          {message.attachments && message.attachments.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                flexWrap: 'wrap',
-                marginBottom: message.text || message.fileAttachments?.length ? '8px' : '0',
-              }}
-            >
-              {message.attachments.map((att) => (
-                <img
-                  key={att.id}
-                  src={convertFileSrc(att.path)}
-                  alt="Attachment"
-                  style={{
-                    maxHeight: '120px',
-                    maxWidth: '100%',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    objectFit: 'cover',
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          {message.fileAttachments && message.fileAttachments.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '4px',
-                marginBottom: message.text ? '8px' : 0,
-                whiteSpace: 'normal',
-              }}
-            >
-              {message.fileAttachments.map((file) => (
-                <div
-                  key={file.id}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 7px',
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '5px',
-                    fontSize: '11px',
-                    maxWidth: '200px',
-                  }}
-                >
-                  <FileTypeIcon name={file.name} size={12} />
-                  <span
-                    style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {file.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          {message.text}
-        </div>
-      </div>
+      <UserMessageBubble
+        message={message}
+        onUserMessageLayout={onUserMessageLayout}
+        onResendFromUserMessage={onResendFromUserMessage}
+        editDisabled={userMessageEditDisabled}
+      />
     );
   }
 

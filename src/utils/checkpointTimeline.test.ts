@@ -3,6 +3,8 @@ import {
   buildCheckpointLabel,
   buildRestorePlan,
   collectPathsFromToolArgs,
+  collectUserMessageIdsFromIndex,
+  findEarliestCheckpointForUserTurns,
   isCheckpointMutatingTool,
   shortFileName,
   truncateCheckpointsAfterRestore,
@@ -74,5 +76,26 @@ describe('checkpointTimeline', () => {
     ];
     const next = truncateCheckpointsAfterRestore(cps, 'c2');
     expect(next.map((c) => c.id)).toEqual(['c1']);
+  });
+
+  it('finds earliest checkpoint for user turns', () => {
+    const cps: AgentCheckpoint[] = [
+      { ...makeCp('c1', 10, []), userMessageId: 'u1' },
+      { ...makeCp('c2', 20, []), userMessageId: 'u2' },
+      { ...makeCp('c3', 30, []), userMessageId: 'u2' },
+    ];
+    expect(findEarliestCheckpointForUserTurns(cps, ['u2'])?.id).toBe('c2');
+    expect(findEarliestCheckpointForUserTurns(cps, ['u1', 'u2'])?.id).toBe('c1');
+    expect(
+      collectUserMessageIdsFromIndex(
+        [
+          { id: 'a', role: 'assistant' },
+          { id: 'u1', role: 'user' },
+          { id: 'a2', role: 'assistant' },
+          { id: 'u2', role: 'user' },
+        ],
+        1
+      )
+    ).toEqual(['u1', 'u2']);
   });
 });
