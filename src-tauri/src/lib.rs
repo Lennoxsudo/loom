@@ -1,139 +1,68 @@
+//! Loom Tauri backend library.
+//!
+//! # Module layout (phase 1 architecture)
+//!
+//! - [`core`] — config paths, debug log
+//! - [`domain`] — business modules (agent / system / integration / ai)
+//! - [`security`] — sandbox, OS isolation, audit
+//! - [`app`] — command registration + setup glue
+//!
+//! Crate-root re-exports keep existing `crate::file_ops` / `crate::chat` paths
+//! working so internal call sites need not change in phase 1.
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+use tauri::Manager;
 
 // ============================================================================
-// Module declarations
+// Layer modules
 // ============================================================================
-mod image_gen;
-mod live_server;
-use live_server::{LiveServerManager, LiveServerStatus};
-mod agent_store;
-mod automation;
 
-mod browser;
-mod chat;
-mod conversation;
-mod file_ops;
-mod file_watcher;
-mod mcp;
-mod terminal;
-mod tool_executor;
-mod sandbox;
-mod sandbox_os;
-mod audit_log;
-
-mod config_paths;
-mod debug_log;
-mod editor_settings;
-mod git_diff;
-mod git_workspace;
-mod git_worktree;
-mod port_manager;
-mod symbol_definition;
-pub mod cbm;
+mod app;
+mod core;
+mod domain;
+mod security;
 
 // ============================================================================
-// Re-exports from modules
+// Compatibility re-exports (stable crate:: paths for phase 1)
 // ============================================================================
+
+pub use core::{config_paths, debug_log};
+
+pub use domain::agent::{agent_store, automation, conversation};
+pub use domain::ai::{chat, image_gen};
+pub use domain::integration::{
+    browser, git_diff, git_workspace, git_worktree, mcp,
+};
+/// Public for `bin/cbm_acceptance` and external tooling.
+pub use domain::integration::cbm;
+pub use domain::system::{
+    editor_settings, file_ops, file_watcher, live_server, port_manager, symbol_definition,
+    terminal, tool_executor,
+};
+
+pub use security::{audit_log, sandbox, sandbox_os};
+
+// ============================================================================
+// Re-exports used by this crate's run() / tests
+// ============================================================================
+
+pub use chat::extension_from_image_format;
+pub use chat::normalize_path_string;
 
 use automation::AutomationStoreState;
 use browser::BrowserWindowState;
-pub use chat::extension_from_image_format;
-pub use chat::normalize_path_string;
 use chat::ChatTaskMap;
 use file_watcher::WatcherState;
+use live_server::LiveServerManager;
 use mcp::McpServerState;
 use terminal::BackgroundTasks;
 use terminal::TerminalState;
 
-// ============================================================================
-// Live Server commands
-// ============================================================================
-
-#[tauri::command]
-async fn start_live_server(
-    state: tauri::State<'_, LiveServerManager>,
-    root: String,
-) -> Result<LiveServerStatus, String> {
-    state.start(root).await
-}
-
-#[tauri::command]
-fn stop_live_server(state: tauri::State<'_, LiveServerManager>) -> Result<(), String> {
-    state.stop()
-}
-
-#[tauri::command]
-fn get_live_server_status(state: tauri::State<'_, LiveServerManager>) -> LiveServerStatus {
-    state.status()
-}
-
-// ============================================================================
-// Agent Window - 独立窗口管理
-// ============================================================================
-
-#[tauri::command]
-async fn open_agent_window(app: tauri::AppHandle, project_path: String) -> Result<(), String> {
-    let label = "agent-window";
-
-    if let Some(existing) = app.get_webview_window(label) {
-        let _ = existing.show();
-        let _ = existing.unminimize();
-        existing
-            .set_focus()
-            .map_err(|e| format!("聚焦 Agent 窗口失败: {}", e))?;
-        return Ok(());
-    }
-
-    let encoded_path = editor_settings::percent_encode_path(&project_path);
-    let webview_url = {
-        #[cfg(debug_assertions)]
-        {
-            let url_str = format!(
-                "http://localhost:1420/?window=agent&projectPath={}",
-                encoded_path
-            );
-            WebviewUrl::External(
-                url_str
-                    .parse()
-                    .map_err(|e| format!("无效的 Agent 窗口 URL: {}", e))?,
-            )
-        }
-        #[cfg(not(debug_assertions))]
-        {
-            WebviewUrl::App(format!("/?window=agent&projectPath={}", encoded_path).into())
-        }
-    };
-
-    let _webview_window = WebviewWindowBuilder::new(&app, label, webview_url)
-        .title("Agent")
-        .inner_size(1400.0, 900.0)
-        .min_inner_size(600.0, 400.0)
-        .center()
-        .decorations(false)
-        .visible(false)
-        .build()
-        .map_err(|e| format!("创建 Agent 窗口失败: {}", e))?;
-
-    Ok(())
-}
-
-#[tauri::command]
-async fn show_agent_window(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("agent-window") {
-        window
-            .show()
-            .map_err(|e| format!("显示 Agent 窗口失败: {}", e))?;
-        window
-            .set_focus()
-            .map_err(|e| format!("聚焦 Agent 窗口失败: {}", e))?;
-    }
-    Ok(())
-}
-
+/// Application entry used by `main.rs`.
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 if window.label() == "main" {
@@ -162,223 +91,18 @@ pub fn run() {
             window_label: Arc::new(Mutex::new(None)),
         })
         .manage(McpServerState::default())
-.manage(agent_store::AgentStoreState::default())
-.manage(AutomationStoreState::default())
-.manage(sandbox::SandboxState::default())
+        .manage(agent_store::AgentStoreState::default())
+        .manage(AutomationStoreState::default())
+        .manage(sandbox::SandboxState::default())
         .manage(cbm::CbmState::default())
         .manage(cbm::CbmUiState::default())
         .manage(cbm::CbmTaskRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![
-            terminal::ensure_terminal,
-            terminal::create_terminal,
-            terminal::set_active_terminal,
-            terminal::write_to_terminal,
-            terminal::get_terminal_output,
-            terminal::set_terminal_size,
-            terminal::close_terminal,
-            terminal::execute_command,
-            terminal::execute_command_bg,
-            sandbox::set_sandbox_context,
-            terminal::check_background_command,
-            terminal::kill_background_command,
-            terminal::list_background_commands,
-            file_ops::read_file_content,
-            file_ops::read_file_content_tool,
-            file_ops::write_file_content,
-            file_ops::edit_file,
-            file_ops::open_folder,
-            file_ops::read_folder_children,
-            file_ops::create_file,
-            file_ops::create_folder,
-            file_ops::move_file_or_folder,
-            file_ops::copy_file_or_folder,
-            file_ops::delete_file_or_folder,
-            file_ops::file_ops_tool,
-            file_ops::search_in_folder,
-            file_ops::glob_search_files,
-            file_ops::get_file_tree,
-            file_ops::get_file_info,
-            file_ops::check_git_repo,
-            file_ops::find_windows_reserved_repo_files,
-            git_diff::get_git_diff,
-            git_diff::undo_changes,
-            git_workspace::git_workspace_snapshot,
-            git_workspace::git_workspace_stage,
-            git_workspace::git_workspace_unstage,
-            git_workspace::git_workspace_stage_all,
-            git_workspace::git_workspace_unstage_all,
-            git_workspace::git_workspace_discard_all,
-            git_workspace::git_workspace_commit,
-            git_workspace::git_workspace_checkout,
-            git_workspace::git_workspace_abort_merge,
-            git_workspace::git_workspace_merge_continue,
-            git_workspace::git_workspace_prepare_diff,
-            git_workspace::git_workspace_push,
-            git_workspace::git_workspace_sync_remote,
-            git_workspace::git_workspace_undo_last_commit,
-            git_workspace::git_workspace_log,
-            git_workspace::git_workspace_blame,
-            git_workspace::git_workspace_commit_detail,
-            git_workspace::git_workspace_create_branch,
-            git_workspace::git_workspace_delete_branch,
-            git_workspace::git_workspace_rename_branch,
-            git_workspace::git_workspace_stash_save,
-            git_workspace::git_workspace_stash_list,
-            git_workspace::git_workspace_stash_pop,
-            git_workspace::git_workspace_stash_apply,
-            git_workspace::git_workspace_stash_drop,
-            symbol_definition::get_symbol_definition,
-            start_live_server,
-            stop_live_server,
-            get_live_server_status,
-            port_manager::list_listening_ports,
-            port_manager::kill_port_process,
-            port_manager::get_process_executable_path,
-            chat::save_ai_config,
-            chat::load_ai_config,
-            chat::test_ai_connection,
-            chat::list_ai_models,
-            image_gen::generate_image,
-            image_gen::test_image_generation,
-            chat::generate_conversation_title,
-            chat::generate_compact_summary,
-            chat::send_ai_chat_stream,
-            chat::cancel_ai_chat,
-            conversation::save_chat_image,
-            conversation::save_chat_image_from_path,
-            conversation::list_conversations,
-            conversation::load_conversation,
-            conversation::save_conversation,
-            conversation::create_conversation,
-            conversation::delete_conversation,
-            conversation::cleanup_old_conversations,
-            conversation::cleanup_orphan_chat_images,
-            conversation::cleanup_unreferenced_chat_images,
-            conversation::rename_conversation,
-            agent_store::get_agents,
-            agent_store::create_agent,
-            agent_store::update_agent,
-            agent_store::delete_agent,
-            agent_store::get_last_selected_agent_id,
-            agent_store::set_last_selected_agent_id,
-            agent_store::get_agent_storage_path,
-            agent_store::get_project_storage_key,
-            agent_store::get_agent,
-            agent_store::save_agent,
-            agent_store::get_project_state,
-            agent_store::save_project_state,
-            agent_store::get_projects_index,
-            agent_store::touch_project_index,
-            agent_store::delete_project_state,
-            agent_store::migrate_to_single_agent,
-            agent_store::get_agent_full_state,
-            agent_store::save_agent_full_state,
-            agent_store::load_agent_session_extras,
-            agent_store::save_agent_session_extras,
-            agent_store::save_todos,
-            agent_store::load_todos,
-            chat::fetch_web_content_v3,
-            conversation::get_conversations_path,
-            file_watcher::watch_file,
-            file_watcher::unwatch_file,
-            file_watcher::start_watching,
-            file_watcher::stop_watching,
-            browser::open_browser_window,
-            browser::navigate_browser,
-            browser::close_browser_window,
-            browser::get_browser_status,
-            mcp::start_mcp_server,
-            mcp::start_mcp_servers_async,
-            mcp::stop_mcp_server,
-            mcp::start_single_mcp,
-            mcp::stop_single_mcp,
-            mcp::get_mcp_status,
-            mcp::list_mcp_tools,
-            mcp::get_mcp_tool_schemas,
-            mcp::call_mcp_tool,
-            mcp::list_mcp_resources,
-            mcp::read_mcp_resource,
-            mcp::list_mcp_prompts,
-            mcp::get_mcp_prompt,
-            mcp::save_mcp_config,
-            mcp::load_mcp_config,
-            mcp::get_mcp_config_path,
-            mcp::open_mcp_config_file,
-            mcp::get_claude_config_path,
-            mcp::open_claude_config_file,
-            mcp::save_claude_config,
-            editor_settings::save_editor_settings,
-            editor_settings::load_editor_settings,
-            chat::save_prompts,
-            chat::load_prompts,
-            chat::get_prompts_config_path,
-            chat::get_app_data_path,
-            open_agent_window,
-            show_agent_window,
-            debug_log::debug_log,
-            git_worktree::get_claude_user_agents_dir,
-            git_worktree::create_subagent_worktree,
-            git_worktree::cleanup_subagent_worktree,
-git_worktree::run_subagent_hooks,
-automation::agent_automation_list,
-automation::agent_automation_create,
-automation::agent_automation_update,
-automation::agent_automation_delete,
-automation::agent_automation_set_enabled,
-automation::agent_automation_run_now,
-automation::agent_automation_record_run,
-            cbm::commands::cbm_graph,
-            cbm::commands::cbm_sidecar_available,
-            cbm::commands::cbm_schedule_workspace_index,
-            cbm::commands::cbm_delete_workspace_index,
-            cbm::commands::cbm_list_indexed_projects,
-            cbm::commands::cbm_storage_info,
-            cbm::commands::cbm_sync_config,
-            cbm::commands::cbm_ui_status,
-            cbm::commands::cbm_start_ui,
-            cbm::commands::cbm_stop_ui,
-            // P2: Audit log commands
-            audit_log::get_audit_logs,
-            audit_log::clear_audit_logs,
-            audit_log::audit_log_count,
-        ])
-        .setup(|app| {
-            // P1: Initialize OS-level sandbox (Windows Job Object)
-            sandbox_os::init_sandbox();
+        .plugin(tauri_plugin_opener::init());
 
-            if let Ok(app_data_dir) = app.path().app_data_dir() {
-                let _ = config_paths::migrate_legacy_app_data_dir(&app_data_dir);
-            }
-
-            // P2: Configure on-disk audit log persistence so sandbox
-            // decisions survive application restarts.
-            if let Ok(config_dir) = config_paths::dot_config_dir() {
-                let _ = std::fs::create_dir_all(&config_dir);
-                audit_log::set_log_file(config_dir.join("audit.log"));
-            }
-
-            // 显式设置窗口图标（从嵌入的 PNG 解码为 RGBA）
-            let icon_bytes = include_bytes!("../icons/icon.png");
-            if let Ok(img) = image::load_from_memory(icon_bytes) {
-                let rgba = img.to_rgba8();
-                let (w, h) = rgba.dimensions();
-                let icon = tauri::image::Image::new_owned(rgba.into_raw(), w, h);
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_icon(icon);
-                }
-            }
-
-            // 启动自动化调度器（后台线程，每分钟检查 interval/cron 类型任务）
-            automation::start_automation_scheduler(app.handle().clone());
-
-            // 初始化 file_change 触发器的文件监听
-            automation::refresh_file_change_watchers(app.handle());
-
-            Ok(())
-        })
+    app::commands::attach_handlers(builder)
+        .setup(|app| app::setup::run(app))
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
