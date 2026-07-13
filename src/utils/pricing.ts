@@ -65,7 +65,7 @@ const PRICING_RULES: PricingRule[] = [
     pricing: { inputPerMtok: 0.25, outputPerMtok: 1.25, cacheReadPerMtok: 0.025, cacheWritePerMtok: 0.3 },
   },
   {
-    test: (p, m) => p.includes('anthropic'),
+    test: (p, _m) => p.includes('anthropic'),
     pricing: { inputPerMtok: 3, outputPerMtok: 15, cacheReadPerMtok: 0.3, cacheWritePerMtok: 3.75 },
   },
   // --- OpenAI ---

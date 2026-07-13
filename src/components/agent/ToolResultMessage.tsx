@@ -43,7 +43,6 @@ const TOOL_WARNING = 'color-mix(in srgb, var(--text-warning) 88%, var(--text-pri
 const TOOL_WARNING_BG = 'color-mix(in srgb, var(--text-warning) 14%, var(--bg-sidebar))';
 const TOOL_ERROR = 'var(--text-error)';
 const TOOL_ERROR_BG = 'color-mix(in srgb, var(--text-error) 10%, var(--bg-sidebar))';
-const TOOL_HOVER = 'color-mix(in srgb, var(--surface-overlay-soft) 100%, var(--bg-sidebar))';
 
 /** Strip fenced code blocks before error heuristics — tool output often embeds source containing "failed", "error:", etc. */
 function stripCodeFencesForErrorHeuristics(text: string): string {

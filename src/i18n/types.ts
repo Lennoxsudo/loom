@@ -907,6 +907,7 @@ export interface I18nMessages {
     claude: string;
     autoRouting: string;
     ports: string;
+    usage: string;
   };
   settingsPorts: {
     title: string;
@@ -969,6 +970,8 @@ export interface I18nMessages {
     totalTokens: string;
     inputTokens: string;
     outputTokens: string;
+    inputShort: string;
+    outputShort: string;
     cacheTokens: string;
     perSession: string;
     perModel: string;

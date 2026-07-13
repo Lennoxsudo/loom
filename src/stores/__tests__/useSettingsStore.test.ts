@@ -76,6 +76,9 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   bracketPairColorization: true,
   compactFolders: true,
   autoRevealCurrentFile: true,
+  enableSpendCap: false,
+  spendCap: 0,
+  enableUsageTracking: true,
 };
 
 function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
@@ -741,6 +744,9 @@ describe('往返一致性 (serialize → parse → serialize)', () => {
       bracketPairColorization: false,
       compactFolders: false,
       autoRevealCurrentFile: false,
+      enableSpendCap: true,
+      spendCap: 50,
+      enableUsageTracking: false,
     };
 
     const json1 = serializeSettings(original);
