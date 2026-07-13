@@ -16,6 +16,7 @@ import { isImageFilePath } from '../utils/fileTreeUtils';
 import { extractVisionCapabilities } from '../utils/visionCapabilities';
 import { useToolStore } from '../stores/useToolStore';
 import { useRulesStore } from '../stores/useRulesStore';
+import { useUsageStore } from '../stores/useUsageStore';
 import { useAgentAccessMode, useStreamSpeed, useEnableCodeGraph } from '../stores';
 import { estimateTokens, estimateMessageTokens } from '../utils/contextBudget';
 import { useTranslation } from '../i18n';
@@ -840,13 +841,38 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       }
     );
 
-    const unlistenComplete = listen<{ message_id: string; tool_calls?: ToolCall[] }>(
+    const unlistenComplete = listen<{
+      message_id: string;
+      tool_calls?: ToolCall[];
+      provider?: string;
+      model?: string;
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_read_input_tokens?: number;
+        cache_creation_input_tokens?: number;
+      };
+    }>(
       'ai-stream-complete',
       (event) => {
-        const { message_id, tool_calls } = event.payload;
+        const { message_id, tool_calls, usage, provider, model } = event.payload;
 
         if (!ownedStreamMessageIdsRef.current.has(message_id)) {
           return;
+        }
+
+        // 用量/成本追踪：Chat 页面只记录 token 数，不计算费用（费用不明确）
+        if (usage) {
+          useUsageStore.getState().addUsage({
+            sessionKey: currentConversationRef.current?.id,
+            provider,
+            model,
+            input: usage.input_tokens,
+            output: usage.output_tokens,
+            cacheRead: usage.cache_read_input_tokens,
+            cacheWrite: usage.cache_creation_input_tokens,
+            skipCost: true,
+          });
         }
 
         let pseudoToolCalls: ToolCall[] = [];

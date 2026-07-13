@@ -67,6 +67,8 @@ interface SettingsActions {
   updateGraphAutoIndexMaxFiles: (maxFiles: number) => Promise<void>;
   updateReasoningEffort: (effort: ReasoningEffort) => Promise<void>;
   updateAgentRuntimeMode: (mode: AgentRuntimeMode) => Promise<void>;
+  updateSpendCap: (enable: boolean, cap: number) => Promise<void>;
+  updateUsageTracking: (enabled: boolean) => Promise<void>;
   touchRecentWorkspace: (path: string, name: string) => Promise<void>;
   removeRecentWorkspace: (path: string) => Promise<void>;
   initializeSettings: () => Promise<void>;
@@ -104,6 +106,9 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   enableCodeGraph: true,
   graphAutoIndexOnOpen: true,
   graphAutoIndexMaxFiles: 50_000,
+  enableSpendCap: false,
+  spendCap: 0,
+  enableUsageTracking: true,
   language: 'zh-CN',
   themeMode: 'system',
   renderWhitespace: 'none',
@@ -142,6 +147,9 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     enableCodeGraph: state.enableCodeGraph,
     graphAutoIndexOnOpen: state.graphAutoIndexOnOpen,
     graphAutoIndexMaxFiles: state.graphAutoIndexMaxFiles,
+    enableSpendCap: state.enableSpendCap,
+    spendCap: state.spendCap,
+    enableUsageTracking: state.enableUsageTracking,
     language: state.language,
     themeMode: state.themeMode,
     renderWhitespace: state.renderWhitespace,
@@ -240,6 +248,18 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (typeof settings.graphAutoIndexMaxFiles === 'number' && Number.isFinite(settings.graphAutoIndexMaxFiles)) {
     result.graphAutoIndexMaxFiles = Math.max(0, Math.floor(settings.graphAutoIndexMaxFiles));
+  }
+
+  if (typeof settings.enableSpendCap === 'boolean') {
+    result.enableSpendCap = settings.enableSpendCap;
+  }
+
+  if (typeof settings.spendCap === 'number' && Number.isFinite(settings.spendCap) && settings.spendCap >= 0) {
+    result.spendCap = settings.spendCap;
+  }
+
+  if (typeof settings.enableUsageTracking === 'boolean') {
+    result.enableUsageTracking = settings.enableUsageTracking;
   }
 
   if (settings.subagentModelAliases && typeof settings.subagentModelAliases === 'object') {
@@ -541,6 +561,18 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
 
+      updateSpendCap: async (enable, cap) => {
+        set({ enableSpendCap: enable, spendCap: Math.max(0, cap || 0) });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateUsageTracking: async (enabled) => {
+        set({ enableUsageTracking: enabled });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
       touchRecentWorkspace: async (path, name) => {
         const trimmedPath = path.trim();
         const trimmedName = name.trim() || trimmedPath.split(/[\\/]/).pop() || trimmedPath;
@@ -689,6 +721,11 @@ export const useUpdateGraphAutoIndexOnOpen = () => useSettingsStore((state) => s
 export const useUpdateGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.updateGraphAutoIndexMaxFiles);
 export const useUpdateReasoningEffort = () => useSettingsStore((state) => state.updateReasoningEffort);
 export const useUpdateAgentRuntimeMode = () => useSettingsStore((state) => state.updateAgentRuntimeMode);
+export const useEnableSpendCap = () => useSettingsStore((state) => state.enableSpendCap);
+export const useSpendCap = () => useSettingsStore((state) => state.spendCap);
+export const useUpdateSpendCap = () => useSettingsStore((state) => state.updateSpendCap);
+export const useEnableUsageTracking = () => useSettingsStore((state) => state.enableUsageTracking);
+export const useUpdateUsageTracking = () => useSettingsStore((state) => state.updateUsageTracking);
 export const useTouchRecentWorkspace = () => useSettingsStore((state) => state.touchRecentWorkspace);
 export const useRemoveRecentWorkspace = () => useSettingsStore((state) => state.removeRecentWorkspace);
 export const useInitializeSettings = () => useSettingsStore((state) => state.initializeSettings);

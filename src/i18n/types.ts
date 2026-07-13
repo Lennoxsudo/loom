@@ -921,6 +921,29 @@ export interface I18nMessages {
       loomBackgroundTask: string;
     };
   };
+  settingsUsage: {
+    title: string;
+    description: string;
+    totalCost: string;
+    totalTokens: string;
+    inputTokens: string;
+    outputTokens: string;
+    cacheTokens: string;
+    perSession: string;
+    perModel: string;
+    sessionId: string;
+    model: string;
+    cost: string;
+    noData: string;
+    spendCap: string;
+    spendCapHint: string;
+    enableCap: string;
+    reset: string;
+    resetConfirm: string;
+    overCapWarning: string;
+    enableTracking: string;
+    enableTrackingHint: string;
+  };
   settingsAutoRouting: {
     title: string;
     description: string;

@@ -7,6 +7,7 @@ import { resolveStreamCompletionToolCalls } from '../../../features/agent-engine
 import { appendExecutedToolToMessage, flushQueuedChunksForMessageIfNeeded } from './agentStreamEventHelpers';
 import { updateAgentConversationById, updateAgentMessageById } from './agentConversationUpdates';
 import { calibrateTokenEstimation } from '../../../utils/contextBudget';
+import { useUsageStore } from '../../../stores/useUsageStore';
 import type {
   AgentConversationState,
   StreamChunkPayload,
@@ -184,10 +185,23 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
         if (cached > 0 || usage.cache_creation_input_tokens) {
           logDebug(
             `[stream] Token usage: input=${usage.input_tokens ?? 0}, output=${usage.output_tokens ?? 0}, ` +
-            `cache_read=${usage.cache_read_input_tokens ?? 0}, cache_write=${usage.cache_creation_input_tokens ?? 0}, ` +
-            `uncached=${uncached > 0 ? uncached : 0}`,
+              `cache_read=${usage.cache_read_input_tokens ?? 0}, cache_write=${usage.cache_creation_input_tokens ?? 0}, ` +
+              `uncached=${uncached > 0 ? uncached : 0}`,
           );
         }
+      }
+
+      // 用量/成本追踪：把真实 API usage 累加到 UsageStore（按会话 + 按模型粒度）
+      if (usage) {
+        useUsageStore.getState().addUsage({
+          sessionKey: streamMeta.conversationId,
+          provider: event.payload.provider,
+          model: event.payload.model,
+          input: usage.input_tokens,
+          output: usage.output_tokens,
+          cacheRead: usage.cache_read_input_tokens,
+          cacheWrite: usage.cache_creation_input_tokens,
+        });
       }
 
       const targetConversationId = streamMeta.conversationId;

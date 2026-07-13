@@ -14,6 +14,7 @@ import {
 import { loadSkillsContext } from './skills';
 import type { AIProvider } from './agentPersistence';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useUsageStore } from '../stores/useUsageStore';
 import { estimateMessageTokens, estimateTokens } from './contextBudget';
 import { agePersistedChatToolMessages } from './toolResultAging';
 import {
@@ -375,13 +376,37 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
       }
     );
 
-    const unlistenComplete = await listen<{ message_id: string; tool_calls?: ToolCall[] }>(
+    const unlistenComplete = await listen<{
+      message_id: string;
+      tool_calls?: ToolCall[];
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_read_input_tokens?: number;
+        cache_creation_input_tokens?: number;
+      };
+      provider?: string;
+      model?: string;
+    }>(
       'ai-stream-complete',
       (event) => {
         if (event.payload.message_id !== assistantMessageId) return;
         completedToolCalls = event.payload.tool_calls || [];
         resolveStream({ text: accumulatedText, toolCalls: completedToolCalls });
 
+        // 用量/成本追踪：子代理产生的 token 也计入（按子代理任务聚合）
+        const usage = event.payload.usage;
+        if (usage) {
+          useUsageStore.getState().addUsage({
+            sessionKey: taskId ? `subagent:${taskId}` : assistantMessageId,
+            provider: event.payload.provider ?? provider,
+            model: event.payload.model ?? model,
+            input: usage.input_tokens,
+            output: usage.output_tokens,
+            cacheRead: usage.cache_read_input_tokens,
+            cacheWrite: usage.cache_creation_input_tokens,
+          });
+        }
       }
     );
 

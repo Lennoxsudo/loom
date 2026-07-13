@@ -249,6 +249,11 @@ pub async fn run_stream_with_tool_chain(
     let mut current_profile_id = initial_profile_id.map(|value| value.to_string());
     // Keep track of which auto-routing entries we've already tried (by index)
     let mut tried_entry_indices: Vec<usize> = Vec::new();
+    // Accumulated token usage across all rounds/providers within this chain.
+    // Used to ensure the final emitted event always carries usage so the
+    // frontend can do cost tracking even when orchestration suppressed the
+    // inner ai-stream-complete events.
+    let mut captured_usage: Option<TokenUsage> = None;
 
     loop {
         let intercept_active = orchestration_enabled && round < max_rounds;
@@ -425,6 +430,23 @@ pub async fn run_stream_with_tool_chain(
             }
         };
 
+        // Accumulate token usage across rounds so the final emitted event
+        // (which the frontend uses for cost tracking) is never missing usage
+        // when backend orchestration suppressed the inner ai-stream-complete.
+        if let Some(u) = &sr.usage {
+            let acc = captured_usage.get_or_insert_with(TokenUsage::default);
+            acc.input_tokens = Some(acc.input_tokens.unwrap_or(0) + u.input_tokens.unwrap_or(0));
+            acc.output_tokens =
+                Some(acc.output_tokens.unwrap_or(0) + u.output_tokens.unwrap_or(0));
+            acc.cache_read_input_tokens = Some(
+                acc.cache_read_input_tokens.unwrap_or(0) + u.cache_read_input_tokens.unwrap_or(0),
+            );
+            acc.cache_creation_input_tokens = Some(
+                acc.cache_creation_input_tokens.unwrap_or(0)
+                    + u.cache_creation_input_tokens.unwrap_or(0),
+            );
+        }
+
         // If orchestration is not active, the stream function already emitted
         // ai-stream-complete (suppress=false), so we're done.
         if !intercept_active {
@@ -439,6 +461,7 @@ pub async fn run_stream_with_tool_chain(
             // Include the actual provider/model used (may differ from initial if auto-routing switched)
             complete_data["provider"] = serde_json::json!(current_provider);
             complete_data["model"] = serde_json::json!(current_config.model);
+            complete_data["usage"] = serde_json::json!(captured_usage);
             if let Some(first_block) = sr.thinking_blocks.first() {
                 if let Some(sig) = first_block.get("signature").and_then(|v| v.as_str()) {
                     complete_data["thinking_signature"] = serde_json::json!(sig);
@@ -459,6 +482,7 @@ pub async fn run_stream_with_tool_chain(
             // Include the actual provider/model used
             complete_data["provider"] = serde_json::json!(current_provider);
             complete_data["model"] = serde_json::json!(current_config.model);
+            complete_data["usage"] = serde_json::json!(captured_usage);
             if let Some(first_block) = sr.thinking_blocks.first() {
                 if let Some(sig) = first_block.get("signature").and_then(|v| v.as_str()) {
                     complete_data["thinking_signature"] = serde_json::json!(sig);

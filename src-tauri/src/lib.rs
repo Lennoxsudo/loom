@@ -33,13 +33,13 @@ pub use core::{config_paths, debug_log};
 pub use domain::agent::{agent_store, automation, conversation};
 pub use domain::ai::{chat, image_gen};
 pub use domain::integration::{
-    browser, git_diff, git_workspace, git_worktree, mcp,
+    browser, checkpoint, git_diff, git_workspace, git_worktree, mcp,
 };
 /// Public for `bin/cbm_acceptance` and external tooling.
 pub use domain::integration::cbm;
 pub use domain::system::{
     editor_settings, file_ops, file_watcher, live_server, port_manager, symbol_definition,
-    terminal, tool_executor,
+    terminal, tool_executor, usage_tracking,
 };
 
 pub use security::{audit_log, context, sandbox, sandbox_os};

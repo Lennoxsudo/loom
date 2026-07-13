@@ -78,6 +78,7 @@ import { refreshMonacoTheme } from './utils/monacoTheme';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useLayoutResize } from './hooks/useLayoutResize';
 import { useCbmGraphReady, useCbmSidecarState, useCbmStore } from './stores/useCbmStore';
+import { useUsageStore } from './stores/useUsageStore';
 import { useCbmIndexEvents } from './hooks/useCbmIndexEvents';
 import { useCbmConfigSync } from './hooks/useCbmConfigSync';
 import { useCbmMainWindowReindex } from './hooks/useCbmMainWindowReindex';
@@ -1928,6 +1929,7 @@ function AppWithSettings() {
 
   useEffect(() => {
     initializeSettings();
+    void useUsageStore.getState().initUsage();
   }, [initializeSettings]);
 
   useEffect(() => {

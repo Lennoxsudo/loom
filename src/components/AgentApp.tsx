@@ -19,6 +19,7 @@ import {
   useLanguage,
 } from '../stores';
 import { useCbmStore } from '../stores/useCbmStore';
+import { useUsageStore } from '../stores/useUsageStore';
 import TitleBar from './TitleBar';
 import AgentPanel from './AgentPanel';
 import styles from './AgentApp.module.css';
@@ -62,6 +63,7 @@ export default function AgentApp({ projectPath: initialProjectPath }: AgentAppPr
   // 初始化设置（加载持久化的设置），与主窗口 AppWithSettings 一致
   useEffect(() => {
     initializeSettings();
+    void useUsageStore.getState().initUsage();
     void useCbmStore.getState().initialize();
   }, [initializeSettings]);
 

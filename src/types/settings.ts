@@ -175,6 +175,12 @@ export interface SettingsState {
   graphAutoIndexOnOpen: boolean;
   /** Max files for auto-index; 0 = no limit */
   graphAutoIndexMaxFiles: number;
+  /** Whether a spending cap (USD) is enforced for usage tracking */
+  enableSpendCap: boolean;
+  /** Spending cap in USD; 0 = no cap. Only meaningful when enableSpendCap is true */
+  spendCap: number;
+  /** Master switch for usage/cost recording. When false, no usage is accumulated. */
+  enableUsageTracking: boolean;
   /** Settings loading state */
   loading: boolean;
 }

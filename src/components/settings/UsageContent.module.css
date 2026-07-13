@@ -1,0 +1,230 @@
+/* Usage & cost — taste-skill-v1 bento metrics */
+
+.overCapBanner {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--text-error) 26%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-error) 7%, transparent);
+  color: var(--text-error);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.resetButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.resetButton:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-secondary) 22%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
+}
+
+.resetButton:active {
+  transform: scale(0.98);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: 8px;
+  margin: 2px 14px 10px;
+}
+
+.statCard {
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, var(--bg-sidebar));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 5%, transparent);
+  animation: usageStatIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stat-index, 0) * 55ms);
+}
+
+.statCardHero {
+  grid-column: span 2;
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 128px;
+  padding: 15px 14px;
+  border-color: color-mix(in srgb, #3d9970 18%, var(--border-subtle));
+  background: color-mix(in srgb, #3d9970 5%, var(--surface-overlay-soft));
+}
+
+.statValue {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.statCardHero .statValue {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: color-mix(in srgb, #3d9970 72%, var(--text-primary));
+}
+
+.statLabel {
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+
+.statCardHero .statLabel {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+}
+
+.spendCapBlock {
+  margin: 2px 8px 6px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 28%, transparent);
+  overflow: hidden;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 14px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 26%, transparent);
+  overflow: hidden;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  transition: background-color 0.15s ease;
+}
+
+.listRow + .listRow {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+}
+
+.listRow:hover {
+  background: color-mix(in srgb, var(--text-secondary) 5%, transparent);
+}
+
+.listName {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--text-primary) 92%, var(--text-secondary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+}
+
+.listMeta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.metaLabel {
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+}
+
+.listCost {
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, #3d9970 78%, var(--text-primary));
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  min-width: 68px;
+  text-align: right;
+}
+
+.emptyState {
+  margin: 4px 14px 12px;
+  padding: 20px 14px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 95%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 22%, transparent);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@keyframes usageStatIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 10px;
+  }
+
+  .statCardHero {
+    grid-column: span 2;
+    grid-row: span 1;
+    min-height: 0;
+  }
+
+  .statCardHero .statValue {
+    font-size: 26px;
+  }
+
+  .list,
+  .emptyState {
+    margin-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statCard {
+    animation: none;
+  }
+
+  .resetButton:active {
+    transform: none;
+  }
+}
