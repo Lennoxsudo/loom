@@ -875,7 +875,7 @@ export const zhCN: I18nMessages = {
   settingsPorts: {
     title: '端口管理',
     description:
-      '扫描 localhost（127.0.0.1 / ::1）上的 TCP 监听端口。终止前请确认进程用途，避免误杀。',
+      '扫描可通过 localhost 访问的 TCP 监听端口（127.0.0.1 / ::1，以及 0.0.0.0 / [::] 全网卡绑定）。终止前请确认进程用途，避免误杀。',
     desktopOnly: '端口管理功能仅在桌面应用中可用。',
     refresh: '刷新',
     scanning: '扫描中...',
@@ -918,7 +918,7 @@ export const zhCN: I18nMessages = {
     ownership: {
       loomManaged: 'Loom',
       knownExternal: '已知服务',
-      external: '外部',
+      external: '第三方',
       protected: '受保护',
     },
     hints: {

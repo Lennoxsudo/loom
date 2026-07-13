@@ -1,77 +1,7 @@
 .root {
-  --skills-radius: 10px;
-  --skills-row-pad-x: 16px;
+  --rules-radius: 10px;
+  --rules-row-pad-x: 16px;
 }
-
-/* ── Path row ── */
-
-.pathBlock {
-  padding: 0 var(--skills-row-pad-x) 14px;
-}
-
-.pathRow {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.pathDisplay {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--skills-radius);
-  background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
-  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
-  font-size: 11px;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  line-height: 1.45;
-  word-break: break-all;
-}
-
-.pathOpenButton,
-.pathCopyButton {
-  all: unset;
-  box-sizing: border-box;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  border-radius: var(--skills-radius);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.pathOpenButton {
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  background: transparent;
-}
-
-.pathOpenButton:hover {
-  color: var(--text-primary);
-  border-color: color-mix(in srgb, var(--text-secondary) 28%, var(--border-subtle));
-  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
-}
-
-.pathCopyButton {
-  color: var(--bg-primary, #1e1e1e);
-  background: var(--text-primary);
-}
-
-.pathCopyButton:hover {
-  opacity: 0.9;
-}
-
-/* ── Section actions ── */
 
 .addBtn {
   all: unset;
@@ -99,13 +29,11 @@
   background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
 }
 
-/* ── Skill list ── */
-
 .list {
   display: flex;
   flex-direction: column;
-  margin: 0 var(--skills-row-pad-x) 12px;
-  border-radius: var(--skills-radius);
+  margin: 0 var(--rules-row-pad-x) 12px;
+  border-radius: var(--rules-radius);
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--surface-overlay-soft) 32%, transparent);
   overflow: hidden;
@@ -130,7 +58,7 @@
 
 .listItemHeader {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 12px;
   padding: 14px 14px 14px 16px;
@@ -139,7 +67,6 @@
 
 .listItemHeaderExpanded {
   cursor: default;
-  grid-template-columns: minmax(0, 1fr);
   padding-bottom: 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
 }
@@ -206,17 +133,6 @@
   -webkit-box-orient: vertical;
 }
 
-.scopeBadge {
-  flex-shrink: 0;
-  margin-top: 1px;
-  padding: 2px 0;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
-}
-
 .listItemActions {
   display: flex;
   flex-shrink: 0;
@@ -273,20 +189,11 @@
   background: color-mix(in srgb, var(--surface-overlay-soft) 48%, transparent);
 }
 
-/* ── Forms ── */
-
 .formBlock {
-  margin: 0 var(--skills-row-pad-x) 14px;
+  margin: 0 var(--rules-row-pad-x) 14px;
   padding: 0;
   border: none;
   background: transparent;
-}
-
-.formBlockInner {
-  padding: 14px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
-  background: color-mix(in srgb, var(--surface-overlay-soft) 48%, transparent);
 }
 
 .formField {
@@ -427,7 +334,7 @@
 }
 
 .emptyInline {
-  padding: 28px var(--skills-row-pad-x) 20px;
+  padding: 28px var(--rules-row-pad-x) 20px;
   font-size: 11px;
   line-height: 1.55;
   text-align: left;

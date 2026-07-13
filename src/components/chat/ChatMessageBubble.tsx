@@ -9,6 +9,7 @@ import CompactBoundaryCard from '../shared/CompactBoundaryCard';
 import { CopyIcon, CheckIcon } from '../shared/Icons';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
 import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers';
+import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
 import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
 import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
 import type { Message } from './types';
@@ -305,16 +306,14 @@ function MessageBubble({
                     {cleanedNormalizedContent}
                   </span>
                 ) : message.isStreaming ? (
-                  <pre
-                    style={{
-                      margin: 0,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      fontFamily: 'inherit',
-                    }}
+                  // 流式时使用轻量级 Markdown 渲染器（无语法高亮，性能更优）
+                  <ReactMarkdown
+                    key={`md-${message.id}-streaming`}
+                    remarkPlugins={[remarkGfm]}
+                    components={lightMarkdownComponents}
                   >
                     {cleanupFileTree(cleanedNormalizedContent)}
-                  </pre>
+                  </ReactMarkdown>
                 ) : (
                   <ReactMarkdown
                     key={`md-${message.id}-done`}

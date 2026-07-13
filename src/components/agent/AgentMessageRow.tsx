@@ -6,6 +6,7 @@ import ToolResultMessage from './ToolResultMessage';
 import ProviderSwitchNotice from './ProviderSwitchNotice';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
 import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers';
+import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
 import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
 import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
 import type { ChatMessage } from '../../types/chat';
@@ -496,16 +497,14 @@ export default function AgentMessageRow({
           }}
         >
           {isActivelyStreaming ? (
-            <pre
-              style={{
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                fontFamily: 'inherit',
-              }}
+            // 流式时使用轻量级 Markdown 渲染器（无语法高亮，性能更优）
+            <ReactMarkdown
+              key={`md-${message.id}-streaming`}
+              remarkPlugins={[remarkGfm]}
+              components={lightMarkdownComponents}
             >
               {cleanupFileTree(normalizedAssistantText)}
-            </pre>
+            </ReactMarkdown>
           ) : (
             <ReactMarkdown
               key={`md-${message.id}-done`}

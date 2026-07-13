@@ -38,3 +38,4 @@ src-tauri/binaries/.extract-tmp/
 *.pdb
 .arts/
 .aiasprrato/
+*.md

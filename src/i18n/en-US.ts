@@ -881,7 +881,7 @@ export const enUS: I18nMessages = {
   settingsPorts: {
     title: 'Port Manager',
     description:
-      'Scan TCP ports listening on localhost (127.0.0.1 / ::1). Review process details before terminating to avoid killing the wrong service.',
+      'Scan TCP ports reachable via localhost (127.0.0.1 / ::1, plus 0.0.0.0 / [::] all-interface bindings). Review process details before terminating to avoid killing the wrong service.',
     desktopOnly: 'Port management is only available in the desktop app.',
     refresh: 'Refresh',
     scanning: 'Scanning...',
@@ -926,7 +926,7 @@ export const enUS: I18nMessages = {
     ownership: {
       loomManaged: 'Loom',
       knownExternal: 'Known',
-      external: 'External',
+      external: 'Third-party',
       protected: 'Protected',
     },
     hints: {

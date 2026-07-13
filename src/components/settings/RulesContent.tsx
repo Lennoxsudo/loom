@@ -13,14 +13,30 @@ import {
   useDeleteTemplate,
 } from '../../stores/useRulesStore';
 import type { RuleItem } from '../../types/rules';
+import { ChevronDownIcon } from '../shared/Icons';
 import pageStyles from './SettingsPage.module.css';
 import { SettingsDeleteModal } from './SettingsDeleteModal';
-import listStyles from './SettingsExpandableList.module.css';
+import styles from './RulesContent.module.css';
 import {
   SettingsBlockBody,
   SettingsPanel,
   SettingsSection,
 } from './SettingsPrimitives';
+
+function plainPreviewText(text: string, maxLen = 140): string {
+  const plain = text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return '';
+  return plain.length > maxLen ? `${plain.slice(0, maxLen)}...` : plain;
+}
 
 function RuleCard({
   rule,
@@ -77,65 +93,98 @@ function RuleCard({
     setConfirmingDelete(false);
   };
 
+  const preview = plainPreviewText(rule.content);
+
   return (
-    <div className={listStyles.listItem}>
-      <div className={listStyles.listItemHeader} onClick={() => setExpanded(!expanded)}>
-        <div className={listStyles.listItemInfo}>
-          <div className={listStyles.listItemName}>{rule.name}</div>
-          {!expanded && (
-            <div className={listStyles.listItemPreview}>
-              {rule.content.slice(0, 80)}
-              {rule.content.length > 80 ? '...' : ''}
-            </div>
-          )}
-        </div>
-        <div className={listStyles.listItemActions} onClick={(e) => e.stopPropagation()}>
-          <button type="button" className={listStyles.actionBtn} onClick={() => setExpanded(!expanded)}>
-            {t.settingsRules.editRule}
-          </button>
-          <button
-            type="button"
-            className={listStyles.deleteBtn}
-            onClick={() => setConfirmingDelete(true)}
-          >
-            {t.settingsRules.deleteRule}
-          </button>
-        </div>
-      </div>
-      {expanded && (
-        <div className={listStyles.listItemBody}>
-          <div className={listStyles.formField} style={{ marginTop: 8 }}>
-            <label className={listStyles.formLabel}>{t.settingsRules.ruleName}</label>
-            <input
-              className={listStyles.formInput}
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder={t.settingsRules.ruleNamePlaceholder}
-            />
+    <div className={`${styles.listItem} ${expanded ? styles.listItemExpanded : ''}`}>
+      <div
+        className={`${styles.listItemHeader} ${expanded ? styles.listItemHeaderExpanded : ''}`}
+        onClick={expanded ? undefined : () => setExpanded(true)}
+      >
+        <div className={styles.listItemMain}>
+          <div className={styles.listItemNameRow}>
+            <div className={styles.listItemName}>{rule.name}</div>
+            <button
+              type="button"
+              className={styles.chevronBtn}
+              aria-expanded={expanded}
+              aria-label={expanded ? t.settingsRules.cancel : t.settingsRules.editRule}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (expanded) {
+                  handleCancel();
+                } else {
+                  setExpanded(true);
+                }
+              }}
+            >
+              <span className={`${styles.chevron} ${expanded ? styles.chevronExpanded : ''}`}>
+                <ChevronDownIcon size={12} />
+              </span>
+            </button>
           </div>
-          <div className={listStyles.formField}>
-            <label className={listStyles.formLabel}>{t.settingsRules.ruleContent}</label>
-            <textarea
-              className={listStyles.formTextarea}
-              style={{ marginTop: 0 }}
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              placeholder={t.settingsRules.ruleContentPlaceholder}
-            />
-          </div>
-          {error ? <div className={listStyles.formError}>{error}</div> : null}
-          <div className={listStyles.formFooter}>
-            <button type="button" className={listStyles.cancelBtn} onClick={handleCancel}>
-              {t.settingsRules.cancel}
+          {!expanded && preview ? <div className={styles.listItemPreview}>{preview}</div> : null}
+        </div>
+        {!expanded ? (
+          <div className={styles.listItemActions} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className={styles.actionBtn} onClick={() => setExpanded(true)}>
+              {t.settingsRules.editRule}
             </button>
             <button
               type="button"
-              className={listStyles.saveBtn}
-              disabled={!dirty || saving}
-              onClick={() => void handleSave()}
+              className={styles.deleteBtn}
+              onClick={() => setConfirmingDelete(true)}
             >
-              {saving ? t.settingsRules.saving : t.settingsRules.save}
+              {t.settingsRules.deleteRule}
             </button>
+          </div>
+        ) : null}
+      </div>
+      {expanded && (
+        <div className={styles.listItemBody} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.editorPanel}>
+            <div className={styles.formField}>
+              <label className={styles.formLabel}>{t.settingsRules.ruleName}</label>
+              <input
+                className={styles.formInput}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder={t.settingsRules.ruleNamePlaceholder}
+              />
+            </div>
+            <div className={`${styles.formField} ${styles.formFieldLast}`}>
+              <label className={styles.formLabel}>{t.settingsRules.ruleContent}</label>
+              <textarea
+                className={`${styles.formTextarea} ${styles.formTextareaMono}`}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder={t.settingsRules.ruleContentPlaceholder}
+                spellCheck={false}
+              />
+            </div>
+            {error ? <div className={styles.formError}>{error}</div> : null}
+            <div className={styles.formFooter}>
+              <button
+                type="button"
+                className={styles.deleteBtnFooter}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                {t.settingsRules.deleteRule}
+              </button>
+              <div className={styles.formFooterActions}>
+                <button type="button" className={styles.cancelBtn} onClick={handleCancel}>
+                  {t.settingsRules.cancel}
+                </button>
+                <button
+                  type="button"
+                  className={styles.saveBtn}
+                  disabled={!dirty || saving}
+                  onClick={() => void handleSave()}
+                >
+                  {saving ? t.settingsRules.saving : t.settingsRules.save}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -187,39 +236,43 @@ function NewRuleForm({
   };
 
   return (
-    <div className={listStyles.formBlock}>
-      <div className={listStyles.formField}>
-        <label className={listStyles.formLabel}>{t.settingsRules.ruleName}</label>
-        <input
-          className={listStyles.formInput}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t.settingsRules.ruleNamePlaceholder}
-        />
-      </div>
-      <div className={listStyles.formField}>
-        <label className={listStyles.formLabel}>{t.settingsRules.ruleContent}</label>
-        <textarea
-          className={listStyles.formTextarea}
-          style={{ marginTop: 0 }}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={t.settingsRules.ruleContentPlaceholder}
-        />
-      </div>
-      {error ? <div className={listStyles.formError}>{error}</div> : null}
-      <div className={listStyles.formFooter}>
-        <button type="button" className={listStyles.cancelBtn} onClick={onCancel}>
-          {t.settingsRules.cancel}
-        </button>
-        <button
-          type="button"
-          className={listStyles.saveBtn}
-          disabled={saving}
-          onClick={() => void handleSave()}
-        >
-          {saving ? t.settingsRules.saving : t.settingsRules.save}
-        </button>
+    <div className={styles.formBlock}>
+      <div className={styles.editorPanel}>
+        <div className={styles.formField}>
+          <label className={styles.formLabel}>{t.settingsRules.ruleName}</label>
+          <input
+            className={styles.formInput}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t.settingsRules.ruleNamePlaceholder}
+          />
+        </div>
+        <div className={`${styles.formField} ${styles.formFieldLast}`}>
+          <label className={styles.formLabel}>{t.settingsRules.ruleContent}</label>
+          <textarea
+            className={`${styles.formTextarea} ${styles.formTextareaMono}`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={t.settingsRules.ruleContentPlaceholder}
+            spellCheck={false}
+          />
+        </div>
+        {error ? <div className={styles.formError}>{error}</div> : null}
+        <div className={styles.formFooter}>
+          <div className={styles.formFooterActions}>
+            <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+              {t.settingsRules.cancel}
+            </button>
+            <button
+              type="button"
+              className={styles.saveBtn}
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
+              {saving ? t.settingsRules.saving : t.settingsRules.save}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -229,7 +282,7 @@ function AddRuleButton({ onClick }: { onClick: () => void }) {
   const t = useTranslation();
 
   return (
-    <button type="button" className={listStyles.addBtn} onClick={onClick}>
+    <button type="button" className={styles.addBtn} onClick={onClick}>
       + {t.settingsRules.addRule}
     </button>
   );
@@ -316,7 +369,7 @@ export function RulesContent() {
   }
 
   return (
-    <div className={pageStyles.root}>
+    <div className={`${pageStyles.root} ${styles.root}`}>
       <header className={pageStyles.pageHeader}>
         <h2 className={pageStyles.pageTitle}>{t.settingsRules.title}</h2>
       </header>
@@ -346,9 +399,9 @@ export function RulesContent() {
             </SettingsBlockBody>
           ) : null}
           {chatRules.length === 0 ? (
-            <div className={listStyles.emptyInline}>{t.settingsRules.noChatRules}</div>
+            <div className={styles.emptyInline}>{t.settingsRules.noChatRules}</div>
           ) : (
-            <div className={listStyles.list}>
+            <div className={styles.list}>
               {chatRules.map((rule) => (
                 <RuleCard
                   key={rule.id}
@@ -378,9 +431,9 @@ export function RulesContent() {
             </SettingsBlockBody>
           ) : null}
           {rulesTemplates.length === 0 ? (
-            <div className={listStyles.emptyInline}>{t.settingsRules.noTemplates}</div>
+            <div className={styles.emptyInline}>{t.settingsRules.noTemplates}</div>
           ) : (
-            <div className={listStyles.list}>
+            <div className={styles.list}>
               {rulesTemplates.map((rule) => (
                 <RuleCard
                   key={rule.id}

@@ -103,12 +103,26 @@ fn parse_local_port(address: &str) -> Option<u16> {
     host_port.parse().ok()
 }
 
-fn is_localhost_address(address: &str) -> bool {
+fn is_localhost_accessible_address(address: &str) -> bool {
     let address = address.trim();
     address == "127.0.0.1"
         || address == "[::1]"
         || address == "::1"
         || address.starts_with("127.")
+        || address == "0.0.0.0"
+        || address == "[::]"
+        || address == "::"
+        || address == "*"
+}
+
+#[cfg(windows)]
+fn is_windows_system_pid(pid: u32) -> bool {
+    pid == 4
+}
+
+#[cfg(not(windows))]
+fn is_windows_system_pid(_pid: u32) -> bool {
+    false
 }
 
 fn is_listening_state(line: &str) -> bool {
@@ -322,7 +336,7 @@ fn parse_netstat_output(output: &str) -> Vec<RawListeningPort> {
             .rsplit_once(':')
             .map(|(host, _)| host)
             .unwrap_or(local_addr);
-        if !is_localhost_address(address) {
+        if !is_localhost_accessible_address(address) {
             continue;
         }
         let Some(port) = parse_local_port(local_addr) else {
@@ -367,7 +381,7 @@ fn parse_lsof_output(output: &str) -> Vec<RawListeningPort> {
             .rsplit_once(':')
             .map(|(host, _)| host)
             .unwrap_or(addr_port);
-        if !is_localhost_address(address) {
+        if !is_localhost_accessible_address(address) {
             continue;
         }
         let Some(port) = parse_local_port(addr_port) else {
@@ -384,8 +398,9 @@ fn parse_lsof_output(output: &str) -> Vec<RawListeningPort> {
 }
 
 fn normalize_address(address: &str) -> String {
-    match address {
+    match address.trim() {
         "[::1]" | "::1" => "[::1]".to_string(),
+        "[::]" | "::" => "[::]".to_string(),
         other => other.to_string(),
     }
 }
@@ -584,6 +599,8 @@ fn enrich_entry(
 
     let ownership = if raw.pid == ctx.current_pid {
         PortOwnership::Protected
+    } else if is_windows_system_pid(raw.pid) {
+        PortOwnership::Protected
     } else if ctx
         .cbm_tracked
         .is_some_and(|(pid, port)| raw.pid == pid && raw.port == port)
@@ -605,7 +622,9 @@ fn enrich_entry(
         PortOwnership::External
     };
 
-    if label_key.is_none() {
+    if is_windows_system_pid(raw.pid) {
+        description = Some("Windows System".to_string());
+    } else if label_key.is_none() {
         description = Some(process_name.clone());
     }
 
@@ -930,10 +949,30 @@ Active Connections
   TCP    [::1]:5173             [::]:0                 LISTENING       67890
 "#;
         let ports = parse_netstat_output(output);
-        assert_eq!(ports.len(), 3);
+        assert_eq!(ports.len(), 4);
+        assert!(ports.iter().any(|p| p.port == 445 && p.pid == 4 && p.address == "0.0.0.0"));
         assert!(ports.iter().any(|p| p.port == 1420 && p.pid == 12345));
         assert!(ports.iter().any(|p| p.port == 5173 && p.pid == 67890));
-        assert!(!ports.iter().any(|p| p.port == 445));
+    }
+
+    #[test]
+    fn enrich_entry_marks_windows_system_pid_protected() {
+        let raw = RawListeningPort {
+            port: 445,
+            address: "0.0.0.0".to_string(),
+            pid: 4,
+            process_name: None,
+        };
+        let ctx = LoomRuntimeContext {
+            current_pid: 99999,
+            live_server_port: None,
+            cbm_tracked: None,
+            background_pids: HashSet::new(),
+        };
+        let entry = enrich_entry(raw, "System".to_string(), None, &ctx);
+        assert_eq!(entry.ownership, PortOwnership::Protected);
+        assert!(!entry.can_kill);
+        assert_eq!(entry.hint.description.as_deref(), Some("Windows System"));
     }
 
     #[cfg(not(windows))]
@@ -945,10 +984,10 @@ python  23456 user   3u  IPv4 0x0      0t0  TCP *:8080 (LISTEN)
 node    34567 user   22u  IPv6 0x0      0t0  TCP [::1]:3000 (LISTEN)
 "#;
         let ports = parse_lsof_output(output);
-        assert_eq!(ports.len(), 2);
+        assert_eq!(ports.len(), 3);
         assert!(ports.iter().any(|p| p.port == 1420 && p.pid == 12345));
+        assert!(ports.iter().any(|p| p.port == 8080 && p.pid == 23456));
         assert!(ports.iter().any(|p| p.port == 3000 && p.pid == 34567));
-        assert!(!ports.iter().any(|p| p.port == 8080));
     }
 
     #[test]

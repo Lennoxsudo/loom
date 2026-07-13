@@ -15,11 +15,10 @@ import {
   showError as globalShowError,
   showSuccess as globalShowSuccess,
 } from '../../utils/notification';
+import { ChevronDownIcon } from '../shared/Icons';
 import pageStyles from './SettingsPage.module.css';
 import { SettingsDeleteModal } from './SettingsDeleteModal';
-import listStyles from './SettingsExpandableList.module.css';
 import styles from './SkillsContent.module.css';
-import primitiveStyles from './SettingsPrimitives.module.css';
 import {
   SettingsBlockBody,
   SettingsPanel,
@@ -68,59 +67,95 @@ function SkillCard({
     setConfirmingDelete(false);
   };
 
+  const preview = skill.description
+    ? skill.description
+    : skill.content.slice(0, 120) + (skill.content.length > 120 ? '...' : '');
+
   return (
-    <div className={listStyles.listItem}>
-      <div className={listStyles.listItemHeader} onClick={() => setExpanded(!expanded)}>
-        <div className={listStyles.listItemInfo}>
-          <div className={listStyles.listItemName}>{skill.name}</div>
-          {!expanded && (
-            <div className={listStyles.listItemPreview}>
-              {skill.description
-                ? skill.description
-                : skill.content.slice(0, 80) + (skill.content.length > 80 ? '...' : '')}
-            </div>
-          )}
-        </div>
-        <span
-          className={
-            skill.scope === 'global' ? styles.scopeBadgeGlobal : styles.scopeBadgeProject
-          }
-        >
-          {skill.scope === 'global' ? t.settingsSkills.global : t.settingsSkills.project}
-        </span>
-        <div className={listStyles.listItemActions} onClick={(e) => e.stopPropagation()}>
-          <button type="button" className={listStyles.actionBtn} onClick={() => setExpanded(!expanded)}>
-            {t.settingsSkills.editSkill}
-          </button>
-          <button
-            type="button"
-            className={listStyles.deleteBtn}
-            onClick={() => setConfirmingDelete(true)}
-          >
-            {t.settingsSkills.deleteSkill}
-          </button>
-        </div>
-      </div>
-      {expanded && (
-        <div className={listStyles.listItemBody}>
-          <textarea
-            className={listStyles.formTextarea}
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            placeholder={t.settingsSkills.skillContentPlaceholder}
-          />
-          <div className={listStyles.formFooter}>
-            <button type="button" className={listStyles.cancelBtn} onClick={handleCancel}>
-              {t.settingsSkills.cancel}
-            </button>
+    <div className={`${styles.listItem} ${expanded ? styles.listItemExpanded : ''}`}>
+      <div
+        className={`${styles.listItemHeader} ${expanded ? styles.listItemHeaderExpanded : ''}`}
+        onClick={expanded ? undefined : () => setExpanded(true)}
+      >
+        <div className={styles.listItemMain}>
+          <div className={styles.listItemNameRow}>
+            <div className={styles.listItemName}>{skill.name}</div>
             <button
               type="button"
-              className={listStyles.saveBtn}
-              disabled={!dirty || saving}
-              onClick={() => void handleSave()}
+              className={styles.chevronBtn}
+              aria-expanded={expanded}
+              aria-label={expanded ? t.settingsSkills.cancel : t.settingsSkills.editSkill}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (expanded) {
+                  handleCancel();
+                } else {
+                  setExpanded(true);
+                }
+              }}
             >
-              {saving ? t.settingsSkills.saving : t.settingsSkills.save}
+              <span className={`${styles.chevron} ${expanded ? styles.chevronExpanded : ''}`}>
+                <ChevronDownIcon size={12} />
+              </span>
             </button>
+          </div>
+          {!expanded && preview ? <div className={styles.listItemPreview}>{preview}</div> : null}
+        </div>
+        {!expanded ? (
+          <>
+            <span className={styles.scopeBadge}>
+              {skill.scope === 'global' ? t.settingsSkills.global : t.settingsSkills.project}
+            </span>
+            <div className={styles.listItemActions} onClick={(e) => e.stopPropagation()}>
+              <button type="button" className={styles.actionBtn} onClick={() => setExpanded(true)}>
+                {t.settingsSkills.editSkill}
+              </button>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                {t.settingsSkills.deleteSkill}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
+      {expanded && (
+        <div className={styles.listItemBody} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.editorPanel}>
+            <div className={`${styles.formField} ${styles.formFieldLast}`}>
+              <label className={styles.formLabel}>{t.settingsSkills.skillContent}</label>
+              <textarea
+                className={`${styles.formTextarea} ${styles.formTextareaMono}`}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder={t.settingsSkills.skillContentPlaceholder}
+                spellCheck={false}
+              />
+            </div>
+            <div className={styles.formFooter}>
+              <button
+                type="button"
+                className={styles.deleteBtnFooter}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                {t.settingsSkills.deleteSkill}
+              </button>
+              <div className={styles.formFooterActions}>
+                <button type="button" className={styles.cancelBtn} onClick={handleCancel}>
+                  {t.settingsSkills.cancel}
+                </button>
+                <button
+                  type="button"
+                  className={styles.saveBtn}
+                  disabled={!dirty || saving}
+                  onClick={() => void handleSave()}
+                >
+                  {saving ? t.settingsSkills.saving : t.settingsSkills.save}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -184,49 +219,53 @@ function NewSkillForm({
   };
 
   return (
-    <div className={listStyles.formBlock}>
-      <SettingsRow
-        label={t.settingsSkills.scope}
-        control={
-          <SettingsSegmented
-            value={hasProject ? scope : 'global'}
-            options={scopeOptions}
-            onChange={(nextScope) => setScope(nextScope)}
+    <div className={styles.formBlock}>
+      <div className={styles.formBlockInner}>
+        <SettingsRow
+          label={t.settingsSkills.scope}
+          control={
+            <SettingsSegmented
+              value={hasProject ? scope : 'global'}
+              options={scopeOptions}
+              onChange={(nextScope) => setScope(nextScope)}
+            />
+          }
+        />
+        <div className={styles.formField}>
+          <label className={styles.formLabel}>{t.settingsSkills.skillName}</label>
+          <input
+            className={styles.formInput}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t.settingsSkills.skillNamePlaceholder}
           />
-        }
-      />
-      <div className={listStyles.formField}>
-        <label className={listStyles.formLabel}>{t.settingsSkills.skillName}</label>
-        <input
-          className={listStyles.formInput}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t.settingsSkills.skillNamePlaceholder}
-        />
-      </div>
-      <div className={listStyles.formField}>
-        <label className={listStyles.formLabel}>{t.settingsSkills.skillContent}</label>
-        <textarea
-          className={listStyles.formTextarea}
-          style={{ marginTop: 0 }}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={t.settingsSkills.skillContentPlaceholder}
-        />
-      </div>
-      {error ? <div className={listStyles.formError}>{error}</div> : null}
-      <div className={listStyles.formFooter}>
-        <button type="button" className={listStyles.cancelBtn} onClick={onCancel}>
-          {t.settingsSkills.cancel}
-        </button>
-        <button
-          type="button"
-          className={listStyles.saveBtn}
-          disabled={saving}
-          onClick={() => void handleSave()}
-        >
-          {saving ? t.settingsSkills.saving : t.settingsSkills.save}
-        </button>
+        </div>
+        <div className={`${styles.formField} ${styles.formFieldLast}`}>
+          <label className={styles.formLabel}>{t.settingsSkills.skillContent}</label>
+          <textarea
+            className={`${styles.formTextarea} ${styles.formTextareaMono}`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={t.settingsSkills.skillContentPlaceholder}
+            spellCheck={false}
+          />
+        </div>
+        {error ? <div className={styles.formError}>{error}</div> : null}
+        <div className={styles.formFooter}>
+          <div className={styles.formFooterActions}>
+            <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+              {t.settingsSkills.cancel}
+            </button>
+            <button
+              type="button"
+              className={styles.saveBtn}
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
+              {saving ? t.settingsSkills.saving : t.settingsSkills.save}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -245,14 +284,14 @@ function SkillsPathRow({
 
   return (
     <div className={styles.pathBlock}>
-      <div className={primitiveStyles.pathRow}>
-        <div className={primitiveStyles.pathDisplay} title={path}>
+      <div className={styles.pathRow}>
+        <div className={styles.pathDisplay} title={path}>
           {path}
         </div>
-        <button type="button" className={primitiveStyles.pathOpenButton} onClick={onOpen}>
+        <button type="button" className={styles.pathOpenButton} onClick={onOpen}>
           {t.settingsSkills.openFolder}
         </button>
-        <button type="button" className={primitiveStyles.pathCopyButton} onClick={onCopy}>
+        <button type="button" className={styles.pathCopyButton} onClick={onCopy}>
           {t.settingsSkills.copyPath}
         </button>
       </div>
@@ -346,7 +385,7 @@ export function SkillsContent() {
   }
 
   return (
-    <div className={pageStyles.root}>
+    <div className={`${pageStyles.root} ${styles.root}`}>
       <header className={pageStyles.pageHeader}>
         <h2 className={pageStyles.pageTitle}>{t.settingsSkills.title}</h2>
       </header>
@@ -366,7 +405,7 @@ export function SkillsContent() {
           description={t.settingsSkills.globalHint}
           action={
             !showNewForm ? (
-              <button type="button" className={listStyles.addBtn} onClick={() => setShowNewForm(true)}>
+              <button type="button" className={styles.addBtn} onClick={() => setShowNewForm(true)}>
                 + {t.settingsSkills.newSkill}
               </button>
             ) : undefined
@@ -390,9 +429,9 @@ export function SkillsContent() {
             />
           ) : null}
           {globalSkills.length === 0 ? (
-            <div className={listStyles.emptyInline}>{t.settingsSkills.noGlobalSkills}</div>
+            <div className={styles.emptyInline}>{t.settingsSkills.noGlobalSkills}</div>
           ) : (
-            <div className={listStyles.list}>
+            <div className={styles.list}>
               {globalSkills.map((skill) => (
                 <SkillCard
                   key={skill.name}
@@ -410,11 +449,11 @@ export function SkillsContent() {
           description={t.settingsSkills.projectHint}
         >
           {!hasProject ? (
-            <div className={listStyles.emptyInline}>{t.settingsSkills.noProjectOpen}</div>
+            <div className={styles.emptyInline}>{t.settingsSkills.noProjectOpen}</div>
           ) : projectSkills.length === 0 ? (
-            <div className={listStyles.emptyInline}>{t.settingsSkills.noProjectSkills}</div>
+            <div className={styles.emptyInline}>{t.settingsSkills.noProjectSkills}</div>
           ) : (
-            <div className={listStyles.list}>
+            <div className={styles.list}>
               {projectSkills.map((skill) => (
                 <SkillCard
                   key={skill.name}
