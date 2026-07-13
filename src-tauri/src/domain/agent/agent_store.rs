@@ -148,6 +148,10 @@ pub struct AgentConversation {
     /// Change review comments for this thread
     #[serde(default)]
     pub review_comments: Option<Vec<ChangeReviewComment>>,
+    /// Plan panel document — follows this thread on save/load/delete.
+    /// Must be a known field so serde does not drop it when saving project state.
+    #[serde(default)]
+    pub plan_document: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -1697,6 +1701,7 @@ mod tests {
                 current_preview_index: 0,
                 context_injected: None,
                 review_comments: None,
+                plan_document: None,
             }],
             preview_history: vec![],
             current_preview_index: 0,
@@ -1808,6 +1813,7 @@ mod tests {
                     title_generated: None,
                     context_injected: None,
                     review_comments: None,
+                    plan_document: None,
                 },
                 AgentConversation {
                     id: "conv-b".to_string(),
@@ -1823,6 +1829,7 @@ mod tests {
                     title_generated: None,
                     context_injected: None,
                     review_comments: None,
+                    plan_document: None,
                 },
             ],
             preview_history: Vec::new(),
@@ -1896,6 +1903,7 @@ mod tests {
                 title_generated: None,
                 context_injected: None,
                 review_comments: None,
+                plan_document: None,
             }],
         };
         store

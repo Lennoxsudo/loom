@@ -6,6 +6,7 @@ import { parseToolArguments } from '../../features/agent-engine/argsParser';
 import { findBestToolMatch } from '../../features/agent-engine/toolMatcher';
 import { resolveUnderlyingToolName } from '../../features/agent-engine/toolRouter';
 import { exportPlanForSave, hydratePlan } from '../../features/agent-engine/planStore';
+import { recoverPlanFromMessages } from '../../features/agent-engine/planRecover';
 import { applyContextBudget } from '../../utils/contextBudget';
 import { coerceProjectPath, normalizeProjectPath } from '../../shared/lib/projectPath';
 
@@ -1069,12 +1070,19 @@ export function projectStateToAgentConversationState(
 ): AgentConversationState {
   const normalized = normalizeProjectPath(projectPath);
   const conversations = (projectState.conversations ?? []).map((conversation) => {
-    hydratePlan(conversation.id, conversation.planDocument);
+    const messages = rehydrateToolMessages(
+      normalizeStoredMessages({ load: conversation.messages }).load ?? conversation.messages
+    );
+    // Prefer persisted planDocument; fall back to tool-history recovery for older saves
+    // that dropped planDocument (Rust AgentConversation lacked the field).
+    const planRaw =
+      conversation.planDocument ?? recoverPlanFromMessages(messages) ?? null;
+    hydratePlan(conversation.id, planRaw);
+    const planDocument = exportPlanForSave(conversation.id) ?? planRaw ?? null;
     return {
       ...conversation,
-      messages: rehydrateToolMessages(
-        normalizeStoredMessages({ load: conversation.messages }).load ?? conversation.messages
-      ),
+      messages,
+      planDocument,
     };
   });
   return {
