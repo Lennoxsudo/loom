@@ -30,6 +30,8 @@ export interface ChatMessageListProps {
   t: I18nMessages;
   onApprovePendingToolCalls: (requestId: string) => void | Promise<void>;
   onDenyPendingToolCalls: (requestId: string) => void | Promise<void>;
+  onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  userMessageEditDisabled?: boolean;
   virtuosoRef: React.MutableRefObject<VirtuosoHandle | null>;
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
   scrollerRef: React.MutableRefObject<HTMLDivElement | null>;
@@ -64,6 +66,8 @@ export default function ChatMessageList({
   t,
   onApprovePendingToolCalls,
   onDenyPendingToolCalls,
+  onResendFromUserMessage,
+  userMessageEditDisabled = false,
   virtuosoRef,
   messagesContainerRef,
   scrollerRef,
@@ -323,6 +327,8 @@ export default function ChatMessageList({
         onAcceptPendingChange={onAcceptPendingChange}
         onRollbackPendingChange={onRollbackPendingChange}
         onUserMessageLayout={handleUserMessageLayout}
+        onResendFromUserMessage={onResendFromUserMessage}
+        userMessageEditDisabled={userMessageEditDisabled}
         t={t}
         bottomInset={bottomOverlayInset}
       />

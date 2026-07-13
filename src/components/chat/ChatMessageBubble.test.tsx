@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import { I18nProvider } from '../../i18n';
 import ChatMessageBubble from './ChatMessageBubble';
@@ -8,11 +9,14 @@ vi.mock('@tauri-apps/api/core', () => ({
   convertFileSrc: (path: string) => path,
 }));
 
-function renderBubble(message: Message) {
+function renderBubble(
+  message: Message,
+  overrides: Partial<React.ComponentProps<typeof ChatMessageBubble>> = {}
+) {
   cleanup();
   return render(
     <I18nProvider defaultLocale="en-US">
-      <ChatMessageBubble message={message} />
+      <ChatMessageBubble message={message} {...overrides} />
     </I18nProvider>
   );
 }
@@ -141,6 +145,44 @@ describe('ChatMessageBubble', () => {
     expect(screen.getByText(/export function power/)).toBeInTheDocument();
     expect(screen.getByText(/已在文件末尾新增函数/)).toBeInTheDocument();
     expect(screen.queryByText(/export function power[\s\S]*已在文件末尾新增函数/)).not.toBeInTheDocument();
+  });
+
+  test('shows edit button and resends edited user text', async () => {
+    const user = userEvent.setup();
+    const onResend = vi.fn().mockResolvedValue(undefined);
+    renderBubble(
+      {
+        id: 'user-edit-1',
+        role: 'user',
+        content: 'original task',
+        timestamp: Date.now(),
+      },
+      { onResendFromUserMessage: onResend }
+    );
+
+    expect(screen.getByText('original task')).toBeInTheDocument();
+    await user.hover(screen.getByText('original task'));
+    await user.click(screen.getByTestId('user-message-edit'));
+    const input = screen.getByTestId('user-message-edit-input');
+    await user.clear(input);
+    await user.type(input, 'revised task');
+    await user.click(screen.getByTestId('user-message-resend'));
+
+    expect(onResend).toHaveBeenCalledWith('user-edit-1', 'revised task');
+  });
+
+  test('hides edit button when editDisabled', () => {
+    renderBubble(
+      {
+        id: 'user-edit-2',
+        role: 'user',
+        content: 'cannot edit now',
+        timestamp: Date.now(),
+      },
+      { onResendFromUserMessage: vi.fn(), editDisabled: true }
+    );
+
+    expect(screen.queryByTestId('user-message-edit')).not.toBeInTheDocument();
   });
 
   test('normalizes malformed assistant markdown with inline code-like blocks and prose text fences', () => {

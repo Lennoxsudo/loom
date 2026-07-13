@@ -18,6 +18,8 @@ export interface ChatListRowProps {
   onAcceptPendingChange: (change: PendingFileChange) => void;
   onRollbackPendingChange: (change: PendingFileChange) => Promise<void>;
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
+  onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  userMessageEditDisabled?: boolean;
   t: I18nMessages;
 }
 
@@ -33,6 +35,8 @@ function ChatListRow({
   onAcceptPendingChange,
   onRollbackPendingChange,
   onUserMessageLayout,
+  onResendFromUserMessage,
+  userMessageEditDisabled = false,
   t,
 }: ChatListRowProps) {
   const isToolGroup = 'type' in item && item.type === 'tool_group';
@@ -68,6 +72,8 @@ function ChatListRow({
         <MessageBubble
           message={item as Message}
           onUserMessageLayout={onUserMessageLayout}
+          onResendFromUserMessage={onResendFromUserMessage}
+          editDisabled={userMessageEditDisabled}
         />
       )}
     </div>

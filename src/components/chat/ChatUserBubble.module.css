@@ -72,3 +72,201 @@
 .copyButtonCopied {
   color: var(--success-color, #4caf50);
 }
+
+/* ── Edit / resend panel (mirrors agent UserMessageBubble) ── */
+
+.editPanel {
+  --um-accent: color-mix(in srgb, #3d9970 78%, var(--text-secondary));
+  --um-accent-soft: color-mix(in srgb, var(--um-accent) 10%, transparent);
+  --um-accent-border: color-mix(in srgb, var(--um-accent) 24%, transparent);
+
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 96%, var(--bg-app));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent),
+    0 12px 36px color-mix(in srgb, var(--bg-app) 62%, transparent);
+  overflow: hidden;
+  animation: chatUmEditIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes chatUmEditIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.editor {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  max-height: 240px;
+  resize: vertical;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-app) 35%, var(--bg-panel));
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.55;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.editor:focus {
+  background: color-mix(in srgb, var(--bg-app) 22%, var(--bg-panel));
+  box-shadow: inset 0 0 0 1px var(--um-accent-border);
+}
+
+.editor:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.editFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 62%, var(--bg-panel));
+  backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.editHint {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.iconButton,
+.sendButton,
+.cancelButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.iconButton {
+  width: 26px;
+  height: 26px;
+  color: var(--text-inverse);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.08);
+  opacity: 0.82;
+}
+
+.iconButton:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.iconButton:active {
+  transform: scale(0.97);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  padding: 5px 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.cancelButton:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-secondary) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
+}
+
+.cancelButton:active {
+  transform: scale(0.98);
+}
+
+.cancelButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sendButton {
+  --um-accent: color-mix(in srgb, #3d9970 78%, var(--text-secondary));
+  --um-accent-soft: color-mix(in srgb, var(--um-accent) 10%, transparent);
+  --um-accent-border: color-mix(in srgb, var(--um-accent) 24%, transparent);
+
+  padding: 5px 12px;
+  color: color-mix(in srgb, var(--um-accent) 92%, var(--text-primary));
+  background: var(--um-accent-soft);
+  border: 1px solid var(--um-accent-border);
+}
+
+.sendButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--um-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--um-accent) 34%, transparent);
+}
+
+.sendButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.sendButtonDisabled,
+.sendButton:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .editFooter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .editActions {
+    justify-content: flex-end;
+  }
+}

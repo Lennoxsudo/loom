@@ -25,6 +25,8 @@ export interface ChatVirtuosoListProps {
   onAcceptPendingChange: (change: PendingFileChange) => void;
   onRollbackPendingChange: (change: PendingFileChange) => Promise<void>;
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
+  onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  userMessageEditDisabled?: boolean;
   t: I18nMessages;
   bottomInset?: number;
 }
@@ -47,6 +49,8 @@ function ChatVirtuosoList({
   onAcceptPendingChange,
   onRollbackPendingChange,
   onUserMessageLayout,
+  onResendFromUserMessage,
+  userMessageEditDisabled = false,
   t,
   bottomInset = 0,
 }: ChatVirtuosoListProps) {
@@ -67,6 +71,8 @@ function ChatVirtuosoList({
         onAcceptPendingChange={onAcceptPendingChange}
         onRollbackPendingChange={onRollbackPendingChange}
         onUserMessageLayout={onUserMessageLayout}
+        onResendFromUserMessage={onResendFromUserMessage}
+        userMessageEditDisabled={userMessageEditDisabled}
         t={t}
       />
     ),
@@ -80,6 +86,8 @@ function ChatVirtuosoList({
       onAcceptPendingChange,
       onRollbackPendingChange,
       onUserMessageLayout,
+      onResendFromUserMessage,
+      userMessageEditDisabled,
       t,
     ]
   );

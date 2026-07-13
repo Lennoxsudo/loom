@@ -5,6 +5,11 @@ import { toChatPanelProviderRequestMessages, VISION_UNSUPPORTED_ERROR } from './
 import { buildChatContextUsage } from './contextUsage';
 import { buildConversationPayload } from './conversationPersist';
 import {
+  rebuildChatUserMessageContent,
+  buildChatCheckpointSessionKey,
+  splitChatUserMessageContent,
+} from './chatUserMessageEdit';
+import {
   reconcileChatRequestRuntime,
   syncChatRuntimeIfChanged,
   type ChatRuntimeSnapshot,
@@ -23,6 +28,11 @@ import { ToolGuard } from '../../utils/toolGuard';
 import { logDebug } from '../../utils/errorHandling';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useTranslation } from '../../i18n';
+import { useCheckpointStore } from '../../stores/useCheckpointStore';
+import {
+  collectUserMessageIdsFromIndex,
+  findEarliestCheckpointForUserTurns,
+} from '../../utils/checkpointTimeline';
 
 export interface UseSendMessageOptions {
   inputValue: string;
@@ -63,6 +73,7 @@ export interface UseSendMessageOptions {
   saveCurrentConversation: () => Promise<void>;
   acceptAllPendingChanges: () => void;
   pendingChangesRef: React.MutableRefObject<import('./types').PendingFileChange[]>;
+  setPendingChanges: React.Dispatch<React.SetStateAction<import('./types').PendingFileChange[]>>;
   autoGenerateConversationTitle: (
     id: string,
     provider: AIProvider,
@@ -73,16 +84,250 @@ export interface UseSendMessageOptions {
   getProviderToolsForChat: (provider: AIProvider) => unknown[] | undefined;
   getAppDataPath: () => Promise<string | null>;
   chatRules: { content: string }[];
+  /** Stop active stream/tools before editing/resending a past user message. */
+  stopStreaming?: () => Promise<void>;
+  onFilesChanged?: (paths: string[]) => void;
   t: {
     errors: { selectModelFirst: string };
-    agent: { autoRoutingNotConfigured: string };
+    agent: { autoRoutingNotConfigured: string; changeReview: { restoreFailed: string } };
     chat: { fileContext: string; newConversation: string };
   };
 }
 
 export function useSendMessage(opts: UseSendMessageOptions) {
-  const { showInfo } = useNotification();
+  const { showInfo, showWarning } = useNotification();
   const t = useTranslation();
+
+  /**
+   * Edit a past user bubble and resend: restore files mutated after that turn,
+   * drop subsequent assistant/tool messages, then stream a fresh reply.
+   */
+  const resendFromUserMessage = async (userMessageId: string, newBodyText: string) => {
+    const body = newBodyText.trim();
+    if (!body || !opts.currentConversation) {
+      return;
+    }
+
+    if (opts.isLoading && opts.stopStreaming) {
+      try {
+        await opts.stopStreaming();
+      } catch {
+        // best effort stop
+      }
+    }
+
+    const conversation = opts.currentConversation;
+    const allMessages = opts.messagesRef.current;
+    const msgIndex = allMessages.findIndex((m) => m.id === userMessageId);
+    if (msgIndex < 0) return;
+    const original = allMessages[msgIndex];
+    if (original.role !== 'user') return;
+
+    const projectPath = opts.projectPathRef.current?.trim() || '';
+    const sessionKey = buildChatCheckpointSessionKey(projectPath, conversation.id);
+
+    // Roll back workspace mutations from this user turn onward
+    if (projectPath) {
+      const store = useCheckpointStore.getState();
+      await store.hydrateSession(sessionKey);
+      const checkpoints = store.bySession[sessionKey] ?? [];
+      const userTurnIds = collectUserMessageIdsFromIndex(allMessages, msgIndex);
+      const target = findEarliestCheckpointForUserTurns(
+        checkpoints,
+        userTurnIds,
+        original.timestamp
+      );
+      if (target) {
+        const result = await store.restoreToCheckpoint({
+          sessionKey,
+          checkpointId: target.id,
+          projectPath,
+        });
+        if (result?.success) {
+          const touched = [...(result.restoredFiles ?? []), ...(result.deletedFiles ?? [])];
+          if (touched.length > 0) opts.onFilesChanged?.(touched);
+        } else if (result && !result.success) {
+          showWarning(
+            t.agent.changeReview.restoreFailed.replace('{error}', result.message || 'unknown')
+          );
+        }
+      }
+    }
+
+    // Pending-change first-before snapshots are invalid after time travel
+    opts.setPendingChanges([]);
+
+    const { prefix } = splitChatUserMessageContent(original.content, opts.t.chat.fileContext);
+    const nextContent = rebuildChatUserMessageContent(prefix, body);
+    const nextTimestamp = Date.now();
+
+    const updatedUserMessage: Message = {
+      ...original,
+      content: nextContent,
+      tokens: estimateMessageTokens(
+        toChatPanelProviderRequestMessages([
+          {
+            id: 'token-estimate',
+            role: 'user',
+            content: nextContent,
+            attachments: original.attachments,
+            timestamp: nextTimestamp,
+          },
+        ])[0]
+      ),
+      timestamp: nextTimestamp,
+    };
+
+    const keptMessages = allMessages
+      .slice(0, msgIndex + 1)
+      .map((m, i) => (i === msgIndex ? updatedUserMessage : m))
+      .filter((m) => !(m.isStreaming && m.role === 'assistant'));
+
+    if (opts.modelMissing) {
+      opts.setError(opts.t.errors.selectModelFirst);
+      return;
+    }
+
+    let provider: AIProvider =
+      opts.protocolSelection === 'auto'
+        ? opts.chatRuntimeRef.current.provider
+        : opts.protocolSelection;
+    let runtimeModel = opts.selectedModel;
+    let profileId = opts.chatRuntimeRef.current.profileId;
+
+    try {
+      const configStr = await invoke<string>('load_ai_config');
+      if (configStr) {
+        const config = JSON.parse(configStr);
+        const reconciled = reconcileChatRequestRuntime(
+          config,
+          opts.protocolSelection,
+          opts.selectedModel,
+          opts.chatRuntimeRef.current
+        );
+        if (!reconciled) {
+          opts.setError(opts.t.agent.autoRoutingNotConfigured);
+          return;
+        }
+        provider = reconciled.provider;
+        runtimeModel = reconciled.model;
+        profileId = reconciled.profileId;
+      }
+    } catch {
+      // keep resolved runtime
+    }
+
+    if (opts.protocolSelection === 'auto' && !runtimeModel) {
+      opts.setError(opts.t.agent.autoRoutingNotConfigured);
+      return;
+    }
+    if (opts.protocolSelection !== 'auto' && !runtimeModel) {
+      opts.setError(opts.t.errors.selectModelFirst);
+      return;
+    }
+
+    syncChatRuntimeIfChanged(
+      opts.chatRuntimeRef,
+      {
+        provider,
+        model: runtimeModel,
+        profileId,
+        routingMode: opts.protocolSelection === 'auto' ? 'auto' : 'manual',
+      },
+      opts.onRuntimeReconciled,
+      { skipUiSync: opts.protocolSelection === 'auto' }
+    );
+
+    opts.executedToolCallIdsRef.current.clear();
+    opts.toolGuardBlockedRef.current = false;
+    if (!opts.toolGuardRef.current) {
+      opts.toolGuardRef.current = new ToolGuard();
+    } else {
+      opts.toolGuardRef.current.reset();
+    }
+
+    opts.setError(null);
+    opts.setIsLoading(true);
+
+    const assistantMessageId = (Date.now() + 1).toString();
+    opts.ownedStreamMessageIdsRef.current.add(assistantMessageId);
+    opts.setCurrentAssistantMessageId(assistantMessageId);
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      thinking: '',
+      timestamp: Date.now(),
+      isStreaming: true,
+      startTime: Date.now(),
+    };
+
+    const messagesForState = [...keptMessages, assistantMessage];
+    opts.setMessages(messagesForState);
+    opts.stickToBottom();
+
+    try {
+      const tools = opts.getProviderToolsForChat(provider);
+      const previousMessages = messagesForState.filter((message) => !message.isStreaming);
+      const rulesAlreadyInjected = opts.chatRulesInjectedRef.current;
+      const {
+        preparedMessages,
+        compressed,
+        messages: compactedMessages,
+        compactState,
+      } = await buildChatContextUsage({
+        messages: previousMessages,
+        provider,
+        model: runtimeModel,
+        profileId,
+        tools,
+        projectPath: opts.projectPathRef.current,
+        chatMode: opts.chatModeRef.current,
+        chatRules: opts.chatRules,
+        chatRulesInjected: rulesAlreadyInjected,
+        compactState: conversation.compactState,
+      });
+
+      if (compressed) {
+        showInfo(t.chat.contextCompressionHint);
+        const streamingTail = messagesForState.filter((m) => m.isStreaming);
+        opts.setMessages([...compactedMessages, ...streamingTail]);
+        const updatedConv = buildConversationPayload(
+          conversation,
+          compactedMessages,
+          compactState
+        );
+        opts.setCurrentConversation(updatedConv);
+        await invoke('save_conversation', { conversation: updatedConv });
+      }
+
+      await invoke('send_ai_chat_stream', {
+        provider,
+        messageId: assistantMessageId,
+        model: runtimeModel,
+        profileId,
+        enableAutoRouting: opts.protocolSelection === 'auto',
+        messages: sanitizeMessagesForIpc(preparedMessages),
+        tools: sanitizeMessagesForIpc(tools),
+        toolChainConfig: {
+          enableBackendOrchestration: true,
+          maxRounds: 10,
+          projectPath: opts.projectPathRef.current,
+          appDataPath: (await opts.getAppDataPath()) ?? undefined,
+        },
+      });
+
+      if (!rulesAlreadyInjected && opts.chatRules.length > 0) {
+        opts.chatRulesInjectedRef.current = true;
+      }
+    } catch (error) {
+      opts.ownedStreamMessageIdsRef.current.delete(assistantMessageId);
+      opts.setError(`发送失败: ${error}`);
+      console.error('AI 聊天重发失败:', error);
+      opts.setIsLoading(false);
+      opts.setMessages((prev) => prev.filter((message) => message.id !== assistantMessageId));
+    }
+  };
 
   const handleSendMessage = async () => {
     if (
@@ -346,5 +591,5 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     }
   };
 
-  return { handleSendMessage };
+  return { handleSendMessage, resendFromUserMessage };
 }

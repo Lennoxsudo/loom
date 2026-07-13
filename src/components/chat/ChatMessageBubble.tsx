@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,16 +12,23 @@ import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers
 import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
 import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
 import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
+import { splitChatUserMessageContent } from './chatUserMessageEdit';
 import type { Message } from './types';
 import userBubbleStyles from './ChatUserBubble.module.css';
+
+export interface ChatMessageBubbleProps {
+  message: Message;
+  onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
+  onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  editDisabled?: boolean;
+}
 
 function MessageBubble({
   message,
   onUserMessageLayout,
-}: {
-  message: Message;
-  onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
-}) {
+  onResendFromUserMessage,
+  editDisabled = false,
+}: ChatMessageBubbleProps) {
   const t = useTranslation();
   if (message.uiNotice?.type === 'provider-switch') {
     return (
@@ -57,6 +64,11 @@ function MessageBubble({
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const normalizeBr = (text?: string) => (text || '').replace(/<br\s*\/?\s*>/gi, '\n');
   const displaySeparation = isUser
@@ -76,7 +88,7 @@ function MessageBubble({
 
   const rawContent = displaySeparation.text || '';
   const imageAttachments = message.attachments || [];
-      const hasFileContext = isUser && rawContent.startsWith(t.chat.fileContext);
+  const hasFileContext = isUser && rawContent.startsWith(t.chat.fileContext);
   let displayedContent = rawContent;
   const fileNames: string[] = [];
 
@@ -101,6 +113,73 @@ function MessageBubble({
     }
   }
 
+  const editableBody = isUser
+    ? splitChatUserMessageContent(rawContent, t.chat.fileContext).body
+    : '';
+
+  const beginEdit = useCallback(() => {
+    if (editDisabled || !onResendFromUserMessage) return;
+    setDraft(editableBody);
+    setEditing(true);
+  }, [editDisabled, onResendFromUserMessage, editableBody]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setDraft(editableBody);
+    setIsResending(false);
+  }, [editableBody]);
+
+  const submitEdit = useCallback(async () => {
+    if (!onResendFromUserMessage || isResending) return;
+    const next = draft.trim();
+    if (!next) return;
+    setIsResending(true);
+    try {
+      await onResendFromUserMessage(message.id, next);
+      setEditing(false);
+    } finally {
+      setIsResending(false);
+    }
+  }, [onResendFromUserMessage, isResending, draft, message.id]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const focusTimer = window.setTimeout(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    }, 0);
+
+    const onPointerDown = (event: MouseEvent) => {
+      const root = rootRef.current;
+      if (!root) return;
+      if (event.target instanceof Node && !root.contains(event.target)) {
+        cancelEdit();
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelEdit();
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [editing, cancelEdit]);
+
+  useEffect(() => {
+    if (!editing) setDraft(editableBody);
+  }, [editableBody, editing]);
+
+  const canEdit = isUser && !!onResendFromUserMessage && !editDisabled;
+
   const normalizedContent = normalizeBr(displayedContent);
   const normalizedThinking = stripStrayThinkTags(normalizeBr(displaySeparation.thinking));
   const hasThinking =
@@ -118,9 +197,16 @@ function MessageBubble({
   const showContent =
     hasTextContent ||
     imageAttachments.length > 0 ||
-    (hasFileContext && fileNames.length > 0);
+    (hasFileContext && fileNames.length > 0) ||
+    editing;
 
-  if (!hasThinking && !imageAttachments.length && !(hasFileContext && fileNames.length > 0) && cleanedNormalizedContent.trim().length === 0) {
+  if (
+    !editing &&
+    !hasThinking &&
+    !imageAttachments.length &&
+    !(hasFileContext && fileNames.length > 0) &&
+    cleanedNormalizedContent.trim().length === 0
+  ) {
     return null;
   }
 
@@ -179,8 +265,21 @@ function MessageBubble({
           >
             <div
               id={isUser ? `msg-${message.id}` : undefined}
-              ref={isUser ? (element) => onUserMessageLayout?.(message.id, element) : undefined}
-              className={isUser ? userBubbleStyles.bubble : undefined}
+              ref={
+                isUser
+                  ? (element) => {
+                      rootRef.current = element;
+                      onUserMessageLayout?.(message.id, element);
+                    }
+                  : undefined
+              }
+              className={
+                isUser
+                  ? editing
+                    ? userBubbleStyles.editPanel
+                    : userBubbleStyles.bubble
+                  : undefined
+              }
               style={
                 isUser
                   ? {
@@ -207,11 +306,14 @@ function MessageBubble({
               <div
                 style={{
                   marginBottom:
-                    cleanedNormalizedContent || (hasFileContext && fileNames.length > 0) ? '8px' : '0',
+                    cleanedNormalizedContent || (hasFileContext && fileNames.length > 0) || editing
+                      ? '8px'
+                      : '0',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
                   gap: '6px',
                   minWidth: '144px',
+                  padding: editing ? '10px 14px 0' : undefined,
                 }}
               >
                 {imageAttachments.map((attachment, idx) => {
@@ -265,8 +367,10 @@ function MessageBubble({
                   display: 'flex',
                   flexWrap: 'wrap',
                   gap: '4px',
-                  marginBottom: cleanedNormalizedContent.trim().length > 0 ? '6px' : 0,
+                  marginBottom:
+                    cleanedNormalizedContent.trim().length > 0 || editing ? '6px' : 0,
                   whiteSpace: 'normal',
+                  padding: editing ? '0 14px' : undefined,
                 }}
               >
                 {fileNames.map((name, idx) => (
@@ -299,38 +403,82 @@ function MessageBubble({
               </div>
             )}
 
-            <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
-              {hasTextContent ? (
-                isUser ? (
-                  <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {cleanedNormalizedContent}
-                  </span>
-                ) : message.isStreaming ? (
-                  // 流式时使用轻量级 Markdown 渲染器（无语法高亮，性能更优）
-                  <ReactMarkdown
-                    key={`md-${message.id}-streaming`}
-                    remarkPlugins={[remarkGfm]}
-                    components={lightMarkdownComponents}
-                  >
-                    {cleanupFileTree(cleanedNormalizedContent)}
-                  </ReactMarkdown>
+            {editing ? (
+              <>
+                <textarea
+                  ref={textareaRef}
+                  className={userBubbleStyles.editor}
+                  value={draft}
+                  disabled={isResending}
+                  rows={Math.min(12, Math.max(3, draft.split('\n').length + 1))}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void submitEdit();
+                    }
+                  }}
+                  aria-label={t.agent.userMessage.editAria}
+                  data-testid="user-message-edit-input"
+                />
+                <div className={userBubbleStyles.editFooter}>
+                  <p className={userBubbleStyles.editHint}>{t.agent.userMessage.editHint}</p>
+                  <div className={userBubbleStyles.editActions}>
+                    <button
+                      type="button"
+                      className={userBubbleStyles.cancelButton}
+                      onClick={cancelEdit}
+                      disabled={isResending}
+                    >
+                      {t.agent.userMessage.cancelEdit}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${userBubbleStyles.sendButton} ${
+                        isResending || !draft.trim() ? userBubbleStyles.sendButtonDisabled : ''
+                      }`}
+                      onClick={() => void submitEdit()}
+                      disabled={isResending || !draft.trim()}
+                      data-testid="user-message-resend"
+                    >
+                      {isResending ? t.agent.userMessage.resending : t.agent.userMessage.resend}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                {hasTextContent ? (
+                  isUser ? (
+                    <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {cleanedNormalizedContent}
+                    </span>
+                  ) : message.isStreaming ? (
+                    <ReactMarkdown
+                      key={`md-${message.id}-streaming`}
+                      remarkPlugins={[remarkGfm]}
+                      components={lightMarkdownComponents}
+                    >
+                      {cleanupFileTree(cleanedNormalizedContent)}
+                    </ReactMarkdown>
+                  ) : (
+                    <ReactMarkdown
+                      key={`md-${message.id}-done`}
+                      remarkPlugins={[remarkGfm]}
+                      components={markdownComponents}
+                    >
+                      {markdownReadyContent}
+                    </ReactMarkdown>
+                  )
                 ) : (
-                  <ReactMarkdown
-                    key={`md-${message.id}-done`}
-                    remarkPlugins={[remarkGfm]}
-                    components={markdownComponents}
-                  >
-                    {markdownReadyContent}
-                  </ReactMarkdown>
-                )
-              ) : (
-                ''
-              )}
-            </div>
+                  ''
+                )}
+              </div>
+            )}
 
           </div>
 
-            {isUser && (
+            {isUser && !editing && (
               <div
                 style={{
                   position: 'absolute',
@@ -340,9 +488,29 @@ function MessageBubble({
                   transition: 'opacity 0.2s',
                   display: 'flex',
                   alignItems: 'center',
+                  gap: '4px',
                   zIndex: 1,
                 }}
               >
+                {canEdit ? (
+                  <button
+                    type="button"
+                    className={userBubbleStyles.iconButton}
+                    onClick={beginEdit}
+                    title={t.agent.userMessage.edit}
+                    aria-label={t.agent.userMessage.edit}
+                    data-testid="user-message-edit"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path
+                        d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5.8 12.2 3 13l.8-2.8L11.5 2.5Z"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                ) : null}
                 <button
                   onClick={handleCopy}
                   className={`${userBubbleStyles.copyButton} ${isCopied ? userBubbleStyles.copyButtonCopied : ''}`}
@@ -360,8 +528,8 @@ function MessageBubble({
 }
 
 function messageBubblePropsEqual(
-  prev: { message: Message },
-  next: { message: Message }
+  prev: ChatMessageBubbleProps,
+  next: ChatMessageBubbleProps
 ): boolean {
   const a = prev.message;
   const b = next.message;
@@ -375,7 +543,9 @@ function messageBubblePropsEqual(
     a.timestamp === b.timestamp &&
     a.thinkingStartedAt === b.thinkingStartedAt &&
     a.thinkingEndedAt === b.thinkingEndedAt &&
-    (a.attachments?.length ?? 0) === (b.attachments?.length ?? 0)
+    (a.attachments?.length ?? 0) === (b.attachments?.length ?? 0) &&
+    prev.editDisabled === next.editDisabled &&
+    prev.onResendFromUserMessage === next.onResendFromUserMessage
   );
 }
 

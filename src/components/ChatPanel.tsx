@@ -586,7 +586,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     }, 300);
   }, [currentConversation?.id, pendingChanges]);
 
-  const { handleSendMessage } = useSendMessage({
+  const { handleSendMessage, resendFromUserMessage } = useSendMessage({
     inputValue,
     setInputValue,
     attachedFiles,
@@ -626,12 +626,22 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     saveCurrentConversation,
     acceptAllPendingChanges,
     pendingChangesRef,
+    setPendingChanges,
     autoGenerateConversationTitle,
     getProviderToolsForChat,
     getAppDataPath,
     chatRules,
+    stopStreaming: handleStop,
+    onFilesChanged: (paths) => onFilesChangedRef.current?.(paths),
     t,
   });
+
+  const handleResendFromUserMessage = useCallback(
+    async (messageId: string, newText: string) => {
+      await resendFromUserMessage(messageId, newText);
+    },
+    [resendFromUserMessage]
+  );
 
   saveCurrentConversationRef.current = saveCurrentConversation;
 
@@ -1426,6 +1436,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           t={t}
           onApprovePendingToolCalls={approvePendingToolCalls}
           onDenyPendingToolCalls={denyPendingToolCalls}
+          onResendFromUserMessage={handleResendFromUserMessage}
           virtuosoRef={virtuosoRef}
           messagesContainerRef={messagesContainerRef}
           scrollerRef={scrollerRef}

@@ -33,8 +33,16 @@ import { shouldBlockTool } from '../../utils/agentAccessMode';
 import { beginSandboxExecution, endSandboxExecution } from '../../utils/agentSandbox';
 import { buildToolApprovalRejectionText } from '../agent/approvalUtils';
 import { normalizePathForCompare } from '../../utils/pathUtils';
+import { useCheckpointStore } from '../../stores/useCheckpointStore';
+import {
+  buildCheckpointLabel,
+  collectPathsFromToolArgs,
+  isCheckpointMutatingTool,
+  type CheckpointFileSnapshot,
+} from '../../utils/checkpointTimeline';
 import { buildChatContextUsage } from './contextUsage';
 import { buildConversationPayload } from './conversationPersist';
+import { buildChatCheckpointSessionKey } from './chatUserMessageEdit';
 import {
   reconcileChatRequestRuntime,
   syncChatRuntimeIfChanged,
@@ -721,6 +729,78 @@ export function useToolCalls({
             error: content,
           });
           continue;
+        }
+
+        // Action-granularity checkpoint (pre-tool) for time-travel / bubble edit-resend
+        const shouldCheckpoint =
+          isCheckpointMutatingTool(toolCall.function.name) ||
+          isCheckpointMutatingTool(underlyingToolName);
+        const baseDir = projectPathRef.current?.trim() || '';
+        const conversationId = currentConversationRef.current?.id;
+        if (shouldCheckpoint && baseDir && conversationId) {
+          const argPaths = collectPathsFromToolArgs(
+            toolCall.function.name,
+            parsedArgs as Record<string, unknown>
+          );
+          const resolvedPaths = argPaths.map((p) =>
+            resolvePathWithBaseDir(String(p).trim(), baseDir)
+          );
+          const snapshots: CheckpointFileSnapshot[] = [];
+          for (const resolvedPath of resolvedPaths) {
+            if (!resolvedPath) continue;
+            const matchesWriteTarget =
+              resolvedWriteTargetPath &&
+              normalizePathForCompare(resolvedPath).toLowerCase() ===
+                normalizePathForCompare(resolvedWriteTargetPath).toLowerCase();
+            if (matchesWriteTarget) {
+              snapshots.push({
+                path: resolvedWriteTargetPath,
+                existed: existedBefore === true,
+                content: beforeContent,
+              });
+              continue;
+            }
+            let existed = false;
+            let content: string | null = null;
+            try {
+              const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
+                path: resolvedPath,
+              });
+              existed = fileInfo?.exists === true;
+            } catch {
+              // ignore
+            }
+            try {
+              content = await invoke<string>('read_file_content', { filePath: resolvedPath });
+              existed = true;
+            } catch {
+              content = null;
+            }
+            snapshots.push({ path: resolvedPath, existed, content });
+          }
+
+          if (snapshots.length > 0) {
+            let lastUserMessageId: string | undefined;
+            const convMessages = messagesRef.current;
+            for (let i = convMessages.length - 1; i >= 0; i--) {
+              if (convMessages[i]?.role === 'user') {
+                lastUserMessageId = convMessages[i].id;
+                break;
+              }
+            }
+            void useCheckpointStore.getState().addCheckpoint({
+              sessionKey: buildChatCheckpointSessionKey(baseDir, conversationId),
+              projectPath: baseDir,
+              toolCallId: toolCall.id,
+              userMessageId: lastUserMessageId,
+              toolName: toolCall.function.name,
+              label: buildCheckpointLabel(
+                toolCall.function.name,
+                snapshots.map((s) => s.path)
+              ),
+              files: snapshots,
+            });
+          }
         }
 
         const isGenerateImage = toolCall.function.name === 'generate_image';
