@@ -95,7 +95,6 @@ export function useChatStickToBottom({
   useEffect(() => {
     if (pendingStick && scrollerRef?.current) {
       setPendingStick(false);
-      const el = scrollerRef.current;
       requestAnimationFrame(() => {
         const scroller = scrollerRef?.current;
         if (!scroller || !isStickingRef.current) return;
