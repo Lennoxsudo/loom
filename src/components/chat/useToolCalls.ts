@@ -111,6 +111,12 @@ export interface UseToolCallsOptions {
     conversationId: string,
     questions: QuestionInput[]
   ) => Promise<UserAnswer[]>;
+  onExitPlanMode?: (req: {
+    conversationId: string;
+    agentId?: string;
+    plan: string;
+    title?: string;
+  }) => void | Promise<void>;
   t: {
     agent: { planModeBlocked: string };
     errors: { permissionDeniedAction: string };
@@ -348,6 +354,7 @@ export function useToolCalls({
   getAppDataPath,
   agentAccessMode,
   onAskUserQuestion,
+  onExitPlanMode,
   t,
 }: UseToolCallsOptions) {
   const { showInfo } = useNotification();
@@ -513,6 +520,7 @@ export function useToolCalls({
         chatRules: [],
         chatRulesInjected: true,
         compactState: currentConversationRef.current?.compactState,
+        conversationId: currentConversationRef.current?.id,
       });
 
       if (compressed) {
@@ -675,12 +683,22 @@ export function useToolCalls({
     toolMessages: Message[],
     originalToolCalls: ToolCall[],
     sourceAssistantMessageId?: string,
-    removedMessageIds: string[] = []
+    removedMessageIds: string[] = [],
+    options?: { endTurn?: boolean },
   ) => {
     setMessages((prev) => {
       const merged = mergeToolMessages(prev, toolMessages);
       return agePersistedChatToolMessages(merged).messages;
     });
+
+    // exit_plan_mode: disconnect this turn — do not start another model stream.
+    if (options?.endTurn) {
+      isExecutingToolsRef.current = false;
+      setIsLoading(false);
+      setCurrentAssistantMessageId(null);
+      return;
+    }
+
     await continueWithToolResults(
       toolMessages,
       originalToolCalls,
@@ -703,10 +721,19 @@ export function useToolCalls({
     try {
       const toolResults: ToolResult[] = [];
       const pendingChanges: PendingFileChange[] = [];
+      let endTurnAfterPlan = false;
 
       for (const prepared of preparedCalls) {
         if (abortController.signal.aborted) {
           throw new Error('Tool execution aborted');
+        }
+        // After exit_plan_mode, drop remaining tools in this batch.
+        if (endTurnAfterPlan) {
+          toolResults.push({
+            tool_call_id: prepared.toolCall.id,
+            output: 'Skipped: turn ended after exit_plan_mode (waiting for human plan review).',
+          });
+          continue;
         }
 
         const {
@@ -721,7 +748,12 @@ export function useToolCalls({
           beforeContent,
         } = prepared;
 
-        if (chatModeRef.current === 'plan' && isToolBlockedInPlanMode(toolCall.function.name)) {
+        if (
+          chatModeRef.current === 'plan' &&
+          toolCall.function.name !== 'exit_plan_mode' &&
+          toolCall.function.name !== 'update_plan' &&
+          isToolBlockedInPlanMode(toolCall.function.name)
+        ) {
           const content = `${t.agent.planModeBlocked}: ${toolCall.function.name}`;
           toolResults.push({
             tool_call_id: toolCall.id,
@@ -846,6 +878,7 @@ export function useToolCalls({
               parentToolNames: allConfiguredTools.map((tool) => tool.name),
               toolCallId: toolCall.id,
               onAskUserQuestion,
+              onExitPlanMode,
               onRequestToolApproval: async (req) => {
                 return new Promise<'approve' | 'reject'>((resolve) => {
                   useSubagentStore.getState().setPendingApproval(req.taskId, {
@@ -883,20 +916,39 @@ export function useToolCalls({
         toolResults.push(guarded.result);
         activeCommandStreamsRef.current.delete(toolCall.id);
 
-        if (isGenerateImage || isRunCommand || (subagentsEnabled && isSubagentTool)) {
-          setMessages((prev) =>
-            mergeToolMessages(prev, [
-              createToolMessage({
-                id: toolMessageId,
-                content: guarded.result.error || guarded.result.output,
-                toolCallId: toolCall.id,
-                toolName: displayToolName,
-                toolArgs: parsedArgs,
-                isError: !!guarded.result.error,
-                isStreaming: false,
-              }),
-            ])
-          );
+        if (
+          toolCall.function.name === 'exit_plan_mode' ||
+          underlyingToolName === 'exit_plan_mode'
+        ) {
+          endTurnAfterPlan = true;
+        }
+
+        // Always surface completed tool results in message state immediately so
+        // history is durable even if the turn ends on exit_plan_mode.
+        const completedToolMessage = createToolMessage({
+          id: toolMessageId,
+          content: guarded.result.error || guarded.result.output,
+          toolCallId: toolCall.id,
+          toolName: displayToolName,
+          toolArgs: parsedArgs,
+          isError: !!guarded.result.error,
+          isStreaming: false,
+        });
+        setMessages((prev) => mergeToolMessages(prev, [completedToolMessage]));
+        messagesRef.current = mergeToolMessages(messagesRef.current, [completedToolMessage]);
+
+        if (currentConversationRef.current) {
+          try {
+            const updatedConv = buildConversationPayload(
+              currentConversationRef.current,
+              messagesRef.current,
+              currentConversationRef.current.compactState,
+            );
+            currentConversationRef.current = updatedConv;
+            await invoke('save_conversation', { conversation: updatedConv });
+          } catch (persistError) {
+            console.error('Failed to persist after tool:', toolCall.function.name, persistError);
+          }
         }
 
         if (
@@ -990,11 +1042,34 @@ export function useToolCalls({
         })
       );
 
+      // Persist tool results before continuing the agent loop (covers plan review waits).
+      if (currentConversationRef.current) {
+        try {
+          const msgs = messagesRef.current;
+          // Merge the just-produced tool messages into the snapshot if setState hasn't flushed yet.
+          const byId = new Map(msgs.map((m) => [m.id, m]));
+          for (const tm of [...extraMessages, ...toolMessages, ...duplicateMessages]) {
+            byId.set(tm.id, tm);
+          }
+          const snapshot = Array.from(byId.values());
+          const updatedConv = buildConversationPayload(
+            currentConversationRef.current,
+            snapshot,
+            currentConversationRef.current.compactState,
+          );
+          currentConversationRef.current = updatedConv;
+          await invoke('save_conversation', { conversation: updatedConv });
+        } catch (persistError) {
+          console.error('Failed to persist conversation after tools:', persistError);
+        }
+      }
+
       await finalizeToolRound(
         [...extraMessages, ...toolMessages, ...duplicateMessages],
         originalToolCalls,
         sourceAssistantMessageId,
-        removedMessageIds
+        removedMessageIds,
+        { endTurn: endTurnAfterPlan },
       );
     } catch (error) {
       if (!abortController.signal.aborted) {

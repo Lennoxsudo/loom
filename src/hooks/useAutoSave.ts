@@ -7,6 +7,11 @@
 import { useCallback } from 'react';
 import { logDebug } from '../utils/errorHandling';
 import { normalizeEolForCompare, normalizePathForCompare } from '../utils/pathUtils';
+import {
+  isPlanEditorPath,
+  onPlanEditorContentChange,
+  savePlanEditorContent,
+} from '../utils/planEditorBridge';
 import type { EditorGroupId, OpenFilesByPath, OpenFile } from '../types/app';
 import type { MonacoEditor } from '../types/monaco';
 
@@ -59,6 +64,28 @@ export function useAutoSave({
         return;
       }
 
+      // Virtual plan tabs: mirror into planStore *outside* the openFiles updater so
+      // PLAN_UPDATED (and the in-conversation panel) always receive the edit.
+      // Side effects must not live inside setState/Zustand updaters.
+      if (isPlanEditorPath(filePath)) {
+        onPlanEditorContentChange(filePath, value);
+        setOpenFilesByPath((prev) => {
+          const existing = prev[filePath];
+          if (!existing || existing.kind !== 'text') return prev;
+          if (
+            normalizeEolForCompare(existing.content) === normalizeEolForCompare(value) &&
+            !existing.isDirty
+          ) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [filePath]: { ...existing, content: value, isDirty: false },
+          };
+        });
+        return;
+      }
+
       setOpenFilesByPath((prev) => {
         const existing = prev[filePath];
         if (!existing) return prev;
@@ -81,6 +108,10 @@ export function useAutoSave({
           try {
             const file = openFilesByPathRef.current[filePath];
             if (file && file.kind === 'text' && file.isDirty) {
+              if (isPlanEditorPath(filePath)) {
+                savePlanEditorContent(filePath, file.content);
+                return;
+              }
               if (formatOnSave) {
                 try {
                   for (const [groupId, mountedPath] of Object.entries(
@@ -137,6 +168,7 @@ export function useAutoSave({
       clearAutoSaveTimer,
       autoSaveTimersRef,
       programmaticRefreshPathsRef,
+      openFilesByPathRef,
     ]
   );
 

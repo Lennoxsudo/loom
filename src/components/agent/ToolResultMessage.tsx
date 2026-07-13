@@ -9,6 +9,7 @@ import SubagentGroupCard from './SubagentGroupCard';
 import ExecCommandCard from './ExecCommandCard';
 import AskToolResultCard from './AskToolResultCard';
 import GraphToolResultCard from './GraphToolResultCard';
+import CompactToolResultCard from './CompactToolResultCard';
 import ToolApprovalBar, { ToolApprovalOutcomeLabel } from './ToolApprovalBar';
 import { useEnableSubagents } from '../../stores';
 import { isRunCommandToolName, parseCommandExecOutput } from '../../utils/parseCommandExecOutput';
@@ -1555,112 +1556,13 @@ const ToolResultMessage = memo(function ToolResultMessage({
   }
 
   const isError = isToolError;
-  const cleanToolName = formatToolDisplayName(message.tool_name);
-  const accentColor = isError ? TOOL_ERROR : TOOL_SUCCESS;
-  const badgeBg = isError ? TOOL_ERROR_BG : TOOL_SUCCESS_BG;
-  const badgeColor = isError ? TOOL_ERROR : TOOL_SUCCESS;
-
-  const containerStyle: CSSProperties = {
-    ...TOOL_RESULT_WIDTH,
-    marginBottom: compactMarginBottom,
-  };
-
-  const cardStyle: CSSProperties = {
-    ...createToolCardStyle('0'),
-    borderRadius: '8px',
-    overflow: 'hidden',
-    background: isError ? TOOL_ERROR_BG : TOOL_SURFACE_SOFT,
-    border: `1px solid ${TOOL_BORDER_SOFT}`,
-    borderLeft: `3px solid ${accentColor}`,
-  };
-
-  const headerStyle: CSSProperties = {
-    padding: '10px 14px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    cursor: 'pointer',
-    userSelect: 'none',
-    transition: 'background 0.15s',
-  };
-
-  const truncatedText =
-    message.text.length > 500 ? message.text.slice(0, 500) + '...' : message.text;
 
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <div
-          style={headerStyle}
-          onClick={() => setIsExpanded(!isExpanded)}
-          onMouseEnter={(e) => (e.currentTarget.style.background = TOOL_HOVER)}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 500,
-              color: TOOL_TEXT_MUTED,
-              fontFamily: 'monospace',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {cleanToolName}
-            </span>
-            <span style={{
-              fontSize: '10px',
-              fontWeight: 500,
-              color: badgeColor,
-              background: badgeBg,
-              padding: '1px 8px',
-              borderRadius: '10px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}>
-              {isError ? `✘ ${t.common.failed}` : `✔ ${t.common.completed}`}
-            </span>
-          </div>
-          <span
-            style={{
-              fontSize: '10px',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              opacity: 0.5,
-              color: TOOL_TEXT_SUBTLE,
-              flexShrink: 0,
-              marginLeft: '8px',
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </span>
-        </div>
-        {isExpanded && (
-          <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${TOOL_BORDER_SOFT}` }}>
-            <div
-              style={{
-                marginTop: '10px',
-                padding: '10px 12px',
-                fontSize: '12px',
-                lineHeight: '1.6',
-                color: TOOL_TEXT,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                fontFamily: 'monospace',
-                maxHeight: '200px',
-                overflowY: 'auto',
-                background: TOOL_SURFACE_SOFT,
-                borderRadius: '6px',
-              }}
-            >
-              {truncatedText}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <CompactToolResultCard
+      toolName={message.tool_name}
+      text={message.text || ''}
+      isError={isError}
+    />
   );
 });
 

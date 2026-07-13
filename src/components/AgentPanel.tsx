@@ -26,8 +26,12 @@ import { useAgentApproval } from './agent/useAgentApproval';
 import { AgentContent, type AgentSettingsSection } from './settings/AgentContent';
 import settingsViewStyles from './settings/AgentSettingsView.module.css';
 import TodoListBar from './agent/TodoListBar';
+import PlanDocumentPanel from './agent/PlanDocumentPanel';
 import ComposerQuestionAnchor from './agent/ComposerQuestionAnchor';
 import AgentMessageList, { type AgentMessageListHandle } from './agent/AgentMessageList';
+import type { PlanDocument } from '../features/agent-engine/planStore';
+import { setPlan } from '../features/agent-engine/planStore';
+import { usePlanDocumentVisible } from '../features/agent-engine/usePlanDocumentVisible';
 
 import {
   type Agent,
@@ -190,7 +194,11 @@ export default function AgentPanel({
       return cached.tools;
     }
 
-    let filteredBaseTools = filterToolsByCapabilities(baseTools, capabilityForFilter, false);
+    let filteredBaseTools = filterToolsByCapabilities(
+      baseTools,
+      capabilityForFilter,
+      modeForAgent === 'plan',
+    );
 
     filteredBaseTools = filterToolsByContext(filteredBaseTools, {
       isGitRepo: projectContextRef.current.isGitRepo,
@@ -256,7 +264,7 @@ export default function AgentPanel({
   const [draftMessage, setDraftMessage] = useState('');
   const [currentBudget, setCurrentBudget] = useState<number>(0);
   const [currentTokens, setCurrentTokens] = useState<number>(0);
-  const [agentModes] = useState<Record<string, 'plan' | 'always-allow'>>(() => {
+  const [agentModes, setAgentModes] = useState<Record<string, 'plan' | 'always-allow'>>(() => {
     try {
       const stored = localStorage.getItem(AGENT_MODES_STORAGE_KEY);
       if (stored) {
@@ -289,6 +297,9 @@ export default function AgentPanel({
       // ignore persist failures
     }
   }, [agentModes]);
+
+  const [planReviewConversationId, setPlanReviewConversationId] = useState<string | null>(null);
+  const handleSendCurrentMessageRef = useRef<(() => Promise<void>) | null>(null);
   const [busySessionKeys, setBusySessionKeys] = useState<Set<string>>(() => new Set());
   const [busyAgentIds, setBusyAgentIds] = useState<Set<string>>(() => new Set());
   const [projectBranchName, setProjectBranchName] = useState<string | null>(null);
@@ -676,6 +687,62 @@ export default function AgentPanel({
     []
   );
 
+  /** Non-blocking: show plan panel; agent turn ends after exit_plan_mode tool. */
+  const handleExitPlanMode = useCallback(
+    (req: {
+      conversationId: string;
+      agentId?: string;
+      plan: string;
+      title?: string;
+    }) => {
+      setPlanReviewConversationId(req.conversationId);
+    },
+    [],
+  );
+
+  /** User accepted the plan — switch to execute and start a new turn. */
+  const settleExitPlanReview = useCallback(
+    (conversationId: string, planDoc: PlanDocument) => {
+      if (planReviewConversationId === conversationId) {
+        setPlanReviewConversationId(null);
+      }
+      if (!agent?.id) return;
+      setPlan(conversationId, {
+        content: planDoc.content,
+        title: planDoc.title,
+        status: 'accepted',
+      });
+      agentModesRef.current = {
+        ...agentModesRef.current,
+        [agent.id]: 'always-allow',
+      };
+      setAgentModes((prev) => ({
+        ...prev,
+        [agent.id]: 'always-allow',
+      }));
+      const title = planDoc.title?.trim();
+      const continueText = title
+        ? `用户已接受计划「${title}」。请立即按批准的计划执行，不要再调用 exit_plan_mode。`
+        : '用户已接受计划。请立即按批准的计划执行，不要再调用 exit_plan_mode。';
+      setDraftMessage(continueText);
+      window.setTimeout(() => {
+        void handleSendCurrentMessageRef.current?.();
+      }, 80);
+    },
+    [agent?.id, planReviewConversationId],
+  );
+
+  const handleAgentModeChange = useCallback(
+    (mode: 'plan' | 'always-allow') => {
+      if (!agent?.id) return;
+      setAgentModes((prev) => ({
+        ...prev,
+        [agent.id]: mode,
+      }));
+    },
+    [agent?.id],
+  );
+
   const projectName = useMemo(
     () => projectPath.split(/[\\/]/).filter(Boolean).pop() || projectPath || '—',
     [projectPath]
@@ -687,6 +754,7 @@ export default function AgentPanel({
   const selectedConversationId = resolveSelectedThreadId(conversationState, projectPath);
   const selectedConversation =
     selectedConversations.find((conv) => conv.id === selectedConversationId) ?? null;
+  const agentPlanVisible = usePlanDocumentVisible(selectedConversationId);
   // 使用 useMemo 缓存 selectedMessages，避免每次渲染重新计算
   const selectedMessages = useMemo(
     () => selectedConversation?.messages ?? [],
@@ -1090,6 +1158,7 @@ export default function AgentPanel({
     onFilesChangedRef,
     onSetPendingChangesBySession: setPendingChangesBySession,
     onAskUserQuestion: handleAskUserQuestion,
+    onExitPlanMode: handleExitPlanMode,
     onRequestApproval: requestApproval,
     onRuntimeReconciled: handleRuntimeReconciled,
     t,
@@ -1649,6 +1718,7 @@ export default function AgentPanel({
   const handleSendCurrentMessage = useCallback(async () => {
     await sendMessage();
   }, [sendMessage]);
+  handleSendCurrentMessageRef.current = handleSendCurrentMessage;
 
   const handleResendFromUserMessage = useCallback(
     async (messageId: string, newText: string) => {
@@ -1973,6 +2043,8 @@ export default function AgentPanel({
       mcpCount={mcpTools.length}
       skillNames={skillNames}
       mcpToolNames={mcpToolNames}
+      agentMode={agent?.id ? (agentModes[agent.id] ?? 'always-allow') : 'always-allow'}
+      onAgentModeChange={handleAgentModeChange}
     />
   );
 
@@ -2169,6 +2241,21 @@ export default function AgentPanel({
                           onApproveTool={approve}
                           onRejectTool={reject}
                           onResendFromUserMessage={handleResendFromUserMessage}
+                          planSlot={
+                            selectedConversationId && agentPlanVisible ? (
+                              <PlanDocumentPanel
+                                conversationId={selectedConversationId}
+                                variant="inline"
+                                autoOpenInEditor={false}
+                                forceExpand={
+                                  planReviewConversationId === selectedConversationId
+                                }
+                                onAccept={(planDoc) => {
+                                  settleExitPlanReview(selectedConversationId, planDoc);
+                                }}
+                              />
+                            ) : null
+                          }
                         />
                       )}
                     </div>

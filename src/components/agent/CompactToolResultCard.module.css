@@ -1,0 +1,168 @@
+/* Compact tool result — high-end minimalist */
+
+.card {
+  --ctr-accent: color-mix(in srgb, #3d9970 72%, var(--text-secondary));
+  --ctr-accent-soft: color-mix(in srgb, var(--ctr-accent) 8%, transparent);
+  --ctr-accent-border: color-mix(in srgb, var(--ctr-accent) 20%, transparent);
+
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 30%, transparent);
+  overflow: hidden;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--text-secondary) 12%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-overlay-soft) 42%, transparent);
+}
+
+.cardError {
+  --ctr-accent: color-mix(in srgb, var(--text-error) 82%, var(--text-secondary));
+  --ctr-accent-soft: color-mix(in srgb, var(--text-error) 9%, transparent);
+  --ctr-accent-border: color-mix(in srgb, var(--text-error) 22%, transparent);
+}
+
+.header {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 11px;
+  cursor: pointer;
+  user-select: none;
+  text-align: left;
+}
+
+.header:disabled {
+  cursor: default;
+}
+
+.headerMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toolName {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusPill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ctr-accent-border);
+  background: var(--ctr-accent-soft);
+  color: var(--ctr-accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.35;
+  color: var(--text-secondary);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.15s ease;
+}
+
+.header:hover .chevron {
+  opacity: 0.6;
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+.panel {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  padding: 10px 12px 12px;
+  animation: ctrPanelIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ctrPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+.body {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.specRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.specRow {
+  display: grid;
+  grid-template-columns: minmax(56px, 72px) minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: baseline;
+}
+
+.specLabel {
+  font-size: 10px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+.specValue {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  word-break: break-word;
+}

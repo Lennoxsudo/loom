@@ -179,6 +179,7 @@ describe('buildChatContextUsage', () => {
     });
 
     expect(planUsage.toolTokens).toBe(allowUsage.toolTokens);
-    expect(allowUsage.messageTokens).toBeGreaterThan(planUsage.messageTokens);
+    // Plan mode injects [Plan Mode] guidance (and optional draft PLAN); token counts should differ.
+    expect(planUsage.messageTokens).not.toBe(allowUsage.messageTokens);
   });
 });

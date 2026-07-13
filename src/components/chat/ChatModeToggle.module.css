@@ -54,11 +54,14 @@
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   height: 22px;
+  min-height: 22px;
   padding: 0 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1;
   cursor: pointer;
   white-space: nowrap;
   transition:

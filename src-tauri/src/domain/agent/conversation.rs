@@ -193,6 +193,9 @@ pub struct Conversation {
     pending_changes: Vec<PendingFileChange>,
     #[serde(rename = "compactState", default)]
     compact_state: Option<serde_json::Value>,
+    /// Plan panel document — follows this conversation on save/load/delete
+    #[serde(rename = "planDocument", default)]
+    plan_document: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -687,6 +690,7 @@ pub fn create_conversation(
         messages: Vec::new(),
         pending_changes: Vec::new(),
         compact_state: None,
+        plan_document: None,
     };
 
     save_conversation_internal(&app, &conv)?;

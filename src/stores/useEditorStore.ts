@@ -55,7 +55,7 @@ const initialState: EditorState = {
   editorContextMenu: null,
 };
 
-const useEditorStore = create<EditorState & EditorActions>()(
+export const useEditorStore = create<EditorState & EditorActions>()(
   devtools(
     (set) => ({
       ...initialState,

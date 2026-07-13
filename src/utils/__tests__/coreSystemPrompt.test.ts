@@ -45,4 +45,13 @@ describe('buildCoreSystemPrompt', () => {
       CORE_SYSTEM_PROMPT_SECTIONS_FULL.length,
     );
   });
+
+  it('includes plan mode workflow with exit_plan_mode and update_plan', () => {
+    const prompt = buildCoreSystemPrompt({ planMode: true });
+
+    expect(prompt).toContain('## Plan mode workflow');
+    expect(prompt).toContain('`update_plan`');
+    expect(prompt).toContain('`exit_plan_mode`');
+    expect(prompt).toContain('[PLAN]');
+  });
 });

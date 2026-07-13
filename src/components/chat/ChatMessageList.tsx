@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect, type ReactNode } from 'react';
 import type { VirtuosoHandle } from 'react-virtuoso';
 import type { Message } from './types';
 import {
@@ -15,6 +15,10 @@ import { useChatPinnedUserMessage } from './useChatPinnedUserMessage';
 import { getChatUserMessagePreviewText } from './chatPinnedUserMessage';
 import type { PendingFileChange } from './types';
 import type { I18nMessages } from '../../i18n/types';
+import {
+  findPlanAnchorMessageId,
+  insertAfterMessageAnchor,
+} from '../../utils/planMessageAnchor';
 import styles from './ChatMessageList.module.css';
 import userBubbleStyles from './ChatUserBubble.module.css';
 
@@ -50,6 +54,11 @@ export interface ChatMessageListProps {
   watchKey?: string | null;
   bottomOverlayInset?: number;
   bottomDockRevision?: number;
+  /**
+   * Plan panel inserted after the plan-tool turn (not forever at the list end).
+   * Subsequent user/assistant messages render below the plan.
+   */
+  planSlot?: ReactNode;
 }
 
 const MARKER_HEIGHT_DEBOUNCE_MS = 300;
@@ -83,6 +92,7 @@ export default function ChatMessageList({
   watchKey = null,
   bottomOverlayInset = 0,
   bottomDockRevision = 0,
+  planSlot,
 }: ChatMessageListProps) {
   const [userMsgMarkers, setUserMsgMarkers] = useState<UserMsgMarker[]>([]);
 
@@ -149,8 +159,18 @@ export default function ChatMessageList({
       });
     }
 
-    return result;
-  }, [messages, pendingChanges, showPendingChangesBar]);
+    // Anchor plan after the plan-tool turn so later messages stay below it
+    // (not stuck forever at the absolute bottom of the conversation).
+    if (!planSlot) return result;
+    const anchorId = findPlanAnchorMessageId(
+      messages.map((m) => ({ id: m.id, role: m.role, tool_name: m.tool_name })),
+    );
+    const planItem: GroupedChatItem = {
+      type: 'plan_document',
+      id: 'plan-document-panel',
+    };
+    return insertAfterMessageAnchor(result, planItem, anchorId);
+  }, [messages, pendingChanges, showPendingChangesBar, planSlot]);
 
   const updateUserMsgMarkers = useCallback(() => {
     if (isUserScrollingRef.current) return;
@@ -304,6 +324,11 @@ export default function ChatMessageList({
         <div className={styles.emptyState}>
           <div className={styles.emptyTitle}>{emptyStateText}</div>
         </div>
+        {planSlot ? (
+          <div className={styles.emptyPlanAnchor} data-testid="chat-plan-scroll-anchor">
+            {planSlot}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -327,6 +352,7 @@ export default function ChatMessageList({
         onAcceptPendingChange={onAcceptPendingChange}
         onRollbackPendingChange={onRollbackPendingChange}
         onUserMessageLayout={handleUserMessageLayout}
+        planSlot={planSlot}
         onResendFromUserMessage={onResendFromUserMessage}
         userMessageEditDisabled={userMessageEditDisabled}
         t={t}

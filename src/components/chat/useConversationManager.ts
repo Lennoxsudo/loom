@@ -7,6 +7,7 @@ import type { Message, Conversation, ConversationMeta, PendingFileChange, ChatPr
 import { buildConversationPayload } from './conversationPersist';
 import type { ChatRuntimeSnapshot } from './chatRoutingRuntime';
 import { CHAT_LAST_CONVERSATION_STORAGE_KEY } from '../../types/chat';
+import { clearPlan, hydratePlan } from '../../features/agent-engine/planStore';
 
 export interface UseConversationManagerOptions {
   isLoading: boolean;
@@ -125,6 +126,8 @@ export function useConversationManager({
 
       setCurrentConversation(conv);
       setPendingChanges(conv.pendingChanges ?? []);
+      // Restore plan panel state from the conversation file
+      hydratePlan(conv.id, conv.planDocument);
 
       const loadedMessages: Message[] = conv.messages.map((m, idx) => ({
         id: m.id ?? `${Date.now()}-${idx}`,
@@ -189,6 +192,9 @@ export function useConversationManager({
         messageCount: msgs.length,
       }), 'ChatPanel');
 
+      // Always persist the live message list (including tool_calls / tool results).
+      // Never fall back to conv.messages alone — it lags behind React state and
+      // title-generation used to overwrite complete turns with an empty shell.
       const updatedConv = buildConversationPayload(
         conv,
         msgs,
@@ -201,6 +207,8 @@ export function useConversationManager({
       if (!isMountedRef.current) {
         return;
       }
+      // Keep ref in sync immediately so concurrent title-gen cannot race on stale data.
+      currentConversationRef.current = updatedConv;
       setCurrentConversation(updatedConv);
 
       logDebug('保存对话: 保存成功', 'ChatPanel');
@@ -332,7 +340,18 @@ export function useConversationManager({
 
     setIsDeletingConversation(true);
     try {
+      const deletedId =
+        pendingDelete.id ||
+        (currentConversation?.filename === pendingDelete.filename
+          ? currentConversation.id
+          : '');
+
       await invoke('delete_conversation', { filename: pendingDelete.filename });
+
+      // Plan docs live in localStorage keyed by conversationId — remove with the chat.
+      if (deletedId) {
+        clearPlan(deletedId);
+      }
 
       if (currentConversation?.filename === pendingDelete.filename) {
         try {
@@ -398,12 +417,32 @@ export function useConversationManager({
       }
 
       if (!latestConversation || latestConversation.id !== conversationId) return;
-      if (latestConversation.title !== '新对话' && latestConversation.messages.length > 2) return;
-      
-      const updatedConversation: Conversation = {
-        ...latestConversation,
-        title: newTitle,
-      };
+      // Prefer live UI messages — title generation must never wipe tool rounds by
+      // saving the stale create_conversation shell (empty/incomplete messages).
+      const liveMessages = messagesRef.current;
+      const sourceMessages =
+        liveMessages.length > 0
+          ? liveMessages
+          : ((latestConversation.messages ?? []) as unknown as Message[]);
+
+      if (
+        latestConversation.title !== '新对话' &&
+        latestConversation.title !== 'New conversation' &&
+        sourceMessages.length > 2
+      ) {
+        return;
+      }
+
+      const updatedConversation = buildConversationPayload(
+        { ...latestConversation, title: newTitle },
+        sourceMessages.map((m) => ({
+          ...m,
+          // Persist a stable snapshot even if a stream is still open.
+          isStreaming: false,
+        })),
+        latestConversation.compactState,
+        pendingChangesRef.current,
+      );
 
       await invoke('save_conversation', { conversation: updatedConversation });
 

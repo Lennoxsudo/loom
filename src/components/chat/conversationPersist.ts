@@ -1,4 +1,5 @@
 import type { CompactState } from '../../types/chat';
+import { exportPlanForSave } from '../../features/agent-engine/planStore';
 import type { Conversation, Message } from './types';
 
 export function mapMessageToConversationMessage(m: Message) {
@@ -37,11 +38,13 @@ export function buildConversationPayload(
   compactState?: CompactState | null,
   pendingChanges?: Conversation['pendingChanges'],
 ): Conversation {
+  const planDocument = exportPlanForSave(conv.id) ?? null;
   return {
     ...conv,
     messages: messages.map(mapMessageToConversationMessage),
     compactState: compactState ?? conv.compactState,
     pendingChanges: pendingChanges ?? conv.pendingChanges,
+    planDocument,
     last_used_at: new Date().toISOString(),
   };
 }

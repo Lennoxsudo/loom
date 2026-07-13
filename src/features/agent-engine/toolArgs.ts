@@ -151,6 +151,23 @@ export type TodoWriteArgs = {
   }>;
 };
 
+export type UpdatePlanArgs = {
+  /** Full plan document markdown (replaces previous content). */
+  plan: string;
+  /** Optional short title for the plan panel. */
+  title?: string;
+};
+
+export type ExitPlanModeArgs = {
+  /**
+   * Final plan markdown to present for human review.
+   * If omitted, the latest document from `update_plan` is used.
+   */
+  plan?: string;
+  /** Optional short title for the plan panel. */
+  title?: string;
+};
+
 type QuestionOption = {
   label: string;
   description: string;
@@ -351,6 +368,8 @@ type ToolArgsMap = {
   fetch: FetchWebContentArgs;
   web_search: WebSearchArgs;
   todo: TodoWriteArgs;
+  update_plan: UpdatePlanArgs;
+  exit_plan_mode: ExitPlanModeArgs;
   ask: AskUserQuestionArgs;
   skill: LoadSkillArgs;
   generate_image: GenerateImageArgs;

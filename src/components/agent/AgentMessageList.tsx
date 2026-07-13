@@ -1,7 +1,11 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, type ReactNode } from 'react';
 import type { ChatMessage } from '../../types/chat';
 import { scrollToMessage, type UserMessageLayoutCache } from './messageScrollUtils';
 import AgentMessageRow, { type AgentGroupedItem } from './AgentMessageRow';
+import {
+  findPlanAnchorMessageId,
+  insertAfterMessageAnchor,
+} from '../../utils/planMessageAnchor';
 
 export interface AgentMessageListHandle {
   scrollToMessageId: (messageId: string, behavior?: ScrollBehavior) => boolean;
@@ -20,6 +24,8 @@ interface AgentMessageListProps {
   getLayoutCache?: () => UserMessageLayoutCache;
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
   userMessageEditDisabled?: boolean;
+  /** Plan panel anchored after the plan tool turn */
+  planSlot?: ReactNode;
 }
 
 const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProps>(
@@ -37,6 +43,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
       getLayoutCache,
       onResendFromUserMessage,
       userMessageEditDisabled,
+      planSlot,
     },
     ref,
   ) {
@@ -68,8 +75,16 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
           gi++;
         }
       }
-      return result;
-    }, [messages]);
+      if (!planSlot) return result;
+      const anchorId = findPlanAnchorMessageId(
+        messages.map((m) => ({ id: m.id, role: m.role, tool_name: m.tool_name })),
+      );
+      return insertAfterMessageAnchor(
+        result,
+        { kind: 'plan', id: 'plan-document-panel' },
+        anchorId,
+      );
+    }, [messages, planSlot]);
 
     const groupedRef = useRef(grouped);
     groupedRef.current = grouped;
@@ -96,7 +111,9 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
             key={
               item.kind === 'msg'
                 ? item.message.id
-                : item.messages[0]?.id ?? `${item.kind}-${index}`
+                : item.kind === 'plan'
+                  ? item.id
+                  : item.messages[0]?.id ?? `${item.kind}-${index}`
             }
             item={item}
             expandedThinkingIds={expandedThinkingIds}
@@ -108,6 +125,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
             onUserMessageLayout={onUserMessageLayout}
             onResendFromUserMessage={onResendFromUserMessage}
             userMessageEditDisabled={userMessageEditDisabled}
+            planSlot={planSlot}
           />
         ))}
       </>

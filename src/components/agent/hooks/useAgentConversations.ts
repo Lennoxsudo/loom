@@ -14,6 +14,7 @@ import { seedProjectPersistenceSnapshot, removeProjectStateBackupFromLocalStorag
 import { type Agent } from '../../../utils/agentPersistence';
 import type { AgentConversationState } from '../../../types/chat';
 import type { PendingFileChange } from '../utils';
+import { clearPlan } from '../../../features/agent-engine/planStore';
 
 export interface UseAgentConversationsOptions {
   projectPath?: string;
@@ -215,6 +216,9 @@ export function useAgentConversations(
         (conversation) => conversation.id === conversationId
       );
       if (!deletingConversation) return;
+
+      // Plan follows the thread — drop runtime cache when the conversation is deleted
+      clearPlan(conversationId);
 
       const deletedImagePaths = collectImagePathsFromMessages(deletingConversation.messages);
       const remaining = workingState.conversations.filter(

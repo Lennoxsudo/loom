@@ -130,6 +130,12 @@ export interface UseAgentToolCallsOptions {
   onFilesChangedRef: React.MutableRefObject<((paths: string[]) => void) | undefined>;
   onSetPendingChangesBySession: React.Dispatch<React.SetStateAction<Record<string, PendingFileChange[]>>>;
   onAskUserQuestion: (agentId: string, questions: QuestionInput[]) => Promise<UserAnswer[]>;
+  onExitPlanMode?: (req: {
+    conversationId: string;
+    agentId?: string;
+    plan: string;
+    title?: string;
+  }) => void | Promise<void>;
   onRuntimeReconciled?: (runtime: AgentRuntimeSnapshot) => void;
   onRequestApproval: (request: {
     messageId: string;
@@ -183,6 +189,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     onFilesChangedRef,
     onSetPendingChangesBySession,
     onAskUserQuestion,
+    onExitPlanMode,
     onRuntimeReconciled,
     onRequestApproval,
     t,
@@ -507,6 +514,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
     const toolMessages: ChatMessage[] = [];
     const changedFiles: string[] = [];
+    let endTurnAfterPlan = false;
 
     const resolvedRuntime = resolveAgentRequestRuntime(agent, agentRuntimeRef.current);
     let parentProvider = resolvedRuntime.provider;
@@ -561,6 +569,17 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     for (const toolCall of toolCalls) {
       if (isStopRequested(sessionKey)) {
         break;
+      }
+      if (endTurnAfterPlan) {
+        toolMessages.push({
+          id: buildAgentToolMessageId(toolCall.id),
+          role: 'tool',
+          text: 'Skipped: turn ended after exit_plan_mode (waiting for human plan review).',
+          tool_call_id: toolCall.id,
+          tool_name: toolCall.function.name,
+          createdAt: Date.now(),
+        });
+        continue;
       }
 
       let parsedArgs: Record<string, unknown> = {};
@@ -679,10 +698,15 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
           continue;
         }
 
-        // Plan mode check
+        // Plan mode check (exit_plan_mode itself is never blocked)
         const isAgentPlanMode =
           (agentModesRef.current[agent.id] ?? 'always-allow') === 'plan';
-        if (isAgentPlanMode && isToolBlockedInPlanMode(toolCall.function.name)) {
+        if (
+          isAgentPlanMode &&
+          toolCall.function.name !== 'exit_plan_mode' &&
+          toolCall.function.name !== 'update_plan' &&
+          isToolBlockedInPlanMode(toolCall.function.name)
+        ) {
           toolMessages.push({
             id: `${Date.now()}-tool-${toolCall.id}`,
             role: 'tool',
@@ -859,6 +883,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
           parentMessages,
           subagentDepth: 0,
           onAskUserQuestion,
+          onExitPlanMode,
           onRequestToolApproval: async (req) => {
             return new Promise<'approve' | 'reject'>((resolve) => {
               useSubagentStore.getState().setPendingApproval(req.taskId, {
@@ -998,9 +1023,15 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
         activeCommandStreamsRef.current.delete(toolCall.id);
 
-        if (isGenerateImage || isRunCommand || (subagentsEnabled && isSubagentTool)) {
-          upsertAgentToolMessage(conversationId, toolMessages[toolMessages.length - 1], setConversationState);
+        if (
+          toolCall.function.name === 'exit_plan_mode' ||
+          resolvedToolName === 'exit_plan_mode'
+        ) {
+          endTurnAfterPlan = true;
         }
+
+        // Persist tool result immediately (including exit_plan_mode end-of-turn).
+        upsertAgentToolMessage(conversationId, completedToolMessage, setConversationState);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         let failedToolMessage: ChatMessage = {
@@ -1071,6 +1102,13 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       });
       return { ...prev, conversations };
     });
+
+    // exit_plan_mode: end this turn — do not start another model stream.
+    if (endTurnAfterPlan) {
+      clearProcessingState(agentId, conversationId, assistantMessageId, toolMessages);
+      clearTrackedStream(assistantMessageId);
+      return;
+    }
 
     await continueWithToolResults(
       agentId,

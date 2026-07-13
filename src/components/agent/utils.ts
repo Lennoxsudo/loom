@@ -5,6 +5,7 @@ import type { ToolCall } from '../../types/ai';
 import { parseToolArguments } from '../../features/agent-engine/argsParser';
 import { findBestToolMatch } from '../../features/agent-engine/toolMatcher';
 import { resolveUnderlyingToolName } from '../../features/agent-engine/toolRouter';
+import { exportPlanForSave, hydratePlan } from '../../features/agent-engine/planStore';
 import { applyContextBudget } from '../../utils/contextBudget';
 import { coerceProjectPath, normalizeProjectPath } from '../../shared/lib/projectPath';
 
@@ -1018,6 +1019,7 @@ export function sanitizeConversationStateForPersistence(
       conversation.currentPreviewIndex,
       previewHistory.length
     );
+    const planDocument = exportPlanForSave(conversation.id) ?? conversation.planDocument ?? null;
     return {
       ...conversation,
       messages: stripMessages
@@ -1030,6 +1032,7 @@ export function sanitizeConversationStateForPersistence(
             }),
       previewHistory,
       currentPreviewIndex,
+      planDocument,
     };
   });
 
@@ -1065,12 +1068,15 @@ export function projectStateToAgentConversationState(
   projectPath: string
 ): AgentConversationState {
   const normalized = normalizeProjectPath(projectPath);
-  const conversations = (projectState.conversations ?? []).map((conversation) => ({
-    ...conversation,
-    messages: rehydrateToolMessages(
-      normalizeStoredMessages({ load: conversation.messages }).load ?? conversation.messages
-    ),
-  }));
+  const conversations = (projectState.conversations ?? []).map((conversation) => {
+    hydratePlan(conversation.id, conversation.planDocument);
+    return {
+      ...conversation,
+      messages: rehydrateToolMessages(
+        normalizeStoredMessages({ load: conversation.messages }).load ?? conversation.messages
+      ),
+    };
+  });
   return {
     selectedConversationId: projectState.selectedConversationId,
     conversations,

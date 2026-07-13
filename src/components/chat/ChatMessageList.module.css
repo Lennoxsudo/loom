@@ -24,6 +24,12 @@
   color: var(--text-secondary);
 }
 
+.emptyPlanAnchor {
+  margin-top: auto;
+  padding-top: 16px;
+  scroll-margin-bottom: 24px;
+}
+
 .listWrap {
   --chat-content-inset: 16px;
   --chat-scrollbar-size: 8px;

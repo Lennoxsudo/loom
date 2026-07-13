@@ -14,7 +14,8 @@ import UserMessageBubble from './UserMessageBubble';
 export type AgentGroupedItem =
   | { kind: 'msg'; message: ChatMessage }
   | { kind: 'readGroup'; messages: ChatMessage[] }
-  | { kind: 'deleteGroup'; messages: ChatMessage[] };
+  | { kind: 'deleteGroup'; messages: ChatMessage[] }
+  | { kind: 'plan'; id: string };
 
 interface AgentMessageRowProps {
   item: AgentGroupedItem;
@@ -28,6 +29,7 @@ interface AgentMessageRowProps {
   /** Edit + resend a user message (rolls back later file changes / AI output). */
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
   userMessageEditDisabled?: boolean;
+  planSlot?: React.ReactNode;
 }
 
 function getReadDisplayName(m: ChatMessage) {
@@ -84,7 +86,16 @@ export default function AgentMessageRow({
   onUserMessageLayout,
   onResendFromUserMessage,
   userMessageEditDisabled = false,
+  planSlot,
 }: AgentMessageRowProps) {
+  if (item.kind === 'plan') {
+    return (
+      <div data-testid="plan-scroll-anchor" style={{ marginTop: 12, marginBottom: 8 }}>
+        {planSlot}
+      </div>
+    );
+  }
+
   if (item.kind === 'readGroup') {
     return (
       <div style={{ marginBottom: '10px' }}>

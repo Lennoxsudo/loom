@@ -5,3 +5,7 @@
   flex: 1;
   min-width: 0;
 }
+
+.listEndContent {
+  scroll-margin-bottom: 24px;
+}

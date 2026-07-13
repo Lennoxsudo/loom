@@ -286,6 +286,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         chatRules: opts.chatRules,
         chatRulesInjected: rulesAlreadyInjected,
         compactState: conversation.compactState,
+        conversationId: conversation.id,
       });
 
       if (compressed) {
@@ -546,6 +547,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         chatRules: opts.chatRules,
         chatRulesInjected: rulesAlreadyInjected,
         compactState: opts.currentConversation?.compactState,
+        conversationId: opts.currentConversation?.id,
       });
 
       if (compressed) {

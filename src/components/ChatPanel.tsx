@@ -66,8 +66,12 @@ import { useBottomDockLayout } from './chat/useBottomDockLayout';
 import { finalizeStreamMessage } from '../utils/streamChunkSeparation';
 import type { PendingFileChange } from './chat/types';
 import TodoListBar from './agent/TodoListBar';
+import PlanDocumentPanel from './agent/PlanDocumentPanel';
 import ComposerQuestionAnchor from './agent/ComposerQuestionAnchor';
 import type { QuestionInput, UserAnswer } from '../features/agent-engine/toolArgs';
+import type { PlanDocument } from '../features/agent-engine/planStore';
+import { setPlan } from '../features/agent-engine/planStore';
+import { usePlanDocumentVisible } from '../features/agent-engine/usePlanDocumentVisible';
 import { PlusIcon } from './shared/Icons';
 
 export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPanelProps) {
@@ -340,6 +344,48 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     []
   );
 
+  const [planReviewConversationId, setPlanReviewConversationId] = useState<string | null>(null);
+  const handleSendMessageRef = useRef<(() => Promise<void>) | null>(null);
+
+  /** Non-blocking: show plan panel and end the agent turn (handled in tool loop). */
+  const handleExitPlanMode = useCallback(
+    (req: {
+      conversationId: string;
+      agentId?: string;
+      plan: string;
+      title?: string;
+    }) => {
+      setPlanReviewConversationId(req.conversationId);
+      void saveCurrentConversationRef.current?.();
+    },
+    [],
+  );
+
+  /** User accepted the plan — switch to execute and start a new turn. */
+  const settleExitPlanReview = useCallback(
+    (conversationId: string, planDoc: PlanDocument) => {
+      if (planReviewConversationId === conversationId) {
+        setPlanReviewConversationId(null);
+      }
+      setPlan(conversationId, {
+        content: planDoc.content,
+        title: planDoc.title,
+        status: 'accepted',
+      });
+      chatModeRef.current = 'always-allow';
+      setChatMode('always-allow');
+      const title = planDoc.title?.trim();
+      const continueText = title
+        ? `用户已接受计划「${title}」。请立即按批准的计划执行，不要再调用 exit_plan_mode。`
+        : '用户已接受计划。请立即按批准的计划执行，不要再调用 exit_plan_mode。';
+      setInputValue(continueText);
+      window.setTimeout(() => {
+        void handleSendMessageRef.current?.();
+      }, 80);
+    },
+    [planReviewConversationId],
+  );
+
   const {
     handleStop,
     stopTimeoutRef,
@@ -408,6 +454,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     getAppDataPath,
     agentAccessMode,
     onAskUserQuestion: handleAskUserQuestion,
+    onExitPlanMode: handleExitPlanMode,
     t,
   });
 
@@ -470,6 +517,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           chatMode,
           chatRules,
           chatRulesInjected: chatRulesInjectedRef.current,
+          conversationId: currentConversationRef.current?.id,
         });
 
         if (!cancelled) {
@@ -586,6 +634,35 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     }, 300);
   }, [currentConversation?.id, pendingChanges]);
 
+  // Persist live turns (assistant + tools) so closing during exit_plan_mode / tool
+  // wait does not lose history. Debounced to avoid thrashing disk mid-stream.
+  useEffect(() => {
+    if (!currentConversation?.id || messages.length === 0) return;
+    if (autoSaveTimeoutRef.current != null) {
+      window.clearTimeout(autoSaveTimeoutRef.current);
+    }
+    autoSaveTimeoutRef.current = window.setTimeout(() => {
+      if (!isMountedRef.current) return;
+      void saveCurrentConversationRef.current?.();
+    }, 800);
+  }, [messages, currentConversation?.id]);
+
+  // Flush conversation on app close / tab hide (best-effort).
+  useEffect(() => {
+    const flush = () => {
+      void saveCurrentConversationRef.current?.();
+    };
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('beforeunload', flush);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('beforeunload', flush);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
   const { handleSendMessage, resendFromUserMessage } = useSendMessage({
     inputValue,
     setInputValue,
@@ -644,6 +721,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   );
 
   saveCurrentConversationRef.current = saveCurrentConversation;
+  handleSendMessageRef.current = handleSendMessage;
 
   // Dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -1027,21 +1105,26 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             message.tokens = contentTokens + thinkingTokens;
 
             updated[index] = message;
+            // Keep ref in lockstep for tool-loop saves (useEffect lags one frame).
+            messagesRef.current = updated;
             return updated;
           });
+
+          // Always snapshot after a stream finishes (with or without tools).
+          // Previously only non-tool completions were saved, so plan-mode tool
+          // turns vanished if the app closed while exit_plan_mode was waiting.
+          if (autoSaveTimeoutRef.current != null) {
+            window.clearTimeout(autoSaveTimeoutRef.current);
+          }
+          autoSaveTimeoutRef.current = window.setTimeout(() => {
+            if (!isMountedRef.current) return;
+            void saveCurrentConversation();
+          }, 300);
 
           if (finalToolCalls && finalToolCalls.length > 0) {
             handleToolCallsRef.current?.(finalToolCalls);
           } else {
             setIsLoading(false);
-
-            if (autoSaveTimeoutRef.current != null) {
-              window.clearTimeout(autoSaveTimeoutRef.current);
-            }
-            autoSaveTimeoutRef.current = window.setTimeout(() => {
-              if (!isMountedRef.current) return;
-              void saveCurrentConversation();
-            }, 500);
           }
 
           ownedStreamMessageIdsRef.current.delete(message_id);
@@ -1252,6 +1335,28 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const showStop = isLoading || isStopping;
   const isConversationSwitchLocked = isLoading || isStopping || isExecutingToolsRef.current;
 
+  const chatConversationId = currentConversation?.id ?? '';
+  const chatPlanVisible = usePlanDocumentVisible(chatConversationId || null);
+  const chatPlanForceExpand = Boolean(
+    chatConversationId && planReviewConversationId === chatConversationId,
+  );
+  // Anchored after the plan-tool turn inside the message list (not sticky list end).
+  const chatPlanSlot = useMemo(() => {
+    if (!chatConversationId || !chatPlanVisible) return null;
+    return (
+      <PlanDocumentPanel
+        conversationId={chatConversationId}
+        variant="inline"
+        showOpenInEditor
+        autoOpenInEditor={false}
+        forceExpand={chatPlanForceExpand}
+        onAccept={(planDoc) => {
+          settleExitPlanReview(chatConversationId, planDoc);
+        }}
+      />
+    );
+  }, [chatConversationId, chatPlanVisible, chatPlanForceExpand, settleExitPlanReview]);
+
   useEffect(() => {
     if (modelMissing && inputValue) {
       setInputValue('');
@@ -1452,6 +1557,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           watchKey={currentConversation?.id ?? null}
           bottomOverlayInset={bottomOverlayInset}
           bottomDockRevision={bottomDockRevision}
+          planSlot={chatPlanSlot}
         />
       </div>
 

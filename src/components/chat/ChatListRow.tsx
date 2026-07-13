@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import MessageBubble from './ChatMessageBubble';
 import { ChatToolGroupContent } from './chatListToolContent';
 import PendingChangesBar from './PendingChangesBar';
@@ -20,6 +20,7 @@ export interface ChatListRowProps {
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
   userMessageEditDisabled?: boolean;
+  planSlot?: ReactNode;
   t: I18nMessages;
 }
 
@@ -37,10 +38,12 @@ function ChatListRow({
   onUserMessageLayout,
   onResendFromUserMessage,
   userMessageEditDisabled = false,
+  planSlot,
   t,
 }: ChatListRowProps) {
   const isToolGroup = 'type' in item && item.type === 'tool_group';
   const isPendingChanges = 'type' in item && item.type === 'pending_changes';
+  const isPlanDocument = 'type' in item && item.type === 'plan_document';
 
   return (
     <div
@@ -50,8 +53,11 @@ function ChatListRow({
         paddingRight: 16,
         paddingTop: index === 0 ? 20 : 0,
       }}
+      data-testid={isPlanDocument ? 'chat-plan-scroll-anchor' : undefined}
     >
-      {isPendingChanges ? (
+      {isPlanDocument ? (
+        planSlot
+      ) : isPendingChanges ? (
         <PendingChangesBar
           pendingChanges={item.changes}
           collapsed={pendingChangesCollapsed}

@@ -115,6 +115,14 @@ interface ConversationMessage {
   compactMetadata?: CompactMetadata;
 }
 
+/** Plan document embedded with the conversation (follows session save/delete). */
+export interface ConversationPlanDocument {
+  content: string;
+  title: string;
+  status: 'draft' | 'pending_review' | 'accepted' | 'rejected';
+  updatedAt: number;
+}
+
 export interface Conversation {
   id: string;
   title: string;
@@ -126,6 +134,8 @@ export interface Conversation {
   messages: ConversationMessage[];
   pendingChanges?: PendingFileChange[];
   compactState?: CompactState;
+  /** In-session plan panel state — saved/loaded/deleted with this conversation */
+  planDocument?: ConversationPlanDocument | null;
 }
 
 export interface ConversationMeta {

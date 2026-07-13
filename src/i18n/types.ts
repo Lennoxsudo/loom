@@ -583,6 +583,26 @@ export interface I18nMessages {
     alwaysAllowModeShort: string;
     alwaysAllowModeDesc: string;
     planModeBlocked: string;
+    planPanel: {
+      planLabel: string;
+      defaultTitle: string;
+      titlePlaceholder: string;
+      editorPlaceholder: string;
+      statusDraft: string;
+      statusPending: string;
+      statusAccepted: string;
+      statusRejected: string;
+      reviewHint: string;
+      editHint: string;
+      keepPlanning: string;
+      acceptExecute: string;
+      saveDraft: string;
+      openInEditor: string;
+      openInEditorShort: string;
+      halfPreviewHint: string;
+      expandFull: string;
+      collapseHalf: string;
+    };
     composerPlaceholder: string;
     welcomeBuildPrompt: string;
     nav: {
@@ -1681,6 +1701,14 @@ export interface I18nMessages {
     empty: string;
     fetchHint: string;
     openLink: string;
+  };
+  compactToolResult: {
+    planTitle: string;
+    planLength: string;
+    tools: {
+      update_plan: string;
+      exit_plan_mode: string;
+    };
   };
 }
 

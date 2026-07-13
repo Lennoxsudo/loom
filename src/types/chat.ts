@@ -259,6 +259,13 @@ export interface AgentConversation {
   reviewComments?: ChangeReviewComment[];
   /** Context compact turn tracking */
   compactState?: CompactState;
+  /** Plan panel document — follows this thread on save/delete */
+  planDocument?: {
+    content: string;
+    title: string;
+    status: 'draft' | 'pending_review' | 'accepted' | 'rejected';
+    updatedAt: number;
+  } | null;
 }
 
 /**

@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { EditorGroupId, EditorGroupState, OpenFilesByPath } from '../types/app';
 import type { MonacoEditor } from '../types/monaco';
 import { normalizePathForCompare, normalizeEolForCompare, isPathUnderRoot } from '../utils/pathUtils';
+import { isVirtualEditorPath } from '../utils/planEditorBridge';
 import { APP_CONFIG } from '../config/defaultSettings';
 import { useFileRefresh } from './useFileRefresh';
 
@@ -164,6 +165,7 @@ export function useFileChangeSync({
     const timer = window.setInterval(() => {
       const candidates = Object.values(openFilesByPathRef.current)
         .filter((file) => file && file.kind === 'text' && !file.isDirty)
+        .filter((file) => !isVirtualEditorPath(file.path))
         .filter(
           (file) =>
             !projectPath ||

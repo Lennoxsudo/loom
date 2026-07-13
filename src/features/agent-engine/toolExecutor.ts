@@ -138,7 +138,7 @@ const KNOWN_TOOL_NAMES: readonly string[] = [
   'term', 'finfo', 'search', 'git',
   'sym',
   'browser', 'fetch', 'web_search',
-  'todo', 'ask', 'skill', 'generate_image', 'run_subagent', 'run_subagents', 'Agent', 'Task',
+  'todo', 'update_plan', 'exit_plan_mode', 'ask', 'skill', 'generate_image', 'run_subagent', 'run_subagents', 'Agent', 'Task',
   'graph_index', 'graph_query', 'graph_trace',
   // Legacy names (for backward compatibility)
   'read_file', 'write_file', 'edit_file',

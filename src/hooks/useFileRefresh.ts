@@ -8,6 +8,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useCallback } from 'react';
 import { mergeRefreshedContents } from '../utils/openFilesRefresh';
 import { normalizePathForCompare, normalizeEolForCompare } from '../utils/pathUtils';
+import { isVirtualEditorPath } from '../utils/planEditorBridge';
 import type { EditorGroupId, OpenFilesByPath, EditorGroupState } from '../types/app';
 import type { MonacoEditor } from '../types/monaco';
 
@@ -59,6 +60,8 @@ export function useFileRefresh({
         .filter((path): path is string => typeof path === 'string');
 
       const pathsToRead = normalizedToActual.filter((path) => {
+        // Skip virtual tabs (plan docs, diffs, settings, …) — not on disk.
+        if (isVirtualEditorPath(path)) return false;
         const file = openFilesByPathRef.current[path];
         return file && file.kind === 'text';
       });

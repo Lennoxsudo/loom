@@ -20,6 +20,16 @@ export interface EngineHostCallbacks {
     toolName: string;
     detailPreview: string;
   }) => Promise<'approve' | 'reject'>;
+  /**
+   * Notify host that a plan is ready for human review.
+   * Non-blocking: the agent turn ends after this tool; Accept/Reject is handled in the UI.
+   */
+  onExitPlanMode?: (req: {
+    conversationId: string;
+    agentId?: string;
+    plan: string;
+    title?: string;
+  }) => void | Promise<void>;
   /** Optional: notified when a tool call starts. */
   onToolCall?: (info: { toolName: string; toolCallId: string }) => void;
   /** Optional: notified when a tool call ends. */

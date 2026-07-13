@@ -113,6 +113,7 @@ import {
   isPathUnderRoot,
   toRelativePathUnderProject,
 } from './utils/pathUtils';
+import { isVirtualEditorPath } from './utils/planEditorBridge';
 
 import {
   buildExcludeMatchers,
@@ -329,8 +330,11 @@ function AppContent() {
   const openFileInGroup = useCallback(
     async (filePath: string, targetGroupId: EditorGroupId, forceRefresh?: boolean) => {
       const existing = openFilesByPathRef.current[filePath];
+      const virtual = isVirtualEditorPath(filePath);
+
       if (existing && !forceRefresh) {
-        if (existing.kind === 'text' && !existing.isDirty) {
+        // Virtual tabs (e.g. plan.md) have no disk path — never read/watch them.
+        if (existing.kind === 'text' && !existing.isDirty && !virtual) {
           try {
             const latestContent = await invoke<string>('read_file_content', { filePath });
             if (
@@ -371,6 +375,23 @@ function AppContent() {
           })
         );
         setActiveGroupId(targetGroupId);
+        return;
+      }
+
+      // Opening a virtual path without prior buffer should not hit disk.
+      if (virtual) {
+        if (existing) {
+          setEditorGroups((prev) =>
+            prev.map((g) => {
+              if (g.id !== targetGroupId) return g;
+              const nextTabs = g.tabPaths.includes(filePath)
+                ? g.tabPaths
+                : [filePath, ...g.tabPaths];
+              return { ...g, tabPaths: nextTabs, activePath: filePath };
+            })
+          );
+          setActiveGroupId(targetGroupId);
+        }
         return;
       }
 

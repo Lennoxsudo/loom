@@ -352,6 +352,16 @@ const TodoWriteSchema = ToolParametersSchema.extend({
   })).min(1),
 });
 
+const UpdatePlanSchema = z.object({
+  plan: z.string().min(1),
+  title: z.string().optional(),
+});
+
+const ExitPlanModeSchema = z.object({
+  plan: z.string().optional(),
+  title: z.string().optional(),
+});
+
 const GraphIndexSchema = ToolParametersSchema.extend({
   action: z.enum(['index', 'status', 'list', 'delete']),
   repo_path: z.string().optional(),
@@ -488,6 +498,12 @@ export function validateToolParameters(
       case 'todo':
       case 'TodoWrite':
         schema = TodoWriteSchema;
+        break;
+      case 'update_plan':
+        schema = UpdatePlanSchema;
+        break;
+      case 'exit_plan_mode':
+        schema = ExitPlanModeSchema;
         break;
       case 'finfo':
       case 'file_info':

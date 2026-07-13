@@ -4,6 +4,7 @@ import { FileTypeIcon } from '../shared/FileTypeIcon';
 import AgentProviderProfileModelSelector from './AgentProviderProfileModelSelector';
 import TokenRingIndicator from '../chat/TokenRingIndicator';
 import ApprovalModeMenu from './ApprovalModeMenu';
+import ChatModeToggle from '../chat/ChatModeToggle';
 import { useTranslation } from '../../i18n';
 import type { AgentProtocolSelection } from '../../utils/agentPersistence';
 import type { ProviderProfileOption } from '../../utils/aiProviderRuntime';
@@ -139,6 +140,8 @@ export interface AgentComposerProps {
   mcpCount?: number;
   skillNames?: string[];
   mcpToolNames?: string[];
+  agentMode?: 'plan' | 'always-allow';
+  onAgentModeChange?: (mode: 'plan' | 'always-allow') => void;
 }
 
 const AgentComposer = memo(function AgentComposer({
@@ -181,6 +184,8 @@ const AgentComposer = memo(function AgentComposer({
   mcpCount = 0,
   skillNames = [],
   mcpToolNames = [],
+  agentMode = 'always-allow',
+  onAgentModeChange,
 }: AgentComposerProps) {
   const t = useTranslation();
   const [openSideCapsule, setOpenSideCapsule] = useState<SideCapsuleKind | null>(null);
@@ -361,6 +366,19 @@ const AgentComposer = memo(function AgentComposer({
                   t={t}
                 />
               </div>
+            )}
+            {onAgentModeChange && (
+              <ChatModeToggle
+                chatMode={agentMode}
+                setChatMode={(next) => {
+                  const value =
+                    typeof next === 'function' ? next(agentMode) : next;
+                  onAgentModeChange(value);
+                }}
+                variant="composer"
+                compact
+                t={t}
+              />
             )}
             <ApprovalModeMenu />
           </div>

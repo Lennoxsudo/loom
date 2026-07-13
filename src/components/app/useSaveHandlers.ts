@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { OpenFile, OpenFilesByPath, EditorGroupId } from '../../types/app';
 import { normalizeEolForCompare } from '../../utils/pathUtils';
+import { isPlanEditorPath, savePlanEditorContent } from '../../utils/planEditorBridge';
 
 interface TabToClose {
   groupId: EditorGroupId;
@@ -38,6 +39,12 @@ export function useSaveHandlers({
   const saveFileInternal = useCallback(
     async (file: OpenFile) => {
       if (file.kind !== 'text') return;
+
+      // Virtual plan document: persist into planStore only (no disk write).
+      if (isPlanEditorPath(file.path)) {
+        savePlanEditorContent(file.path, file.content);
+        return;
+      }
 
       if ('isDeleted' in file && file.isDeleted) {
         showWarning(`文件已从磁盘删除，无法保存: ${file.path}`);

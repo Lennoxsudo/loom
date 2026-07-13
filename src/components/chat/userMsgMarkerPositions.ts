@@ -3,7 +3,8 @@ import type { Message, PendingFileChange } from './types';
 export type GroupedChatItem =
   | Message
   | { type: 'tool_group'; id: string; messages: Message[] }
-  | { type: 'pending_changes'; id: string; changes: PendingFileChange[] };
+  | { type: 'pending_changes'; id: string; changes: PendingFileChange[] }
+  | { type: 'plan_document'; id: string };
 
 export interface SizeRange {
   startIndex: number;

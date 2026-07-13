@@ -1,5 +1,5 @@
 import { shouldInjectRules, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
-import { prependPlanModeToLastUserMessage } from '../../utils/planModeInjector';
+import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import {
   estimateMessageTokens,
   estimateToolsTokens,
@@ -26,6 +26,8 @@ export interface BuildChatContextUsageOptions {
   chatRulesInjected: boolean;
   compactState?: CompactState | null;
   maxContextTokens?: number;
+  /** Conversation id for plan document injection (optional). */
+  conversationId?: string;
 }
 
 export interface ChatContextUsage {
@@ -47,6 +49,7 @@ function buildChatRequestMessages(
   chatRules: { content: string }[],
   chatRulesInjected: boolean,
   chatMode: 'plan' | 'always-allow',
+  conversationId?: string,
 ): ProviderRequestMessage[] {
   const requestMessages = toChatPanelProviderRequestMessages(messages);
   const combinedChatRules = chatRules.map((rule) => rule.content).join('\n');
@@ -56,9 +59,10 @@ function buildChatRequestMessages(
     prependRulesToFirstUserMessage(requestMessages, combinedChatRules);
   }
 
-  if (chatMode === 'plan') {
-    prependPlanModeToLastUserMessage(requestMessages);
-  }
+  injectPlanContextForRequest(requestMessages, {
+    interactionMode: chatMode,
+    conversationId,
+  });
 
   return requestMessages;
 }
@@ -78,6 +82,7 @@ export async function buildChatContextUsage(
     chatRulesInjected,
     compactState,
     maxContextTokens = DEFAULT_CONTEXT_WINDOW,
+    conversationId,
   } = options;
 
   const compactOutcome = await maybeAutoCompactConversation({
@@ -98,6 +103,7 @@ export async function buildChatContextUsage(
     chatRules,
     chatRulesInjected,
     chatMode,
+    conversationId,
   );
   const skillsContext = await loadSkillsContext(projectPath);
   const { messages: preparedMessages } = buildContextForRequest({

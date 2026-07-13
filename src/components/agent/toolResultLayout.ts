@@ -14,7 +14,8 @@ export function stripMcpToolPrefix(toolName: string): string {
 export function formatToolDisplayName(toolName: string | undefined, fallback = 'Tool'): string {
   const raw = stripMcpToolPrefix((toolName || fallback).trim());
   if (!raw) return fallback;
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
+  const spaced = raw.replace(/_/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 export function toolCompactShell(

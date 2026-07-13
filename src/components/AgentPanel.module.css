@@ -285,6 +285,15 @@
   padding-bottom: 12px;
 }
 
+/* Implementation plan at end of message list — scrolls with content */
+.planScrollAnchor {
+  margin-top: 16px;
+  padding-bottom: 8px;
+  scroll-margin-bottom: 24px;
+  /* Never clip a fully expanded plan card */
+  overflow: visible;
+}
+
 .messagesScrollHost {
   flex: 1;
   min-height: 0;

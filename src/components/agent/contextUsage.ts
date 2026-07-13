@@ -1,6 +1,6 @@
 import { DEFAULT_CONTEXT_WINDOW, estimateMessageTokens, estimateToolsTokens } from '../../utils/contextBudget';
 import { shouldInjectRules, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
-import { prependPlanModeToLastUserMessage } from '../../utils/planModeInjector';
+import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import { shouldInjectProjectPath as checkShouldInjectProjectPath } from '../../hooks/useContextInjectionState';
 import { loadSkillsContext } from '../../utils/skills';
 import { invoke } from '@tauri-apps/api/core';
@@ -122,9 +122,10 @@ function buildAgentRequestMessages(
 ): ProviderRequestMessage[] {
   const requestMessages: ProviderRequestMessage[] = toProviderRequestMessages(messages);
 
-  if (agentMode === 'plan') {
-    prependPlanModeToLastUserMessage(requestMessages);
-  }
+  injectPlanContextForRequest(requestMessages, {
+    interactionMode: agentMode,
+    conversationId: conversation?.id,
+  });
 
   const needsRulesInjection = shouldInjectRules(
     agent.rules ?? '',

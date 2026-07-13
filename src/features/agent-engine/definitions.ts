@@ -423,6 +423,54 @@ export const AI_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'update_plan',
+    description:
+      'Update the editable plan document shown to the user in Plan Mode. ' +
+      'Use this while researching to maintain a living implementation plan (markdown). ' +
+      'This does NOT exit plan mode — call exit_plan_mode when the plan is ready for human review. ' +
+      'Each call replaces the full plan content.',
+    parameters: {
+      type: 'object',
+      properties: {
+        plan: {
+          type: 'string',
+          description:
+            'Full plan document in markdown: goals, approach, file-level steps, risks, and verification.',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional short title for the plan panel header.',
+        },
+      },
+      required: ['plan'],
+    },
+  },
+  {
+    name: 'exit_plan_mode',
+    description:
+      'Submit the plan for human review and END the current turn. ' +
+      'Call this only after you have finished researching and written a complete plan ' +
+      '(via update_plan and/or the plan argument). ' +
+      'This does not block: the conversation stops after this tool so the user can review the plan panel. ' +
+      'Do not call more tools after this. The user Accepts in the UI to start execution in a new turn, ' +
+      'or Keep Planning to revise later.',
+    parameters: {
+      type: 'object',
+      properties: {
+        plan: {
+          type: 'string',
+          description:
+            'Final plan markdown to present for review. If omitted, the latest update_plan content is used.',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional short title for the plan panel header.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'ask',
     description:
       'Ask the user a question to clarify requirements or get a decision. ' +

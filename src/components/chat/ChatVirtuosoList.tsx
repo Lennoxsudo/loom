@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef } from 'react';
+import { memo, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { useObservedHeight } from '../../hooks/useObservedHeight';
 import ChatListRow from './ChatListRow';
@@ -29,6 +29,8 @@ export interface ChatVirtuosoListProps {
   userMessageEditDisabled?: boolean;
   t: I18nMessages;
   bottomInset?: number;
+  /** Plan panel slot rendered for `plan_document` list items */
+  planSlot?: ReactNode;
 }
 
 
@@ -53,6 +55,7 @@ function ChatVirtuosoList({
   userMessageEditDisabled = false,
   t,
   bottomInset = 0,
+  planSlot,
 }: ChatVirtuosoListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const containerHeight = useObservedHeight(containerRef);
@@ -73,6 +76,7 @@ function ChatVirtuosoList({
         onUserMessageLayout={onUserMessageLayout}
         onResendFromUserMessage={onResendFromUserMessage}
         userMessageEditDisabled={userMessageEditDisabled}
+        planSlot={planSlot}
         t={t}
       />
     ),
@@ -88,6 +92,7 @@ function ChatVirtuosoList({
       onUserMessageLayout,
       onResendFromUserMessage,
       userMessageEditDisabled,
+      planSlot,
       t,
     ]
   );
@@ -99,9 +104,10 @@ function ChatVirtuosoList({
     return (item as Message).id;
   }, []);
 
-  const ListFooter = useCallback(() => {
-    return <div aria-hidden style={{ height: Math.max(0, bottomInset), flexShrink: 0 }} />;
-  }, [bottomInset]);
+  const ListFooter = useCallback(
+    () => <div aria-hidden style={{ height: Math.max(0, bottomInset), flexShrink: 0 }} />,
+    [bottomInset],
+  );
 
   const virtuosoComponentsWithFooter = useMemo(
     () => ({
