@@ -13,6 +13,9 @@ import {
 } from '../utils/checkpointService';
 import { truncateCheckpointsAfterRestore } from '../utils/checkpointTimeline';
 
+/** Stable empty list so Zustand selectors don't thrash on `?? []`. */
+export const EMPTY_CHECKPOINTS: AgentCheckpoint[] = [];
+
 interface CheckpointState {
   /** sessionKey -> ordered checkpoints */
   bySession: Record<string, AgentCheckpoint[]>;
@@ -31,6 +34,15 @@ interface CheckpointState {
   clearError: () => void;
 }
 
+function sameCheckpointIds(a: AgentCheckpoint[], b: AgentCheckpoint[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]?.id !== b[i]?.id || a[i]?.createdAt !== b[i]?.createdAt) return false;
+  }
+  return true;
+}
+
 export const useCheckpointStore = create<CheckpointState>()(
   devtools(
     (set, get) => ({
@@ -39,12 +51,22 @@ export const useCheckpointStore = create<CheckpointState>()(
       lastError: null,
 
       setSessionCheckpoints: (sessionKey, checkpoints) => {
-        set((state) => ({
-          bySession: {
-            ...state.bySession,
-            [sessionKey]: [...checkpoints].sort((a, b) => a.createdAt - b.createdAt),
-          },
-        }));
+        set((state) => {
+          const sorted =
+            checkpoints.length === 0
+              ? EMPTY_CHECKPOINTS
+              : [...checkpoints].sort((a, b) => a.createdAt - b.createdAt);
+          const prev = state.bySession[sessionKey] ?? EMPTY_CHECKPOINTS;
+          if (sameCheckpointIds(prev, sorted)) {
+            return state;
+          }
+          return {
+            bySession: {
+              ...state.bySession,
+              [sessionKey]: sorted,
+            },
+          };
+        });
       },
 
       hydrateSession: async (sessionKey) => {
@@ -52,8 +74,8 @@ export const useCheckpointStore = create<CheckpointState>()(
         try {
           const list = await listCheckpoints(sessionKey);
           get().setSessionCheckpoints(sessionKey, list);
-        } catch (error) {
-          set({ lastError: String(error) });
+        } catch {
+          // Tauri unavailable / no disk session — leave existing in-memory state alone.
         }
       },
 
@@ -123,6 +145,6 @@ export function selectSessionCheckpoints(
   state: CheckpointState,
   sessionKey: string | null | undefined
 ): AgentCheckpoint[] {
-  if (!sessionKey) return [];
-  return state.bySession[sessionKey] ?? [];
+  if (!sessionKey) return EMPTY_CHECKPOINTS;
+  return state.bySession[sessionKey] ?? EMPTY_CHECKPOINTS;
 }

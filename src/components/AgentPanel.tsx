@@ -53,6 +53,8 @@ import {
 import type { ToolDefinition } from '../types/ai';
 import type { QuestionInput, UserAnswer } from '../features/agent-engine/toolArgs';
 import { useToolStore } from '../stores/useToolStore';
+import { useCheckpointStore, selectSessionCheckpoints } from '../stores/useCheckpointStore';
+import type { AgentCheckpoint } from '../utils/checkpointTimeline';
 import { useImageGenConfig } from '../hooks/useImageGenConfig';
 import {
   buildGenerateImageTool,
@@ -762,6 +764,64 @@ export default function AgentPanel({
   const selectedPendingChanges = selectedPendingSessionKey
     ? (pendingChangesBySession[selectedPendingSessionKey] ?? [])
     : [];
+
+  const sessionCheckpoints = useCheckpointStore((state) =>
+    selectSessionCheckpoints(state, selectedPendingSessionKey)
+  );
+  const restoringCheckpointId = useCheckpointStore((state) => state.restoringId);
+
+  useEffect(() => {
+    if (!selectedPendingSessionKey) return;
+    void useCheckpointStore.getState().hydrateSession(selectedPendingSessionKey);
+  }, [selectedPendingSessionKey]);
+
+  const handleRestoreCheckpoint = useCallback(
+    async (checkpoint: AgentCheckpoint) => {
+      const sessionKey = selectedPendingSessionKey;
+      const root = projectPath?.trim();
+      if (!sessionKey || !root) {
+        showWarning(t.agent.changeReview.restoreFailed.replace('{error}', 'no session'));
+        return;
+      }
+      const result = await useCheckpointStore.getState().restoreToCheckpoint({
+        sessionKey,
+        checkpointId: checkpoint.id,
+        projectPath: root,
+      });
+      if (!result?.success) {
+        showWarning(
+          t.agent.changeReview.restoreFailed.replace(
+            '{error}',
+            result?.message ?? useCheckpointStore.getState().lastError ?? 'unknown'
+          )
+        );
+        return;
+      }
+
+      // Pending-change first-before snapshots are no longer valid after time travel.
+      setPendingChangesBySession((prev) => {
+        if (!prev[sessionKey]) return prev;
+        const next = { ...prev };
+        delete next[sessionKey];
+        return next;
+      });
+
+      const touched = [...result.restoredFiles, ...result.deletedFiles];
+      if (touched.length > 0) {
+        onFilesChangedRef.current?.(touched);
+      }
+      showInfo(t.agent.changeReview.restoreSucceeded);
+    },
+    [
+      selectedPendingSessionKey,
+      projectPath,
+      showWarning,
+      showInfo,
+      t.agent.changeReview.restoreFailed,
+      t.agent.changeReview.restoreSucceeded,
+      setPendingChangesBySession,
+    ]
+  );
 
   const totalTokens = currentTokens;
   const tokenPercentage = currentBudget > 0 ? (totalTokens / currentBudget) * 100 : 0;
@@ -2155,6 +2215,8 @@ export default function AgentPanel({
       <ChangeReviewPanel
         projectPath={projectPath}
         pendingChanges={selectedPendingChanges}
+        checkpoints={sessionCheckpoints}
+        restoringCheckpointId={restoringCheckpointId}
         collapsed={changeReviewCollapsed}
         onToggleCollapsed={() => setChangeReviewCollapsed((prev) => !prev)}
         onAccept={acceptPendingChange}
@@ -2165,6 +2227,7 @@ export default function AgentPanel({
         onDiscardAll={async (changes) => {
           await rejectAllPendingChanges(changes);
         }}
+        onRestoreCheckpoint={handleRestoreCheckpoint}
       />
 
       {error && (

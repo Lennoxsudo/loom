@@ -1,3 +1,7 @@
+/**
+ * Helpers for rolling back AI file mutations (pending changes + checkpoints).
+ */
+
 export function isMissingPathRollbackError(error: unknown): boolean {
   const text = String(error).toLowerCase();
   return (
@@ -11,4 +15,13 @@ export function isMissingPathRollbackError(error: unknown): boolean {
     text.includes('文件不存在') ||
     text.includes('路径不存在')
   );
+}
+
+/** Paths touched by a checkpoint restore that the file tree / editor should refresh. */
+export function collectRestoredPaths(result: {
+  restoredFiles?: string[];
+  deletedFiles?: string[];
+}): string[] {
+  const paths = [...(result.restoredFiles ?? []), ...(result.deletedFiles ?? [])];
+  return paths.filter((p) => typeof p === 'string' && p.trim().length > 0);
 }

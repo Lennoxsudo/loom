@@ -141,6 +141,8 @@ pub struct CheckpointRecord {
     pub session_key: String,
     pub project_path: String,
     pub tool_call_id: Option<String>,
+    #[serde(default)]
+    pub user_message_id: Option<String>,
     pub tool_name: String,
     pub label: String,
     pub created_at: u64,
@@ -153,6 +155,8 @@ pub struct CheckpointCreateRequest {
     pub session_key: String,
     pub project_path: String,
     pub tool_call_id: Option<String>,
+    #[serde(default)]
+    pub user_message_id: Option<String>,
     pub tool_name: String,
     pub label: Option<String>,
     pub files: Vec<CheckpointFileInput>,
@@ -340,6 +344,10 @@ pub fn checkpoint_create(request: CheckpointCreateRequest) -> Result<CheckpointR
         project_path,
         tool_call_id: request
             .tool_call_id
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty()),
+        user_message_id: request
+            .user_message_id
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty()),
         tool_name,

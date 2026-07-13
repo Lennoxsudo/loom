@@ -661,6 +661,19 @@ export interface I18nMessages {
       changeCountLabel: string;
       openReview: string;
       changeCountAria: string;
+      filesTab: string;
+      timelineTab: string;
+      noCheckpoints: string;
+      checkpointHint: string;
+      restoreCheckpoint: string;
+      confirmRestore: string;
+      restoring: string;
+      restoreSucceeded: string;
+      restoreFailed: string;
+      checkpointDetail: string;
+      checkpointFiles: string;
+      fileDidNotExist: string;
+      binarySkipped: string;
     };
     review: {
       addComment: string;

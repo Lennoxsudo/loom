@@ -24,6 +24,7 @@ export async function createCheckpoint(
       sessionKey: input.sessionKey,
       projectPath: input.projectPath,
       toolCallId: input.toolCallId ?? null,
+      userMessageId: input.userMessageId ?? null,
       toolName: input.toolName,
       label: input.label ?? null,
       files: input.files.map((f) => ({

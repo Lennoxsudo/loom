@@ -33,6 +33,13 @@ import { MAX_PREVIEW_HISTORY } from '../../../types/chat';
 import { agePersistedChatToolMessages } from '../../../utils/toolResultAging';
 import { useToolStore } from '../../../stores/useToolStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { useCheckpointStore } from '../../../stores/useCheckpointStore';
+import {
+  buildCheckpointLabel,
+  collectPathsFromToolArgs,
+  isCheckpointMutatingTool,
+  type CheckpointFileSnapshot,
+} from '../../../utils/checkpointTimeline';
 import type { ToolDefinition } from '../../../types/ai';
 import {
   type ChatMessage,
@@ -690,6 +697,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
         // For write tools, capture before-content before execution
         const isWriteTool = WRITE_TOOLS.has(toolCall.function.name);
+        const shouldCheckpoint = isCheckpointMutatingTool(toolCall.function.name);
         let beforeContent: string | null = null;
         let existedBefore = false;
         const changedFilePath = isWriteTool
@@ -697,8 +705,8 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
           : '';
         /** 与 fileHandlers 内 resolvePathWithBaseDir 一致，保证快照路径与 files_changed 一致 */
         let resolvedWriteTargetPath = '';
+        const baseDir = projectPathRef.current?.trim() || undefined;
         if (isWriteTool && changedFilePath) {
-          const baseDir = projectPathRef.current?.trim() || undefined;
           resolvedWriteTargetPath = baseDir
             ? resolvePathWithBaseDir(String(changedFilePath).trim(), baseDir)
             : String(changedFilePath).trim();
@@ -718,6 +726,80 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             existedBefore = true;
           } catch {
             // File doesn't exist yet — beforeContent stays null (new file)
+          }
+        }
+
+        // Action-granularity checkpoint (pre-tool) for time-travel restore
+        if (shouldCheckpoint && baseDir) {
+          const argPaths = collectPathsFromToolArgs(
+            toolCall.function.name,
+            parsedArgs as Record<string, unknown>
+          );
+          const resolvedPaths = argPaths.map((p) =>
+            resolvePathWithBaseDir(String(p).trim(), baseDir)
+          );
+          // Prefer already-read write-tool snapshot when paths match
+          const snapshots: CheckpointFileSnapshot[] = [];
+          for (const resolvedPath of resolvedPaths) {
+            if (!resolvedPath) continue;
+            const matchesWriteTarget =
+              resolvedWriteTargetPath &&
+              normalizePathForCompare(resolvedPath).toLowerCase() ===
+                normalizePathForCompare(resolvedWriteTargetPath).toLowerCase();
+            if (matchesWriteTarget) {
+              snapshots.push({
+                path: resolvedWriteTargetPath,
+                existed: existedBefore,
+                content: beforeContent,
+              });
+              continue;
+            }
+            let existed = false;
+            let content: string | null = null;
+            try {
+              const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
+                path: resolvedPath,
+              });
+              existed = fileInfo?.exists === true;
+            } catch {
+              // ignore
+            }
+            try {
+              content = await invoke<string>('read_file_content', { filePath: resolvedPath });
+              existed = true;
+            } catch {
+              content = null;
+            }
+            snapshots.push({ path: resolvedPath, existed, content });
+          }
+
+          if (snapshots.length > 0) {
+            const sessionKey = buildPendingSessionKey(
+              activeProjectKeyRef.current,
+              conversationId
+            );
+            const convMessages =
+              conversationStateRef.current.conversations.find((c) => c.id === conversationId)
+                ?.messages ?? [];
+            let lastUserMessageId: string | undefined;
+            for (let i = convMessages.length - 1; i >= 0; i--) {
+              if (convMessages[i]?.role === 'user') {
+                lastUserMessageId = convMessages[i].id;
+                break;
+              }
+            }
+            void useCheckpointStore.getState().addCheckpoint({
+              sessionKey,
+              projectPath: baseDir,
+              toolCallId: toolCall.id,
+              userMessageId: lastUserMessageId,
+              toolName: toolCall.function.name,
+              label: buildCheckpointLabel(
+                toolCall.function.name,
+                snapshots.map((s) => s.path)
+              ),
+              files: snapshots,
+            });
           }
         }
 

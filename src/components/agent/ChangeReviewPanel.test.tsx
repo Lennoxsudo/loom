@@ -52,8 +52,40 @@ describe('ChangeReviewPanel', () => {
     expect(screen.getByTestId('change-review-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('change-review-preview')).not.toBeInTheDocument();
     expect(screen.getByText('Change review (1)')).toBeInTheDocument();
+    expect(screen.getByTestId('change-review-tab-files')).toBeInTheDocument();
+    expect(screen.getByTestId('change-review-tab-timeline')).toBeInTheDocument();
     expect(screen.queryByText('Change preview')).not.toBeInTheDocument();
     expect(screen.queryByTestId('change-review-file-preview')).not.toBeInTheDocument();
+  });
+
+  it('switches to checkpoint timeline tab', async () => {
+    const user = userEvent.setup();
+    const checkpoints = [
+      {
+        id: 'cp-1',
+        sessionKey: 's',
+        projectPath: 'D:\\project',
+        toolName: 'write',
+        label: 'write · demo.ts',
+        createdAt: Date.now(),
+        files: [
+          {
+            path: 'src/demo.ts',
+            existed: true,
+            isBinary: false,
+            byteLen: 10,
+            blob: 'x',
+          },
+        ],
+      },
+    ];
+    renderPanel({ checkpoints });
+
+    await user.click(screen.getByTestId('change-review-tab-timeline'));
+
+    expect(screen.getByTestId('checkpoint-timeline')).toBeInTheDocument();
+    expect(screen.getByText('write · demo.ts')).toBeInTheDocument();
+    expect(screen.getByTestId('checkpoint-restore')).toBeInTheDocument();
   });
 
   it('opens preview when clicking a file name', async () => {

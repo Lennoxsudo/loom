@@ -15,6 +15,8 @@ export type AgentCheckpoint = {
   sessionKey: string;
   projectPath: string;
   toolCallId?: string | null;
+  /** User turn that triggered this tool snapshot (for bubble edit/resend restore). */
+  userMessageId?: string | null;
   toolName: string;
   label: string;
   createdAt: number;
@@ -31,6 +33,7 @@ export type CheckpointCreateInput = {
   sessionKey: string;
   projectPath: string;
   toolCallId?: string;
+  userMessageId?: string;
   toolName: string;
   label?: string;
   files: CheckpointFileSnapshot[];
@@ -116,6 +119,43 @@ export function truncateCheckpointsAfterRestore(
   const start = ordered.findIndex((c) => c.id === targetId);
   if (start < 0) return ordered;
   return ordered.slice(0, start);
+}
+
+/**
+ * Find the earliest checkpoint belonging to the given user turn(s), used when
+ * editing a user bubble and rolling back all file mutations after that message.
+ */
+export function findEarliestCheckpointForUserTurns(
+  checkpoints: AgentCheckpoint[],
+  userMessageIds: string[],
+  fallbackAfterCreatedAt?: number
+): AgentCheckpoint | null {
+  const idSet = new Set(userMessageIds.filter(Boolean));
+  const ordered = [...checkpoints].sort((a, b) => a.createdAt - b.createdAt);
+  const matched = ordered.filter((cp) => {
+    if (cp.userMessageId && idSet.has(cp.userMessageId)) return true;
+    if (
+      !cp.userMessageId &&
+      fallbackAfterCreatedAt != null &&
+      cp.createdAt >= fallbackAfterCreatedAt
+    ) {
+      return true;
+    }
+    return false;
+  });
+  return matched[0] ?? null;
+}
+
+/** User messages at and after `fromIndex` in the conversation (inclusive). */
+export function collectUserMessageIdsFromIndex(
+  messages: Array<{ id: string; role: string }>,
+  fromIndex: number
+): string[] {
+  const ids: string[] = [];
+  for (let i = Math.max(0, fromIndex); i < messages.length; i++) {
+    if (messages[i]?.role === 'user') ids.push(messages[i].id);
+  }
+  return ids;
 }
 
 export function collectPathsFromToolArgs(

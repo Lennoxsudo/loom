@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMissingPathRollbackError } from './pendingChangeRollback';
+import { collectRestoredPaths, isMissingPathRollbackError } from './pendingChangeRollback';
 
 describe('isMissingPathRollbackError', () => {
   it('detects rust path-not-found messages', () => {
@@ -20,5 +20,16 @@ describe('isMissingPathRollbackError', () => {
     expect(isMissingPathRollbackError('permission denied')).toBe(false);
     expect(isMissingPathRollbackError('追加写入失败: disk full')).toBe(false);
     expect(isMissingPathRollbackError(new Error('network timeout'))).toBe(false);
+  });
+});
+
+describe('collectRestoredPaths', () => {
+  it('merges restored and deleted paths', () => {
+    expect(
+      collectRestoredPaths({
+        restoredFiles: ['a.ts', ''],
+        deletedFiles: ['b.ts'],
+      })
+    ).toEqual(['a.ts', 'b.ts']);
   });
 });
