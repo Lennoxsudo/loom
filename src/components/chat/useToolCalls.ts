@@ -30,7 +30,7 @@ import {
 } from '../../utils/agentTools';
 import type { AgentAccessMode } from '../../types/settings';
 import { shouldBlockTool } from '../../utils/agentAccessMode';
-import { setSandboxContext } from '../../utils/agentSandbox';
+import { beginSandboxExecution, endSandboxExecution } from '../../utils/agentSandbox';
 import { buildToolApprovalRejectionText } from '../agent/approvalUtils';
 import { normalizePathForCompare } from '../../utils/pathUtils';
 import { buildChatContextUsage } from './contextUsage';
@@ -1025,8 +1025,15 @@ export function useToolCalls({
       toolCallsToExecute.push(toolCall);
     }
 
+    const conversationId = currentConversationRef.current?.id;
+    const executionId = `chat-${conversationId ?? 'unknown'}-${Date.now()}`;
     try {
-      await setSandboxContext(projectPathRef.current?.trim() || undefined);
+      await beginSandboxExecution({
+        executionId,
+        sessionId: conversationId,
+        label: 'chat-tools',
+        projectPath: projectPathRef.current?.trim() || undefined,
+      });
 
       const preparedCalls = await prepareToolCalls(toolCallsToExecute);
       const blockedCalls = preparedCalls.filter((item) =>
@@ -1096,6 +1103,8 @@ export function useToolCalls({
       setError(`Tool execution failed: ${error}`);
       isExecutingToolsRef.current = false;
       setIsLoading(false);
+    } finally {
+      await endSandboxExecution(executionId);
     }
   };
 

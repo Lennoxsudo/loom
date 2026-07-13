@@ -113,6 +113,8 @@ pub fn attach_handlers(
         crate::terminal::execute_command,
         crate::terminal::execute_command_bg,
         crate::sandbox::set_sandbox_context,
+        crate::sandbox::begin_sandbox_execution,
+        crate::sandbox::end_sandbox_execution,
         crate::terminal::check_background_command,
         crate::terminal::kill_background_command,
         crate::terminal::list_background_commands,
@@ -288,5 +290,6 @@ pub fn attach_handlers(
         crate::audit_log::get_audit_logs,
         crate::audit_log::clear_audit_logs,
         crate::audit_log::audit_log_count,
+        crate::audit_log::audit_path_denied,
     ])
 }

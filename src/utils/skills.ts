@@ -52,13 +52,23 @@ let _appDataPath: string | null = null;
 
 async function getAppDataPath(): Promise<string> {
   if (_appDataPath) return _appDataPath;
-  _appDataPath = await invoke<string>('get_app_data_path');
-  return _appDataPath;
+  try {
+    const path = await invoke<string>('get_app_data_path');
+    // Mocks may return `{}` / null — only accept real strings.
+    _appDataPath = typeof path === 'string' && path.length > 0 ? path : '';
+  } catch {
+    _appDataPath = '';
+  }
+  return _appDataPath ?? '';
 }
 
 function joinPath(base: string, ...parts: string[]): string {
-  const sep = base.includes('\\') ? '\\' : '/';
-  return [base.replace(/[\\/]+$/, ''), ...parts].join(sep);
+  const baseStr = typeof base === 'string' ? base : '';
+  if (!baseStr) {
+    return parts.filter(Boolean).join('/');
+  }
+  const sep = baseStr.includes('\\') ? '\\' : '/';
+  return [baseStr.replace(/[\\/]+$/, ''), ...parts].join(sep);
 }
 
 /** 列出目录下的子目录名 */

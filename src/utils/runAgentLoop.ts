@@ -23,7 +23,7 @@ import {
 import { requiresConfirmation } from './toolGuard';
 import { resolveSubagentStreamToolCalls } from './aiTools/finalizeStreamToolCalls';
 import { looksLikePseudoToolCall } from './aiTools/compatToolCalls';
-import { setSandboxContext } from './agentSandbox';
+import { beginSandboxExecution, endSandboxExecution } from './agentSandbox';
 
 const DUPLICATE_TOOL_SKIP_MESSAGE =
   '已跳过重复工具调用：相同工具与参数在本子代理会话中已执行过。请根据上文已有结果直接输出最终结构化摘要，不要再调用工具。' +
@@ -489,9 +489,16 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
       // 4. Handle tool calls
       if (resolvedToolCalls.length > 0) {
         const toolMessages: ChatMessage[] = [];
-        await setSandboxContext(context.baseDir);
+        const executionId = `agent-${assistantMessageId}-r${steps}`;
+        await beginSandboxExecution({
+          executionId,
+          sessionId: context.conversationId,
+          label: 'agent-loop',
+          projectPath: context.baseDir,
+        });
         let executedNewToolThisRound = false;
 
+        try {
         for (const toolCall of resolvedToolCalls) {
           if (signal?.aborted) {
             throw new Error('Subagent loop aborted by user');
@@ -650,6 +657,9 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
           };
           toolMessages.push(toolMessage);
           messages.push(toolMessage);
+        }
+        } finally {
+          await endSandboxExecution(executionId);
         }
 
         const { messages: agedMessages } = agePersistedChatToolMessages(messages);

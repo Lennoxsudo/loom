@@ -11,6 +11,10 @@ interface AuditEntry {
   decision: string;
   reason?: string;
   accessMode: string;
+  /** Phase 2: optional correlation fields */
+  sessionId?: string;
+  executionId?: string;
+  toolName?: string;
 }
 
 const REFRESH_INTERVAL_MS = 3000;

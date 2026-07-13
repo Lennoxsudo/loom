@@ -1,9 +1,12 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::State;
 use once_cell::sync::Lazy;
 use regex::Regex;
+
+use super::context::ExecutionRecord;
 
 // ============================================================================
 // Call Source — distinguishes AI tool calls from user UI operations
@@ -98,15 +101,71 @@ impl Default for SandboxContext {
     }
 }
 
+/// Process-wide sandbox state.
+///
+/// - **policy**: workspace-level snapshot updated by `set_sandbox_context`
+///   (cheap `Arc` clone for readers; no long-held mutable context during checks).
+/// - **executions**: per-execution snapshots so concurrent agent/subagent runs
+///   do not race on a single mutable `SandboxContext`.
 pub struct SandboxState {
-    pub context: Mutex<SandboxContext>,
+    policy: Mutex<Arc<SandboxContext>>,
+    executions: Mutex<HashMap<String, ExecutionRecord>>,
 }
 
 impl Default for SandboxState {
     fn default() -> Self {
         Self {
-            context: Mutex::new(SandboxContext::default()),
+            policy: Mutex::new(Arc::new(SandboxContext::default())),
+            executions: Mutex::new(HashMap::new()),
         }
+    }
+}
+
+impl SandboxState {
+    /// Latest workspace policy (Arc clone).
+    pub fn policy_snapshot(&self) -> Arc<SandboxContext> {
+        self.policy
+            .lock()
+            .map(|g| Arc::clone(&g))
+            .unwrap_or_else(|_| Arc::new(SandboxContext::default()))
+    }
+
+    /// Resolve context for an optional execution id; falls back to workspace policy.
+    pub fn resolve(&self, execution_id: Option<&str>) -> Arc<SandboxContext> {
+        if let Some(id) = execution_id.map(str::trim).filter(|s| !s.is_empty()) {
+            if let Ok(map) = self.executions.lock() {
+                if let Some(rec) = map.get(id) {
+                    return Arc::clone(&rec.sandbox);
+                }
+            }
+        }
+        self.policy_snapshot()
+    }
+
+    pub fn begin_execution(&self, record: ExecutionRecord) -> Result<(), String> {
+        let mut map = self
+            .executions
+            .lock()
+            .map_err(|_| "沙箱执行表锁定失败".to_string())?;
+        map.insert(record.execution_id.clone(), record);
+        Ok(())
+    }
+
+    pub fn end_execution(&self, execution_id: &str) -> Result<(), String> {
+        let mut map = self
+            .executions
+            .lock()
+            .map_err(|_| "沙箱执行表锁定失败".to_string())?;
+        map.remove(execution_id);
+        Ok(())
+    }
+
+    pub fn execution_session_id(&self, execution_id: Option<&str>) -> Option<String> {
+        let id = execution_id.map(str::trim).filter(|s| !s.is_empty())?;
+        self.executions
+            .lock()
+            .ok()
+            .and_then(|m| m.get(id).and_then(|r| r.session_id.clone()))
     }
 }
 
@@ -1425,12 +1484,17 @@ fn detect_approval_required_command(command: &str) -> Option<String> {
 // Tauri state accessors & commands
 // ============================================================================
 
+/// Workspace policy snapshot (cloned out of the Arc).
 pub fn current_sandbox_context(state: &State<'_, SandboxState>) -> SandboxContext {
-    state
-        .context
-        .lock()
-        .map(|guard| guard.clone())
-        .unwrap_or_default()
+    (*state.policy_snapshot()).clone()
+}
+
+/// Resolve optional per-execution context, else workspace policy.
+pub fn resolve_sandbox_context(
+    state: &State<'_, SandboxState>,
+    execution_id: Option<&str>,
+) -> SandboxContext {
+    (*state.resolve(execution_id)).clone()
 }
 
 /// Convenience helper for non-Tauri callers that only have an `AppHandle`.
@@ -1438,6 +1502,18 @@ pub fn app_sandbox_context(app: &tauri::AppHandle) -> SandboxContext {
     use tauri::Manager;
     match app.try_state::<SandboxState>() {
         Some(state) => current_sandbox_context(&state),
+        None => SandboxContext::default(),
+    }
+}
+
+/// Like [`app_sandbox_context`] but prefers an execution-scoped snapshot.
+pub fn app_sandbox_context_for(
+    app: &tauri::AppHandle,
+    execution_id: Option<&str>,
+) -> SandboxContext {
+    use tauri::Manager;
+    match app.try_state::<SandboxState>() {
+        Some(state) => (*state.resolve(execution_id)).clone(),
         None => SandboxContext::default(),
     }
 }
@@ -1451,23 +1527,145 @@ pub fn set_sandbox_context(
     state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     let mut guard = state
-        .context
+        .policy
         .lock()
         .map_err(|_| "沙箱状态锁定失败".to_string())?;
 
-    *guard = SandboxContext {
+    *guard = Arc::new(SandboxContext {
         access_mode,
         writable_roots,
         readable_roots: readable_roots.unwrap_or_default(),
         network_enabled,
-    };
+    });
 
     Ok(())
+}
+
+/// Begin a per-execution sandbox snapshot (agent turn / subagent / automation).
+///
+/// When override fields are omitted, the current workspace policy is cloned.
+#[tauri::command]
+pub fn begin_sandbox_execution(
+    execution_id: String,
+    session_id: Option<String>,
+    label: Option<String>,
+    access_mode: Option<String>,
+    writable_roots: Option<Vec<String>>,
+    readable_roots: Option<Vec<String>>,
+    network_enabled: Option<bool>,
+    state: State<'_, SandboxState>,
+) -> Result<(), String> {
+    let id = execution_id.trim().to_string();
+    if id.is_empty() {
+        return Err("execution_id 不能为空".to_string());
+    }
+
+    let base = state.policy_snapshot();
+    let sandbox = Arc::new(SandboxContext {
+        access_mode: access_mode.unwrap_or_else(|| base.access_mode.clone()),
+        writable_roots: writable_roots.unwrap_or_else(|| base.writable_roots.clone()),
+        readable_roots: readable_roots.unwrap_or_else(|| base.readable_roots.clone()),
+        network_enabled: network_enabled.unwrap_or(base.network_enabled),
+    });
+
+    state.begin_execution(ExecutionRecord {
+        execution_id: id,
+        session_id,
+        label,
+        sandbox,
+    })
+}
+
+/// Drop a per-execution sandbox snapshot.
+#[tauri::command]
+pub fn end_sandbox_execution(
+    execution_id: String,
+    state: State<'_, SandboxState>,
+) -> Result<(), String> {
+    state.end_execution(execution_id.trim())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::security::context::ExecutionRecord;
+
+    #[test]
+    fn policy_snapshot_is_arc_isolated_from_later_updates() {
+        let state = SandboxState::default();
+        {
+            let mut policy = state.policy.lock().unwrap();
+            *policy = Arc::new(SandboxContext {
+                access_mode: "auto".into(),
+                writable_roots: vec!["C:\\a".into()],
+                readable_roots: vec![],
+                network_enabled: false,
+            });
+        }
+        let snap = state.policy_snapshot();
+        {
+            let mut policy = state.policy.lock().unwrap();
+            *policy = Arc::new(SandboxContext {
+                access_mode: "full_access".into(),
+                writable_roots: vec!["C:\\b".into()],
+                readable_roots: vec![],
+                network_enabled: true,
+            });
+        }
+        // Old Arc snapshot keeps previous policy
+        assert_eq!(snap.access_mode, "auto");
+        assert_eq!(state.policy_snapshot().access_mode, "full_access");
+    }
+
+    #[test]
+    fn execution_registry_isolates_concurrent_contexts() {
+        let state = SandboxState::default();
+        {
+            let mut policy = state.policy.lock().unwrap();
+            *policy = Arc::new(SandboxContext {
+                access_mode: "auto".into(),
+                writable_roots: vec!["C:\\workspace".into()],
+                readable_roots: vec![],
+                network_enabled: false,
+            });
+        }
+
+        state
+            .begin_execution(ExecutionRecord {
+                execution_id: "exec-a".into(),
+                session_id: Some("sess-a".into()),
+                label: Some("agent".into()),
+                sandbox: Arc::new(SandboxContext {
+                    access_mode: "read_only".into(),
+                    writable_roots: vec!["C:\\a".into()],
+                    readable_roots: vec!["C:\\a".into()],
+                    network_enabled: false,
+                }),
+            })
+            .unwrap();
+        state
+            .begin_execution(ExecutionRecord {
+                execution_id: "exec-b".into(),
+                session_id: Some("sess-b".into()),
+                label: Some("subagent".into()),
+                sandbox: Arc::new(SandboxContext {
+                    access_mode: "full_access".into(),
+                    writable_roots: vec!["C:\\b".into()],
+                    readable_roots: vec!["C:\\b".into()],
+                    network_enabled: true,
+                }),
+            })
+            .unwrap();
+
+        assert_eq!(state.resolve(Some("exec-a")).access_mode, "read_only");
+        assert_eq!(state.resolve(Some("exec-b")).access_mode, "full_access");
+        assert_eq!(state.resolve(None).access_mode, "auto");
+
+        state.end_execution("exec-a").unwrap();
+        // Unknown id falls back to policy
+        assert_eq!(state.resolve(Some("exec-a")).access_mode, "auto");
+        assert_eq!(state.resolve(Some("exec-b")).access_mode, "full_access");
+    }
 
     #[test]
     fn read_only_blocks_writes() {

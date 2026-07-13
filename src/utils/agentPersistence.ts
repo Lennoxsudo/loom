@@ -78,7 +78,10 @@ export interface MigrateToSingleAgentResult {
 
 const KNOWN_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'gemini', 'ollama'];
 
-function inferProviderFromModel(model: string): AIProvider | undefined {
+function inferProviderFromModel(model: string | undefined | null): AIProvider | undefined {
+  if (!model) {
+    return undefined;
+  }
   const providerCandidate = model.split(':')[0] as AIProvider | undefined;
   if (!providerCandidate) {
     return undefined;

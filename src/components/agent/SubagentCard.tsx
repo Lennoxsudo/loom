@@ -259,24 +259,22 @@ const SubagentCard = memo(function SubagentCard({
               <div className={styles.headerTop}>
                 <div className={styles.identity}>
                   <span className={styles.eyebrow}>{t.subagent.label}</span>
-                  <span className={styles.sep} aria-hidden>
-                    ·
-                  </span>
+                  <span className={styles.sep} aria-hidden />
                   <span className={styles.typeName} title={typeLabel}>
                     {typeLabel}
                   </span>
                 </div>
                 <div className={styles.headerActions}>
-                  <span className={styles.status}>
-                    <span
-                      className={`${styles.statusDot} ${showPulse ? styles.statusDotPulse : ''}`}
-                    />
+                  <span
+                    className={`${styles.statusPill} ${showPulse ? styles.statusPillPulse : ''}`}
+                  >
                     {formatStatusLabel(effectiveStatus, t)}
                   </span>
                 </div>
               </div>
               {fallbackDescription ? (
                 <p className={styles.description} title={fallbackDescription}>
+                  <span className={styles.taskLabel}>{t.subagent.taskLabel}</span>
                   {fallbackDescription}
                 </p>
               ) : null}
@@ -335,9 +333,7 @@ const SubagentCard = memo(function SubagentCard({
           <div className={styles.headerTop}>
             <div className={styles.identity}>
               <span className={styles.eyebrow}>{t.subagent.label}</span>
-              <span className={styles.sep} aria-hidden>
-                ·
-              </span>
+              <span className={styles.sep} aria-hidden />
               <span className={styles.typeName} title={typeLabel}>
                 {typeLabel}
               </span>
@@ -360,10 +356,9 @@ const SubagentCard = memo(function SubagentCard({
                 </button>
               )}
 
-              <span className={styles.status}>
-                <span
-                  className={`${styles.statusDot} ${showStatusPulse ? styles.statusDotPulse : ''}`}
-                />
+              <span
+                className={`${styles.statusPill} ${showStatusPulse ? styles.statusPillPulse : ''}`}
+              >
                 {statusLabel}
               </span>
 
@@ -379,6 +374,7 @@ const SubagentCard = memo(function SubagentCard({
           </div>
 
           <p className={styles.description} title={task.description}>
+            <span className={styles.taskLabel}>{t.subagent.taskLabel}</span>
             {task.description}
           </p>
 

@@ -24,7 +24,7 @@ import {
   shouldRequestApproval,
 } from '../../../utils/agentAccessMode';
 import { requiresConfirmation } from '../../../utils/toolGuard';
-import { setSandboxContext } from '../../../utils/agentSandbox';
+import { beginSandboxExecution, endSandboxExecution } from '../../../utils/agentSandbox';
 import type { QuestionInput, UserAnswer } from '../../../utils/aiTools/toolArgs';
 import { buildPendingSessionKey, createAssistantMessageId } from '../utils';
 import type { PendingFileChange } from '../utils';
@@ -542,8 +542,15 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         (msg) => !msg.isStreaming || msg.id === assistantMessageId
       ) ?? [];
 
-    await setSandboxContext(projectPathRef.current?.trim() || undefined);
+    const executionId = `ui-agent-${conversationId}-${assistantMessageId}-${Date.now()}`;
+    await beginSandboxExecution({
+      executionId,
+      sessionId: conversationId,
+      label: 'agent-panel',
+      projectPath: projectPathRef.current?.trim() || undefined,
+    });
 
+    try {
     for (const toolCall of toolCalls) {
       if (isStopRequested(sessionKey)) {
         break;
@@ -951,6 +958,9 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       if (isStopRequested(sessionKey)) {
         break;
       }
+    }
+    } finally {
+      await endSandboxExecution(executionId);
     }
 
     // Notify file changes

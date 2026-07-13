@@ -1,63 +1,43 @@
 /**
  * 参数解析工具模块
- * 
+ *
  * 本模块提供了工具参数解析和路径处理的辅助函数：
- * - 路径解析和规范化
+ * - 路径解析和规范化（含工作区收口，防绝对路径 / `../` 绕过）
  * - 类型转换辅助函数
  * - JSON 参数提取和解析
- * 
+ *
  * @module aiTools/argsParser
  */
 
-/**
- * 将相对路径解析为绝对路径
- * 
- * 支持 Windows 驱动器路径、UNC 路径和 Unix 风格绝对路径。
- * 
- * @param p - 要检查的路径字符串
- * @returns 如果是绝对路径返回 true
- * 
- * @example
- * ```typescript
- * isAbsolutePath('C:\\Users\\test'); // true
- * isAbsolutePath('/home/user'); // true
- * isAbsolutePath('relative/path'); // false
- * ```
- */
-function isAbsolutePath(p: string): boolean {
-  if (/^[a-zA-Z]:[\\/]/.test(p)) return true;
-  if (p.startsWith('\\\\')) return true;
-  if (p.startsWith('/')) return true;
-  return false;
-}
+import { isAbsolutePath, resolveContainedPath } from '../pathUtils';
 
 /**
- * 将相对路径解析为绝对路径
- * 
- * 如果路径已经是绝对路径，则原样返回。
- * 否则将相对路径与基础目录拼接。
- * 
+ * 将相对路径解析为绝对路径，并在提供 baseDir 时强制收口到工作区内。
+ *
+ * Phase 2 安全：
+ * - 相对路径：`baseDir + path`，拒绝 `../` 逃逸
+ * - 绝对路径：仅当落在 baseDir 内时放行，否则抛错（修复绝对路径绕过）
+ *
  * @param path - 要解析的路径
- * @param baseDir - 基础目录（可选）
+ * @param baseDir - 工作区根目录（可选；未提供时保持原样兼容）
  * @returns 解析后的绝对路径
- * 
+ * @throws 当路径逃出 baseDir 时
+ *
  * @example
  * ```typescript
- * resolvePathWithBaseDir('src/file.ts', '/project'); // '/project/src/file.ts'
- * resolvePathWithBaseDir('/absolute/path', '/project'); // '/absolute/path'
+ * resolvePathWithBaseDir('src/file.ts', 'D:\\project'); // 'D:\\project\\src\\file.ts'
+ * resolvePathWithBaseDir('C:\\Windows\\System32', 'D:\\project'); // throws
  * ```
  */
 export function resolvePathWithBaseDir(path: string, baseDir?: string): string {
   if (!baseDir) return path;
   const p = path.trim();
   if (!p) return path;
-  if (isAbsolutePath(p)) return p;
-
-  const base = baseDir.replace(/[\\/]+$/g, '');
-  const rel = p.replace(/^[\\/]+/g, '');
-  const sep = base.includes('\\') ? '\\' : '/';
-  return `${base}${sep}${rel}`;
+  return resolveContainedPath(p, baseDir);
 }
+
+/** Re-export for callers that need the absolute-path check. */
+export { isAbsolutePath };
 
 /**
  * 尝试提取并修复不完整的 JSON

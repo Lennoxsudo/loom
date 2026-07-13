@@ -51,6 +51,8 @@ describe('runAgentLoop', () => {
       const invokeArgs = args as Record<string, unknown> | undefined;
       if (cmd === 'get_app_data_path') return 'C:/app-data';
       if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
       if (cmd === 'read_folder_children') return [];
       if (cmd === 'send_ai_chat_stream') {
         const messageId = invokeArgs?.messageId as string;
@@ -94,6 +96,8 @@ describe('runAgentLoop', () => {
       const invokeArgs = args as Record<string, unknown> | undefined;
       if (cmd === 'get_app_data_path') return 'C:/app-data';
       if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
       if (cmd === 'read_folder_children') return [];
       if (cmd === 'send_ai_chat_stream') {
         const messageId = invokeArgs?.messageId as string;
@@ -177,6 +181,8 @@ describe('runAgentLoop', () => {
       const invokeArgs = args as Record<string, unknown> | undefined;
       if (cmd === 'get_app_data_path') return 'C:/app-data';
       if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
       if (cmd === 'send_ai_chat_stream') {
         const messageId = invokeArgs?.messageId as string;
         streamCallCount += 1;
@@ -233,6 +239,8 @@ describe('runAgentLoop', () => {
       const invokeArgs = args as Record<string, unknown> | undefined;
       if (cmd === 'get_app_data_path') return 'C:/app-data';
       if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
       if (cmd === 'send_ai_chat_stream') {
         const messageId = invokeArgs?.messageId as string;
         streamCallCount += 1;

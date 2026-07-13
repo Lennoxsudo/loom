@@ -12,16 +12,16 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 38%, transparent);
 }
 
 .bannerTitle {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
 }
 
 .stats {
@@ -31,35 +31,49 @@
   gap: 10px;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-secondary);
 }
 
 .statRunning {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: rgba(120, 180, 255, 0.85);
+  color: color-mix(in srgb, #6ea8fe 82%, var(--text-secondary));
 }
 
 .statSucceeded {
-  color: rgba(130, 210, 170, 0.8);
+  color: color-mix(in srgb, #51cf66 78%, var(--text-secondary));
 }
 
 .statFailed {
-  color: rgba(235, 140, 130, 0.85);
+  color: var(--text-error);
+}
+
+.statPending,
+.statCancelled {
+  color: var(--text-secondary);
 }
 
 .cancelAllBtn {
-  padding: 0;
-  border: none;
-  background: none;
-  color: rgba(255, 255, 255, 0.35);
+  all: unset;
+  box-sizing: border-box;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
   font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
   cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .cancelAllBtn:hover {
-  color: rgba(235, 140, 130, 0.9);
+  color: var(--text-error);
+  border-color: color-mix(in srgb, var(--text-error) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
 }
 
 .list {
@@ -71,7 +85,8 @@
 .delegating {
   padding: 12px 14px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.32);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 32%, transparent);
 }

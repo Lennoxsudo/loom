@@ -1501,6 +1501,7 @@ export interface I18nMessages {
   };
   subagent: {
     label: string;
+    taskLabel: string;
     statusPendingApproval: string;
     statusPending: string;
     statusRunning: string;

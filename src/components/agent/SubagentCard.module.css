@@ -1,12 +1,9 @@
-/* Subagent — premium minimal, typography-led */
+/* Subagent card — Linear-style, typography-led */
 
 .root {
-  --sa-fg: rgba(255, 255, 255, 0.92);
-  --sa-fg-secondary: rgba(255, 255, 255, 0.55);
-  --sa-fg-tertiary: rgba(255, 255, 255, 0.32);
-  --sa-line: rgba(255, 255, 255, 0.07);
-  --sa-surface: rgba(255, 255, 255, 0.03);
-  --sa-accent: rgba(255, 255, 255, 0.72);
+  --sa-accent: color-mix(in srgb, var(--text-secondary) 72%, var(--text-primary));
+  --sa-accent-soft: color-mix(in srgb, var(--sa-accent) 12%, transparent);
+  --sa-accent-border: color-mix(in srgb, var(--sa-accent) 28%, transparent);
 
   width: 100%;
   max-width: 100%;
@@ -15,37 +12,42 @@
 }
 
 .card {
+  position: relative;
   border-radius: 10px;
-  background: var(--sa-surface);
-  border: 1px solid var(--sa-line);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--sa-accent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 38%, transparent);
   overflow: hidden;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: color-mix(in srgb, var(--text-secondary) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-overlay-soft) 52%, transparent);
 }
 
 .cardRunning {
-  --sa-accent: rgba(120, 180, 255, 0.9);
+  --sa-accent: color-mix(in srgb, #6ea8fe 88%, var(--text-primary));
 }
 
 .cardSucceeded {
-  --sa-accent: rgba(130, 210, 170, 0.88);
+  --sa-accent: color-mix(in srgb, #51cf66 82%, var(--text-primary));
 }
 
 .cardFailed {
-  --sa-accent: rgba(235, 140, 130, 0.9);
+  --sa-accent: color-mix(in srgb, var(--text-error) 88%, var(--text-primary));
 }
 
 .cardCancelled,
 .cardPending {
-  --sa-accent: rgba(255, 255, 255, 0.38);
+  --sa-accent: color-mix(in srgb, var(--text-secondary) 55%, var(--text-primary));
 }
 
 .cardPendingApproval {
-  --sa-accent: rgba(220, 180, 120, 0.9);
+  --sa-accent: color-mix(in srgb, var(--text-warning) 88%, var(--text-primary));
 }
 
 @keyframes saSpin {
@@ -54,13 +56,15 @@
   }
 }
 
-@keyframes saBreathe {
+@keyframes saStatusPulse {
   0%,
   100% {
+    border-color: var(--sa-accent-border);
     opacity: 1;
   }
   50% {
-    opacity: 0.35;
+    border-color: color-mix(in srgb, var(--sa-accent) 45%, transparent);
+    opacity: 0.88;
   }
 }
 
@@ -70,8 +74,8 @@
   gap: 10px;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid var(--sa-line);
-  color: var(--sa-fg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -80,11 +84,11 @@
   height: 12px;
   animation: saSpin 0.85s linear infinite;
   flex-shrink: 0;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .header {
-  padding: 14px 16px 12px;
+  padding: 14px 16px 13px;
   cursor: pointer;
   user-select: none;
 }
@@ -93,107 +97,123 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
 .identity {
   display: flex;
-  align-items: baseline;
-  gap: 0;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   flex: 1;
   font-size: 11px;
-  line-height: 1.4;
-  color: var(--sa-fg-tertiary);
-  letter-spacing: 0.01em;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
 }
 
 .eyebrow {
-  color: var(--sa-fg-secondary);
-  font-weight: 500;
   flex-shrink: 0;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
 }
 
 .sep {
-  margin: 0 7px;
-  opacity: 0.35;
   flex-shrink: 0;
+  width: 1px;
+  height: 10px;
+  background: color-mix(in srgb, var(--text-secondary) 22%, transparent);
 }
 
 .typeName {
   font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   font-size: 11px;
   font-weight: 400;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .forkBadge {
-  margin-left: 8px;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  color: var(--sa-fg-tertiary);
   flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 60%, transparent);
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .cancelBtn {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--sa-fg-tertiary);
+  all: unset;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
   font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .cancelBtn:hover {
-  color: rgba(235, 140, 130, 0.95);
+  color: var(--text-error);
+  border-color: color-mix(in srgb, var(--text-error) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
 }
 
-.status {
+.statusPill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--sa-accent-border);
+  background: var(--sa-accent-soft);
+  font-size: 10px;
   font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--sa-accent);
-  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.statusDot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--sa-accent);
-  flex-shrink: 0;
-}
-
-.statusDotPulse {
-  animation: saBreathe 1.6s ease-in-out infinite;
+.statusPillPulse {
+  animation: saStatusPulse 2s ease-in-out infinite;
 }
 
 .chevron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--sa-fg-tertiary);
-  opacity: 0.6;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  opacity: 0.55;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    background-color 0.15s ease;
 }
 
 .card:hover .chevron {
-  opacity: 0.85;
+  opacity: 0.9;
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
 }
 
 .chevronExpanded {
@@ -201,45 +221,60 @@
 }
 
 .description {
-  margin: 10px 0 0;
-  color: var(--sa-fg);
+  margin: 12px 0 0;
+  color: var(--text-primary);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
+}
+
+.taskLabel {
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
 }
 
 .metaStrip {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   font-family: var(--font-mono, ui-monospace, Consolas, monospace);
 }
 
-.metaItem + .metaItem::before {
-  content: '·';
-  margin: 0 8px;
-  opacity: 0.45;
-  font-family: var(--font-ui, system-ui, sans-serif);
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metaItem + .metaItem {
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--border-subtle) 95%, transparent);
 }
 
 .approval {
-  border-top: 1px solid var(--sa-line);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .approvalDetail {
-  padding: 11px 13px 10px;
+  padding: 12px 16px 10px;
   font-size: 11px;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
 }
 
 .approvalToolRow {
@@ -252,26 +287,25 @@
 .approvalToolLabel {
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--sa-fg-tertiary);
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
 }
 
 .approvalToolName {
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   font-size: 11px;
-  color: var(--sa-fg-secondary);
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
 }
 
 .approvalCode {
   margin: 0;
-  padding: 9px 11px;
-  border-radius: 7px;
-  border: 1px solid var(--sa-line);
-  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 45%, transparent);
   font-family: var(--font-mono, Consolas, monospace);
   font-size: 10px;
-  color: var(--sa-fg-secondary);
+  color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.5;
@@ -284,17 +318,17 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  border-top: 1px solid var(--sa-line);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 14px;
 }
 
 .metricsFooter {
   font-size: 10px;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono, Consolas, monospace);
   padding-top: 12px;
-  border-top: 1px solid var(--sa-line);
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* ── Interleaved timeline ── */
@@ -319,8 +353,8 @@
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.08) 8%,
-    rgba(255, 255, 255, 0.08) 92%,
+    color-mix(in srgb, var(--border-subtle) 95%, transparent) 8%,
+    color-mix(in srgb, var(--border-subtle) 95%, transparent) 92%,
     transparent 100%
   );
 }
@@ -342,70 +376,30 @@
   height: 5px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--text-secondary) 45%, transparent);
   transform: translateX(-50%);
   box-sizing: border-box;
   z-index: 1;
 }
 
 .timelineDotThinking {
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
 }
 
 .timelineDotThinkingLive {
-  background: rgba(255, 255, 255, 0.28);
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.08),
-    0 0 10px rgba(255, 255, 255, 0.06);
-  animation: saDotBreathe 2.2s ease-in-out infinite;
+  background: color-mix(in srgb, var(--text-primary) 55%, transparent);
 }
 
 .timelineDotTool {
-  background: rgba(130, 210, 170, 0.62);
-  box-shadow: 0 0 0 2px rgba(130, 210, 170, 0.14);
+  background: color-mix(in srgb, #51cf66 70%, var(--text-secondary));
 }
 
 .timelineDotToolRunning {
-  background: rgba(120, 180, 255, 0.82);
-  box-shadow:
-    0 0 0 2px rgba(120, 180, 255, 0.18),
-    0 0 12px rgba(120, 180, 255, 0.22);
-  animation: saDotPulse 2s ease-in-out infinite;
+  background: color-mix(in srgb, #6ea8fe 82%, var(--text-secondary));
 }
 
 .timelineDotToolError {
-  background: rgba(235, 140, 130, 0.72);
-  box-shadow: 0 0 0 2px rgba(235, 140, 130, 0.16);
-}
-
-@keyframes saDotBreathe {
-  0%,
-  100% {
-    transform: translateX(-50%) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translateX(-50%) scale(0.88);
-    opacity: 0.72;
-  }
-}
-
-@keyframes saDotPulse {
-  0%,
-  100% {
-    transform: translateX(-50%) scale(1);
-    box-shadow:
-      0 0 0 2px rgba(120, 180, 255, 0.18),
-      0 0 10px rgba(120, 180, 255, 0.18);
-  }
-  50% {
-    transform: translateX(-50%) scale(1.08);
-    box-shadow:
-      0 0 0 3px rgba(120, 180, 255, 0.1),
-      0 0 14px rgba(120, 180, 255, 0.32);
-  }
+  background: color-mix(in srgb, var(--text-error) 75%, var(--text-secondary));
 }
 
 .stepHeader {
@@ -418,33 +412,33 @@
 .stepKind {
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--sa-fg-tertiary);
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .stepToolName {
   font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   font-size: 11px;
-  color: var(--sa-fg-secondary);
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
 }
 
 .stepStatus {
   font-size: 10px;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   margin-left: auto;
 }
 
 .stepStatusDone {
-  color: rgba(130, 210, 170, 0.75);
+  color: color-mix(in srgb, #51cf66 78%, var(--text-secondary));
 }
 
 .stepStatusError {
-  color: rgba(235, 140, 130, 0.85);
+  color: var(--text-error);
 }
 
 .stepStatusRunning {
-  color: rgba(120, 180, 255, 0.85);
+  color: color-mix(in srgb, #6ea8fe 82%, var(--text-secondary));
 }
 
 .thinkingToggle {
@@ -465,7 +459,7 @@
   margin: 6px 0 0;
   font-size: 11px;
   line-height: 1.55;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -483,8 +477,8 @@
   border: none;
   background: none;
   font-size: 10px;
-  color: var(--sa-fg-tertiary);
-  opacity: 0.7;
+  color: var(--text-secondary);
+  opacity: 0.75;
   cursor: pointer;
 }
 
@@ -497,7 +491,7 @@
   font-family: var(--font-mono, Consolas, monospace);
   font-size: 10px;
   line-height: 1.45;
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 96px;
@@ -506,19 +500,19 @@
 
 .summarySection {
   padding-top: 14px;
-  border-top: 1px solid var(--sa-line);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .summaryLabel {
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--sa-fg-tertiary);
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .summaryBox {
-  color: var(--sa-fg-secondary);
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
   font-size: 12px;
   line-height: 1.65;
   max-height: 320px;
@@ -526,6 +520,6 @@
 }
 
 .summaryPlaceholder {
-  color: var(--sa-fg-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
 }

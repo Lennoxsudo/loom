@@ -34,6 +34,15 @@ pub struct AuditEntry {
     pub reason: Option<String>,
     /// The sandbox access mode at the time: `read_only`, `auto`, `full_access`.
     pub access_mode: String,
+    /// Agent / chat session id when known (phase 2).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    /// Per-execution id (agent turn / subagent) when known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_id: Option<String>,
+    /// Tool name when the decision was made inside a tool call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_name: Option<String>,
 }
 
 // ============================================================================
@@ -96,6 +105,9 @@ pub fn record(entry: AuditEntry) {
 }
 
 /// Convenience helper — builds and records an entry in one call.
+///
+/// Session / execution / tool fields are taken from the thread-local
+/// [`super::context::current_audit_meta`] stack when present.
 #[allow(clippy::too_many_arguments)]
 pub fn log_decision(
     source: &str,
@@ -105,6 +117,35 @@ pub fn log_decision(
     reason: Option<&str>,
     access_mode: &str,
 ) {
+    let meta = super::context::current_audit_meta();
+    log_decision_with_meta(
+        source,
+        action,
+        target,
+        decision,
+        reason,
+        access_mode,
+        meta.session_id,
+        meta.execution_id,
+        meta.tool_name,
+    );
+}
+
+/// Like [`log_decision`], but allows explicit correlation fields
+/// (used when frontend path containment fails before any tool stack exists).
+#[allow(clippy::too_many_arguments)]
+pub fn log_decision_with_meta(
+    source: &str,
+    action: &str,
+    target: &str,
+    decision: &str,
+    reason: Option<&str>,
+    access_mode: &str,
+    session_id: Option<String>,
+    execution_id: Option<String>,
+    tool_name: Option<String>,
+) {
+    let meta = super::context::current_audit_meta();
     record(AuditEntry {
         timestamp: chrono::Utc::now().to_rfc3339(),
         source: source.to_string(),
@@ -113,7 +154,22 @@ pub fn log_decision(
         decision: decision.to_string(),
         reason: reason.map(|s| s.to_string()),
         access_mode: access_mode.to_string(),
+        session_id: session_id.or(meta.session_id),
+        execution_id: execution_id.or(meta.execution_id),
+        tool_name: tool_name.or(meta.tool_name),
     });
+}
+
+/// Record a path-containment / sandbox deny that happened before `validate_*`.
+pub fn log_path_denied(target: &str, reason: &str, access_mode: &str) {
+    log_decision(
+        "ai",
+        "read",
+        target,
+        "denied",
+        Some(reason),
+        access_mode,
+    );
 }
 
 /// Return the most recent `limit` entries (newest first).
@@ -166,6 +222,36 @@ pub fn get_audit_logs(limit: Option<usize>) -> Result<Vec<AuditEntry>, String> {
     Ok(get_entries(limit))
 }
 
+/// Frontend path-containment denial (throws before Tauri file commands run).
+/// Ensures the audit panel still shows a **denied** row for out-of-workspace paths.
+#[tauri::command]
+pub fn audit_path_denied(
+    path: String,
+    reason: Option<String>,
+    access_mode: Option<String>,
+    tool_name: Option<String>,
+    session_id: Option<String>,
+    execution_id: Option<String>,
+    state: tauri::State<'_, crate::sandbox::SandboxState>,
+) -> Result<(), String> {
+    let mode = access_mode.unwrap_or_else(|| state.policy_snapshot().access_mode.clone());
+    let reason_text = reason.unwrap_or_else(|| {
+        format!("路径越界，不允许访问工作区外: {}", path)
+    });
+    log_decision_with_meta(
+        "ai",
+        "read",
+        &path,
+        "denied",
+        Some(&reason_text),
+        &mode,
+        session_id,
+        execution_id,
+        tool_name,
+    );
+    Ok(())
+}
+
 /// Clear all audit log entries.
 #[tauri::command]
 pub fn clear_audit_logs() -> Result<(), String> {
@@ -191,6 +277,12 @@ mod tests {
     /// from sandbox tests that also write audit entries.
     static TEST_LOCK: Mutex<()> = Mutex::new(());
 
+    fn lock_tests() -> std::sync::MutexGuard<'static, ()> {
+        TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     /// Get only entries whose target starts with `prefix`.
     fn entries_with_prefix(prefix: &str) -> Vec<AuditEntry> {
         get_entries(None)
@@ -201,7 +293,7 @@ mod tests {
 
     #[test]
     fn record_and_retrieve() {
-        let _guard = TEST_LOCK.lock().unwrap();
+        let _guard = lock_tests();
         let p = "test://rr/";
         log_decision("ai", "read", &format!("{p}etc"), "denied", Some("outside roots"), "auto");
         log_decision("ai", "write", &format!("{p}project"), "allowed", None, "auto");
@@ -218,7 +310,7 @@ mod tests {
 
     #[test]
     fn limit_returns_subset() {
-        let _guard = TEST_LOCK.lock().unwrap();
+        let _guard = lock_tests();
         let p = "test://lr/";
         for i in 0..10 {
             log_decision("ai", "read", &format!("{p}{i}"), "allowed", None, "auto");
@@ -232,7 +324,7 @@ mod tests {
 
     #[test]
     fn ring_buffer_evicts_oldest() {
-        let _guard = TEST_LOCK.lock().unwrap();
+        let _guard = lock_tests();
         let p = "test://rb/";
         // Fill beyond capacity to test ring buffer eviction.
         for i in 0..(MAX_AUDIT_ENTRIES + 50) {
@@ -248,7 +340,7 @@ mod tests {
 
     #[test]
     fn clear_empties_log() {
-        let _guard = TEST_LOCK.lock().unwrap();
+        let _guard = lock_tests();
         let p = "test://ce/";
         log_decision("ai", "read", &format!("{p}entry"), "allowed", None, "auto");
         let before = entries_with_prefix(p);
@@ -261,7 +353,7 @@ mod tests {
 
     #[test]
     fn reason_is_serialized_as_optional() {
-        let _guard = TEST_LOCK.lock().unwrap();
+        let _guard = lock_tests();
         let p = "test://rs/";
         log_decision("ai", "read", &format!("{p}denied"), "denied", Some("forbidden"), "auto");
         log_decision("ai", "read", &format!("{p}allowed"), "allowed", None, "auto");
@@ -274,7 +366,7 @@ mod tests {
 
     #[test]
     fn disk_persistence_writes_jsonl() {
-        let _guard = TEST_LOCK.lock().unwrap();
+        let _guard = lock_tests();
         let p = "test://dp/";
 
         // Use a unique temp file so concurrent tests don't interfere.
@@ -290,10 +382,15 @@ mod tests {
         log_decision("ai", "read", &format!("{p}entry1"), "denied", Some("outside roots"), "auto");
         log_decision("ai", "write", &format!("{p}entry2"), "allowed", None, "auto");
 
-        // Read the file back and verify it contains 2 JSONL lines.
+        // Read the file back — filter to our prefix so concurrent sandbox
+        // tests that also hit the global AUDIT_FILE cannot pollute the count.
         let content = std::fs::read_to_string(&temp).expect("audit log file should exist");
-        let lines: Vec<&str> = content.trim().lines().collect();
-        assert_eq!(lines.len(), 2, "expected 2 JSONL entries on disk");
+        let lines: Vec<&str> = content
+            .trim()
+            .lines()
+            .filter(|l| l.contains(p))
+            .collect();
+        assert_eq!(lines.len(), 2, "expected 2 JSONL entries for our prefix on disk");
 
         // Each line must be valid JSON with the expected fields.
         let e1: serde_json::Value =
@@ -316,5 +413,40 @@ mod tests {
             *f = None;
         }
         let _ = std::fs::remove_file(&temp);
+    }
+
+    #[test]
+    fn log_decision_picks_up_audit_meta() {
+        let _guard = lock_tests();
+        let p = "test://meta/";
+        crate::security::context::with_audit_meta(
+            crate::security::context::AuditMeta {
+                session_id: Some("sess-1".into()),
+                execution_id: Some("exec-1".into()),
+                tool_name: Some("read".into()),
+            },
+            || {
+                log_decision("ai", "read", &format!("{p}file"), "allowed", None, "auto");
+            },
+        );
+        let entries = entries_with_prefix(p);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].session_id.as_deref(), Some("sess-1"));
+        assert_eq!(entries[0].execution_id.as_deref(), Some("exec-1"));
+        assert_eq!(entries[0].tool_name.as_deref(), Some("read"));
+    }
+
+    #[test]
+    fn log_path_denied_records_denied_read() {
+        let _guard = lock_tests();
+        let p = "test://pd/";
+        let target = format!("{p}C:\\Windows\\System32\\drivers\\etc\\hosts");
+        log_path_denied(&target, "路径越界，不允许访问工作区外", "auto");
+        let entries = entries_with_prefix(p);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].decision, "denied");
+        assert_eq!(entries[0].action, "read");
+        assert_eq!(entries[0].source, "ai");
+        assert!(entries[0].reason.as_deref().unwrap_or("").contains("越界"));
     }
 }

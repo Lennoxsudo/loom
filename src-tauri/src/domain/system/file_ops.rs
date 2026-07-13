@@ -2619,21 +2619,24 @@ pub fn get_file_info_impl(path: String) -> Result<FileInfo, String> {
 // Copy / Move / Delete file or folder
 // ============================================================================
 
-/// Helper function to resolve a path relative to root_path
-/// If the path is absolute, return it as-is
-/// If the path is relative, resolve it against root_path
+/// Helper function to resolve a path relative to root_path.
+///
+/// Phase 2: when `root_path` is set, absolute paths and `../` escapes that
+/// leave the root are rejected (closes absolute-path / traversal bypass).
 pub fn resolve_path_with_root(root_path: &Option<String>, path: &str) -> Result<PathBuf, String> {
-    let path_buf = PathBuf::from(path);
-
-    if path_buf.is_absolute() {
-        Ok(path_buf)
-    } else {
-        match root_path {
-            Some(root) => {
-                let root_path_buf = PathBuf::from(root);
-                Ok(root_path_buf.join(path))
+    match root_path {
+        Some(root) if !root.trim().is_empty() => {
+            // Note: do not audit here — call sites may be User UI; AI denials are
+            // logged in tool_executor / frontend `audit_path_denied`.
+            crate::security::context::resolve_under_root(path, Some(root.as_str()))
+        }
+        _ => {
+            let path_buf = PathBuf::from(path);
+            if path_buf.is_absolute() {
+                Ok(path_buf)
+            } else {
+                Err("root_path is required for relative paths".to_string())
             }
-            None => Err("root_path is required for relative paths".to_string()),
         }
     }
 }

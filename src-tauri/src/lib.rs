@@ -42,7 +42,7 @@ pub use domain::system::{
     terminal, tool_executor,
 };
 
-pub use security::{audit_log, sandbox, sandbox_os};
+pub use security::{audit_log, context, sandbox, sandbox_os};
 
 // ============================================================================
 // Re-exports used by this crate's run() / tests

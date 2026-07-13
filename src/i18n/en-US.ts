@@ -1528,6 +1528,7 @@ export const enUS: I18nMessages = {
   },
   subagent: {
     label: 'Subagent',
+    taskLabel: 'Task',
     statusPendingApproval: 'Pending Approval',
     statusPending: 'Pending',
     statusRunning: 'Running',

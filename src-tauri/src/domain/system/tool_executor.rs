@@ -112,6 +112,18 @@ pub fn execute_tool(
     app_data_path: Option<&str>,
     sandbox_ctx: &SandboxContext,
 ) -> ToolExecutionResult {
+    execute_tool_with_meta(tool_call, project_path, app_data_path, sandbox_ctx, None, None)
+}
+
+/// Execute a tool with optional session / execution ids for audit enrichment.
+pub fn execute_tool_with_meta(
+    tool_call: &serde_json::Value,
+    project_path: Option<&str>,
+    app_data_path: Option<&str>,
+    sandbox_ctx: &SandboxContext,
+    session_id: Option<&str>,
+    execution_id: Option<&str>,
+) -> ToolExecutionResult {
     let tool_call_id = tool_call["id"].as_str().unwrap_or("").to_string();
     let tool_name = tool_call["function"]["name"]
         .as_str()
@@ -122,69 +134,77 @@ pub fn execute_tool(
     let args: serde_json::Value =
         serde_json::from_str(args_str).unwrap_or_else(|_| serde_json::json!({}));
 
-    let result = match tool_name.as_str() {
-        "read_file" => {
-            // P0: validate read access before executing
-            if let Err(e) = validate_read_paths(&args, project_path, sandbox_ctx) {
-                Err(e)
-            } else {
-                execute_read_file(&args, project_path)
-            }
-        }
-        "list_directory" => {
-            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
-                Err(e)
-            } else {
-                execute_list_directory(&args, project_path)
-            }
-        }
-        "get_file_tree" => {
-            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
-                Err(e)
-            } else {
-                execute_get_file_tree(&args, project_path)
-            }
-        }
-        "search_files" => {
-            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
-                Err(e)
-            } else {
-                execute_search_files(&args, project_path)
-            }
-        }
-        "search_content" => {
-            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
-                Err(e)
-            } else {
-                execute_search_content(&args, project_path)
-            }
-        }
-        "get_file_info" => {
-            if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
-                Err(e)
-            } else {
-                execute_get_file_info(&args, project_path)
-            }
-        }
-        "fetch_web_content" => execute_fetch_web_content(&args, sandbox_ctx),
-        "load_skill" => execute_load_skill(&args, project_path, app_data_path),
-        _ => Err(format!("Unknown backend tool: {}", tool_name)),
+    let meta = crate::security::context::AuditMeta {
+        session_id: session_id.map(|s| s.to_string()),
+        execution_id: execution_id.map(|s| s.to_string()),
+        tool_name: Some(tool_name.clone()),
     };
 
-    match result {
-        Ok(output) => ToolExecutionResult {
-            tool_call_id,
-            tool_name,
-            output,
-            success: true,
-        },
-        Err(err) => ToolExecutionResult {
-            tool_call_id,
-            tool_name,
-            output: format!("Error: {}", err),
-            success: false,
-        },
-    }
+    crate::security::context::with_audit_meta(meta, || {
+        let result = match tool_name.as_str() {
+            "read_file" => {
+                // P0: validate read access before executing
+                if let Err(e) = validate_read_paths(&args, project_path, sandbox_ctx) {
+                    Err(e)
+                } else {
+                    execute_read_file(&args, project_path)
+                }
+            }
+            "list_directory" => {
+                if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                    Err(e)
+                } else {
+                    execute_list_directory(&args, project_path)
+                }
+            }
+            "get_file_tree" => {
+                if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                    Err(e)
+                } else {
+                    execute_get_file_tree(&args, project_path)
+                }
+            }
+            "search_files" => {
+                if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                    Err(e)
+                } else {
+                    execute_search_files(&args, project_path)
+                }
+            }
+            "search_content" => {
+                if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                    Err(e)
+                } else {
+                    execute_search_content(&args, project_path)
+                }
+            }
+            "get_file_info" => {
+                if let Err(e) = validate_read_path_arg(&args, project_path, sandbox_ctx) {
+                    Err(e)
+                } else {
+                    execute_get_file_info(&args, project_path)
+                }
+            }
+            "fetch_web_content" => execute_fetch_web_content(&args, sandbox_ctx),
+            "load_skill" => execute_load_skill(&args, project_path, app_data_path),
+            _ => Err(format!("Unknown backend tool: {}", tool_name)),
+        };
+
+        match result {
+            Ok(output) => ToolExecutionResult {
+                tool_call_id,
+                tool_name,
+                output,
+                success: true,
+            },
+            Err(err) => ToolExecutionResult {
+                tool_call_id,
+                tool_name,
+                output: format!("Error: {}", err),
+                success: false,
+            },
+        }
+    })
 }
 
 /// Execute all tool calls in a batch, returning results in order.
@@ -320,18 +340,15 @@ pub fn build_tool_result_messages(
 // ============================================================================
 
 /// Resolve a path that may be relative, using the project path as base.
-fn resolve_path(raw: &str, project_path: Option<&str>) -> String {
-    let p = raw.replace('/', "\\");
-    if Path::new(&p).is_absolute() {
-        return p;
-    }
-    if let Some(base) = project_path {
-        let base = base.trim_end_matches('\\');
-        format!("{}\\{}", base, p)
-    } else {
-        p
-    }
+///
+/// When `project_path` is set, absolute paths and `../` escapes outside the
+/// workspace are rejected (phase 2 path containment).
+fn resolve_path_strict(raw: &str, project_path: Option<&str>) -> Result<String, String> {
+    crate::security::context::resolve_under_root(raw, project_path)
+        .map(|p| p.to_string_lossy().to_string())
 }
+
+
 
 // ============================================================================
 // P0: Read-access validation helpers
@@ -368,7 +385,14 @@ fn validate_read_paths(
     };
 
     for p in &paths {
-        let resolved = resolve_path(p, project_path);
+        let resolved = match resolve_path_strict(p, project_path) {
+            Ok(r) => r,
+            Err(e) => {
+                // Containment failure happens before validate_read — still audit.
+                crate::audit_log::log_path_denied(p, &e, &sandbox_ctx.access_mode);
+                return Err(e);
+            }
+        };
         sandbox_ctx.validate_read(Path::new(&resolved), CallSource::Ai)?;
     }
     Ok(())
@@ -389,7 +413,13 @@ fn validate_read_path_arg(
         .or(project_path);
 
     if let Some(p) = path {
-        let resolved = resolve_path(p, project_path);
+        let resolved = match resolve_path_strict(p, project_path) {
+            Ok(r) => r,
+            Err(e) => {
+                crate::audit_log::log_path_denied(p, &e, &sandbox_ctx.access_mode);
+                return Err(e);
+            }
+        };
         sandbox_ctx.validate_read(Path::new(&resolved), CallSource::Ai)?;
     }
     Ok(())
@@ -438,7 +468,7 @@ fn execute_read_file(
     let mut outputs: Vec<String> = Vec::new();
 
     for single_path in &paths {
-        let resolved = resolve_path(single_path, project_path);
+        let resolved = resolve_path_strict(single_path, project_path)?;
 
         let req = file_ops::ReadFileToolRequest {
             file_path: resolved.clone(),
@@ -505,7 +535,7 @@ fn execute_list_directory(
         .or_else(|| args["directory"].as_str())
         .unwrap_or(".");
 
-    let resolved = resolve_path(path, project_path);
+    let resolved = resolve_path_strict(path, project_path)?;
     let nodes = file_ops::read_dir_shallow(&resolved);
 
     if nodes.is_empty() {
@@ -542,7 +572,7 @@ fn execute_get_file_tree(
         .or(project_path)
         .ok_or("Missing required parameter: path")?;
 
-    let resolved = resolve_path(path, project_path);
+    let resolved = resolve_path_strict(path, project_path)?;
     let max_depth = args["max_depth"].as_u64().map(|v| v as usize);
     let dirs_only = args["dirs_only"].as_bool();
 
@@ -566,7 +596,7 @@ fn execute_search_files(
         .or(project_path)
         .ok_or("Missing required parameter: path")?;
 
-    let resolved = resolve_path(folder, project_path);
+    let resolved = resolve_path_strict(folder, project_path)?;
     let max_results = args["max_results"].as_u64().map(|v| v as usize);
     let exclude = args["exclude"].as_str().map(|s| s.to_string());
     let max_depth = args["max_depth"].as_u64().map(|v| v as usize);
@@ -611,7 +641,7 @@ fn execute_search_content(
         .or(project_path)
         .ok_or("Missing required parameter: path")?;
 
-    let resolved = resolve_path(folder, project_path);
+    let resolved = resolve_path_strict(folder, project_path)?;
     let case_sensitive = args["case_sensitive"].as_bool().unwrap_or(false);
     let use_regex = args["regex"].as_bool();
     let file_glob = args["file_glob"]
@@ -684,7 +714,7 @@ fn execute_get_file_info(
         .as_str()
         .ok_or("Missing required parameter: path")?;
 
-    let resolved = resolve_path(path, project_path);
+    let resolved = resolve_path_strict(path, project_path)?;
     let info = file_ops::get_file_info_impl(resolved)?;
 
     Ok(serde_json::to_string_pretty(&info).unwrap_or_else(|_| format!("{:?}", info)))
@@ -935,21 +965,35 @@ mod tests {
     }
 
     #[test]
-    fn test_resolve_path_absolute() {
-        let resolved = resolve_path("C:\\Users\\test\\file.rs", Some("D:\\project"));
-        assert_eq!(resolved, "C:\\Users\\test\\file.rs");
+    fn test_resolve_path_absolute_outside_is_rejected() {
+        let err = resolve_path_strict("C:\\Users\\test\\file.rs", Some("D:\\project")).unwrap_err();
+        assert!(err.contains("越界") || err.contains("工作区"));
+    }
+
+    #[test]
+    fn test_resolve_path_absolute_inside_is_allowed() {
+        let resolved =
+            resolve_path_strict("D:\\project\\src\\a.rs", Some("D:\\project")).expect("ok");
+        assert!(resolved.to_lowercase().contains("d:\\project"));
     }
 
     #[test]
     fn test_resolve_path_relative() {
-        let resolved = resolve_path("src/main.rs", Some("D:\\project"));
-        assert_eq!(resolved, "D:\\project\\src\\main.rs");
+        let resolved = resolve_path_strict("src/main.rs", Some("D:\\project")).expect("ok");
+        let norm = resolved.replace('/', "\\").to_lowercase();
+        assert_eq!(norm, "d:\\project\\src\\main.rs");
+    }
+
+    #[test]
+    fn test_resolve_path_traversal_rejected() {
+        let err = resolve_path_strict("..\\..\\Windows\\System32", Some("D:\\project")).unwrap_err();
+        assert!(err.contains("越界") || err.contains("工作区"));
     }
 
     #[test]
     fn test_resolve_path_no_base() {
-        let resolved = resolve_path("src/main.rs", None);
-        assert_eq!(resolved, "src\\main.rs");
+        let resolved = resolve_path_strict("src/main.rs", None).expect("ok");
+        assert!(resolved.contains("main.rs"));
     }
 
     #[test]

@@ -80,6 +80,8 @@ describe('Subagent Controllability & Approval Tests', () => {
       if (cmd === 'get_agents') return mockAgents;
       if (cmd === 'load_ai_config') return '{}';
       if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
       return null;
     });
 
@@ -132,6 +134,8 @@ describe('Subagent Controllability & Approval Tests', () => {
       }
       if (cmd === 'load_ai_config') return '{}';
       if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
       if (cmd === 'send_ai_chat_stream') {
         const msgId = args.messageId;
         const messages = args.messages || [];
@@ -200,16 +204,18 @@ describe('Subagent Controllability & Approval Tests', () => {
   it('should bubble up to parent context when agentAccessMode is auto and user approves command', async () => {
     useSettingsStore.setState({ agentAccessMode: 'auto' });
     parentContext.onRequestToolApproval = mockOnRequestToolApprovalWithStore('approve');
+    // Default guard policy only requires confirmation for critical patterns
+    // (not benign commands like `npm test`).
     setupMockAIStream({
       id: 'tool-1',
       type: 'function',
       function: {
         name: 'term',
-        arguments: JSON.stringify({ command: 'npm test' }),
+        arguments: JSON.stringify({ command: 'rm -rf /' }),
       },
     });
 
-    const result = await handler.execute({ task: 'Write hello' }, parentContext);
+    const result = await handler.execute({ task: 'Dangerous cleanup' }, parentContext);
 
     expect(parentContext.onRequestToolApproval).toHaveBeenCalled();
     expect(result.error).toBeUndefined();
@@ -228,18 +234,18 @@ describe('Subagent Controllability & Approval Tests', () => {
       type: 'function',
       function: {
         name: 'term',
-        arguments: JSON.stringify({ command: 'npm test' }),
+        arguments: JSON.stringify({ command: 'rm -rf /' }),
       },
     });
 
-    await handler.execute({ task: 'Write hello' }, parentContext);
+    await handler.execute({ task: 'Dangerous cleanup' }, parentContext);
 
     expect(parentContext.onRequestToolApproval).toHaveBeenCalled();
     const runs = useSubagentStore.getState().runs;
     const runId = Object.keys(runs)[0];
     const run = runs[runId];
     expect(run.toolEvents?.[0]?.status).toBe('error');
-    expect(run.toolEvents?.[0]?.resultPreview).toContain('访问档位');
+    expect(run.toolEvents?.[0]?.resultPreview).toMatch(/拒绝|denied|reject/i);
     expect(run.pendingApproval).toBeUndefined();
   });
 

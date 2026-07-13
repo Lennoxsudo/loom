@@ -2,6 +2,33 @@
  * 路径处理工具函数
  */
 
+/** Fire-and-forget: record frontend path-containment denial in the audit log. */
+function reportPathDenied(path: string, baseDir: string, reason: string): void {
+  // Dynamic import so unit tests without a full Tauri mock do not break path checks.
+  void import('@tauri-apps/api/core')
+    .then((mod) => {
+      const isTauriFn = (mod as { isTauri?: () => boolean }).isTauri;
+      if (typeof isTauriFn === 'function' && !isTauriFn()) return;
+      const invokeFn = (
+        mod as {
+          invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+        }
+      ).invoke;
+      if (typeof invokeFn !== 'function') return;
+      return invokeFn('audit_path_denied', {
+        path,
+        reason: `${reason} (baseDir=${baseDir})`,
+        accessMode: null,
+        toolName: null,
+        sessionId: null,
+        executionId: null,
+      });
+    })
+    .catch(() => {
+      // non-critical — caller still throws
+    });
+}
+
 /**
  * 获取文件/文件夹的基础名称（最后一个路径段）
  */
@@ -36,13 +63,110 @@ export function normalizeEolForCompare(text: string): string {
 
 /**
  * 检查文件路径是否在根目录下
+ * Windows 盘符路径按不区分大小写比较。
  */
 export function isPathUnderRoot(filePath: string, root: string): boolean {
-  const f = normalizePathForCompare(filePath);
-  const r = normalizePathForCompare(root);
+  let f = normalizePathForCompare(filePath);
+  let r = normalizePathForCompare(root);
   if (!f || !r) return false;
+  // Windows drive letter → case-insensitive
+  if (/^[A-Za-z]:/.test(f) || /^[A-Za-z]:/.test(r)) {
+    f = f.toLowerCase();
+    r = r.toLowerCase();
+  }
   if (f === r) return true;
   return f.startsWith(r + '\\');
+}
+
+/**
+ * 判断是否为绝对路径（Windows 盘符 / UNC / Unix 根路径）
+ */
+export function isAbsolutePath(p: string): boolean {
+  if (!p) return false;
+  if (/^[a-zA-Z]:[\\/]/.test(p)) return true;
+  if (p.startsWith('\\\\')) return true;
+  if (p.startsWith('/')) return true;
+  return false;
+}
+
+/**
+ * 词法展开 `.` / `..`（不访问磁盘），用于路径收口校验。
+ */
+export function normalizeLexicalPath(path: string): string {
+  const isUnc = path.startsWith('\\\\');
+  const hasDrive = /^[a-zA-Z]:/.test(path);
+  const isUnixAbs = path.startsWith('/');
+  const sep = path.includes('\\') || hasDrive || isUnc ? '\\' : '/';
+  const raw = path.replace(/\//g, '\\');
+  const parts = raw.split('\\').filter((s, i) => {
+    if (s === '' && i === 0) return false;
+    return true;
+  });
+
+  const out: string[] = [];
+  // Preserve drive prefix
+  let start = 0;
+  if (hasDrive && parts[0]?.endsWith(':')) {
+    out.push(parts[0]);
+    start = 1;
+  } else if (isUnc) {
+    // UNC: \\server\share\...
+    // After replace, leading empties were filtered — rebuild from original
+  }
+
+  for (let i = start; i < parts.length; i++) {
+    const seg = parts[i];
+    if (!seg || seg === '.') continue;
+    if (seg === '..') {
+      if (out.length > 0 && out[out.length - 1] !== '..' && !out[out.length - 1]?.endsWith(':')) {
+        out.pop();
+      } else if (!hasDrive && !isUnixAbs) {
+        out.push('..');
+      }
+      continue;
+    }
+    out.push(seg);
+  }
+
+  if (isUnc) {
+    return '\\\\' + out.join('\\');
+  }
+  if (isUnixAbs && !hasDrive) {
+    return '/' + out.join('/');
+  }
+  return out.join(sep === '\\' ? '\\' : '/');
+}
+
+/**
+ * 在 baseDir 下安全解析路径：拒绝绝对路径越界与 `../` 逃逸。
+ * @throws 当路径逃出工作区时抛出 Error
+ */
+export function resolveContainedPath(path: string, baseDir: string): string {
+  const base = baseDir.trim();
+  if (!base) {
+    throw new Error('baseDir is required for path containment');
+  }
+  const p = path.trim();
+  if (!p) {
+    throw new Error('path cannot be empty');
+  }
+
+  let candidate: string;
+  if (isAbsolutePath(p)) {
+    candidate = normalizeLexicalPath(p);
+  } else {
+    const baseNorm = base.replace(/[\\/]+$/g, '');
+    const rel = p.replace(/^[\\/]+/g, '');
+    const sep = baseNorm.includes('\\') || /^[A-Za-z]:/.test(baseNorm) ? '\\' : '/';
+    candidate = normalizeLexicalPath(`${baseNorm}${sep}${rel}`);
+  }
+
+  if (!isPathUnderRoot(candidate, base)) {
+    const message = `Path escapes workspace root: ${path}`;
+    reportPathDenied(path, base, message);
+    throw new Error(message);
+  }
+  return candidate;
 }
 
 /**

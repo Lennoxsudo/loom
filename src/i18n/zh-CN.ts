@@ -1508,6 +1508,7 @@ export const zhCN: I18nMessages = {
   },
   subagent: {
     label: '子代理',
+    taskLabel: '任务',
     statusPendingApproval: '待审批',
     statusPending: '排队中',
     statusRunning: '运行中',
