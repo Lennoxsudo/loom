@@ -105,7 +105,13 @@ export default function UserMessageBubble({
       }}
     >
       <div className={styles.wrap}>
-        <div className={`${styles.bubble} ${editing ? styles.bubbleEditing : ''}`}>
+        <div
+          className={
+            editing
+              ? styles.editPanel
+              : styles.bubble
+          }
+        >
           {message.attachments && message.attachments.length > 0 && (
             <div
               style={{
@@ -172,50 +178,55 @@ export default function UserMessageBubble({
           )}
 
           {editing ? (
-            <textarea
-              ref={textareaRef}
-              className={styles.editor}
-              value={draft}
-              disabled={isResending}
-              rows={Math.min(12, Math.max(3, draft.split('\n').length + 1))}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void submitEdit();
-                }
-              }}
-              aria-label={t.agent.userMessage.editAria}
-              data-testid="user-message-edit-input"
-            />
+            <>
+              <textarea
+                ref={textareaRef}
+                className={styles.editor}
+                value={draft}
+                disabled={isResending}
+                rows={Math.min(12, Math.max(3, draft.split('\n').length + 1))}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void submitEdit();
+                  }
+                }}
+                aria-label={t.agent.userMessage.editAria}
+                data-testid="user-message-edit-input"
+              />
+              <div className={styles.editFooter}>
+                <p className={styles.editHint}>{t.agent.userMessage.editHint}</p>
+                <div className={styles.editActions}>
+                  <button
+                    type="button"
+                    className={styles.cancelButton}
+                    onClick={cancelEdit}
+                    disabled={isResending}
+                  >
+                    {t.agent.userMessage.cancelEdit}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.sendButton} ${
+                      isResending || !draft.trim() ? styles.sendButtonDisabled : ''
+                    }`}
+                    onClick={() => void submitEdit()}
+                    disabled={isResending || !draft.trim()}
+                    data-testid="user-message-resend"
+                  >
+                    {isResending ? t.agent.userMessage.resending : t.agent.userMessage.resend}
+                  </button>
+                </div>
+              </div>
+            </>
           ) : (
             message.text
           )}
         </div>
 
-        <div className={styles.actions}>
-          {editing ? (
-            <>
-              <span className={styles.editHint}>{t.agent.userMessage.editHint}</span>
-              <button
-                type="button"
-                className={styles.cancelButton}
-                onClick={cancelEdit}
-                disabled={isResending}
-              >
-                {t.agent.userMessage.cancelEdit}
-              </button>
-              <button
-                type="button"
-                className={styles.sendButton}
-                onClick={() => void submitEdit()}
-                disabled={isResending || !draft.trim()}
-                data-testid="user-message-resend"
-              >
-                {isResending ? t.agent.userMessage.resending : t.agent.userMessage.resend}
-              </button>
-            </>
-          ) : canEdit ? (
+        {!editing && canEdit ? (
+          <div className={styles.actions}>
             <button
               type="button"
               className={styles.iconButton}
@@ -233,8 +244,8 @@ export default function UserMessageBubble({
                 />
               </svg>
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
