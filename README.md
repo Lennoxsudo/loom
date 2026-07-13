@@ -68,12 +68,12 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 
 ### 🛠️ Tools & Code Graph
 
-Loom exposes **21 unified agent tools**, grouped as follows:
+Loom exposes **22 unified agent tools**, grouped as follows:
 
 | Group | Tools |
 |-------|-------|
 | Files & search | `read`, `edit`, `write`, `delete_file`, `search`, `finfo`, `sym` |
-| Terminal & network | `term`, `fetch`, `browser` |
+| Terminal & network | `term`, `fetch`, `browser`, `web_search` |
 | Git & workflow | `git`, `ask`, `todo`, `skill` |
 | Code graph (CBM) | `graph_index`, `graph_query`, `graph_trace` |
 | Sub-agents | `Agent`, `Task`, `run_subagent`, `run_subagents` |

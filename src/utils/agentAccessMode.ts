@@ -11,6 +11,7 @@ export const READ_ONLY_TOOL_NAMES = new Set([
   'finfo',
   'sym',
   'fetch',
+  'web_search',
   'read_file',
   'search_content',
   'search_files',

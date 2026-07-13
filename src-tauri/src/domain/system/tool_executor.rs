@@ -73,6 +73,11 @@ const BACKEND_EXECUTABLE_TOOLS: &[&str] = &[
     "search_content",
     "get_file_info",
     "fetch_web_content",
+    "fetch",
+    // web_search intentionally NOT backend-executable:
+    // backend tool-chain only emits truncated executedTools previews which the
+    // Agent UI does not render as tool cards. Frontend execution shows
+    // WebSearchToolResultCard with full results.
     "load_skill",
 ];
 
@@ -185,7 +190,8 @@ pub fn execute_tool_with_meta(
                     execute_get_file_info(&args, project_path)
                 }
             }
-            "fetch_web_content" => execute_fetch_web_content(&args, sandbox_ctx),
+            "fetch_web_content" | "fetch" => execute_fetch_web_content(&args, sandbox_ctx),
+            "web_search" => execute_web_search(&args, sandbox_ctx),
             "load_skill" => execute_load_skill(&args, project_path, app_data_path),
             _ => Err(format!("Unknown backend tool: {}", tool_name)),
         };
@@ -720,6 +726,21 @@ fn execute_get_file_info(
     Ok(serde_json::to_string_pretty(&info).unwrap_or_else(|_| format!("{:?}", info)))
 }
 
+/// Whether first-class web tools (`fetch` / `web_search`) may perform HTTP.
+///
+/// These tools are intentional agent capabilities, already filtered by the
+/// frontend (`canAccessBrowser` / tool allow-lists). They must work in the
+/// default `auto` and `read_only` tiers.
+///
+/// Shell egress (`curl` / `wget` via `term`) remains gated by
+/// `SandboxContext::network_enabled` (only `full_access` enables it today).
+fn allow_intentional_web_tool(sandbox_ctx: &SandboxContext) -> bool {
+    // Reserved for a future explicit air-gap flag. All current access modes
+    // permit curated web tools.
+    let _ = sandbox_ctx;
+    true
+}
+
 fn execute_fetch_web_content(
     args: &serde_json::Value,
     sandbox_ctx: &SandboxContext,
@@ -728,13 +749,9 @@ fn execute_fetch_web_content(
         .as_str()
         .ok_or("Missing required parameter: url")?;
 
-    // L3: Validate network access — fetch_web_content is inherently a network
-    // operation.  When network is disabled (and not in trusted mode), reject
-    // the request before any HTTP call is made.  This prevents SSRF and data
-    // exfiltration even when the sandbox network mode is set to "off".
-    if !sandbox_ctx.is_trusted() && !sandbox_ctx.network_enabled {
+    if !allow_intentional_web_tool(sandbox_ctx) {
         let err = format!(
-            "网络访问被禁止（当前档位未启用网络）。fetch_web_content 请求: {}",
+            "网络访问被禁止（当前环境禁用了 Web 工具）。fetch 请求: {}",
             url
         );
         crate::audit_log::log_decision(
@@ -752,7 +769,7 @@ fn execute_fetch_web_content(
         "network",
         url,
         "allowed",
-        Some("trusted or network enabled"),
+        Some("intentional web tool (fetch)"),
         &sandbox_ctx.access_mode,
     );
 
@@ -824,6 +841,59 @@ fn execute_fetch_web_content(
             )
         }
     })
+}
+
+fn execute_web_search(
+    args: &serde_json::Value,
+    sandbox_ctx: &SandboxContext,
+) -> Result<String, String> {
+    let query = args["query"]
+        .as_str()
+        .or_else(|| args["q"].as_str())
+        .or_else(|| args["search"].as_str())
+        .ok_or("Missing required parameter: query")?;
+
+    // Same policy as fetch: curated web tool, not shell egress.
+    // Default agent mode is `auto` (network_enabled=false); blocking here made
+    // backend-executed web_search always fail while frontend fetch still worked.
+    if !allow_intentional_web_tool(sandbox_ctx) {
+        let err = format!(
+            "网络访问被禁止（当前环境禁用了 Web 工具）。web_search 请求: {}",
+            query
+        );
+        crate::audit_log::log_decision(
+            "ai",
+            "network",
+            query,
+            "denied",
+            Some(&err),
+            &sandbox_ctx.access_mode,
+        );
+        return Err(err);
+    }
+    crate::audit_log::log_decision(
+        "ai",
+        "network",
+        query,
+        "allowed",
+        Some("intentional web tool (web_search)"),
+        &sandbox_ctx.access_mode,
+    );
+
+    let num_results = args["num_results"]
+        .as_u64()
+        .or_else(|| args["numResults"].as_u64())
+        .map(|n| n as u32);
+
+    let rt = tokio::runtime::Handle::try_current().map_err(|_| "No tokio runtime available")?;
+    let query_owned = query.to_string();
+    let result = std::thread::spawn(move || {
+        rt.block_on(crate::chat::web_search(query_owned, num_results))
+    })
+    .join()
+    .map_err(|_| "Thread panicked during web_search")?;
+
+    result.map(|resp| crate::chat::format_search_output(&resp))
 }
 
 /// Execute load_skill: read a SKILL.md file from project or global skills directory.
@@ -937,6 +1007,8 @@ mod tests {
         assert!(is_backend_executable("search_content"));
         assert!(is_backend_executable("get_file_info"));
         assert!(is_backend_executable("fetch_web_content"));
+        assert!(is_backend_executable("fetch"));
+        assert!(!is_backend_executable("web_search"));
         assert!(is_backend_executable("load_skill"));
 
         // Write/mutating tools should NOT be backend-executable
@@ -1132,17 +1204,42 @@ mod tests {
     }
 
     #[test]
-    fn test_fetch_web_content_blocked_when_network_disabled() {
+    fn test_fetch_web_content_allowed_in_auto_mode_without_shell_network() {
+        // Default agent tier is `auto` with network_enabled=false (shell egress
+        // still blocked). Intentional web tools must still be permitted.
         let sandbox_ctx = SandboxContext {
             readable_roots: vec![],
             writable_roots: vec![],
             access_mode: "auto".to_string(),
             network_enabled: false,
         };
-        let args = serde_json::json!({"url": "https://evil.com/exfil"});
+        let args = serde_json::json!({"url": "https://127.0.0.1:1/nonexistent"});
         let result = execute_fetch_web_content(&args, &sandbox_ctx);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("网络访问被禁止"));
+        assert!(result.is_err()); // connection refused / request fail, not sandbox block
+        let err = result.unwrap_err();
+        assert!(
+            !err.contains("网络访问被禁止"),
+            "intentional fetch must not be blocked when shell network is off: {err}"
+        );
+    }
+
+    #[test]
+    fn test_web_search_allowed_in_auto_mode_without_shell_network() {
+        let sandbox_ctx = SandboxContext {
+            readable_roots: vec![],
+            writable_roots: vec![],
+            access_mode: "auto".to_string(),
+            network_enabled: false,
+        };
+        let args = serde_json::json!({"query": "rust async"});
+        // May succeed or fail on network, but must not be sandbox-denied.
+        let result = execute_web_search(&args, &sandbox_ctx);
+        if let Err(err) = result {
+            assert!(
+                !err.contains("网络访问被禁止"),
+                "intentional web_search must not be blocked when shell network is off: {err}"
+            );
+        }
     }
 
     #[test]

@@ -9,7 +9,7 @@ type DynamicFilterContext = {
 };
 
 const GIT_TOOLS = new Set(['git', 'get_git_diff', 'undo_changes']);
-const BROWSER_TOOLS = new Set(['browser', 'fetch', 'control_browser', 'fetch_web_content']);
+const BROWSER_TOOLS = new Set(['browser', 'fetch', 'web_search', 'control_browser', 'fetch_web_content']);
 
 export function filterToolsByContext(
   tools: ToolDefinition[],

@@ -102,7 +102,7 @@ When a task involves third-party services, external APIs, latest documentation, 
 
 - **Skills**: If a skill in \`<available_skills>\` matches the current task, call \`load_skill\` to load its full instructions before proceeding
 - **MCP tools**: If an MCP tool's description is relevant to the user's request, call it directly instead of offering a workaround from memory
-- **Web search** (\`fetch\` / \`browser\`): When dealing with version numbers, API changes, error messages, or third-party docs, search first — don't guess
+- **Web search** (\`web_search\` / \`fetch\` / \`browser\`): Prefer \`web_search\` for keyword discovery (versions, APIs, errors, docs); then \`fetch\` a specific URL for full content. Don't guess.
 
 Rule of thumb: If you're unsure whether your answer is up-to-date or accurate, use a tool to verify. Better to make one extra tool call than to hallucinate.`;
 
@@ -137,14 +137,14 @@ When writing code:
 const SECTION_OTHER_DETAILS_FULL = `## Other important details
 
 - You run commands on the user's machine via the \`term\` tool
-- You can access the internet via \`fetch\` and \`browser\` tools when available
+- You can access the internet via \`web_search\`, \`fetch\`, and \`browser\` tools when available
 - You can read and write files with \`read\`, \`edit\`, and \`write\`
 - You can search code and files with \`search\` and \`finfo\``;
 
 const SECTION_OTHER_DETAILS_PLAN = `## Other important details
 
 - Plan mode is read-only: do not modify files or run destructive commands
-- You can access the internet via \`fetch\` and \`browser\` tools when available
+- You can access the internet via \`web_search\`, \`fetch\`, and \`browser\` tools when available
 - You can read files and search code with \`read\`, \`search\`, and \`finfo\``;
 
 const SECTION_STRONG_PASSWORDS = `## Strong Passwords

@@ -1707,4 +1707,12 @@ export const enUS: I18nMessages = {
       changes: 'changes',
     },
   },
+  webSearchToolResult: {
+    category: 'Web search',
+    resultsCount: '{count} results',
+    provider: 'via {provider}',
+    empty: 'No results found. Try more specific keywords or use fetch on a known URL.',
+    fetchHint: 'Use fetch on a result URL when you need the full page content.',
+    openLink: 'Open {url}',
+  },
 };

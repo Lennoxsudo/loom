@@ -287,6 +287,7 @@ const cacheableTools = {
   'search': true,
   'sym': true,
   'fetch': true,
+  'web_search': true,
 
   // New short names - write tools: not cacheable
   'write': false,

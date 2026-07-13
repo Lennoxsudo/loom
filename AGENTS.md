@@ -94,7 +94,7 @@ loom/
 
 | 层级 | 文件 |
 |------|------|
-| Schema | `definitions.ts`（21 个主工具） |
+| Schema | `definitions.ts`（22 个主工具） |
 | 归一化 | `argsParser.ts`、`schema.ts`（含 legacy 别名） |
 | 执行 | `toolExecutor.ts`、`registry.ts`（13 个 Handler 模块） |
 | 边界 | `events.ts`（`EngineHostCallbacks` / `agentEngineEvents`） |
@@ -109,7 +109,7 @@ loom/
 | `read` / `edit` / `write` / `delete_file` | 文件操作 |
 | `search` / `finfo` / `sym` | 搜索、目录树、符号跳转 |
 | `git` | diff / undo |
-| `fetch` / `browser` | 网页抓取 / 内嵌浏览器 |
+| `fetch` / `browser` / `web_search` | 网页抓取 / 内嵌浏览器 / 原生 Web 搜索 |
 | `ask` / `todo` / `skill` | 提问 / 任务清单 / 技能 |
 | `graph_index` / `graph_query` / `graph_trace` | 代码图谱 |
 | `Agent` / `Task` / `run_subagent(s)` | 子代理委派 |

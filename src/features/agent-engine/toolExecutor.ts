@@ -137,7 +137,7 @@ const KNOWN_TOOL_NAMES: readonly string[] = [
   'read', 'write', 'edit',
   'term', 'finfo', 'search', 'git',
   'sym',
-  'browser', 'fetch',
+  'browser', 'fetch', 'web_search',
   'todo', 'ask', 'skill', 'generate_image', 'run_subagent', 'run_subagents', 'Agent', 'Task',
   'graph_index', 'graph_query', 'graph_trace',
   // Legacy names (for backward compatibility)
@@ -205,6 +205,8 @@ function getCacheTTLForTool(toolName: string): number {
     // 网络内容：15分钟
     'fetch': 15 * 60 * 1000,
     'fetch_web_content': 15 * 60 * 1000,
+    // Web 搜索：5分钟（SERP 变化较快）
+    'web_search': 5 * 60 * 1000,
     
     // 合并工具
     'finfo': 5 * 60 * 1000,

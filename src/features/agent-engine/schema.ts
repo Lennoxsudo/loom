@@ -206,6 +206,11 @@ const FetchWebContentSchema = ToolParametersSchema.extend({
   extract_links: z.boolean().optional(),
 });
 
+const WebSearchSchema = ToolParametersSchema.extend({
+  query: z.string().min(1).max(500),
+  num_results: z.number().int().positive().max(10).optional(),
+});
+
 /**
  * Get symbol definition tool schema
  */
@@ -472,6 +477,9 @@ export function validateToolParameters(
       case 'fetch':
       case 'fetch_web_content':
         schema = FetchWebContentSchema;
+        break;
+      case 'web_search':
+        schema = WebSearchSchema;
         break;
       case 'ask':
       case 'ask_user_question':

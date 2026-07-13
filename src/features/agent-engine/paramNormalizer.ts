@@ -172,7 +172,7 @@ const PARAM_ALIASES: ParamAliasConfig[] = [
   },
   {
     canonical: 'query',
-    aliases: ['query', 'searchQuery', 'search_query', 'search'],
+    aliases: ['query', 'searchQuery', 'search_query', 'search', 'q', 'keywords', 'keyword'],
     description: 'Search query string',
   },
   {
@@ -329,6 +329,11 @@ const PARAM_ALIASES: ParamAliasConfig[] = [
     canonical: 'extract_links',
     aliases: ['extract_links', 'extractLinks', 'links', 'get_links', 'list_links'],
     description: 'Whether to extract links from HTML pages',
+  },
+  {
+    canonical: 'num_results',
+    aliases: ['num_results', 'numResults', 'count', 'n'],
+    description: 'Maximum number of web search results',
   },
 ];
 
@@ -689,6 +694,15 @@ function applyMergedToolNormalizations(result: Record<string, unknown>, toolName
         result.regex = result.pattern;
       }
       delete result.pattern;
+    }
+  }
+  if (toolName === 'web_search') {
+    // Accept max_results / limit (shared with codebase search tools)
+    if (result.num_results === undefined && result.max_results !== undefined) {
+      result.num_results = result.max_results;
+    }
+    if (result.num_results === undefined && result.limit !== undefined) {
+      result.num_results = result.limit;
     }
   }
 }

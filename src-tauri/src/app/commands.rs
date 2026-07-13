@@ -220,6 +220,7 @@ pub fn attach_handlers(
         crate::agent_store::save_todos,
         crate::agent_store::load_todos,
         crate::chat::fetch_web_content_v3,
+        crate::chat::web_search,
         crate::conversation::get_conversations_path,
         // file watcher
         crate::file_watcher::watch_file,

@@ -1,16 +1,17 @@
 /**
- * 浏览器处理器模块
+ * 浏览器 / 网络处理器模块
  *
- * 本模块提供浏览器相关工具的处理器实现：
+ * 本模块提供浏览器与网络相关工具的处理器实现：
  * - ControlBrowserHandler: 控制内置浏览器
  * - FetchWebContentHandler: 抓取网页内容（增强版，参照 Claude Code WebFetch）
+ * - WebSearchHandler: 原生 Web 搜索（轻量 SERP 结果入上下文）
  *
  * @module aiTools/handlers/browserHandlers
  */
 
 import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler } from '../types';
-import type { ControlBrowserArgs, FetchWebContentArgs } from '../toolArgs';
+import type { ControlBrowserArgs, FetchWebContentArgs, WebSearchArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
 import { browserController } from '../../../utils/browserController';
 import { validateFetchUrl, checkFetchPermission } from '../webFetchUtils';
@@ -168,7 +169,92 @@ class FetchWebContentHandler implements ToolHandler<'fetch'> {
   }
 }
 
+/** 原生 Web 搜索处理器 — 轻量结果直接入上下文，区别于 fetch / browser */
+class WebSearchHandler implements ToolHandler<'web_search'> {
+  name = 'web_search' as const;
+
+  async execute(args: WebSearchArgs): Promise<ToolResult> {
+    try {
+      const query = typeof args.query === 'string' ? args.query.trim() : '';
+      if (!query) {
+        throw ToolError.missingParam('query');
+      }
+
+      let numResults: number | undefined;
+      if (args.num_results !== undefined && args.num_results !== null) {
+        const n = Number(args.num_results);
+        if (!Number.isFinite(n) || n < 1) {
+          return { tool_call_id: '', output: '', error: 'num_results 必须是 1–10 之间的正整数' };
+        }
+        numResults = Math.min(10, Math.floor(n));
+      }
+
+      type WebSearchItem = { title: string; url: string; snippet: string };
+      type WebSearchResponse = {
+        query: string;
+        results: WebSearchItem[];
+        count: number;
+        provider: string;
+      };
+
+      let result: WebSearchResponse;
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        result = await invoke<WebSearchResponse>('web_search', {
+          query,
+          numResults,
+        });
+      } catch (e) {
+        return { tool_call_id: '', output: '', error: `搜索失败: ${e}` };
+      }
+
+      return {
+        tool_call_id: '',
+        output: this.formatOutput(result),
+      };
+    } catch (error) {
+      if (error instanceof ToolError) {
+        return error.toToolResult();
+      }
+      return handleToolError(error);
+    }
+  }
+
+  private formatOutput(result: {
+    query: string;
+    results: Array<{ title: string; url: string; snippet: string }>;
+    count: number;
+    provider: string;
+  }): string {
+    if (!result.results?.length) {
+      return (
+        `搜索: "${result.query}"\n结果: 0\n\n` +
+        '未找到相关结果。可改用更具体的关键词，或用 fetch 直接打开已知 URL。'
+      );
+    }
+
+    const lines: string[] = [
+      `搜索: "${result.query}"`,
+      `结果: ${result.count}（来源: ${result.provider || 'duckduckgo'}）`,
+      '',
+    ];
+
+    result.results.forEach((item, i) => {
+      lines.push(`${i + 1}. ${item.title}`);
+      lines.push(`   URL: ${item.url}`);
+      if (item.snippet) {
+        lines.push(`   摘要: ${item.snippet}`);
+      }
+      lines.push('');
+    });
+
+    lines.push('提示: 需要完整页面内容时，对感兴趣的 URL 使用 fetch 工具。');
+    return lines.join('\n');
+  }
+}
+
 export const browserHandlers: ToolHandler[] = [
   new ControlBrowserHandler(),
   new FetchWebContentHandler(),
+  new WebSearchHandler(),
 ];

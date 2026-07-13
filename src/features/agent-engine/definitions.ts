@@ -478,7 +478,8 @@ export const AI_TOOLS: ToolDefinition[] = [
       'custom headers (Authorization, Cookie, etc.), request body for API testing, configurable timeout, ' +
       'redirect control, and link extraction. ' +
       'Non-200 responses still return body content when available (e.g., 404 pages with useful info). ' +
-      'For SPA pages that require JavaScript rendering, use the browser tool instead.',
+      'For SPA pages that require JavaScript rendering, use the browser tool instead. ' +
+      'For discovering URLs by keyword, prefer web_search first.',
     parameters: {
       type: 'object',
       properties: {
@@ -513,6 +514,28 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
       },
       required: ['url'],
+    },
+  },
+  {
+    name: 'web_search',
+    description:
+      'Search the public web and return lightweight results (title, URL, snippet) directly into context. ' +
+      'Use this to discover sources for versions, APIs, error messages, docs, or current events. ' +
+      'Unlike fetch (full page content) and browser (embedded UI), this only returns a short SERP list. ' +
+      'After finding a relevant URL, call fetch to load the full page if needed.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query keywords. Be specific (e.g. "React 19 useEffect cleanup changelog").',
+        },
+        num_results: {
+          type: 'number',
+          description: 'Maximum number of results to return (1–10). Default is 5.',
+        },
+      },
+      required: ['query'],
     },
   },
 

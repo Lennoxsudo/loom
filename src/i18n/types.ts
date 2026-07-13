@@ -1674,6 +1674,14 @@ export interface I18nMessages {
       changes: string;
     };
   };
+  webSearchToolResult: {
+    category: string;
+    resultsCount: string;
+    provider: string;
+    empty: string;
+    fetchHint: string;
+    openLink: string;
+  };
 }
 
 export type LocaleCode = 'zh-CN' | 'en-US';

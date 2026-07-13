@@ -147,6 +147,23 @@ describe('schema validation', () => {
       expect(result2.success).toBe(false);
     });
 
+    it('should validate web_search tool parameters correctly', () => {
+      const validSearch = {
+        query: 'React 19 changelog',
+        num_results: 5,
+      };
+      const result1 = validateToolParameters('web_search', validSearch);
+      expect(result1.success).toBe(true);
+
+      const missingQuery = { num_results: 3 };
+      const result2 = validateToolParameters('web_search', missingQuery);
+      expect(result2.success).toBe(false);
+
+      const tooMany = { query: 'foo', num_results: 50 };
+      const result3 = validateToolParameters('web_search', tooMany);
+      expect(result3.success).toBe(false);
+    });
+
     it('should validate ask_user_question tool parameters correctly', () => {
       // Valid ask_user_question parameters
       const validQuestion = {

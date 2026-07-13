@@ -135,6 +135,13 @@ export type FetchWebContentArgs = {
   extract_links?: boolean;
 };
 
+export type WebSearchArgs = {
+  /** Search keywords */
+  query: string;
+  /** Max results (1–10, default 5) */
+  num_results?: number;
+};
+
 export type TodoWriteArgs = {
   clear?: boolean;
   todos?: Array<{
@@ -342,6 +349,7 @@ type ToolArgsMap = {
   sym: GetSymbolDefinitionArgs;
   browser: ControlBrowserArgs;
   fetch: FetchWebContentArgs;
+  web_search: WebSearchArgs;
   todo: TodoWriteArgs;
   ask: AskUserQuestionArgs;
   skill: LoadSkillArgs;

@@ -6,6 +6,7 @@ const READ_ONLY_TOOLS = [
   'finfo',
   'sym',
   'fetch',
+  'web_search',
   'graph_query',
   'graph_trace',
 ];

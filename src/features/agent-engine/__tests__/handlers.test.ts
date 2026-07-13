@@ -48,6 +48,7 @@ describe('ToolHandler Registry', () => {
   it('should register browser handlers', () => {
     expect(hasToolHandler('control_browser')).toBe(true);
     expect(hasToolHandler('fetch_web_content')).toBe(true);
+    expect(hasToolHandler('web_search')).toBe(true);
   });
 
   it('should register file operation handlers', () => {

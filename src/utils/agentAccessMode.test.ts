@@ -9,7 +9,14 @@ import {
 describe('agentAccessMode', () => {
   it('identifies read-only tools', () => {
     expect(isReadOnlyTool('read')).toBe(true);
+    expect(isReadOnlyTool('fetch')).toBe(true);
+    expect(isReadOnlyTool('web_search')).toBe(true);
     expect(isReadOnlyTool('write')).toBe(false);
+  });
+
+  it('allows web_search in read_only mode', () => {
+    expect(shouldBlockTool('read_only', 'web_search')).toBe(false);
+    expect(shouldBlockTool('read_only', 'fetch')).toBe(false);
   });
 
   it('identifies command tools', () => {

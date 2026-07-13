@@ -1,5 +1,5 @@
 /**
- * BrowserToolResultCard — control_browser / fetch_web_content 结果展示
+ * BrowserToolResultCard — browser / fetch 结果展示
  */
 
 import { memo, useState } from 'react';

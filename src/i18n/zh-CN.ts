@@ -1684,4 +1684,12 @@ export const zhCN: I18nMessages = {
       changes: 'changes',
     },
   },
+  webSearchToolResult: {
+    category: '网页搜索',
+    resultsCount: '{count} 条结果',
+    provider: '来源 {provider}',
+    empty: '未找到相关结果。可改用更具体的关键词，或用 fetch 直接打开已知 URL。',
+    fetchHint: '需要完整页面内容时，对感兴趣的 URL 使用 fetch 工具。',
+    openLink: '打开 {url}',
+  },
 };

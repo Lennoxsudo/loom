@@ -68,12 +68,12 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 
 ### 🛠️ 工具与代码图谱
 
-Loom 提供 **21 个统一 Agent 工具**，按类别划分如下：
+Loom 提供 **22 个统一 Agent 工具**，按类别划分如下：
 
 | 类别 | 工具 |
 |------|------|
 | 文件与搜索 | `read`、`edit`、`write`、`delete_file`、`search`、`finfo`、`sym` |
-| 终端与网络 | `term`、`fetch`、`browser` |
+| 终端与网络 | `term`、`fetch`、`browser`、`web_search` |
 | Git 与工作流 | `git`、`ask`、`todo`、`skill` |
 | 代码图谱（CBM） | `graph_index`、`graph_query`、`graph_trace` |
 | 子代理 | `Agent`、`Task`、`run_subagent`、`run_subagents` |

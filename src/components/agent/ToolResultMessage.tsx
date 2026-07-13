@@ -3,6 +3,7 @@ import { GenerateImageToolCard } from './GenerateImageToolCard';
 import { parseGenerateImageAbsolutePaths } from '../../utils/imageGenConfig';
 import McpToolResultCard from './McpToolResultCard';
 import BrowserToolResultCard from './BrowserToolResultCard';
+import WebSearchToolResultCard from './WebSearchToolResultCard';
 import SubagentCard from './SubagentCard';
 import SubagentGroupCard from './SubagentGroupCard';
 import ExecCommandCard from './ExecCommandCard';
@@ -1279,8 +1280,17 @@ const ToolResultMessage = memo(function ToolResultMessage({
     );
   }
 
-  // fetch_web_content / control_browser: use BrowserToolResultCard
-  if (message.tool_name === 'fetch' || message.tool_name === 'fetch_web_content' || message.tool_name === 'control_browser' || message.tool_name === 'browser') {
+  if (message.tool_name === 'web_search') {
+    return <WebSearchToolResultCard message={message} />;
+  }
+
+  // fetch / control_browser: use BrowserToolResultCard
+  if (
+    message.tool_name === 'fetch'
+    || message.tool_name === 'fetch_web_content'
+    || message.tool_name === 'control_browser'
+    || message.tool_name === 'browser'
+  ) {
     return <BrowserToolResultCard message={message} />;
   }
 

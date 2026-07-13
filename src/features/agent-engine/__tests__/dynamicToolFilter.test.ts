@@ -23,7 +23,7 @@ describe('filterToolsByContext', () => {
   });
 
   it('removes browser tools when no browser capability', () => {
-    const tools = [makeTool('read'), makeTool('browser'), makeTool('fetch')];
+    const tools = [makeTool('read'), makeTool('browser'), makeTool('fetch'), makeTool('web_search')];
     const result = filterToolsByContext(tools, { hasBrowserCapability: false });
     expect(result.map((t) => t.name)).toEqual(['read']);
   });

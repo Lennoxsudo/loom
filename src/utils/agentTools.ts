@@ -18,7 +18,13 @@ export const EXECUTE_TOOLS = new Set([
   'term',
 ]);
 
-export const BROWSER_TOOLS = new Set(['control_browser', 'fetch_web_content', 'browser', 'fetch']);
+export const BROWSER_TOOLS = new Set([
+  'control_browser',
+  'fetch_web_content',
+  'browser',
+  'fetch',
+  'web_search',
+]);
 
 export const GIT_TOOLS = new Set(['get_git_diff', 'undo_changes', 'git']);
 

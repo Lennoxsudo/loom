@@ -13,6 +13,7 @@ export const CLAUDE_TO_AI_TOOL: Record<string, string> = {
   Agent: 'Agent',
   Task: 'Agent',
   WebFetch: 'fetch',
+  WebSearch: 'web_search',
   Browser: 'browser',
   TodoWrite: 'todo',
   Skill: 'skill',

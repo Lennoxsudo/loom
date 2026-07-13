@@ -7,6 +7,7 @@ mod stream;
 mod test_connection;
 mod types;
 mod web_fetch;
+mod web_search;
 
 pub use types::{ChatImageAttachment, ChatMessage, ChatTaskMap, ToolCall, ToolCallFunction};
 
@@ -34,6 +35,12 @@ pub use stream::{__cmd__send_ai_chat_stream, send_ai_chat_stream};
 pub use web_fetch::{
     __cmd__fetch_web_content_v3,
     fetch_web_content_v3,
+};
+
+pub use web_search::{
+    __cmd__web_search,
+    format_search_output,
+    web_search,
 };
 
 // Suppress unused import warning for legacy compatibility
