@@ -293,7 +293,7 @@ function getOpenAIToolsForProvider(provider: AIProvider): unknown {
       input_schema: tool.parameters,
     }));
   }
-  // OpenAI / Gemini / Ollama 格式
+  // OpenAI / Ollama 格式
   return AI_TOOLS.map((tool) => ({
     type: 'function',
     function: {

@@ -15,7 +15,6 @@ import type { Agent, AIProvider, AgentCapabilities } from '../agentPersistence';
 const nonCliProviderArb: fc.Arbitrary<AIProvider> = fc.constantFrom(
   'openai' as const,
   'anthropic' as const,
-  'gemini' as const,
   'ollama' as const,
 );
 

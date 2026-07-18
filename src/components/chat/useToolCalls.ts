@@ -9,7 +9,6 @@ import {
   sanitizeMessagesForIpc,
   ToolResult,
   toAnthropicTools,
-  toGeminiTools,
   toOpenAITools,
 } from '../../features/agent-engine';
 import { useSubagentStore } from '../../stores/useSubagentStore';
@@ -400,9 +399,6 @@ export function useToolCalls({
     const filteredTools = tools;
     if (provider === 'anthropic') {
       return toAnthropicTools(filteredTools);
-    }
-    if (provider === 'gemini') {
-      return toGeminiTools(filteredTools);
     }
     return toOpenAITools(filteredTools);
   };

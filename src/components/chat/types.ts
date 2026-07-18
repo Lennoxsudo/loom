@@ -1,13 +1,12 @@
 import type { ChatMessage as AgentChatMessage, ProviderRequestMessage, ChatUiNotice, CompactMetadata, CompactState } from '../../types/chat';
 import { toProviderRequestMessages, appendToolMessages } from '../agent/utils';
 
-export type ChatPanelProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';
+export type ChatPanelProvider = 'openai' | 'anthropic' | 'ollama';
 export type ChatProtocolSelection = ChatPanelProvider | 'auto';
 
 export const PROVIDERS: { id: ChatPanelProvider; name: string }[] = [
   { id: 'openai', name: 'OpenAI' },
   { id: 'anthropic', name: 'Anthropic' },
-  { id: 'gemini', name: 'Gemini' },
   { id: 'ollama', name: 'Ollama' },
 ];
 

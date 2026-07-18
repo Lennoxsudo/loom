@@ -48,7 +48,6 @@ import { stripMcpToolPrefix } from './agent/toolResultLayout';
 import {
   toOpenAITools,
   toAnthropicTools,
-  toGeminiTools,
   type ToolCall,
   AI_TOOLS,
   filterToolsByContext,
@@ -243,8 +242,6 @@ export default function AgentPanel({
     let tools: unknown[];
     if (provider === 'anthropic') {
       tools = toAnthropicTools(filteredBaseTools);
-    } else if (provider === 'gemini') {
-      tools = toGeminiTools(filteredBaseTools);
     } else {
       tools = toOpenAITools(filteredBaseTools);
     }

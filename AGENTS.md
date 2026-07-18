@@ -84,7 +84,7 @@ loom/
 
 ### Provider 与路由
 
-- 支持 openai、anthropic、gemini、ollama
+- 支持 openai、anthropic、ollama
 - 自动路由：设置页配置 fallback 链；新消息从链首开始
 - Anthropic Extended Thinking + Prompt Caching（`src-tauri/src/chat/`）
 

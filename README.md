@@ -50,7 +50,7 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 
 ### 🤖 AI & Agents
 
-- Multiple providers: **OpenAI, Anthropic, Gemini, Ollama** — streaming output, tool calls, thinking blocks, vision/image attachments
+- Multiple providers: **OpenAI, Anthropic, Ollama** — streaming output, tool calls, thinking blocks, vision/image attachments
 - Single global agent config; **per-project conversations with disk as the single source of truth**
 - **Tool approval** — how each tool runs before execution:
   - `always` — run without asking

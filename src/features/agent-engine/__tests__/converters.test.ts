@@ -1,7 +1,7 @@
 /**
  * 格式转换器测试 (converters.ts)
  *
- * 测试 toAnthropicTools / toOpenAITools / toGeminiTools:
+ * 测试 toAnthropicTools / toOpenAITools:
  * - 基本结构正确性
  * - 空输入 / 边界值
  * - description 截断
@@ -14,7 +14,6 @@ import { describe, it, expect } from 'vitest';
 import {
   toAnthropicTools,
   toOpenAITools,
-  toGeminiTools,
 } from '../converters';
 import type { ToolDefinition } from '../../../types/ai';
 
@@ -402,77 +401,25 @@ describe('toOpenAITools', () => {
 });
 
 // ============================================================================
-// toGeminiTools
-// ============================================================================
-
-describe('toGeminiTools', () => {
-  describe('基本结构', () => {
-    it('返回数组（外层包装）', () => {
-      const result = toGeminiTools([makeTool()]);
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBe(1);
-    });
-
-    it('包含 functionDeclarations 数组', () => {
-      const result = toGeminiTools([makeTool()]);
-      expect(result[0]).toHaveProperty('functionDeclarations');
-      expect(Array.isArray(result[0].functionDeclarations)).toBe(true);
-    });
-
-    it('每个 functionDeclaration 包含 name, description, parameters', () => {
-      const result = toGeminiTools([makeTool()]);
-      const decl = result[0].functionDeclarations[0] as Record<string, unknown>;
-      expect(decl.name).toBe('test_tool');
-      expect(decl.description).toBeDefined();
-      expect(decl.parameters).toBeDefined();
-    });
-  });
-
-  describe('空输入', () => {
-    it('空数组返回空数组', () => {
-      const result = toGeminiTools([]);
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('多个工具', () => {
-    it('多个工具在同一个 functionDeclarations 中', () => {
-      const tools = [
-        makeTool({ name: 'tool_a' }),
-        makeTool({ name: 'tool_b' }),
-        makeTool({ name: 'tool_c' }),
-      ];
-      const result = toGeminiTools(tools);
-      expect(result[0].functionDeclarations.length).toBe(3);
-      expect(result[0].functionDeclarations[0].name).toBe('tool_a');
-      expect(result[0].functionDeclarations[2].name).toBe('tool_c');
-    });
-  });
-});
-
-// ============================================================================
 // 跨格式一致性测试
 // ============================================================================
 
 describe('跨格式一致性', () => {
-  it('同一工具在三种格式中 name 一致', () => {
+  it('同一工具在两种格式中 name 一致', () => {
     const tool = makeTool({ name: 'consistent_tool' });
 
     const anthropic = toAnthropicTools([tool]);
     const openai = toOpenAITools([tool]);
-    const gemini = toGeminiTools([tool]);
 
     expect(anthropic[0].name).toBe('consistent_tool');
     expect(openai[0].function.name).toBe('consistent_tool');
-    expect(gemini[0].functionDeclarations[0].name).toBe('consistent_tool');
   });
 
-  it('同一工具在三种格式中都有 schema 信息', () => {
+  it('同一工具在两种格式中都有 schema 信息', () => {
     const tool = makeTool();
 
     const anthropic = toAnthropicTools([tool]);
     const openai = toOpenAITools([tool]);
-    const gemini = toGeminiTools([tool]);
 
     // Anthropic
     const aSchema = anthropic[0].input_schema as Record<string, unknown>;
@@ -481,17 +428,12 @@ describe('跨格式一致性', () => {
     // OpenAI
     const oParams = openai[0].function.parameters as Record<string, unknown>;
     expect(oParams.type).toBe('object');
-
-    // Gemini
-    const gParams = gemini[0].functionDeclarations[0].parameters as Record<string, unknown>;
-    expect(gParams.type).toBe('object');
   });
 
-  it('复杂嵌套工具在三种格式中都不抛出异常', () => {
+  it('复杂嵌套工具在两种格式中都不抛出异常', () => {
     const tool = makeNestedSchemaTool();
 
     expect(() => toAnthropicTools([tool])).not.toThrow();
     expect(() => toOpenAITools([tool])).not.toThrow();
-    expect(() => toGeminiTools([tool])).not.toThrow();
   });
 });

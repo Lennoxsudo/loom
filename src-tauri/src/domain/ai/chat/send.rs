@@ -1,11 +1,11 @@
 use tauri::{AppHandle, Emitter, State};
 
 use super::config::{
-    ensure_ai_model, get_active_profile_config, get_anthropic_chat_url, get_gemini_chat_url,
+    ensure_ai_model, get_active_profile_config, get_anthropic_chat_url,
     get_ollama_chat_url, get_profile_config_by_id, load_ai_config, openai_chat_completion_urls,
 };
 use super::message_builder::{
-    build_anthropic_message_content, build_gemini_contents, build_openai_messages_payload,
+    build_anthropic_message_content, build_openai_messages_payload,
 };
 use super::retry::send_ai_request_with_retry_limit;
 use super::stream::{
@@ -114,7 +114,6 @@ pub async fn generate_conversation_title(
     let result = match provider.as_str() {
         "openai" => send_openai_chat(&client, &ai_config, messages.clone(), 0).await,
         "anthropic" => send_anthropic_chat(&client, &ai_config, messages.clone(), 0).await,
-        "gemini" => send_gemini_chat(&client, &ai_config, messages.clone(), 0).await,
         "ollama" => send_ollama_chat(&client, &ai_config, messages.clone(), 0).await,
         _ => Err(format!("未知的协议类型: {}", provider)),
     };
@@ -346,49 +345,6 @@ pub async fn send_anthropic_chat(
     Ok(content)
 }
 
-pub async fn send_gemini_chat(
-    client: &reqwest::Client,
-    config: &AIConfig,
-    messages: Vec<ChatMessage>,
-    max_retries: u32,
-) -> Result<String, String> {
-    let url = get_gemini_chat_url(&config.endpoint, &config.model);
-
-    let (contents, system_instruction) = build_gemini_contents(&messages)?;
-
-    let mut body = serde_json::json!({
-        "contents": contents,
-    });
-
-    if let Some(si) = system_instruction {
-        body["systemInstruction"] = si;
-    }
-
-    let response = send_ai_request_with_retry_limit(|| {
-        client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .header("x-goog-api-key", &config.api_key)
-            .json(&body)
-            .send()
-    }, max_retries)
-    .await?;
-
-    let response_json: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| format!("解析响应失败: {}", e))?;
-
-    let content_value = &response_json["candidates"][0]["content"]["parts"];
-    let content = content_as_text(content_value);
-
-    if content.trim().is_empty() {
-        return Err("无法获取响应内容".to_string());
-    }
-
-    Ok(content)
-}
-
 pub async fn send_ollama_chat(
     client: &reqwest::Client,
     config: &AIConfig,
@@ -560,7 +516,6 @@ pub async fn generate_compact_summary(
     let result = match provider.as_str() {
         "openai" => send_openai_chat(&client, &ai_config, chat_messages, 1).await,
         "anthropic" => send_anthropic_chat(&client, &ai_config, chat_messages, 1).await,
-        "gemini" => send_gemini_chat(&client, &ai_config, chat_messages, 1).await,
         "ollama" => send_ollama_chat(&client, &ai_config, chat_messages, 1).await,
         _ => Err(format!("Unknown provider: {}", provider)),
     };

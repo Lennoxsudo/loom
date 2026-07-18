@@ -732,6 +732,10 @@ fn should_ignore_command_path_reference(command: &str, path_str: &str) -> bool {
 /// It cannot catch all possible network egress (e.g. custom compiled
 /// binaries, obscure interpreters, env-var-based indirection). The L3
 /// target is an egress proxy with host allowlist.
+///
+/// Production paths call the two helpers directly; this OR wrapper is
+/// kept for unit tests that assert combined network detection.
+#[cfg(test)]
 fn is_network_command(command: &str) -> bool {
     is_direct_egress_command(command) || is_dev_essential_network_command(command)
 }
@@ -779,7 +783,7 @@ const NETWORK_TOOL_NAMES: &[&str] = &[
     ];
 
     let tokens = split_command_words(command);
-    for (idx, token) in tokens.iter().enumerate() {
+    for token in tokens.iter() {
         // Skip command separators — they start a new segment
         if is_command_separator(token) {
             continue;

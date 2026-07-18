@@ -15,7 +15,6 @@ export function parseProviderAndModel(modelValue: string): {
     if (
       providerPart === 'openai' ||
       providerPart === 'anthropic' ||
-      providerPart === 'gemini' ||
       providerPart === 'ollama'
     ) {
       provider = providerPart;

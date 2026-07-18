@@ -1,5 +1,5 @@
 use super::config::{
-    get_anthropic_models_url, get_gemini_models_list_url, get_ollama_base_url, openai_models_urls,
+    get_anthropic_models_url, get_ollama_base_url, openai_models_urls,
 };
 use serde::{Deserialize, Serialize};
 
@@ -45,7 +45,6 @@ pub async fn list_ai_models(provider: String, config: ListModelsConfig) -> Resul
     let result = match provider.as_str() {
         "openai" => list_openai_models(&client, &config).await,
         "anthropic" => list_anthropic_models(&client, &config).await,
-        "gemini" => list_gemini_models(&client, &config).await,
         "ollama" => list_ollama_models(&client, &config).await,
         _ => Ok(ListModelsResult {
             success: false,
@@ -150,45 +149,6 @@ async fn list_anthropic_models(
             if status.is_success() {
                 Ok(parse_anthropic_models_body(&body))
             } else if status.as_u16() == 401 {
-                Ok(ListModelsResult {
-                    success: false,
-                    message: "API密钥无效".to_string(),
-                    models: Vec::new(),
-                })
-            } else {
-                Ok(ListModelsResult {
-                    success: false,
-                    message: format!("拉取失败: HTTP {} {}", status, body),
-                    models: Vec::new(),
-                })
-            }
-        }
-        Err(e) => Ok(ListModelsResult {
-            success: false,
-            message: format!("拉取失败: {}", e),
-            models: Vec::new(),
-        }),
-    }
-}
-
-async fn list_gemini_models(
-    client: &reqwest::Client,
-    config: &ListModelsConfig,
-) -> Result<ListModelsResult, String> {
-    let url = get_gemini_models_list_url(&config.endpoint);
-
-    match client
-        .get(&url)
-        .header("x-goog-api-key", &config.api_key)
-        .send()
-        .await
-    {
-        Ok(response) => {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            if status.is_success() {
-                Ok(parse_gemini_models_body(&body))
-            } else if status.as_u16() == 401 || status.as_u16() == 403 {
                 Ok(ListModelsResult {
                     success: false,
                     message: "API密钥无效".to_string(),
@@ -315,49 +275,6 @@ pub fn parse_anthropic_models_body(body: &str) -> ListModelsResult {
     sort_models(models)
 }
 
-pub fn parse_gemini_models_body(body: &str) -> ListModelsResult {
-    let json: serde_json::Value = match serde_json::from_str(body) {
-        Ok(value) => value,
-        Err(e) => {
-            return ListModelsResult {
-                success: false,
-                message: format!("解析响应失败: {}", e),
-                models: Vec::new(),
-            };
-        }
-    };
-
-    let models = json
-        .get("models")
-        .and_then(|v| v.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    let supports_generate = item
-                        .get("supportedGenerationMethods")
-                        .and_then(|v| v.as_array())
-                        .map(|methods| {
-                            methods.iter().any(|method| {
-                                method.as_str() == Some("generateContent")
-                            })
-                        })
-                        .unwrap_or(true);
-
-                    if !supports_generate {
-                        return None;
-                    }
-
-                    let name = item.get("name")?.as_str()?;
-                    Some(name.strip_prefix("models/").unwrap_or(name).to_string())
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    sort_models(models)
-}
-
 pub fn parse_ollama_models_body(body: &str) -> ListModelsResult {
     let json: serde_json::Value = match serde_json::from_str(body) {
         Ok(value) => value,
@@ -394,17 +311,6 @@ mod tests {
         let result = parse_openai_models_body(body);
         assert!(result.success);
         assert_eq!(result.models, vec!["gpt-4o", "gpt-4o-mini"]);
-    }
-
-    #[test]
-    fn parse_gemini_models_strips_prefix_and_filters() {
-        let body = r#"{"models":[
-            {"name":"models/gemini-1.5-flash","supportedGenerationMethods":["generateContent"]},
-            {"name":"models/embedding-001","supportedGenerationMethods":["embedContent"]}
-        ]}"#;
-        let result = parse_gemini_models_body(body);
-        assert!(result.success);
-        assert_eq!(result.models, vec!["gemini-1.5-flash"]);
     }
 
     #[test]

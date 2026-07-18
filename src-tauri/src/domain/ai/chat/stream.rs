@@ -5,12 +5,12 @@ use std::time::Duration;
 use tauri::{Emitter, State};
 
 use super::config::{
-    ensure_ai_model, get_active_profile_config, get_anthropic_chat_url, get_gemini_chat_url,
+    ensure_ai_model, get_active_profile_config, get_anthropic_chat_url,
     get_ollama_chat_url, get_profile_config_by_id, load_ai_config, load_auto_routing_config,
     find_auto_routing_entry_index, is_auto_routing_fallback_error, openai_chat_completion_urls,
 };
 use super::message_builder::{
-    build_anthropic_message_content, build_gemini_contents, build_openai_messages_payload,
+    build_anthropic_message_content, build_openai_messages_payload,
 };
 use super::retry::send_ai_request_with_retry;
 use super::types::{
@@ -79,13 +79,6 @@ fn apply_provider_tool_choice(
             body["tool_choice"] = tool_choice
                 .clone()
                 .unwrap_or_else(|| serde_json::json!({ "type": "auto" }));
-        }
-        "gemini" => {
-            body["toolConfig"] = serde_json::json!({
-                "functionCallingConfig": {
-                    "mode": "AUTO"
-                }
-            });
         }
         _ => {
             body["tool_choice"] = tool_choice
@@ -282,19 +275,6 @@ pub async fn run_stream_with_tool_chain(
             }
             "openai" => {
                 send_openai_stream(
-                    app,
-                    client,
-                    &current_config,
-                    message_id,
-                    messages.clone(),
-                    tools.clone(),
-                    tool_choice.clone(),
-                    suppress,
-                )
-                .await
-            }
-            "gemini" => {
-                send_gemini_stream(
                     app,
                     client,
                     &current_config,
@@ -1612,186 +1592,6 @@ pub async fn send_openai_stream(
     }
 
     Ok(StreamResult { tool_calls, usage: captured_usage, thinking_blocks: Vec::new() })
-}
-
-// Gemini流式API (支持工具调用)
-
-fn process_gemini_sse_event_data(
-    app: &tauri::AppHandle,
-    message_id: &str,
-    event_data: &str,
-    tool_calls: &mut Vec<serde_json::Value>,
-    tool_call_keys: &mut HashSet<String>,
-) {
-    for line in event_data.lines() {
-        if line.starts_with("data: ") {
-            let json_str = &line[6..];
-
-            if let Ok(event) = serde_json::from_str::<serde_json::Value>(json_str) {
-                if let Some(parts) = event["candidates"][0]["content"]["parts"].as_array() {
-                    for part in parts {
-                        if let Some(text) = part["text"].as_str() {
-                            let chunk_type =
-                                if part.get("thought").and_then(|v| v.as_bool()) == Some(true) {
-                                    "thinking"
-                                } else {
-                                    "content"
-                                };
-                            emit_filtered_chunk(app, message_id, text, chunk_type);
-                        }
-
-                        if let Some(function_call) = part["functionCall"].as_object() {
-                            let name = function_call
-                                .get("name")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .to_string();
-                            if name.trim().is_empty() {
-                                continue;
-                            }
-
-                            let args_value = function_call
-                                .get("args")
-                                .cloned()
-                                .unwrap_or_else(|| serde_json::json!({}));
-                            let args_str = serde_json::to_string(&args_value)
-                                .unwrap_or_else(|_| "{}".to_string());
-                            let key = format!("{}|{}", name, args_str);
-                            if tool_call_keys.contains(&key) {
-                                continue;
-                            }
-                            tool_call_keys.insert(key);
-
-                            let idx = tool_calls.len();
-                            tool_calls.push(serde_json::json!({
-                                "id": format!("gemini_tool_call_{}", idx),
-                                "type": "function",
-                                "function": {
-                                    "name": name,
-                                    "arguments": args_str
-                                }
-                            }));
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-pub async fn send_gemini_stream(
-    app: &tauri::AppHandle,
-    client: &reqwest::Client,
-    config: &AIConfig,
-    message_id: &str,
-    messages: Vec<ChatMessage>,
-    tools: Option<serde_json::Value>,
-    tool_choice: Option<serde_json::Value>,
-    suppress_complete_event: bool,
-) -> Result<StreamResult, String> {
-    let mut url = get_gemini_chat_url(&config.endpoint, &config.model);
-    // 将 :generateContent 替换为 :streamGenerateContent
-    if url.contains(":generateContent") {
-        url = url.replace(":generateContent", ":streamGenerateContent");
-    }
-    // 添加 alt=sse 参数以获取 SSE 流式格式
-    if !url.contains("alt=sse") {
-        if url.contains('?') {
-            url.push_str("&alt=sse");
-        } else {
-            url.push_str("?alt=sse");
-        }
-    }
-
-    let (contents, system_instruction) = build_gemini_contents(&messages)?;
-
-    let mut body = serde_json::json!({
-        "contents": contents,
-    });
-
-    if let Some(si) = system_instruction {
-        body["systemInstruction"] = si;
-    }
-
-    // 如果提供了工具定义，添加到请求中（Gemini格式）
-    if let Some(tools_value) = tools {
-        body["tools"] = tools_value;
-        apply_provider_tool_choice(&mut body, "gemini", &tool_choice);
-    }
-
-    let response = send_ai_request_with_retry(|| {
-        client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .header("x-goog-api-key", &config.api_key)
-            .json(&body)
-            .send()
-    })
-    .await?;
-
-    let mut stream = response.bytes_stream();
-    let mut buffer = String::new();
-    let mut utf8_buf: Vec<u8> = Vec::new();
-    let mut tool_calls: Vec<serde_json::Value> = Vec::new();
-    let mut tool_call_keys: HashSet<String> = HashSet::new();
-
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                let chunk_str = decode_chunk_to_string(&chunk, &mut utf8_buf);
-                buffer.push_str(&chunk_str);
-
-                while let Some(line_end) = buffer.find("\n\n") {
-                    let event_data = buffer[..line_end].to_string();
-                    buffer = buffer[line_end + 2..].to_string();
-
-                    process_gemini_sse_event_data(
-                        app,
-                        message_id,
-                        &event_data,
-                        &mut tool_calls,
-                        &mut tool_call_keys,
-                    );
-                }
-            }
-            Err(e) => {
-                let _ = app.emit(
-                    "ai-stream-error",
-                    serde_json::json!({ "error": format!("流读取失败: {}", e), "message_id": message_id }),
-                );
-                return Err(format!("流读取失败: {}", e));
-            }
-        }
-    }
-
-    // 处理 buffer 中残余的数据（最后一个事件可能没有以 \n\n 结尾）
-    if !buffer.is_empty() {
-        process_gemini_sse_event_data(
-            app,
-            message_id,
-            &buffer,
-            &mut tool_calls,
-            &mut tool_call_keys,
-        );
-    }
-
-    if !suppress_complete_event {
-        let _ = app.emit(
-            "ai-stream-complete",
-            if tool_calls.is_empty() {
-                serde_json::json!({
-                    "message_id": message_id
-                })
-            } else {
-                serde_json::json!({
-                    "message_id": message_id,
-                    "tool_calls": tool_calls
-                })
-            },
-        );
-    }
-
-    Ok(StreamResult { tool_calls, usage: None, thinking_blocks: Vec::new() })
 }
 
 // Ollama流式API (使用OpenAI兼容格式)

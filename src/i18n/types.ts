@@ -1506,7 +1506,6 @@ export interface I18nMessages {
     providers: {
       anthropicDesc: string;
       openaiDesc: string;
-      googleDesc: string;
     };
     modelDescriptions: {
       speedBalance: string;

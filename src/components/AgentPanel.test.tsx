@@ -86,7 +86,6 @@ vi.mock('../features/agent-engine', async (importOriginal) => {
     executeToolCall: (...args: unknown[]) => executeToolCallMock(...args),
     toOpenAITools: vi.fn(() => []),
     toAnthropicTools: vi.fn(() => []),
-    toGeminiTools: vi.fn(() => []),
     filterToolsByContext: vi.fn((tools: unknown[]) => tools),
     dedupeToolsByName: vi.fn((tools: unknown[]) => tools),
   };

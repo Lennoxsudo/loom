@@ -1535,7 +1535,6 @@ export const enUS: I18nMessages = {
     providers: {
       anthropicDesc: 'Claude Series',
       openaiDesc: 'GPT Series',
-      googleDesc: 'Gemini Series',
     },
     modelDescriptions: {
       speedBalance: 'Speed and balance',

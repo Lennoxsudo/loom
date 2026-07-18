@@ -3,7 +3,7 @@ import { coerceProjectPath, normalizeProjectPath } from '../shared/lib/projectPa
 import type { AgentConversationState } from '../types/chat';
 
 type AgentStatus = 'online' | 'busy' | 'offline';
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';
+export type AIProvider = 'openai' | 'anthropic' | 'ollama';
 /** Agent composer protocol selector: a concrete provider or automatic routing. */
 export type AgentProtocolSelection = AIProvider | 'auto';
 export type AgentRoutingMode = 'manual' | 'auto';
@@ -76,25 +76,36 @@ export interface MigrateToSingleAgentResult {
   agent: Agent | null;
 }
 
-const KNOWN_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'gemini', 'ollama'];
+const KNOWN_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'ollama'];
+
+/** Coerce a stored provider id to a supported provider (unknown → openai). */
+export function normalizeAIProvider(provider: string | undefined | null): AIProvider {
+  if (provider === 'openai' || provider === 'anthropic' || provider === 'ollama') {
+    return provider;
+  }
+  return 'openai';
+}
 
 function inferProviderFromModel(model: string | undefined | null): AIProvider | undefined {
   if (!model) {
     return undefined;
   }
-  const providerCandidate = model.split(':')[0] as AIProvider | undefined;
+  const providerCandidate = model.split(':')[0];
   if (!providerCandidate) {
     return undefined;
   }
-  return KNOWN_PROVIDERS.includes(providerCandidate) ? providerCandidate : undefined;
+  if (KNOWN_PROVIDERS.includes(providerCandidate as AIProvider)) {
+    return providerCandidate as AIProvider;
+  }
+  return undefined;
 }
 
 function resolveProvider(agent: Agent): AIProvider {
   const candidate = agent.provider ?? inferProviderFromModel(agent.model);
-  if (!candidate || (candidate as string) === 'claude-cli' || !KNOWN_PROVIDERS.includes(candidate)) {
+  if (!candidate || (candidate as string) === 'claude-cli') {
     return 'openai';
   }
-  return candidate;
+  return normalizeAIProvider(candidate);
 }
 
 function normalizeAgent(agent: Agent): Agent {

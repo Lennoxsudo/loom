@@ -1,11 +1,10 @@
 /**
  * 工具格式转换模块
- * 
+ *
  * 本模块提供了将工具定义转换为不同 AI 提供商格式的功能：
  * - toAnthropicTools: 转换为 Anthropic Claude 格式
  * - toOpenAITools: 转换为 OpenAI 格式
- * - toGeminiTools: 转换为 Google Gemini 格式
- * 
+ *
  * @module aiTools/converters
  */
 
@@ -143,19 +142,4 @@ export function toOpenAITools(tools: ToolDefinition[]) {
       },
     };
   });
-}
-
-export function toGeminiTools(tools: ToolDefinition[]) {
-  const functionDeclarations = capTools(tools, MAX_TOOLS).map((tool) => {
-    const safeParams = safeProcessParameters(tool.parameters);
-    return {
-      name: tool.name,
-      description: truncateDescription(tool.description, toolDescriptionLimit(tool.name)),
-      parameters: compactSchema(JSON.parse(JSON.stringify(safeParams))),
-    };
-  });
-
-  return functionDeclarations.length > 0
-    ? [{ functionDeclarations }]
-    : [];
 }

@@ -1513,7 +1513,6 @@ export const zhCN: I18nMessages = {
     providers: {
       anthropicDesc: 'Claude 系列',
       openaiDesc: 'GPT 系列',
-      googleDesc: 'Gemini 系列',
     },
     modelDescriptions: {
       speedBalance: '速度与效果平衡',

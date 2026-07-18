@@ -167,17 +167,6 @@ pub fn get_anthropic_models_url(endpoint: &str) -> String {
     }
 }
 
-pub fn get_gemini_models_list_url(endpoint: &str) -> String {
-    let endpoint_trimmed = endpoint.trim().trim_end_matches('/');
-    if endpoint_trimmed.ends_with("/models") {
-        endpoint_trimmed.to_string()
-    } else if endpoint_trimmed.ends_with("/v1beta") || endpoint_trimmed.ends_with("/v1") {
-        format!("{}/models", endpoint_trimmed)
-    } else {
-        format!("{}/v1beta/models", endpoint_trimmed)
-    }
-}
-
 pub fn get_ollama_chat_url(endpoint: &str) -> String {
     let endpoint_trimmed = endpoint.trim().trim_end_matches('/');
     if endpoint_trimmed.ends_with("/chat/completions") {
@@ -197,26 +186,6 @@ pub fn get_anthropic_chat_url(endpoint: &str) -> String {
         format!("{}/messages", endpoint_trimmed)
     } else {
         format!("{}/v1/messages", endpoint_trimmed)
-    }
-}
-
-pub fn get_gemini_chat_url(endpoint: &str, model: &str) -> String {
-    let endpoint_trimmed = endpoint.trim().trim_end_matches('/');
-    if endpoint_trimmed.contains(":generateContent")
-        || endpoint_trimmed.contains(":streamGenerateContent")
-    {
-        endpoint_trimmed.to_string()
-    } else if endpoint_trimmed.ends_with("/v1beta") || endpoint_trimmed.ends_with("/v1") {
-        format!("{}/models/{}:generateContent", endpoint_trimmed, model)
-    } else if endpoint_trimmed.ends_with("/v1beta/models")
-        || endpoint_trimmed.ends_with("/v1/models")
-    {
-        format!("{}/{}:generateContent", endpoint_trimmed, model)
-    } else {
-        format!(
-            "{}/v1beta/models/{}:generateContent",
-            endpoint_trimmed, model
-        )
     }
 }
 

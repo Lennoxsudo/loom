@@ -9,7 +9,6 @@ import {
   filterToolsByContext,
   toOpenAITools,
   toAnthropicTools,
-  toGeminiTools,
 } from '../features/agent-engine';
 import { isToolBlockedInPlanMode } from '../utils/agentTools';
 import { isImageFilePath } from '../utils/fileTreeUtils';
@@ -98,7 +97,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     try {
       const stored = localStorage.getItem(CHAT_PROTOCOL_STORAGE_KEY);
       if (stored === 'auto') return 'auto';
-      if (stored === 'openai' || stored === 'anthropic' || stored === 'gemini' || stored === 'ollama') {
+      if (stored === 'openai' || stored === 'anthropic' || stored === 'ollama') {
         return stored;
       }
     } catch {
@@ -483,9 +482,6 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       }
       if (provider === 'anthropic') {
         return toAnthropicTools(tools);
-      }
-      if (provider === 'gemini') {
-        return toGeminiTools(tools);
       }
       return toOpenAITools(tools);
     },

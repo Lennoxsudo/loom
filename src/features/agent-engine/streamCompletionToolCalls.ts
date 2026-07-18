@@ -6,7 +6,7 @@ export interface StreamCompletionToolResolution {
   cleanedText?: string;
 }
 
-/** 从 provider 格式化后的 tools 列表提取工具名（OpenAI / Anthropic / Gemini） */
+/** 从 provider 格式化后的 tools 列表提取工具名（OpenAI / Anthropic） */
 export function extractKnownToolNamesFromProviderTools(tools: unknown[]): string[] {
   const names: string[] = [];
   for (const tool of tools) {
@@ -21,15 +21,6 @@ export function extractKnownToolNamesFromProviderTools(tools: unknown[]): string
       const fnName = (fn as { name?: string }).name;
       if (typeof fnName === 'string' && fnName.trim()) {
         names.push(fnName.trim());
-      }
-    }
-    if (Array.isArray(record.functionDeclarations)) {
-      for (const decl of record.functionDeclarations) {
-        if (!decl || typeof decl !== 'object') continue;
-        const declName = (decl as { name?: string }).name;
-        if (typeof declName === 'string' && declName.trim()) {
-          names.push(declName.trim());
-        }
       }
     }
   }

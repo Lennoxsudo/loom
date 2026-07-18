@@ -1,4 +1,4 @@
-use super::config::{get_anthropic_chat_url, get_gemini_chat_url, openai_chat_completion_urls};
+use super::config::{get_anthropic_chat_url, openai_chat_completion_urls};
 use super::types::{AIConfig, TestResult};
 
 #[tauri::command]
@@ -25,7 +25,6 @@ pub async fn test_ai_connection(provider: String, config: AIConfig) -> Result<Te
     let result = match provider.as_str() {
         "openai" => test_openai_connection(&client, &config).await,
         "anthropic" => test_anthropic_connection(&client, &config).await,
-        "gemini" => test_gemini_connection(&client, &config).await,
         "ollama" => test_ollama_connection(&client, &config).await,
         _ => Ok(TestResult {
             success: false,
@@ -145,50 +144,6 @@ pub async fn test_anthropic_connection(
                     message: "连接成功！".to_string(),
                 })
             } else if status.as_u16() == 401 {
-                Ok(TestResult {
-                    success: false,
-                    message: "API密钥无效".to_string(),
-                })
-            } else {
-                Ok(TestResult {
-                    success: false,
-                    message: format!("连接失败: HTTP {}", status),
-                })
-            }
-        }
-        Err(e) => Ok(TestResult {
-            success: false,
-            message: format!("连接失败: {}", e),
-        }),
-    }
-}
-
-pub async fn test_gemini_connection(
-    client: &reqwest::Client,
-    config: &AIConfig,
-) -> Result<TestResult, String> {
-    let url = get_gemini_chat_url(&config.endpoint, &config.model);
-
-    let body = serde_json::json!({
-        "contents": [{"parts": [{"text": "test"}]}]
-    });
-
-    match client
-        .post(&url)
-        .header("content-type", "application/json")
-        .header("x-goog-api-key", &config.api_key)
-        .json(&body)
-        .send()
-        .await
-    {
-        Ok(response) => {
-            let status = response.status();
-            if status.is_success() || status.as_u16() == 400 {
-                Ok(TestResult {
-                    success: true,
-                    message: "连接成功！".to_string(),
-                })
-            } else if status.as_u16() == 401 || status.as_u16() == 403 {
                 Ok(TestResult {
                     success: false,
                     message: "API密钥无效".to_string(),

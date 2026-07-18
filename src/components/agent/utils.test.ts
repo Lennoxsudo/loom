@@ -36,8 +36,6 @@ interface ProviderMessage {
   tool_call_id?: string;
   name?: string;
   type?: string;
-  // Gemini
-  parts?: { text: string }[];
 }
 
 function msg(result: { messages: unknown[] }, index: number): ProviderMessage {
@@ -153,17 +151,8 @@ describe('shouldInjectThinkingPrompt', () => {
     expect(shouldInjectThinkingPrompt('openai', 'o1-mini')).toBe(false);
   });
 
-  it('should NOT inject for Gemini models via OpenAI compat', () => {
-    expect(shouldInjectThinkingPrompt('openai', 'gemini-pro')).toBe(false);
-    expect(shouldInjectThinkingPrompt('openai', 'gemini-1.5-flash')).toBe(false);
-  });
-
   it('should NOT inject for Anthropic provider', () => {
     expect(shouldInjectThinkingPrompt('anthropic', 'claude-3-5-sonnet')).toBe(false);
-  });
-
-  it('should NOT inject for Gemini provider', () => {
-    expect(shouldInjectThinkingPrompt('gemini', 'gemini-pro')).toBe(false);
   });
 
   it('should NOT inject for Ollama provider', () => {
@@ -583,24 +572,6 @@ describe('E2E Provider Payload Snapshots (canonicalized)', () => {
     expect(canonicalize(result.messages)).toMatchSnapshot();
   });
 
-  // ── Gemini ──────────────────────────────────────────────────────
-  it('Gemini: structural assertions + snapshot', () => {
-    const result = buildContextForRequest({
-      ...SHARED_OPTIONS,
-      provider: 'gemini',
-    });
-    const all = msgs(result);
-    // Structural: system contains parts with text
-    const system = all[0];
-    expect(system.role).toBe('system');
-    if (system.parts) {
-      expect(Array.isArray(system.parts)).toBe(true);
-      expect(system.parts[0].text).toBeDefined();
-    }
-    // Canonicalized snapshot
-    expect(canonicalize(result.messages)).toMatchSnapshot();
-  });
-
   // ── Ollama ──────────────────────────────────────────────────────
   it('Ollama: structural assertions + snapshot', () => {
     const result = buildContextForRequest({
@@ -622,7 +593,7 @@ describe('E2E Provider Payload Snapshots (canonicalized)', () => {
 // ── Phase 4: Stream vs Non-Stream Equivalence ─────────────────────
 
 describe('Stream vs Non-stream request body equivalence', () => {
-  const providers = ['openai', 'anthropic', 'gemini', 'ollama'] as const;
+  const providers = ['openai', 'anthropic', 'ollama'] as const;
 
   providers.forEach((provider) => {
     it(`${provider}: buildContextForRequest is deterministic (stream == chat)`, () => {

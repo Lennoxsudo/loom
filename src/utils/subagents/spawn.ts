@@ -51,7 +51,7 @@ async function resolveProviderAndModel(
   }
 
   if (config) {
-    for (const provider of ['openai', 'anthropic', 'gemini', 'ollama']) {
+    for (const provider of ['openai', 'anthropic', 'ollama']) {
       const profiles = config.profiles?.[provider];
       if (profiles?.items) {
         for (const profile of profiles.items) {

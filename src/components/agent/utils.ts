@@ -169,12 +169,8 @@ export function isNativeReasoningModel(model: string): boolean {
 /**
  * 判断是否应为当前 provider/model 注入 thinking 指令。
  *
- * 仅对 OpenAI 兼容 provider 且非推理模型（o1-*）且非 Gemini 模型注入。
- * Anthropic / Gemini / Ollama 各有自己的思考机制，不需要此指令。
- *
- * 注意：后端旧版还检查了 endpoint（googleapis.com），但前端调用处
- * 拿不到 endpoint 信息。对应场景（Gemini 走 OpenAI 兼容代理）可通过
- * 模型名包含 "gemini" 来识别。
+ * 仅对 OpenAI 兼容 provider 且非推理模型（o1-*）注入。
+ * Anthropic / Ollama 各有自己的思考机制，不需要此指令。
  */
 export function shouldInjectThinkingPrompt(
   provider: AIProvider,
@@ -183,13 +179,8 @@ export function shouldInjectThinkingPrompt(
   // 仅对 openai 兼容 provider 注入
   if (provider !== 'openai') return false;
 
-  const modelLower = model.toLowerCase();
-
   // o1 系列是原生推理模型，不需要 thinking 标签
   if (model.startsWith('o1-')) return false;
-
-  // Gemini 系列通过 OpenAI 兼容端点也不注入
-  if (modelLower.includes('gemini')) return false;
 
   // 原生推理模型自带 reasoning 通道，不再叠加 <thinking> 指令
   if (isNativeReasoningModel(model)) return false;

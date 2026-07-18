@@ -108,11 +108,6 @@ describe('extractToolNameFromProviderTool', () => {
     expect(extractToolNameFromProviderTool(tool)).toBe('read_file');
   });
 
-  it('extracts name from Gemini format', () => {
-    const tool = { functionDeclarations: [{ name: 'read_file', parameters: {} }] };
-    expect(extractToolNameFromProviderTool(tool)).toBe('read_file');
-  });
-
   it('returns null for unrecognized format', () => {
     expect(extractToolNameFromProviderTool({ random: 'stuff' })).toBeNull();
     expect(extractToolNameFromProviderTool(null)).toBeNull();

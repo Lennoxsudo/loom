@@ -91,7 +91,7 @@ export function extractRecentlyUsedToolNames(
 
 /**
  * 从 provider 格式的工具定义中提取工具名称（用于已转换格式的日志/调试）。
- * 兼容 OpenAI / Anthropic / Gemini 三种格式。
+ * 兼容 OpenAI / Anthropic 格式。
  */
 export function extractToolNameFromProviderTool(tool: unknown): string | null {
   if (typeof tool !== 'object' || tool === null) return null;
@@ -105,14 +105,6 @@ export function extractToolNameFromProviderTool(tool: unknown): string | null {
 
   // Anthropic: { name: '...' }
   if (typeof t.name === 'string') return t.name;
-
-  // Gemini: { functionDeclarations: [{ name: '...' }] }
-  if (Array.isArray(t.functionDeclarations)) {
-    const first = t.functionDeclarations[0];
-    if (first && typeof first === 'object' && typeof first.name === 'string') {
-      return first.name;
-    }
-  }
 
   return null;
 }

@@ -512,7 +512,6 @@ describe('方法 15: 图片附件上下文管理', () => {
     it('returns provider-specific token estimates', () => {
       expect(getImageTokenEstimate('openai')).toBe(85);
       expect(getImageTokenEstimate('anthropic')).toBe(1600);
-      expect(getImageTokenEstimate('gemini')).toBe(258);
       expect(getImageTokenEstimate('ollama')).toBe(300);
     });
 

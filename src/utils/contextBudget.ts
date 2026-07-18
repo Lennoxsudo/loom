@@ -165,13 +165,11 @@ export const DEFAULT_IMAGE_TOKENS = 300;
  * 不同 provider 的图片 token 消耗差异巨大：
  * - OpenAI GPT-4o: 低分辨率 ~85，高分辨率可达 1105
  * - Anthropic Claude: ~1600
- * - Gemini: ~258
  * - Ollama: ~300（本地模型，取决于实现）
  */
 const IMAGE_TOKEN_BY_PROVIDER: Record<string, number> = {
   openai: 85,    // GPT-4o 低分辨率保守值
   anthropic: 1600,
-  gemini: 258,
   ollama: 300,
 };
 

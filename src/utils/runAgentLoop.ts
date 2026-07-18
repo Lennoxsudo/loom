@@ -4,7 +4,7 @@ import type { ChatMessage, ProviderRequestMessage } from '../types/chat';
 import type { ToolDefinition, ToolResult } from '../types/ai';
 import type { ToolCall } from '../features/agent-engine';
 import { executeToolCall } from '../features/agent-engine';
-import { toAnthropicTools, toGeminiTools, toOpenAITools } from '../features/agent-engine/converters';
+import { toAnthropicTools, toOpenAITools } from '../features/agent-engine/converters';
 import { subagentResourceLock } from '../features/agent-engine/subagentResourceLock';
 import type { ToolContext } from '../features/agent-engine/types';
 import {
@@ -81,7 +81,6 @@ async function resolveAppDataPath(): Promise<string | undefined> {
 function formatToolsForProvider(provider: AIProvider, tools: ToolDefinition[]): unknown {
   if (tools.length === 0) return undefined;
   if (provider === 'anthropic') return toAnthropicTools(tools);
-  if (provider === 'gemini') return toGeminiTools(tools);
   return toOpenAITools(tools);
 }
 

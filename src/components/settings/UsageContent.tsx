@@ -1,10 +1,11 @@
-import { type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useTranslation } from '../../i18n';
 import { useEnableUsageTracking, useUpdateUsageTracking } from '../../stores';
 import { useUsageStore, useUsageTotals, useUsageByModel } from '../../stores/useUsageStore';
 import { useNotification } from '../../contexts/NotificationContext';
 import pageStyles from './SettingsPage.module.css';
 import { SettingsPanel, SettingsSection, SettingsRow, SettingsToggle } from './SettingsPrimitives';
+import { SettingsDeleteModal } from './SettingsDeleteModal';
 import styles from './UsageContent.module.css';
 
 function formatNumber(n: number): string {
@@ -19,6 +20,7 @@ export function UsageContent() {
   const byModel = useUsageByModel();
   const sessions = useUsageStore((s) => s.sessions);
   const resetUsage = useUsageStore((s) => s.reset);
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   const enableUsageTracking = useEnableUsageTracking();
   const updateUsageTracking = useUpdateUsageTracking();
@@ -30,10 +32,10 @@ export function UsageContent() {
     (a, b) => b[1].inputTokens + b[1].outputTokens - (a[1].inputTokens + a[1].outputTokens),
   );
 
-  const handleReset = async () => {
-    if (!window.confirm(t.settingsUsage.resetConfirm)) return;
+  const handleReset = () => {
     try {
       resetUsage();
+      setConfirmingReset(false);
     } catch {
       showError(t.errors.updateFailed);
     }
@@ -73,7 +75,11 @@ export function UsageContent() {
           title={t.settingsUsage.totalTokens}
           description={t.settingsUsage.description}
           action={
-            <button type="button" className={styles.resetButton} onClick={handleReset}>
+            <button
+              type="button"
+              className={styles.resetButton}
+              onClick={() => setConfirmingReset(true)}
+            >
               {t.settingsUsage.reset}
             </button>
           }
@@ -153,6 +159,17 @@ export function UsageContent() {
           <p className={styles.emptyState}>{t.settingsUsage.noData}</p>
         )}
       </SettingsPanel>
+
+      {confirmingReset && (
+        <SettingsDeleteModal
+          title={t.settingsUsage.reset}
+          onCancel={() => setConfirmingReset(false)}
+          onConfirm={handleReset}
+          confirmLabel={t.actions.confirm}
+        >
+          {t.settingsUsage.resetConfirm}
+        </SettingsDeleteModal>
+      )}
     </div>
   );
 }

@@ -14,11 +14,10 @@ import { SettingsSelect } from './SettingsPrimitives';
 import { ChevronDownIcon, CloseIcon, PlusIcon } from '../shared/Icons';
 import styles from './AutoRoutingContent.module.css';
 
-const PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'gemini', 'ollama'];
+const PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'ollama'];
 const PROVIDER_LABELS: Record<AIProvider, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
-  gemini: 'Gemini',
   ollama: 'Ollama',
 };
 
@@ -202,10 +201,19 @@ export function AutoRoutingContent() {
           setProfiles(loadedProfiles);
           if (autoRouting) {
             setEnabledSync(autoRouting.enabled ?? false);
-            const loadedEntries = (autoRouting.entries ?? []).map((entry) =>
-              resolveEntryDefaults(entry, loadedProfiles),
-            );
-            setEntriesSync(loadedEntries);
+            const knownProviders: AIProvider[] = ['openai', 'anthropic', 'ollama'];
+            const loadedEntries = (autoRouting.entries ?? [])
+              .map((entry) => {
+                const provider =
+                  entry.provider === 'openai' ||
+                  entry.provider === 'anthropic' ||
+                  entry.provider === 'ollama'
+                    ? entry.provider
+                    : ('openai' as AIProvider);
+                return resolveEntryDefaults({ ...entry, provider }, loadedProfiles);
+              })
+              .filter((entry) => knownProviders.includes(entry.provider));
+            setEntriesSync(loadedEntries.length > 0 ? loadedEntries : []);
           }
         }
       } catch (error) {

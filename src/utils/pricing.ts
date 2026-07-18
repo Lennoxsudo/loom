@@ -97,27 +97,6 @@ const PRICING_RULES: PricingRule[] = [
     test: (p, m) => /openai|azure/.test(p) && /gpt-4/i.test(m),
     pricing: { inputPerMtok: 30, outputPerMtok: 60, cacheReadPerMtok: 0, cacheWritePerMtok: 0 },
   },
-  // --- Google Gemini ---
-  {
-    test: (p, m) => /gemini|google/.test(p) && /2\.5-pro|2-5-pro/i.test(m),
-    pricing: { inputPerMtok: 1.25, outputPerMtok: 10, cacheReadPerMtok: 0, cacheWritePerMtok: 0 },
-  },
-  {
-    test: (p, m) => /gemini|google/.test(p) && /2\.5-flash|2-5-flash/i.test(m),
-    pricing: { inputPerMtok: 0.3, outputPerMtok: 2.5, cacheReadPerMtok: 0, cacheWritePerMtok: 0 },
-  },
-  {
-    test: (p, m) => /gemini|google/.test(p) && /2\.0-flash|2-0-flash/i.test(m),
-    pricing: { inputPerMtok: 0.1, outputPerMtok: 0.4, cacheReadPerMtok: 0, cacheWritePerMtok: 0 },
-  },
-  {
-    test: (p, m) => /gemini|google/.test(p) && /1\.5-pro|1-5-pro/i.test(m),
-    pricing: { inputPerMtok: 1.25, outputPerMtok: 5, cacheReadPerMtok: 0, cacheWritePerMtok: 0 },
-  },
-  {
-    test: (p, m) => /gemini|google/.test(p) && /1\.5-flash|1-5-flash/i.test(m),
-    pricing: { inputPerMtok: 0.075, outputPerMtok: 0.3, cacheReadPerMtok: 0, cacheWritePerMtok: 0 },
-  },
 ];
 
 function num(v?: number | null): number {

@@ -33,11 +33,6 @@ function ConfigTabSelector({
         onClick={() => onSelectTab('anthropic')}
       />
       <ProviderCard
-        label="Gemini"
-        isSelected={activeTab === 'gemini'}
-        onClick={() => onSelectTab('gemini')}
-      />
-      <ProviderCard
         label="Ollama"
         isSelected={activeTab === 'ollama'}
         onClick={() => onSelectTab('ollama')}
@@ -559,9 +554,6 @@ export function AIConfigContent() {
     anthropic: {
       activeId: 'default-anthropic',
               items: [{ id: 'default-anthropic', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.anthropic }],    },
-    gemini: {
-      activeId: 'default-gemini',
-              items: [{ id: 'default-gemini', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.gemini }],    },
     ollama: {
       activeId: 'default-ollama',
               items: [{ id: 'default-ollama', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.ollama }],    },
@@ -617,7 +609,6 @@ export function AIConfigContent() {
   const [configs, setConfigs] = useState<Record<AIProvider, Partial<AIConfig>>>(() => ({
     openai: { ...DEFAULT_AI_CONFIGS.openai },
     anthropic: { ...DEFAULT_AI_CONFIGS.anthropic },
-    gemini: { ...DEFAULT_AI_CONFIGS.gemini },
     ollama: { ...DEFAULT_AI_CONFIGS.ollama },
   }));
   const [expandedProfileId, setExpandedProfileId] = useState<string | null>(null);
@@ -649,7 +640,11 @@ export function AIConfigContent() {
         const configStr = await invoke<string>('load_ai_config');
         if (configStr) {
           const loadedConfig = JSON.parse(configStr);
-          const nextSelectedProvider: AIProvider = loadedConfig.selectedProvider || 'openai';
+          const rawSelected = loadedConfig.selectedProvider || 'openai';
+          const nextSelectedProvider: AIProvider =
+            rawSelected === 'openai' || rawSelected === 'anthropic' || rawSelected === 'ollama'
+              ? rawSelected
+              : 'openai';
           const loadedConfigsRaw = loadedConfig.configs || null;
           const loadedConfigsMigrated: Partial<Record<AIProvider, Partial<AIConfig>>> =
             loadedConfigsRaw
@@ -658,12 +653,7 @@ export function AIConfigContent() {
                     acc: Partial<Record<AIProvider, Partial<AIConfig>>>,
                     [key, value]: [string, unknown]
                   ) => {
-                    if (
-                      key === 'openai' ||
-                      key === 'anthropic' ||
-                      key === 'gemini' ||
-                      key === 'ollama'
-                    ) {
+                    if (key === 'openai' || key === 'anthropic' || key === 'ollama') {
                       acc[key as AIProvider] = normalizeConfigValue(key as AIProvider, value);
                     }
                     return acc;
@@ -678,7 +668,6 @@ export function AIConfigContent() {
               ...DEFAULT_AI_CONFIGS.anthropic,
               ...(loadedConfigsMigrated.anthropic || {}),
             },
-            gemini: { ...DEFAULT_AI_CONFIGS.gemini, ...(loadedConfigsMigrated.gemini || {}) },
             ollama: { ...DEFAULT_AI_CONFIGS.ollama, ...(loadedConfigsMigrated.ollama || {}) },
           };
 
@@ -725,11 +714,10 @@ export function AIConfigContent() {
             nextProfiles = {
               openai: buildProviderProfiles('openai'),
               anthropic: buildProviderProfiles('anthropic'),
-              gemini: buildProviderProfiles('gemini'),
               ollama: buildProviderProfiles('ollama'),
             };
 
-            (['openai', 'anthropic', 'gemini', 'ollama'] as AIProvider[]).forEach((p) => {
+            (['openai', 'anthropic', 'ollama'] as AIProvider[]).forEach((p) => {
               const active = nextProfiles[p].items.find((it) => it.id === nextProfiles[p].activeId);
               if (active) {
                 const snapshot = nextConfigs[p];
@@ -747,7 +735,6 @@ export function AIConfigContent() {
             nextProfiles = {
               openai: makeProviderProfiles('openai'),
               anthropic: makeProviderProfiles('anthropic'),
-              gemini: makeProviderProfiles('gemini'),
               ollama: makeProviderProfiles('ollama'),
             };
           }

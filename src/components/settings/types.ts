@@ -1,5 +1,5 @@
 export type SettingsTab = 'general' | 'agent' | 'skills' | 'rules' | 'ai-management' | 'ai-config' | 'mcp-config' | 'preferences' | 'code-graph' | 'claude' | 'auto-routing' | 'ports' | 'usage';
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';
+export type AIProvider = 'openai' | 'anthropic' | 'ollama';
 
 export type AIConfigTab = AIProvider | 'image-generation';
 
@@ -94,14 +94,6 @@ export const DEFAULT_AI_CONFIGS: Record<AIProvider, AIConfig> = {
     endpoint: 'https://api.anthropic.com',
     apiKey: '',
     models: ['claude-3-5-sonnet-20241022'],
-    supportsVision: true,
-    visionMaxImages: 4,
-    visionMaxBytes: 10 * 1024 * 1024,
-  },
-  gemini: {
-    endpoint: 'https://generativelanguage.googleapis.com',
-    apiKey: '',
-    models: ['gemini-1.5-flash'],
     supportsVision: true,
     visionMaxImages: 4,
     visionMaxBytes: 10 * 1024 * 1024,
