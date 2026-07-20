@@ -763,8 +763,11 @@ export const zhCN: I18nMessages = {
       expandAll: '展开全部',
       collapse: '收起',
       copyCommand: '复制命令',
+      copyOutput: '复制输出',
       copied: '命令已复制',
+      copiedOutput: '输出已复制',
       noOutput: '（无输出）',
+      lines: '行',
     },
     bgTask: {
       title: '后台任务',

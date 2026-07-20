@@ -769,8 +769,11 @@ export const enUS: I18nMessages = {
       expandAll: 'Expand all',
       collapse: 'Collapse',
       copyCommand: 'Copy command',
+      copyOutput: 'Copy output',
       copied: 'Command copied',
+      copiedOutput: 'Output copied',
       noOutput: '(no output)',
+      lines: 'ln',
     },
     bgTask: {
       title: 'Background Tasks',

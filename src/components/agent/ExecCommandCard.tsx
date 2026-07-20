@@ -5,7 +5,7 @@ import { CopyIcon } from '../shared/Icons';
 import type { ParsedCommandExec } from '../../utils/parseCommandExecOutput';
 import styles from './ExecCommandCard.module.css';
 
-const COLLAPSE_LINE_LIMIT = 20;
+const COLLAPSE_LINE_LIMIT = 10;
 
 function formatDuration(ms: number | null): string {
   if (ms === null) return '—';
@@ -37,7 +37,6 @@ const ExecCommandCard = memo(function ExecCommandCard({
   const [outputFullyExpanded, setOutputFullyExpanded] = useState(false);
   const wasRunningRef = useRef(isRunning);
 
-  // ── 运行时计时器 ──
   const [elapsedMs, setElapsedMs] = useState(0);
   const startTimeRef = useRef(0);
 
@@ -49,13 +48,9 @@ const ExecCommandCard = memo(function ExecCommandCard({
         setElapsedMs(Date.now() - startTimeRef.current);
       }, 1000);
       return () => clearInterval(timer);
-    } else {
-      setElapsedMs(0);
     }
+    setElapsedMs(0);
   }, [isRunning]);
-
-  const elapsedDisplay = isRunning && elapsedMs > 0 ? `(${formatDuration(elapsedMs)})` : '';
-  const showRunningWarning = isRunning && elapsedMs > 25_000 && !parsed.output;
 
   const lineCount = useMemo(() => {
     if (!parsed.output) return 0;
@@ -65,11 +60,9 @@ const ExecCommandCard = memo(function ExecCommandCard({
   const shouldTruncate = outputExpanded && lineCount > COLLAPSE_LINE_LIMIT && !outputFullyExpanded;
   const showBody = outputExpanded || isRunning;
 
-  // 执行完成时补偿输出折叠后的高度损失，使底部吸附保持生效
   useEffect(() => {
     if (wasRunningRef.current && !isRunning) {
       requestAnimationFrame(() => {
-        // 从卡片根元素向上查找最近的可滚动父容器，推到底部
         let el: HTMLElement | null = cardRef.current;
         for (let i = 0; i < 20 && el; i++) {
           if (el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY === 'auto') {
@@ -103,27 +96,45 @@ const ExecCommandCard = memo(function ExecCommandCard({
     }
   }, [parsed.command, t.agent.execCommand.copied]);
 
+  const handleCopyOutput = useCallback(async () => {
+    if (!parsed.output) return;
+    try {
+      await navigator.clipboard.writeText(parsed.output);
+      showSuccess(t.agent.execCommand.copiedOutput);
+    } catch {
+      // ignore clipboard failures
+    }
+  }, [parsed.output, t.agent.execCommand.copiedOutput]);
+
   const exitDisplay =
-    parsed.exitCode === null ? '—' : String(parsed.exitCode);
-  const exitClass =
-    parsed.exitCode === null
-      ? styles.metaMuted
-      : parsed.exitCode === 0
-        ? styles.exitSuccess
-        : styles.exitFailure;
+    parsed.exitCode === null ? (isRunning ? 'run' : '—') : String(parsed.exitCode);
+  const durationDisplay = isRunning
+    ? elapsedMs > 0
+      ? formatDuration(elapsedMs)
+      : t.agent.execCommand.running
+    : formatDuration(parsed.durationMs);
+
+  const statusClass = isRunning
+    ? styles.isRun
+    : isError || (parsed.exitCode !== null && parsed.exitCode !== 0)
+      ? styles.isError
+      : styles.isOk;
+
+  const approvalClass =
+    approvalStatus === 'pending'
+      ? styles.execCardPending
+      : approvalStatus === 'approved'
+        ? styles.execCardApproved
+        : approvalStatus === 'denied'
+          ? styles.execCardDenied
+          : '';
 
   return (
     <div
       ref={cardRef}
-      className={`${styles.execCard} ${dense ? styles.execCardDense : ''} ${
-        approvalStatus === 'pending'
-          ? styles.execCardPending
-          : approvalStatus === 'approved'
-            ? styles.execCardApproved
-            : approvalStatus === 'denied'
-              ? styles.execCardDenied
-              : ''
-      }`}
+      className={`${styles.execCard} ${dense ? styles.execCardDense : ''} ${statusClass} ${
+        showBody ? styles.isOpen : ''
+      } ${approvalClass}`}
       data-testid="exec-command-card"
     >
       <div className={styles.header}>
@@ -147,95 +158,123 @@ const ExecCommandCard = memo(function ExecCommandCard({
           </span>
           <div className={styles.commandLine}>{parsed.command}</div>
         </button>
-        {isRunning && (
-          <span className={styles.running} aria-live="polite">
-            <span className={styles.runningDot} aria-hidden="true" />
-            {elapsedDisplay ? (
-              <span className={styles.metaMuted}>{elapsedDisplay}</span>
-            ) : (
-              <span className={styles.metaMuted}>{t.agent.execCommand.running}</span>
-            )}
+
+        <div className={styles.meta}>
+          <span className={styles.statusDot} aria-hidden="true" />
+          <span
+            className={
+              isRunning
+                ? styles.metaMuted
+                : parsed.exitCode === null
+                  ? styles.metaMuted
+                  : parsed.exitCode === 0
+                    ? styles.exitSuccess
+                    : styles.exitFailure
+            }
+          >
+            {exitDisplay}
           </span>
-        )}
-        <button
-          type="button"
-          className={styles.copyButton}
-          onClick={(event) => {
-            event.stopPropagation();
-            void handleCopy();
-          }}
-          aria-label={t.agent.execCommand.copyCommand}
-          title={t.agent.copy}
-        >
-          <CopyIcon size={12} />
-        </button>
+          <span className={styles.metaSep} aria-hidden="true" />
+          <span className={styles.metaMuted}>{durationDisplay}</span>
+          {!isRunning && lineCount > 0 && (
+            <>
+              <span className={styles.metaSep} aria-hidden="true" />
+              <span className={styles.metaMuted}>
+                {lineCount} {t.agent.execCommand.lines}
+              </span>
+            </>
+          )}
+          <button
+            type="button"
+            className={styles.copyButton}
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleCopy();
+            }}
+            aria-label={t.agent.execCommand.copyCommand}
+            title={t.agent.copy}
+          >
+            <CopyIcon size={11} />
+          </button>
+        </div>
       </div>
 
       {showBody && (
-      <div className={styles.body}>
-        {parsed.isBackgroundStart ? (
-          <div className={styles.backgroundNote}>{parsed.output}</div>
-        ) : isRunning && !parsed.output ? (
-          <div className={styles.emptyOutput}>{t.agent.execCommand.running}</div>
-        ) : parsed.output ? (
-          <>
+        <div className={styles.body}>
+          {parsed.isBackgroundStart ? (
+            <div className={styles.backgroundNote}>{parsed.output}</div>
+          ) : isRunning && !parsed.output ? (
+            <div className={styles.emptyOutput}>{t.agent.execCommand.running}</div>
+          ) : parsed.output ? (
             <pre
               ref={outputRef}
               className={`${styles.output} ${shouldTruncate ? styles.outputCollapsed : ''}`}
             >
               {parsed.output}
             </pre>
-            {shouldTruncate && <div className={styles.outputFade} aria-hidden="true" />}
-          </>
-        ) : (
-          <div className={styles.emptyOutput}>{t.agent.execCommand.noOutput}</div>
-        )}
-        {showRunningWarning && (
-          <div className={styles.timeoutWarning}>
-            <span>⚡</span>
-            <span>{t.agent.execCommand.runningLong}</span>
-          </div>
-        )}
+          ) : (
+            <div className={styles.emptyOutput}>{t.agent.execCommand.noOutput}</div>
+          )}
 
-        {shouldTruncate && (
-          <div className={styles.expandRow}>
-            <button
-              type="button"
-              className={styles.expandButton}
-              onClick={() => setOutputFullyExpanded(true)}
-            >
-              {t.agent.execCommand.expandAll}
-            </button>
-          </div>
-        )}
+          {isRunning && elapsedMs > 25_000 && !parsed.output && (
+            <div className={styles.timeoutWarning}>
+              <span>⚡</span>
+              <span>{t.agent.execCommand.runningLong}</span>
+            </div>
+          )}
 
-        {outputFullyExpanded && lineCount > COLLAPSE_LINE_LIMIT && (
-          <div className={styles.expandRow}>
-            <button
-              type="button"
-              className={styles.expandButton}
-              onClick={() => setOutputFullyExpanded(false)}
-            >
-              {t.agent.execCommand.collapse}
-            </button>
-          </div>
-        )}
-      </div>
-      )}
-
-      {!footer && showBody && !isRunning && (
-        <div className={styles.footer}>
-          <span className={exitClass}>
-            {t.agent.execCommand.exitCode}
-            <span className={styles.metaValue}>{exitDisplay}</span>
-          </span>
-          <span className={styles.metaMuted}>
-            {t.agent.execCommand.duration}
-            <span className={styles.metaValue}>{formatDuration(parsed.durationMs)}</span>
-          </span>
-          {isError && <span className={styles.exitFailure}>{t.common.failed}</span>}
+          {!isRunning && (
+            <div className={styles.rail}>
+              <div className={styles.railLeft}>
+                <span>
+                  {t.agent.execCommand.exitCode}
+                  <span className={styles.metaValue}>{parsed.exitCode === null ? '—' : String(parsed.exitCode)}</span>
+                </span>
+                <span>
+                  {t.agent.execCommand.duration}
+                  <span className={styles.metaValue}>{formatDuration(parsed.durationMs)}</span>
+                </span>
+                {lineCount > 0 && (
+                  <span>
+                    {lineCount} {t.agent.execCommand.lines}
+                  </span>
+                )}
+                {isError && <span className={styles.exitFailure}>{t.common.failed}</span>}
+              </div>
+              <div className={styles.railRight}>
+                {shouldTruncate && (
+                  <button
+                    type="button"
+                    className={styles.railLink}
+                    onClick={() => setOutputFullyExpanded(true)}
+                  >
+                    {t.agent.execCommand.expandAll}
+                  </button>
+                )}
+                {outputFullyExpanded && lineCount > COLLAPSE_LINE_LIMIT && (
+                  <button
+                    type="button"
+                    className={styles.railLink}
+                    onClick={() => setOutputFullyExpanded(false)}
+                  >
+                    {t.agent.execCommand.collapse}
+                  </button>
+                )}
+                {parsed.output && (
+                  <button
+                    type="button"
+                    className={styles.railLink}
+                    onClick={() => void handleCopyOutput()}
+                  >
+                    {t.agent.execCommand.copyOutput}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
       {footer}
     </div>
   );

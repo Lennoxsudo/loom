@@ -38,18 +38,29 @@ afterEach(() => {
 });
 
 describe('ExecCommandCard', () => {
-  test('renders command, exit code, and duration when expanded', async () => {
-    const user = userEvent.setup();
+  test('renders command and inline meta when collapsed', () => {
     renderCard();
     expect(screen.getByText('echo hello')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Expand all' }));
+    // exit code + duration are visible in header without expanding
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('42ms')).toBeInTheDocument();
+    expect(screen.getByText('1 ln')).toBeInTheDocument();
+  });
+
+  test('shows exit code and duration in rail when expanded', async () => {
+    const user = userEvent.setup();
+    renderCard();
+    await user.click(screen.getByRole('button', { name: 'Expand all' }));
+    // header + rail both show exit / duration
+    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('42ms').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Copy output')).toBeInTheDocument();
   });
 
   test('shows running state', () => {
     renderCard({ ...baseParsed, output: '', exitCode: null, durationMs: null }, { isRunning: true });
     expect(screen.getAllByText('Running…').length).toBeGreaterThan(0);
+    expect(screen.getByText('run')).toBeInTheDocument();
   });
 
   test('shows output while running and collapses when finished', () => {

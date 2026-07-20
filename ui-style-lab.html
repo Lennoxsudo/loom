@@ -1,0 +1,1248 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loom UI Style Lab</title>
+    <style>
+      /* =========================================================
+       * Loom UI Style Lab
+       * 用途：在浏览器里先设计/试样式，确认后再改真实项目 CSS。
+       * 打开方式：双击本文件，或浏览器直接打开 file://...
+       * ========================================================= */
+
+      :root {
+        /* Backgrounds */
+        --bg-primary: #1e1e1e;
+        --bg-app: #1e1e1e;
+        --bg-sidebar: #252526;
+        --bg-activity-bar: #333333;
+        --bg-editor: #1e1e1e;
+        --bg-panel: #1e1e1e;
+        --bg-header: #2d2d2d;
+        --bg-input: #3c3c3c;
+        --bg-dropdown: #252526;
+        --bg-overlay: rgba(0, 0, 0, 0.4);
+
+        /* Interactive */
+        --bg-hover: #2a2d2e;
+        --bg-list-hover: #2a2d2e;
+        --bg-list-active: #37373d;
+        --bg-button: #007acc;
+        --bg-button-hover: #0062a3;
+        --bg-muted: #252526;
+        --bg-elevated: rgba(30, 30, 30, 0.85);
+        --bg-scrollbar-thumb: #424242;
+        --bg-scrollbar-thumb-hover: #4f4f4f;
+
+        /* Text */
+        --text-primary: #cccccc;
+        --text-secondary: #858585;
+        --text-inverse: #ffffff;
+        --text-accent: #007acc;
+        --text-error: #f48771;
+        --text-warning: #cca700;
+        --text-success: #89d185;
+
+        /* Borders */
+        --border-primary: #454545;
+        --border-subtle: #2b2b2b;
+        --border-focus: #007acc;
+        --border-strong: #3c3c3c;
+        --surface-accent-soft: rgba(0, 122, 204, 0.12);
+        --surface-accent-strong: rgba(0, 122, 204, 0.18);
+        --surface-overlay-soft: rgba(255, 255, 255, 0.04);
+        --surface-overlay-border: rgba(255, 255, 255, 0.08);
+
+        /* Dimensions */
+        --activity-bar-width: 48px;
+        --title-bar-height: 30px;
+        --status-bar-height: 22px;
+        --editor-tab-height: 35px;
+        --sidebar-width: 250px;
+        --agent-width: 380px;
+        --radius-sm: 3px;
+        --radius-md: 6px;
+        --radius-lg: 10px;
+        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+        --transition-fast: 0.1s ease;
+        --transition-normal: 0.2s ease;
+
+        /* Lab-only controls */
+        --lab-accent: #007acc;
+        --font-ui: "Segoe UI", Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "Cascadia Code", "Fira Code", Consolas, "Courier New", monospace;
+      }
+
+      :root[data-theme="light"] {
+        --bg-primary: #ffffff;
+        --bg-app: #f5f5f5;
+        --bg-sidebar: #ebebeb;
+        --bg-activity-bar: #dddddd;
+        --bg-editor: #ffffff;
+        --bg-panel: #ffffff;
+        --bg-header: #e5e5e5;
+        --bg-input: #ffffff;
+        --bg-dropdown: #ffffff;
+        --bg-overlay: rgba(0, 0, 0, 0.16);
+        --bg-hover: #e8eef7;
+        --bg-list-hover: #edf3fb;
+        --bg-list-active: #dbeafe;
+        --bg-button: #0b69c7;
+        --bg-button-hover: #0959a8;
+        --bg-muted: #f0f2f4;
+        --bg-elevated: rgba(255, 255, 255, 0.9);
+        --bg-scrollbar-thumb: #c1c1c1;
+        --bg-scrollbar-thumb-hover: #a9a9a9;
+        --text-primary: #1f2328;
+        --text-secondary: #5f6b7a;
+        --text-inverse: #ffffff;
+        --text-accent: #0b69c7;
+        --text-error: #c73e1d;
+        --text-warning: #9a6700;
+        --text-success: #1a7f37;
+        --border-primary: #d0d7de;
+        --border-subtle: #e5e7eb;
+        --border-focus: #0b69c7;
+        --border-strong: #c1c7cf;
+        --surface-accent-soft: rgba(11, 105, 199, 0.12);
+        --surface-accent-strong: rgba(11, 105, 199, 0.18);
+        --surface-overlay-soft: rgba(15, 23, 42, 0.05);
+        --surface-overlay-border: rgba(15, 23, 42, 0.12);
+        --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.08);
+        --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.12);
+        --lab-accent: #0b69c7;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg-app);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+
+      button {
+        border: none;
+        background: none;
+        cursor: pointer;
+      }
+
+      /* ---------- Shell ---------- */
+      .app {
+        display: grid;
+        grid-template-rows: var(--title-bar-height) 1fr var(--status-bar-height);
+        height: 100vh;
+        width: 100vw;
+        background: var(--bg-app);
+      }
+
+      /* Title bar */
+      .titleBar {
+        height: var(--title-bar-height);
+        background: var(--bg-header);
+        border-bottom: 1px solid var(--border-primary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px 0 14px;
+        user-select: none;
+        position: relative;
+      }
+
+      .titleLeft {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1;
+      }
+
+      .brand {
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .menuItem {
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+      }
+
+      .menuItem:hover {
+        background: var(--bg-hover);
+      }
+
+      .projectName {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        color: var(--text-primary);
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .windowControls {
+        display: flex;
+        gap: 2px;
+        z-index: 1;
+      }
+
+      .winBtn {
+        width: 36px;
+        height: 22px;
+        border-radius: 2px;
+        color: var(--text-secondary);
+      }
+
+      .winBtn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      .winBtn.close:hover {
+        background: #e81123;
+        color: #fff;
+      }
+
+      /* Main layout */
+      .main {
+        display: grid;
+        grid-template-columns: var(--activity-bar-width) var(--sidebar-width) 1fr var(--agent-width);
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      /* Activity bar */
+      .activityBar {
+        background: color-mix(in srgb, var(--bg-activity-bar) 88%, var(--bg-sidebar));
+        border-right: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        padding-top: 4px;
+      }
+
+      .actBtn {
+        height: 48px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        color: var(--text-secondary);
+      }
+
+      .actBtn::before {
+        content: "";
+        position: absolute;
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-lg);
+        background: transparent;
+        transition: background var(--transition-normal), box-shadow var(--transition-normal);
+      }
+
+      .actBtn:hover {
+        color: var(--text-primary);
+      }
+
+      .actBtn:hover::before {
+        background: var(--surface-overlay-soft);
+      }
+
+      .actBtn.active {
+        color: var(--text-inverse);
+      }
+
+      .actBtn.active::before {
+        background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 5%, transparent);
+      }
+
+      .actBtn svg {
+        width: 22px;
+        height: 22px;
+        position: relative;
+        z-index: 1;
+        opacity: 0.55;
+      }
+
+      .actBtn:hover svg,
+      .actBtn.active svg {
+        opacity: 1;
+      }
+
+      .actSpacer {
+        flex: 1;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        background: var(--bg-sidebar);
+        border-right: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .sideHeader {
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 11px;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .sideActions {
+        display: flex;
+        gap: 4px;
+      }
+
+      .iconBtn {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        display: grid;
+        place-items: center;
+      }
+
+      .iconBtn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      .tree {
+        flex: 1;
+        overflow: auto;
+        padding: 6px 0;
+      }
+
+      .treeItem {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 24px;
+        padding: 0 12px;
+        color: var(--text-primary);
+        cursor: default;
+      }
+
+      .treeItem:hover {
+        background: var(--bg-list-hover);
+      }
+
+      .treeItem.active {
+        background: var(--bg-list-active);
+      }
+
+      .treeItem.indent-1 {
+        padding-left: 24px;
+      }
+
+      .treeItem.indent-2 {
+        padding-left: 40px;
+      }
+
+      .chev {
+        width: 12px;
+        color: var(--text-secondary);
+        font-size: 10px;
+      }
+
+      .fileDot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-accent);
+        flex-shrink: 0;
+      }
+
+      .fileDot.ts {
+        background: #3178c6;
+      }
+      .fileDot.css {
+        background: #563d7c;
+      }
+      .fileDot.md {
+        background: #519aba;
+      }
+      .fileDot.rs {
+        background: #dea584;
+      }
+
+      /* Editor area */
+      .editorArea {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--bg-editor);
+      }
+
+      .tabs {
+        height: var(--editor-tab-height);
+        display: flex;
+        align-items: stretch;
+        background: var(--bg-header);
+        border-bottom: 1px solid var(--border-subtle);
+        overflow: hidden;
+      }
+
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        border-right: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        max-width: 180px;
+        min-width: 0;
+      }
+
+      .tab:hover {
+        background: var(--bg-hover);
+      }
+
+      .tab.active {
+        background: var(--bg-editor);
+        color: var(--text-primary);
+        box-shadow: inset 0 -1px 0 var(--border-focus);
+      }
+
+      .tabName {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tabClose {
+        opacity: 0.5;
+        border-radius: 3px;
+        width: 16px;
+        height: 16px;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+      }
+
+      .tab:hover .tabClose,
+      .tab.active .tabClose {
+        opacity: 1;
+      }
+
+      .tabClose:hover {
+        background: var(--surface-overlay-soft);
+      }
+
+      .breadcrumb {
+        height: 22px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--bg-editor);
+      }
+
+      .breadcrumb span {
+        color: var(--text-primary);
+      }
+
+      .codeView {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 48px 1fr;
+        min-height: 0;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .gutter {
+        padding: 12px 8px;
+        text-align: right;
+        color: var(--text-secondary);
+        background: var(--bg-editor);
+        border-right: 1px solid var(--border-subtle);
+        user-select: none;
+      }
+
+      .code {
+        padding: 12px 16px;
+        white-space: pre;
+        color: var(--text-primary);
+      }
+
+      .tok-kw {
+        color: #569cd6;
+      }
+      .tok-str {
+        color: #ce9178;
+      }
+      .tok-fn {
+        color: #dcdcaa;
+      }
+      .tok-cm {
+        color: #6a9955;
+      }
+      .tok-type {
+        color: #4ec9b0;
+      }
+
+      :root[data-theme="light"] .tok-kw {
+        color: #0550ae;
+      }
+      :root[data-theme="light"] .tok-str {
+        color: #0a3069;
+      }
+      :root[data-theme="light"] .tok-fn {
+        color: #8250df;
+      }
+      :root[data-theme="light"] .tok-cm {
+        color: #6e7781;
+      }
+      :root[data-theme="light"] .tok-type {
+        color: #116329;
+      }
+
+      /* Agent panel */
+      .agent {
+        background: var(--bg-primary);
+        border-left: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .agentHeader {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--bg-header);
+      }
+
+      .agentTitle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+
+      .pill {
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--surface-accent-soft);
+        color: var(--text-accent);
+        border: 1px solid color-mix(in srgb, var(--text-accent) 25%, transparent);
+      }
+
+      .messages {
+        flex: 1;
+        overflow: auto;
+        padding: 14px 14px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .msg {
+        max-width: 100%;
+      }
+
+      .msg.user .bubble {
+        margin-left: auto;
+        max-width: 92%;
+        background: var(--surface-accent-soft);
+        border: 1px solid color-mix(in srgb, var(--text-accent) 22%, var(--border-subtle));
+        border-radius: 12px 12px 4px 12px;
+        padding: 10px 12px;
+      }
+
+      .msg.assistant .meta {
+        color: var(--text-secondary);
+        font-size: 11px;
+        margin-bottom: 6px;
+      }
+
+      .msg.assistant .bubble {
+        background: transparent;
+        color: var(--text-primary);
+        line-height: 1.5;
+      }
+
+      .toolCard {
+        margin-top: 8px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        background: var(--bg-muted);
+        overflow: hidden;
+      }
+
+      .toolHead {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .toolHead strong {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      .badge {
+        margin-left: auto;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--text-success) 18%, transparent);
+        color: var(--text-success);
+      }
+
+      .toolBody {
+        padding: 8px 10px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+      }
+
+      .composer {
+        border-top: 1px solid var(--border-subtle);
+        padding: 12px;
+        background: var(--bg-primary);
+      }
+
+      .composerBox {
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-md);
+        background: var(--bg-input);
+        padding: 10px 10px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      }
+
+      .composerBox:focus-within {
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-focus) 35%, transparent);
+      }
+
+      .composerBox textarea {
+        width: 100%;
+        min-height: 56px;
+        max-height: 140px;
+        resize: vertical;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--text-primary);
+        line-height: 1.45;
+      }
+
+      .composerBox textarea::placeholder {
+        color: var(--text-secondary);
+      }
+
+      .composerFooter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .composerMeta {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: var(--text-secondary);
+        font-size: 11px;
+      }
+
+      .chip {
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-muted);
+        border-radius: 999px;
+        padding: 2px 8px;
+        color: var(--text-secondary);
+      }
+
+      .chip:hover {
+        border-color: var(--border-primary);
+        color: var(--text-primary);
+      }
+
+      .sendBtn {
+        background: var(--bg-button);
+        color: var(--text-inverse);
+        border-radius: var(--radius-md);
+        padding: 6px 12px;
+        font-weight: 600;
+      }
+
+      .sendBtn:hover {
+        background: var(--bg-button-hover);
+      }
+
+      /* Status bar */
+      .statusBar {
+        height: var(--status-bar-height);
+        background: var(--bg-button);
+        color: var(--text-inverse);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      .statusLeft,
+      .statusRight {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .statusItem {
+        opacity: 0.95;
+      }
+
+      /* Floating lab toolbar */
+      .labBar {
+        position: fixed;
+        right: 16px;
+        bottom: 36px;
+        z-index: 1000;
+        width: min(320px, calc(100vw - 24px));
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-primary);
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+      }
+
+      .labHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: color-mix(in srgb, var(--bg-header) 80%, transparent);
+      }
+
+      .labHead h1 {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .labBody {
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .labNote {
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .labRow {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .labRow label {
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .labRow input[type="color"] {
+        width: 100%;
+        height: 28px;
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-sm);
+        background: var(--bg-input);
+        padding: 2px;
+      }
+
+      .labActions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .labBtn {
+        border: 1px solid var(--border-primary);
+        background: var(--bg-muted);
+        border-radius: var(--radius-md);
+        padding: 6px 10px;
+        color: var(--text-primary);
+      }
+
+      .labBtn:hover {
+        background: var(--bg-hover);
+      }
+
+      .labBtn.primary {
+        background: var(--bg-button);
+        border-color: transparent;
+        color: var(--text-inverse);
+      }
+
+      .labBtn.primary:hover {
+        background: var(--bg-button-hover);
+      }
+
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .swatch {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--surface-overlay-border);
+        cursor: pointer;
+      }
+
+      .swatch:hover {
+        outline: 2px solid var(--border-focus);
+        outline-offset: 1px;
+      }
+
+      /* Scrollbars */
+      .tree::-webkit-scrollbar,
+      .messages::-webkit-scrollbar,
+      .codeView::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      .tree::-webkit-scrollbar-thumb,
+      .messages::-webkit-scrollbar-thumb,
+      .codeView::-webkit-scrollbar-thumb {
+        background: var(--bg-scrollbar-thumb);
+        border-radius: 8px;
+      }
+
+      .tree::-webkit-scrollbar-thumb:hover,
+      .messages::-webkit-scrollbar-thumb:hover,
+      .codeView::-webkit-scrollbar-thumb:hover {
+        background: var(--bg-scrollbar-thumb-hover);
+      }
+
+      @media (max-width: 1100px) {
+        .main {
+          grid-template-columns: var(--activity-bar-width) 200px 1fr 300px;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .main {
+          grid-template-columns: var(--activity-bar-width) 1fr;
+        }
+        .sidebar,
+        .agent {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app" id="app">
+      <!-- Title bar -->
+      <header class="titleBar">
+        <div class="titleLeft">
+          <div class="brand">Loom</div>
+          <button class="menuItem" type="button">File</button>
+          <button class="menuItem" type="button">Edit</button>
+          <button class="menuItem" type="button">View</button>
+          <button class="menuItem" type="button">Terminal</button>
+        </div>
+        <div class="projectName">Aiasprrato — ui-style-lab.html</div>
+        <div class="windowControls">
+          <button class="winBtn" type="button" aria-label="Minimize">—</button>
+          <button class="winBtn" type="button" aria-label="Maximize">□</button>
+          <button class="winBtn close" type="button" aria-label="Close">×</button>
+        </div>
+      </header>
+
+      <div class="main">
+        <!-- Activity bar -->
+        <nav class="activityBar" aria-label="Activity Bar">
+          <button class="actBtn active" type="button" title="Explorer" aria-label="Explorer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 6.5h7l1.5 1.5H20v9.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5v-11Z" />
+            </svg>
+          </button>
+          <button class="actBtn" type="button" title="Search" aria-label="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="6" />
+              <path d="M16 16l4 4" />
+            </svg>
+          </button>
+          <button class="actBtn" type="button" title="Git" aria-label="Git">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="6" cy="6" r="2.2" />
+              <circle cx="6" cy="18" r="2.2" />
+              <circle cx="18" cy="12" r="2.2" />
+              <path d="M6 8.2v7.6M8.2 6h5.3a2.5 2.5 0 0 1 2.5 2.5V9.8" />
+            </svg>
+          </button>
+          <button class="actBtn" type="button" title="Agent" aria-label="Agent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="5" y="7" width="14" height="11" rx="2" />
+              <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+              <circle cx="9.5" cy="12.5" r="1" fill="currentColor" />
+              <circle cx="14.5" cy="12.5" r="1" fill="currentColor" />
+            </svg>
+          </button>
+          <div class="actSpacer"></div>
+          <button class="actBtn" type="button" title="Settings" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.08V21a2 2 0 1 1-4 0v-.08A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.08-.4H3a2 2 0 1 1 0-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.08V3a2 2 0 1 1 4 0v.08A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.24.3.45.63.6 1 .13.33.2.7.2 1.08V11a2 2 0 1 1 0 4h-.08c-.38 0-.75.07-1.08.2-.37.15-.7.36-1 .6Z"
+              />
+            </svg>
+          </button>
+        </nav>
+
+        <!-- Sidebar / file tree -->
+        <aside class="sidebar">
+          <div class="sideHeader">
+            <span>Explorer</span>
+            <div class="sideActions">
+              <button class="iconBtn" type="button" title="New File">＋</button>
+              <button class="iconBtn" type="button" title="Refresh">↻</button>
+            </div>
+          </div>
+          <div class="tree">
+            <div class="treeItem">
+              <span class="chev">▾</span>
+              <strong>Aiasprrato</strong>
+            </div>
+            <div class="treeItem indent-1">
+              <span class="chev">▾</span>
+              src
+            </div>
+            <div class="treeItem indent-2">
+              <span class="fileDot ts"></span>
+              App.tsx
+            </div>
+            <div class="treeItem indent-2 active">
+              <span class="fileDot css"></span>
+              variables.css
+            </div>
+            <div class="treeItem indent-2">
+              <span class="fileDot ts"></span>
+              runAgentLoop.ts
+            </div>
+            <div class="treeItem indent-1">
+              <span class="chev">▾</span>
+              src-tauri
+            </div>
+            <div class="treeItem indent-2">
+              <span class="fileDot rs"></span>
+              lib.rs
+            </div>
+            <div class="treeItem indent-1">
+              <span class="fileDot md"></span>
+              AGENTS.md
+            </div>
+            <div class="treeItem indent-1">
+              <span class="fileDot md"></span>
+              README.md
+            </div>
+          </div>
+        </aside>
+
+        <!-- Editor -->
+        <section class="editorArea">
+          <div class="tabs">
+            <div class="tab">
+              <span class="fileDot ts"></span>
+              <span class="tabName">App.tsx</span>
+              <button class="tabClose" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="tab active">
+              <span class="fileDot css"></span>
+              <span class="tabName">variables.css</span>
+              <button class="tabClose" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="tab">
+              <span class="fileDot md"></span>
+              <span class="tabName">AGENTS.md</span>
+              <button class="tabClose" type="button" aria-label="Close">×</button>
+            </div>
+          </div>
+          <div class="breadcrumb">
+            src <span>/</span> styles <span>/</span> <span>variables.css</span>
+          </div>
+          <div class="codeView">
+            <div class="gutter">
+              1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10<br />11<br />12
+            </div>
+            <pre class="code"><span class="tok-cm">/* Design tokens used by Loom UI */</span>
+<span class="tok-kw">:root</span> {
+  <span class="tok-fn">--bg-app</span>: <span class="tok-str">#1e1e1e</span>;
+  <span class="tok-fn">--bg-sidebar</span>: <span class="tok-str">#252526</span>;
+  <span class="tok-fn">--bg-button</span>: <span class="tok-str">#007acc</span>;
+  <span class="tok-fn">--text-primary</span>: <span class="tok-str">#cccccc</span>;
+  <span class="tok-fn">--border-subtle</span>: <span class="tok-str">#2b2b2b</span>;
+  <span class="tok-fn">--radius-md</span>: <span class="tok-str">6px</span>;
+}
+
+<span class="tok-cm">/* 在右侧 Style Lab 调整后，把满意的值迁回 variables.css */</span></pre>
+          </div>
+        </section>
+
+        <!-- Agent panel -->
+        <aside class="agent">
+          <div class="agentHeader">
+            <div class="agentTitle">
+              Agent
+              <span class="pill">general</span>
+            </div>
+            <div class="sideActions">
+              <button class="iconBtn" type="button" title="New chat">＋</button>
+              <button class="iconBtn" type="button" title="History">☰</button>
+            </div>
+          </div>
+
+          <div class="messages">
+            <div class="msg user">
+              <div class="bubble">先做一个可独立预览的 UI 样式稿，确认视觉后再改项目。</div>
+            </div>
+
+            <div class="msg assistant">
+              <div class="meta">Loom · Assistant</div>
+              <div class="bubble">
+                好的。当前这份 HTML 只是<strong>样式实验室</strong>：布局对齐 Loom 主界面（TitleBar /
+                ActivityBar / Sidebar / Editor / Agent / StatusBar），方便你直接改颜色、圆角和层次。
+              </div>
+              <div class="toolCard">
+                <div class="toolHead">
+                  <strong>read</strong>
+                  <span>src/styles/variables.css</span>
+                  <span class="badge">done</span>
+                </div>
+                <div class="toolBody">loaded design tokens (dark / light)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer">
+            <div class="composerBox">
+              <textarea placeholder="Ask Loom to redesign panels, density, accents..."></textarea>
+              <div class="composerFooter">
+                <div class="composerMeta">
+                  <button class="chip" type="button">Agent</button>
+                  <button class="chip" type="button">@file</button>
+                  <span>gpt-ish · local preview</span>
+                </div>
+                <button class="sendBtn" type="button">Send</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Status bar -->
+      <footer class="statusBar">
+        <div class="statusLeft">
+          <span class="statusItem">main*</span>
+          <span class="statusItem">0 ↓ 0 ↑</span>
+          <span class="statusItem">UI Style Lab</span>
+        </div>
+        <div class="statusRight">
+          <span class="statusItem">UTF-8</span>
+          <span class="statusItem">TypeScript React</span>
+          <span class="statusItem">Ln 12, Col 1</span>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Floating controls: edit styles here first -->
+    <div class="labBar" id="labBar">
+      <div class="labHead">
+        <h1>Style Lab · 样式实验室</h1>
+        <button class="labBtn" type="button" id="toggleTheme">Dark / Light</button>
+      </div>
+      <div class="labBody">
+        <p class="labNote">
+          这个文件<strong>只用于设计预览</strong>，不会改动真实项目。你先在这里调样式；满意后告诉我要迁哪些 token / 组件，再改
+          <code>src/styles/variables.css</code> 和各 CSS Module。
+        </p>
+
+        <div class="labRow">
+          <label for="accentColor">强调色</label>
+          <input id="accentColor" type="color" value="#007acc" />
+        </div>
+        <div class="labRow">
+          <label for="appBg">背景色</label>
+          <input id="appBg" type="color" value="#1e1e1e" />
+        </div>
+        <div class="labRow">
+          <label for="sidebarBg">侧栏色</label>
+          <input id="sidebarBg" type="color" value="#252526" />
+        </div>
+        <div class="labRow">
+          <label for="radius">圆角</label>
+          <input id="radius" type="range" min="0" max="16" value="6" />
+        </div>
+
+        <div>
+          <div class="labNote" style="margin-bottom: 6px">快捷配色</div>
+          <div class="swatches">
+            <button class="swatch" type="button" data-accent="#007acc" style="background: #007acc" title="VS Blue"></button>
+            <button class="swatch" type="button" data-accent="#22c55e" style="background: #22c55e" title="Green"></button>
+            <button class="swatch" type="button" data-accent="#a855f7" style="background: #a855f7" title="Purple"></button>
+            <button class="swatch" type="button" data-accent="#f59e0b" style="background: #f59e0b" title="Amber"></button>
+            <button class="swatch" type="button" data-accent="#ef4444" style="background: #ef4444" title="Red"></button>
+            <button class="swatch" type="button" data-accent="#06b6d4" style="background: #06b6d4" title="Cyan"></button>
+          </div>
+        </div>
+
+        <div class="labActions">
+          <button class="labBtn" type="button" id="resetTokens">重置</button>
+          <button class="labBtn primary" type="button" id="copyCss">复制当前 CSS 变量</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const accentInput = document.getElementById("accentColor");
+      const appBgInput = document.getElementById("appBg");
+      const sidebarInput = document.getElementById("sidebarBg");
+      const radiusInput = document.getElementById("radius");
+
+      function setAccent(hex) {
+        root.style.setProperty("--bg-button", hex);
+        root.style.setProperty("--bg-button-hover", hex);
+        root.style.setProperty("--text-accent", hex);
+        root.style.setProperty("--border-focus", hex);
+        root.style.setProperty("--lab-accent", hex);
+        root.style.setProperty("--surface-accent-soft", hex + "1f");
+        root.style.setProperty("--surface-accent-strong", hex + "2e");
+        accentInput.value = hex;
+      }
+
+      function applyLive() {
+        setAccent(accentInput.value);
+        root.style.setProperty("--bg-app", appBgInput.value);
+        root.style.setProperty("--bg-primary", appBgInput.value);
+        root.style.setProperty("--bg-editor", appBgInput.value);
+        root.style.setProperty("--bg-panel", appBgInput.value);
+        root.style.setProperty("--bg-sidebar", sidebarInput.value);
+        root.style.setProperty("--radius-md", radiusInput.value + "px");
+        root.style.setProperty("--radius-sm", Math.max(0, Number(radiusInput.value) - 3) + "px");
+        root.style.setProperty("--radius-lg", Math.min(18, Number(radiusInput.value) + 4) + "px");
+      }
+
+      document.getElementById("toggleTheme").addEventListener("click", () => {
+        const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        // keep manual overrides on top of theme
+        applyLive();
+      });
+
+      accentInput.addEventListener("input", applyLive);
+      appBgInput.addEventListener("input", applyLive);
+      sidebarInput.addEventListener("input", applyLive);
+      radiusInput.addEventListener("input", applyLive);
+
+      document.querySelectorAll(".swatch").forEach((btn) => {
+        btn.addEventListener("click", () => setAccent(btn.dataset.accent));
+      });
+
+      document.getElementById("resetTokens").addEventListener("click", () => {
+        root.removeAttribute("style");
+        const dark = root.getAttribute("data-theme") !== "light";
+        accentInput.value = dark ? "#007acc" : "#0b69c7";
+        appBgInput.value = dark ? "#1e1e1e" : "#f5f5f5";
+        sidebarInput.value = dark ? "#252526" : "#ebebeb";
+        radiusInput.value = "6";
+      });
+
+      document.getElementById("copyCss").addEventListener("click", async () => {
+        const styles = getComputedStyle(root);
+        const keys = [
+          "--bg-app",
+          "--bg-primary",
+          "--bg-sidebar",
+          "--bg-header",
+          "--bg-input",
+          "--bg-button",
+          "--bg-button-hover",
+          "--text-primary",
+          "--text-secondary",
+          "--text-accent",
+          "--border-primary",
+          "--border-subtle",
+          "--border-focus",
+          "--radius-sm",
+          "--radius-md",
+        ];
+        const css = keys.map((k) => `  ${k}: ${styles.getPropertyValue(k).trim()};`).join("\n");
+        const block = `:root {\n${css}\n}`;
+        try {
+          await navigator.clipboard.writeText(block);
+          alert("已复制当前 CSS 变量到剪贴板");
+        } catch {
+          prompt("复制以下内容：", block);
+        }
+      });
+
+      // activity button toggle (visual only)
+      document.querySelectorAll(".actBtn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".actBtn").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+        });
+      });
+    </script>
+  </body>
+</html>

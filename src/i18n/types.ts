@@ -759,8 +759,11 @@ export interface I18nMessages {
       expandAll: string;
       collapse: string;
       copyCommand: string;
+      copyOutput: string;
       copied: string;
+      copiedOutput: string;
       noOutput: string;
+      lines: string;
     };
     bgTask: {
       title: string;
