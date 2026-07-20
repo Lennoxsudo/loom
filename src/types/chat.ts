@@ -116,6 +116,15 @@ export interface ChatMessage {
   attachments?: ImageAttachment[];
   /** Optional file attachments (content injected into AI request, not shown in bubble) */
   fileAttachments?: FileAttachment[];
+  /**
+   * When the user sent a /skill-name invocation, text holds the expanded skill body
+   * for the model; displayText is the short /name args form for the bubble UI.
+   */
+  slashCommand?: {
+    name: string;
+    args: string;
+    displayText: string;
+  };
   /** 来源 Agent ID（跨 Agent 调用时标识调用方） */
   fromAgentId?: string;
   /** 来源 Agent 名称（跨 Agent 调用时显示） */

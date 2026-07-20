@@ -48,6 +48,10 @@ import {
   findEarliestCheckpointForUserTurns,
 } from '../../../utils/checkpointTimeline';
 import type { PendingFileChange } from '../utils';
+import {
+  expandSkillSlashCommand,
+  formatSlashCommandDisplay,
+} from '../../../utils/skillSlashCommand';
 
 export interface UseAgentSendMessageOptions {
   draftMessage: string;
@@ -145,11 +149,29 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
    * Edit a past user bubble and resend: restore files mutated after that turn,
    * drop subsequent assistant/tool messages, then stream a fresh reply.
    */
+  const resolveUserText = async (raw: string) => {
+    const trimmed = raw.trim();
+    const expansion = await expandSkillSlashCommand(trimmed, projectPathRef.current || '');
+    if (expansion.kind === 'expanded') {
+      return {
+        text: expansion.expandedText,
+        slashCommand: {
+          name: expansion.skillName,
+          args: expansion.args,
+          displayText: formatSlashCommandDisplay(expansion.skillName, expansion.args),
+        },
+      };
+    }
+    return { text: trimmed, slashCommand: undefined as undefined };
+  };
+
   const resendFromUserMessage = async (userMessageId: string, newText: string) => {
-    const text = newText.trim();
-    if (!text || !selectedAgentId || !selectedAgent || !selectedConversationId) {
+    if (!newText.trim() || !selectedAgentId || !selectedAgent || !selectedConversationId) {
       return;
     }
+    const resolved = await resolveUserText(newText);
+    const text = resolved.text;
+    const slashCommand = resolved.slashCommand;
 
     if (isSelectedSessionBusy && stopStreaming) {
       try {
@@ -213,6 +235,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         ? {
             ...m,
             text,
+            ...(slashCommand ? { slashCommand } : { slashCommand: undefined }),
             createdAt: Date.now(),
           }
         : m
@@ -272,6 +295,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       ...cleanedKept[cleanedKept.length - 1],
       role: 'user',
       text,
+      ...(slashCommand ? { slashCommand } : { slashCommand: undefined }),
       createdAt: Date.now(),
     };
 
@@ -449,9 +473,9 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
   };
 
   const sendMessage = async (overrides?: SendMessageOverrides) => {
-    const text = (overrides?.draftMessage ?? draftMessage).trim();
+    const rawDraft = (overrides?.draftMessage ?? draftMessage).trim();
     if (
-      (!text &&
+      (!rawDraft &&
         attachedImages.length === 0 &&
         attachedFiles.length === 0) ||
       !selectedAgentId ||
@@ -460,6 +484,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     ) {
       return;
     }
+
+    const resolved = rawDraft
+      ? await resolveUserText(rawDraft)
+      : { text: '', slashCommand: undefined as undefined };
+    const text = resolved.text;
+    const slashCommand = resolved.slashCommand;
 
     const resolvedRuntime = resolveAgentRequestRuntime(
       selectedAgent,
@@ -578,6 +608,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       id: createUserMessageId(),
       role: 'user',
       text: text || '',
+      ...(slashCommand ? { slashCommand } : {}),
       ...(attachedImages.length > 0
         ? {
             attachments: attachedImages.map(({ previewUrl: _, ...attachment }) => attachment),
@@ -617,7 +648,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     });
     const instantTitle = shouldGenerateTitle
       ? buildInstantAgentConversationTitle(
-          text,
+          slashCommand?.displayText ?? text,
           fileAttachments.map((file) => file.name)
         )
       : null;
@@ -671,7 +702,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         provider,
         model: runtimeModel,
         profileId: profileId ?? selectedAgent.profileId,
-        userText: text,
+        userText: slashCommand?.displayText ?? text,
         fileNames: fileAttachments.map((file) => file.name),
         autoTitleRequestedRef,
         conversationStateRef,

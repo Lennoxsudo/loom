@@ -5,9 +5,12 @@ import AgentProviderProfileModelSelector from './AgentProviderProfileModelSelect
 import TokenRingIndicator from '../chat/TokenRingIndicator';
 import ApprovalModeMenu from './ApprovalModeMenu';
 import ChatModeToggle from '../chat/ChatModeToggle';
+import SlashSkillMenu from '../shared/SlashSkillMenu';
+import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
 import { useTranslation } from '../../i18n';
 import type { AgentProtocolSelection } from '../../utils/agentPersistence';
 import type { ProviderProfileOption } from '../../utils/aiProviderRuntime';
+import type { SkillEntry } from '../../utils/skills';
 import type { AttachedFile } from '../chat/types';
 import type { PendingImageAttachment } from '../../types/chat';
 import styles from './AgentComposer.module.css';
@@ -139,6 +142,8 @@ export interface AgentComposerProps {
   skillsCount?: number;
   mcpCount?: number;
   skillNames?: string[];
+  /** Full skill entries for / autocomplete (user-invocable preferred). */
+  invocableSkills?: SkillEntry[];
   mcpToolNames?: string[];
   agentMode?: 'plan' | 'always-allow';
   onAgentModeChange?: (mode: 'plan' | 'always-allow') => void;
@@ -183,6 +188,7 @@ const AgentComposer = memo(function AgentComposer({
   skillsCount = 0,
   mcpCount = 0,
   skillNames = [],
+  invocableSkills = [],
   mcpToolNames = [],
   agentMode = 'always-allow',
   onAgentModeChange,
@@ -190,6 +196,28 @@ const AgentComposer = memo(function AgentComposer({
   const t = useTranslation();
   const [openSideCapsule, setOpenSideCapsule] = useState<SideCapsuleKind | null>(null);
   const sideCapsulesRef = useRef<HTMLDivElement>(null);
+
+  const getCursor = useCallback(
+    () => textareaRef.current?.selectionStart ?? inputValue.length,
+    [textareaRef, inputValue.length]
+  );
+  const focusAndSetCursor = useCallback(
+    (cursor: number) => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    },
+    [textareaRef]
+  );
+  const slash = useSlashSkillAutocomplete({
+    value: inputValue,
+    skills: invocableSkills,
+    disabled,
+    getCursor,
+    setValue: (next) => setInputValue(next),
+    focusAndSetCursor,
+  });
 
   useEffect(() => {
     if (!openSideCapsule) return;
@@ -279,7 +307,17 @@ const AgentComposer = memo(function AgentComposer({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={(e) => void handleDrop(e)}
+        style={{ position: 'relative' }}
       >
+        {slash.isOpen && (
+          <SlashSkillMenu
+            skills={slash.filtered}
+            highlightIndex={slash.highlightIndex}
+            onHighlight={slash.setHighlightIndex}
+            onSelect={slash.selectSkill}
+            label={t.settingsSkills?.title || 'Skills'}
+          />
+        )}
         {(attachedFiles.length > 0 || attachedImages.length > 0) && (
           <div className={styles.attachments}>
             {attachedImages.length > 0 && (
@@ -337,9 +375,16 @@ const AgentComposer = memo(function AgentComposer({
             ref={textareaRef}
             className={styles.textarea}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              requestAnimationFrame(() => slash.refreshCursor());
+            }}
+            onClick={() => slash.refreshCursor()}
+            onKeyUp={() => slash.refreshCursor()}
+            onSelect={() => slash.refreshCursor()}
             onPaste={handleInputPaste}
             onKeyDown={(e) => {
+              if (slash.onKeyDown(e)) return;
               if (e.key === 'Enter' && !e.shiftKey && canSend) {
                 e.preventDefault();
                 void handleSend();

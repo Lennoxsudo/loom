@@ -1187,7 +1187,8 @@ export const zhCN: I18nMessages = {
     skillName: '文件名',
     skillNamePlaceholder: '例如: coding-standards',
     skillContent: '内容',
-    skillContentPlaceholder: '输入 Skill 内容（Markdown 格式）...',
+    skillContentPlaceholder:
+      '---\ndescription: 简短描述\nargument-hint: "[summary]"\nuser-invocable: true\n---\nSkill 正文。用 $ARGUMENTS 接收 /name 后的参数。\n',
     scope: '作用域',
     global: '全局',
     project: '项目',
@@ -1201,6 +1202,8 @@ export const zhCN: I18nMessages = {
     contentRequired: '请输入内容',
     globalHint: '全局 Skills 对所有项目生效',
     projectHint: '项目 Skills 仅对当前项目生效，同名文件会覆盖全局',
+    slashHint:
+      '在 Chat / Agent 输入 /skill-name 可把 skill 正文展开为用户消息；正文中的 $ARGUMENTS 会被替换为参数。user-invocable: false 时不出现在 / 补全（load_skill 仍可用）。',
     copyPath: '复制路径',
     pathCopied: '路径已复制到剪贴板',
     openFolder: '打开目录',

@@ -1199,7 +1199,8 @@ export const enUS: I18nMessages = {
     skillName: 'File Name',
     skillNamePlaceholder: 'e.g. coding-standards',
     skillContent: 'Content',
-    skillContentPlaceholder: 'Enter skill content (Markdown)...',
+    skillContentPlaceholder:
+      '---\ndescription: Short description\nargument-hint: "[summary]"\nuser-invocable: true\n---\nSkill body. Use $ARGUMENTS for /name args.\n',
     scope: 'Scope',
     global: 'Global',
     project: 'Project',
@@ -1214,6 +1215,8 @@ export const enUS: I18nMessages = {
     globalHint: 'Global skills apply to all projects',
     projectHint:
       'Project skills apply to current project only. Same-name files override global ones',
+    slashHint:
+      'Type /skill-name in Chat or Agent to expand a skill as the user message. Use $ARGUMENTS in the body for trailing args. Set user-invocable: false to hide from / autocomplete (load_skill still works).',
     copyPath: 'Copy Path',
     pathCopied: 'Path copied to clipboard',
     openFolder: 'Open Folder',

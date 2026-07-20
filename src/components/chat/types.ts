@@ -84,6 +84,15 @@ export interface Message {
   /** Context compact summary message */
   compactSummary?: boolean;
   compactMetadata?: CompactMetadata;
+  /**
+   * When the user sent a /skill-name invocation, content holds the expanded skill body
+   * for the model; displayText is the short /name args form for the bubble UI.
+   */
+  slashCommand?: {
+    name: string;
+    args: string;
+    displayText: string;
+  };
 }
 
 interface TokenCount {

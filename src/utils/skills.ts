@@ -18,11 +18,14 @@
  * ```
  * ---
  * description: 简短描述（一行，说明此 skill 的用途）
+ * argument-hint: "[summary]"
+ * user-invocable: true
  * ---
- * 完整 skill 内容...
+ * 完整 skill 内容...（可用 $ARGUMENTS 占位）
  * ```
  *
  * 如果未提供 frontmatter，description 默认取内容首行（去除 # 前缀）。
+ * user-invocable 默认 true；为 false 时不出现在 / 补全，仍可通过 load_skill 加载。
  */
 
 import { invoke } from '@tauri-apps/api/core';
@@ -34,6 +37,10 @@ export interface SkillEntry {
   /** SKILL.md 的完整内容（不含 frontmatter） */
   content: string;
   scope: 'global' | 'project';
+  /** 是否可在 Composer 通过 /name 调用；默认 true */
+  userInvocable: boolean;
+  /** / 补全菜单参数提示，如 [summary] */
+  argumentHint: string;
 }
 
 interface CacheEntry {
@@ -94,41 +101,63 @@ async function readFileContent(filePath: string): Promise<string | null> {
 
 // ── Frontmatter 解析 ────────────────────────────────────────────
 
+export interface SkillFrontmatter {
+  description: string;
+  body: string;
+  userInvocable: boolean;
+  argumentHint: string;
+}
+
+function parseYamlScalar(value: string): string {
+  return value.trim().replace(/^['"]|['"]$/g, '');
+}
+
+function parseYamlBool(value: string, defaultValue: boolean): boolean {
+  const normalized = parseYamlScalar(value).toLowerCase();
+  if (normalized === 'true' || normalized === 'yes' || normalized === '1') return true;
+  if (normalized === 'false' || normalized === 'no' || normalized === '0') return false;
+  return defaultValue;
+}
+
 /**
  * 解析 SKILL.md 的 YAML frontmatter。
  *
- * 支持格式：
- * ```
- * ---
- * description: 简短描述
- * ---
- * 正文内容
- * ```
- *
- * 返回 { description, body }：
- * - description 来自 frontmatter 的 `description` 字段
- * - body 是去掉 frontmatter 后的正文
+ * 支持字段：description、user-invocable、argument-hint。
+ * body 是去掉 frontmatter 后的正文。
  * 如果没有 frontmatter，description 默认取正文首行（去除 # 前缀和空白）。
  */
-function parseFrontmatter(raw: string): { description: string; body: string } {
+export function parseFrontmatter(raw: string): SkillFrontmatter {
   const match = raw.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
 
   if (match) {
     const yaml = match[1];
     const body = raw.slice(match[0].length).trim();
 
-    // 简单解析 yaml（只取 description 字段，无需引入 yaml 库）
     let description = '';
-    const descMatch = yaml.match(/^description:\s*(.+)$/m);
-    if (descMatch) {
-      description = descMatch[1].trim().replace(/^['"]|['"]$/g, '');
+    let userInvocable = true;
+    let argumentHint = '';
+
+    for (const line of yaml.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const colonIdx = trimmed.indexOf(':');
+      if (colonIdx === -1) continue;
+      const key = trimmed.slice(0, colonIdx).trim();
+      const rawValue = trimmed.slice(colonIdx + 1).trim();
+      if (key === 'description') {
+        description = parseYamlScalar(rawValue);
+      } else if (key === 'user-invocable' || key === 'userInvocable') {
+        userInvocable = parseYamlBool(rawValue, true);
+      } else if (key === 'argument-hint' || key === 'argumentHint') {
+        argumentHint = parseYamlScalar(rawValue);
+      }
     }
 
     if (!description) {
       description = extractFirstLineAsDescription(body);
     }
 
-    return { description, body };
+    return { description, body, userInvocable, argumentHint };
   }
 
   // 无 frontmatter
@@ -136,6 +165,8 @@ function parseFrontmatter(raw: string): { description: string; body: string } {
   return {
     description: extractFirstLineAsDescription(body),
     body,
+    userInvocable: true,
+    argumentHint: '',
   };
 }
 
@@ -161,8 +192,15 @@ async function loadSkillsFromDir(
       const skillFile = joinPath(dirPath, dirName, SKILL_FILE_NAME);
       const raw = await readFileContent(skillFile);
       if (raw && raw.trim()) {
-        const { description, body } = parseFrontmatter(raw);
-        return { name: dirName, description, content: body, scope } as SkillEntry;
+        const { description, body, userInvocable, argumentHint } = parseFrontmatter(raw);
+        return {
+          name: dirName,
+          description,
+          content: body,
+          scope,
+          userInvocable,
+          argumentHint,
+        } as SkillEntry;
       }
       return null;
     })
@@ -265,13 +303,25 @@ export function clearSkillsCache(): void {
 export async function loadSkillContent(
   skillName: string,
   projectPath: string
-): Promise<{ content: string; scope: 'global' | 'project' } | null> {
+): Promise<{
+  content: string;
+  scope: 'global' | 'project';
+  userInvocable: boolean;
+  argumentHint: string;
+  description: string;
+} | null> {
   // 优先从缓存查找
   const now = Date.now();
   if (_cache && _lastProjectPath === projectPath && now - _cache.timestamp < CACHE_TTL_MS) {
     const cached = _cache.skills.find((s) => s.name === skillName);
     if (cached) {
-      return { content: cached.content, scope: cached.scope };
+      return {
+        content: cached.content,
+        scope: cached.scope,
+        userInvocable: cached.userInvocable,
+        argumentHint: cached.argumentHint,
+        description: cached.description,
+      };
     }
     // 缓存中没有，说明该 skill 不存在
     return null;
@@ -286,8 +336,14 @@ export async function loadSkillContent(
       const projectSkillFile = joinPath(projectPath, PROJECT_SKILLS_DIR_NAME, skillName, SKILL_FILE_NAME);
       const raw = await readFileContent(projectSkillFile);
       if (raw && raw.trim()) {
-        const { body } = parseFrontmatter(raw);
-        return { content: body, scope: 'project' };
+        const parsed = parseFrontmatter(raw);
+        return {
+          content: parsed.body,
+          scope: 'project',
+          userInvocable: parsed.userInvocable,
+          argumentHint: parsed.argumentHint,
+          description: parsed.description,
+        };
       }
     }
 
@@ -295,14 +351,32 @@ export async function loadSkillContent(
     const globalSkillFile = joinPath(appDataPath, SKILLS_DIR_NAME, skillName, SKILL_FILE_NAME);
     const raw = await readFileContent(globalSkillFile);
     if (raw && raw.trim()) {
-      const { body } = parseFrontmatter(raw);
-      return { content: body, scope: 'global' };
+      const parsed = parseFrontmatter(raw);
+      return {
+        content: parsed.body,
+        scope: 'global',
+        userInvocable: parsed.userInvocable,
+        argumentHint: parsed.argumentHint,
+        description: parsed.description,
+      };
     }
   } catch {
     // 读取失败
   }
 
   return null;
+}
+
+/** 合并全局 + 项目 skills（项目覆盖全局），用于 / 补全等 UI */
+export async function listMergedSkills(projectPath: string): Promise<SkillEntry[]> {
+  const { global, project } = await getSkillsList(projectPath);
+  return mergeSkills(global, project).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** 仅返回可通过 /name 调用的 skills */
+export async function listUserInvocableSkills(projectPath: string): Promise<SkillEntry[]> {
+  const merged = await listMergedSkills(projectPath);
+  return merged.filter((s) => s.userInvocable !== false);
 }
 
 // ── CRUD 操作 ──────────────────────────────────────────────────

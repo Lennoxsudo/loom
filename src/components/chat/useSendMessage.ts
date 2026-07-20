@@ -22,6 +22,10 @@ import type {
   ConversationMeta,
   ChatProtocolSelection,
 } from './types';
+import {
+  expandSkillSlashCommand,
+  formatSlashCommandDisplay,
+} from '../../utils/skillSlashCommand';
 import type { AIProvider } from '../../utils/visionCapabilities';
 import type { VisionCapability } from '../../utils/visionCapabilities';
 import { ToolGuard } from '../../utils/toolGuard';
@@ -102,11 +106,29 @@ export function useSendMessage(opts: UseSendMessageOptions) {
    * Edit a past user bubble and resend: restore files mutated after that turn,
    * drop subsequent assistant/tool messages, then stream a fresh reply.
    */
+  const resolveUserBody = async (raw: string) => {
+    const trimmed = raw.trim();
+    const expansion = await expandSkillSlashCommand(trimmed, opts.projectPathRef.current || '');
+    if (expansion.kind === 'expanded') {
+      return {
+        body: expansion.expandedText,
+        slashCommand: {
+          name: expansion.skillName,
+          args: expansion.args,
+          displayText: formatSlashCommandDisplay(expansion.skillName, expansion.args),
+        },
+      };
+    }
+    return { body: trimmed, slashCommand: undefined as undefined };
+  };
+
   const resendFromUserMessage = async (userMessageId: string, newBodyText: string) => {
-    const body = newBodyText.trim();
-    if (!body || !opts.currentConversation) {
+    if (!newBodyText.trim() || !opts.currentConversation) {
       return;
     }
+    const resolved = await resolveUserBody(newBodyText);
+    const body = resolved.body;
+    const slashCommand = resolved.slashCommand;
 
     if (opts.isLoading && opts.stopStreaming) {
       try {
@@ -164,6 +186,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     const updatedUserMessage: Message = {
       ...original,
       content: nextContent,
+      ...(slashCommand ? { slashCommand } : { slashCommand: undefined }),
       tokens: estimateMessageTokens(
         toChatPanelProviderRequestMessages([
           {
@@ -415,7 +438,14 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       return;
     }
 
-    const userTextForTitle = opts.inputValue;
+    const rawInput = opts.inputValue.trim();
+    const resolved = rawInput
+      ? await resolveUserBody(rawInput)
+      : { body: '', slashCommand: undefined as undefined };
+    const userBody = resolved.body;
+    const slashCommand = resolved.slashCommand;
+
+    const userTextForTitle = slashCommand?.displayText ?? rawInput;
     const fileNamesForTitle = [
       ...opts.attachedFiles.map((file) => file.name),
       ...opts.attachedImages.map(
@@ -469,8 +499,8 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       messageContent += '---\n\n';
     }
 
-    if (opts.inputValue.trim()) {
-      messageContent += opts.inputValue.trim();
+    if (userBody) {
+      messageContent += userBody;
     }
 
     const userAttachments = opts.attachedImages.map(({ previewUrl: _, ...attachment }) => attachment);
@@ -479,6 +509,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       id: userTimestamp.toString(),
       role: 'user',
       content: messageContent,
+      ...(slashCommand ? { slashCommand } : {}),
       attachments: userAttachments,
       tokens: estimateMessageTokens(
         toChatPanelProviderRequestMessages([

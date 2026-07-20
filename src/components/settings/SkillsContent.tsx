@@ -79,7 +79,9 @@ function SkillCard({
       >
         <div className={styles.listItemMain}>
           <div className={styles.listItemNameRow}>
-            <div className={styles.listItemName}>{skill.name}</div>
+            <div className={styles.listItemName}>
+              {skill.userInvocable !== false ? `/${skill.name}` : skill.name}
+            </div>
             <button
               type="button"
               className={styles.chevronBtn}
@@ -388,6 +390,7 @@ export function SkillsContent() {
     <div className={`${pageStyles.root} ${styles.root}`}>
       <header className={pageStyles.pageHeader}>
         <h2 className={pageStyles.pageTitle}>{t.settingsSkills.title}</h2>
+        <p className={pageStyles.pageDescription}>{t.settingsSkills.slashHint}</p>
       </header>
 
       {error ? (

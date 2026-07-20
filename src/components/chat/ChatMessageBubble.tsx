@@ -71,9 +71,21 @@ function MessageBubble({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const normalizeBr = (text?: string) => (text || '').replace(/<br\s*\/?\s*>/gi, '\n');
+  // Model payload stays in message.content; bubble prefers slash short form for the body.
+  const storedContent = message.content || '';
   const displaySeparation = isUser
-    ? { text: message.content || '', thinking: '' }
-    : { text: message.content || '', thinking: message.thinking || '' };
+    ? {
+        text: message.slashCommand
+          ? (() => {
+              const { prefix } = splitChatUserMessageContent(storedContent, t.chat.fileContext);
+              return prefix
+                ? `${prefix}${message.slashCommand!.displayText}`
+                : message.slashCommand!.displayText;
+            })()
+          : storedContent,
+        thinking: '',
+      }
+    : { text: storedContent, thinking: message.thinking || '' };
 
   const isActivelyThinking =
     !!message.isStreaming && !message.thinkingEndedAt && !!message.isThinking;
@@ -114,7 +126,8 @@ function MessageBubble({
   }
 
   const editableBody = isUser
-    ? splitChatUserMessageContent(rawContent, t.chat.fileContext).body
+    ? message.slashCommand?.displayText ??
+      splitChatUserMessageContent(storedContent, t.chat.fileContext).body
     : '';
 
   const beginEdit = useCallback(() => {

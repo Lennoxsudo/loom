@@ -43,7 +43,7 @@ import {
   loadAllProjectThreadSummaries,
   type ProjectThreadSummary,
 } from '../utils/agentPersistence';
-import { getSkillsList } from '../utils/skills';
+import { getSkillsList, type SkillEntry } from '../utils/skills';
 import { stripMcpToolPrefix } from './agent/toolResultLayout';
 import {
   toOpenAITools,
@@ -326,22 +326,29 @@ export default function AgentPanel({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [skillsCount, setSkillsCount] = useState(0);
   const [skillNames, setSkillNames] = useState<string[]>([]);
+  const [invocableSkills, setInvocableSkills] = useState<SkillEntry[]>([]);
 
   useEffect(() => {
-    if (!projectPath) return;
     let cancelled = false;
-    getSkillsList(projectPath).then(({ global: globalSkills, project: projectSkills }) => {
+    getSkillsList(projectPath || '').then(({ global: globalSkills, project: projectSkills }) => {
       if (!cancelled) {
         const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
         const merged = [
           ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
           ...projectSkills,
-        ];
-        const names = merged.map((skill) => skill.name).sort((a, b) => a.localeCompare(b));
+        ].sort((a, b) => a.name.localeCompare(b.name));
+        const names = merged.map((skill) => skill.name);
         setSkillNames(names);
         setSkillsCount(names.length);
+        setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
       }
-    }).catch(() => {});
+    }).catch(() => {
+      if (!cancelled) {
+        setSkillNames([]);
+        setSkillsCount(0);
+        setInvocableSkills([]);
+      }
+    });
     return () => {
       cancelled = true;
     };
@@ -2039,6 +2046,7 @@ export default function AgentPanel({
       skillsCount={skillsCount}
       mcpCount={mcpTools.length}
       skillNames={skillNames}
+      invocableSkills={invocableSkills}
       mcpToolNames={mcpToolNames}
       agentMode={agent?.id ? (agentModes[agent.id] ?? 'always-allow') : 'always-allow'}
       onAgentModeChange={handleAgentModeChange}

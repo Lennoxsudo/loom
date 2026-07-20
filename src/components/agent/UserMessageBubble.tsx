@@ -20,22 +20,24 @@ export default function UserMessageBubble({
 }: UserMessageBubbleProps) {
   const t = useTranslation();
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(message.text);
+  const [draft, setDraft] = useState(message.slashCommand?.displayText ?? message.text);
   const [isResending, setIsResending] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const displayText = message.slashCommand?.displayText ?? message.text;
+
   const beginEdit = useCallback(() => {
     if (editDisabled || !onResendFromUserMessage) return;
-    setDraft(message.text);
+    setDraft(displayText);
     setEditing(true);
-  }, [editDisabled, onResendFromUserMessage, message.text]);
+  }, [editDisabled, onResendFromUserMessage, displayText]);
 
   const cancelEdit = useCallback(() => {
     setEditing(false);
-    setDraft(message.text);
+    setDraft(displayText);
     setIsResending(false);
-  }, [message.text]);
+  }, [displayText]);
 
   const submitEdit = useCallback(async () => {
     if (!onResendFromUserMessage || isResending) return;
@@ -84,8 +86,8 @@ export default function UserMessageBubble({
 
   // Reset local draft when the underlying message text changes (e.g. after resend).
   useEffect(() => {
-    if (!editing) setDraft(message.text);
-  }, [message.text, editing]);
+    if (!editing) setDraft(displayText);
+  }, [displayText, editing]);
 
   const canEdit = !!onResendFromUserMessage && !editDisabled;
 
@@ -118,7 +120,7 @@ export default function UserMessageBubble({
                 display: 'flex',
                 gap: '8px',
                 flexWrap: 'wrap',
-                marginBottom: message.text || message.fileAttachments?.length ? '8px' : '0',
+                marginBottom: displayText || message.fileAttachments?.length ? '8px' : '0',
               }}
             >
               {message.attachments.map((att) => (
@@ -143,7 +145,7 @@ export default function UserMessageBubble({
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '4px',
-                marginBottom: message.text || editing ? '8px' : 0,
+                marginBottom: displayText || editing ? '8px' : 0,
                 whiteSpace: 'normal',
               }}
             >
@@ -221,7 +223,7 @@ export default function UserMessageBubble({
               </div>
             </>
           ) : (
-            message.text
+            displayText
           )}
         </div>
 

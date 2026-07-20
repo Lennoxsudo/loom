@@ -1,5 +1,9 @@
+import { useCallback } from 'react';
 import { SendIcon, StopIcon, PlusIcon } from '../shared/Icons';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
+import SlashSkillMenu from '../shared/SlashSkillMenu';
+import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
+import type { SkillEntry } from '../../utils/skills';
 import { VISION_UNSUPPORTED_ERROR } from './types';
 import type { AttachedFile, PendingImageAttachment } from './types';
 import styles from './ChatInputArea.module.css';
@@ -29,6 +33,7 @@ export interface ChatInputAreaProps {
   handleSendMessage: () => Promise<void>;
   handleStop: () => Promise<void>;
   onPickAttachFiles?: () => void | Promise<void>;
+  invocableSkills?: SkillEntry[];
   metaLeft?: React.ReactNode;
   metaToolbarRight?: React.ReactNode;
   metaRight?: React.ReactNode;
@@ -40,6 +45,7 @@ export interface ChatInputAreaProps {
       stopGenerating: string;
       attachFile: string;
     };
+    settingsSkills?: { title: string };
   };
 }
 
@@ -68,12 +74,36 @@ export default function ChatInputArea({
   handleSendMessage,
   handleStop,
   onPickAttachFiles,
+  invocableSkills = [],
   metaLeft,
   metaToolbarRight,
   metaRight,
   t,
 }: ChatInputAreaProps) {
   const dragActive = isDragOver || isOverChatAttach;
+  const disabled = isLoading || modelMissing;
+
+  const getCursor = useCallback(
+    () => textareaRef.current?.selectionStart ?? inputValue.length,
+    [textareaRef, inputValue.length]
+  );
+  const focusAndSetCursor = useCallback(
+    (cursor: number) => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    },
+    [textareaRef]
+  );
+  const slash = useSlashSkillAutocomplete({
+    value: inputValue,
+    skills: invocableSkills,
+    disabled,
+    getCursor,
+    setValue: (next) => setInputValue(next),
+    focusAndSetCursor,
+  });
 
   const sendClassName = showStop
     ? styles.sendButtonStop
@@ -90,7 +120,17 @@ export default function ChatInputArea({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={(e) => void handleDrop(e)}
+          style={{ position: 'relative' }}
         >
+          {slash.isOpen && (
+            <SlashSkillMenu
+              skills={slash.filtered}
+              highlightIndex={slash.highlightIndex}
+              onHighlight={slash.setHighlightIndex}
+              onSelect={slash.selectSkill}
+              label={t.settingsSkills?.title || 'Skills'}
+            />
+          )}
           {(attachedFiles.length > 0 || attachedImages.length > 0) && (
             <div className={styles.attachments}>
               {attachedImages.length > 0 && (
@@ -155,16 +195,23 @@ export default function ChatInputArea({
               ref={textareaRef}
               className={styles.textarea}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                requestAnimationFrame(() => slash.refreshCursor());
+              }}
+              onClick={() => slash.refreshCursor()}
+              onKeyUp={() => slash.refreshCursor()}
+              onSelect={() => slash.refreshCursor()}
               onPaste={(e) => void handleInputPaste(e)}
               onKeyDown={(e) => {
+                if (slash.onKeyDown(e)) return;
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   if (!modelMissing) void handleSendMessage();
                 }
               }}
               placeholder={modelMissing ? t.errors.selectModelFirst : t.chat.enterYourQuestion}
-              disabled={isLoading || modelMissing}
+              disabled={disabled}
               rows={1}
             />
             <button

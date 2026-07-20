@@ -1192,6 +1192,7 @@ export interface I18nMessages {
     contentRequired: string;
     globalHint: string;
     projectHint: string;
+    slashHint: string;
     copyPath: string;
     pathCopied: string;
     openFolder: string;
