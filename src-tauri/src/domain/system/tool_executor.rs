@@ -312,6 +312,7 @@ pub fn build_tool_result_messages(
         thinking_ended_at: None,
         thinking_signature: None,
         is_error: None,
+        slash_command: None,
     });
 
     // 2) One tool-result message per tool call
@@ -329,6 +330,7 @@ pub fn build_tool_result_messages(
             thinking_ended_at: None,
             thinking_signature: None,
             is_error: Some(!result.success),
+            slash_command: None,
         };
 
         // For Anthropic, content must be formatted differently – but the stream

@@ -1,5 +1,8 @@
 /**
- * Skill slash commands: /skill-name [args] autocomplete + send-time expansion.
+ * Skill slash commands: /skill-name [args] autocomplete + link-style send.
+ *
+ * Send does NOT expand skill body into the user message. The message stays a
+ * short /name args link; the model should call load_skill for full content.
  */
 
 import { loadSkillContent, type SkillEntry } from './skills';
@@ -10,7 +13,7 @@ const SLASH_TOKEN_RE = /(^|\s)\/([\w-]*)$/;
 export interface SlashSkillInvocation {
   name: string;
   args: string;
-  /** full match length from start of trimmed text */
+  /** full match from start of trimmed text */
   raw: string;
 }
 
@@ -26,11 +29,12 @@ export interface SlashTokenAtCursor {
 export type ExpandSkillSlashResult =
   | { kind: 'plain'; original: string }
   | {
-      kind: 'expanded';
+      kind: 'linked';
       original: string;
       skillName: string;
       args: string;
-      expandedText: string;
+      /** Short form kept as user message body (not expanded skill content) */
+      linkedText: string;
       description: string;
       scope: 'global' | 'project';
     }
@@ -39,6 +43,22 @@ export type ExpandSkillSlashResult =
 export function formatSlashCommandDisplay(name: string, args: string): string {
   const trimmedArgs = args.trim();
   return trimmedArgs ? `/${name} ${trimmedArgs}` : `/${name}`;
+}
+
+/**
+ * Build the user-visible / model-visible link text for a skill invocation.
+ * Does not include skill body — model loads via load_skill.
+ */
+export function formatSkillLinkMessage(name: string, args: string): string {
+  const display = formatSlashCommandDisplay(name, args);
+  const argLine = args.trim()
+    ? `User arguments: ${args.trim()}`
+    : 'User arguments: (none)';
+  return [
+    display,
+    '',
+    `[Skill link] Call load_skill with skill_name="${name}" to load full instructions. ${argLine}`,
+  ].join('\n');
 }
 
 /** Detect a leading /skill invocation for the whole message (after trim). */
@@ -69,8 +89,6 @@ export function parseLeadingSlashToken(
   if (!match) return null;
   const slashIndex = before.lastIndexOf('/');
   if (slashIndex < 0) return null;
-  // Do not treat already-completed multi-word commands as a partial token
-  // when cursor is mid-args: SLASH_TOKEN_RE already requires end-of-before.
   return {
     start: slashIndex,
     end: cursor,
@@ -108,8 +126,8 @@ export function applySkillArguments(body: string, args: string): string {
 }
 
 /**
- * Expand a user message that is exactly a /skill invocation.
- * Non-matching text is returned as plain.
+ * Resolve a user message that is exactly a /skill invocation.
+ * Link style: does not expand skill body into the message.
  */
 export async function expandSkillSlashCommand(
   text: string,
@@ -131,15 +149,13 @@ export async function expandSkillSlashCommand(
     };
   }
 
-  // Non-user-invocable skills still expand if the user typed the name explicitly
-  // (they just won't appear in the autocomplete list).
-  const expandedText = applySkillArguments(loaded.content, invocation.args);
+  const linkedText = formatSkillLinkMessage(invocation.name, invocation.args);
   return {
-    kind: 'expanded',
+    kind: 'linked',
     original,
     skillName: invocation.name,
     args: invocation.args,
-    expandedText,
+    linkedText,
     description: loaded.description,
     scope: loaded.scope,
   };

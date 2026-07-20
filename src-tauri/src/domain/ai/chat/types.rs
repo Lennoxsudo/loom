@@ -153,6 +153,9 @@ pub struct ChatMessage {
     /// Required to send thinking blocks back in follow-up requests.
     #[serde(default, rename = "thinkingSignature")]
     pub thinking_signature: Option<String>,
+    /// Slash skill invocation metadata (bubble short form vs expanded content)
+    #[serde(default, rename = "slashCommand")]
+    pub slash_command: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize, Clone)]

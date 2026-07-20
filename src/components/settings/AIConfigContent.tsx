@@ -7,7 +7,7 @@ import { showSuccess as globalShowSuccess } from '../../utils/notification';
 import { type AIProvider, type AIConfigTab, type AIConfig, type AIProfileItem, type AIProviderProfiles, type AIProfiles, type ImageGenerationConfig, DEFAULT_AI_CONFIGS, DEFAULT_IMAGE_GENERATION_CONFIG } from './types';
 import { normalizeImageGenerationConfig } from '../../utils/imageGenConfig';
 import { ImageGenerationSection } from './ImageGenerationSection';
-import { ChevronDownIcon, CloseIcon, EditIcon, PlusIcon } from '../shared/Icons';
+import { ChevronDownIcon, CloseIcon, CopyIcon, EditIcon, PlusIcon } from '../shared/Icons';
 import styles from './AIConfigContent.module.css';
 import { SettingsDeleteModal } from './SettingsDeleteModal';
 
@@ -79,6 +79,7 @@ function ProfileCard({
   onRenameCancel,
   onToggle,
   onEdit,
+  onCopy,
   onEnable,
   onDelete,
   children,
@@ -95,6 +96,7 @@ function ProfileCard({
   onRenameCancel?: () => void;
   onToggle: () => void;
   onEdit?: () => void;
+  onCopy?: () => void;
   onEnable?: () => void;
   onDelete?: () => void;
   children?: ReactNode;
@@ -219,6 +221,19 @@ function ProfileCard({
                   title={t.actions.edit}
                 >
                   <EditIcon size={12} />
+                </button>
+              ) : null}
+              {onCopy ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopy();
+                  }}
+                  className={styles.actionBtn}
+                  title={t.settingsAiConfig.copyProfile}
+                >
+                  <CopyIcon size={12} />
                 </button>
               ) : null}
               {onEnable ? (
@@ -894,7 +909,7 @@ export function AIConfigContent() {
     const id = createProfileId();
     const item: AIProfileItem = {
       id,
-      name: `配置${nextIndex}`,
+      name: t.settingsAiConfig.profileIndex.replace('{index}', String(nextIndex)),
       endpoint: '',
       apiKey: '',
       models: [''],
@@ -908,6 +923,54 @@ export function AIConfigContent() {
         items: [...prev[selectedProvider].items, item],
       },
     }));
+  };
+
+  const makeUniqueCopyName = (baseName: string, existingNames: string[]) => {
+    const template = t.settingsAiConfig.profileCopyName;
+    let candidate = template.replace('{name}', baseName);
+    if (!existingNames.includes(candidate)) return candidate;
+
+    let n = 2;
+    while (existingNames.includes(`${candidate} ${n}`)) {
+      n += 1;
+    }
+    return `${candidate} ${n}`;
+  };
+
+  const handleDuplicateProfile = async (provider: AIProvider, profileId: string) => {
+    const providerProfiles = profiles[provider];
+    const source = providerProfiles.items.find((it) => it.id === profileId);
+    if (!source) return;
+
+    const id = createProfileId();
+    const name = makeUniqueCopyName(
+      source.name,
+      providerProfiles.items.map((it) => it.name)
+    );
+    const item: AIProfileItem = {
+      id,
+      name,
+      endpoint: source.endpoint || '',
+      apiKey: source.apiKey || '',
+      models: Array.isArray(source.models) ? [...source.models] : [''],
+      organizationId:
+        provider === 'openai' ? source.organizationId || '' : undefined,
+      supportsVision: source.supportsVision,
+      visionMaxImages: source.visionMaxImages,
+      visionMaxBytes: source.visionMaxBytes,
+    };
+
+    const nextProfiles: AIProfiles = {
+      ...profiles,
+      [provider]: {
+        ...providerProfiles,
+        items: [...providerProfiles.items, item],
+      },
+    };
+
+    setProfiles(nextProfiles);
+    globalShowSuccess(t.settingsAiConfig.profileCopied);
+    await persistConfig(selectedProvider, configs, nextProfiles);
   };
 
   const requestDeleteProfile = (provider: AIProvider, profileId: string) => {
@@ -1209,6 +1272,7 @@ export function AIConfigContent() {
                 }
               }}
               onEdit={() => startRenameProfile(item.id)}
+              onCopy={() => void handleDuplicateProfile(selectedProvider, item.id)}
               onEnable={
                 isActive ? undefined : () => void handleEnableProfile(selectedProvider, item.id)
               }

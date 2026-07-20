@@ -332,6 +332,22 @@ export function normalizeStoredMessages(raw: unknown): Record<string, ChatMessag
         ...(Array.isArray(msg.subagentRuns) && msg.subagentRuns.length > 0
           ? { subagentRuns: msg.subagentRuns as PersistedSubagentRun[] }
           : {}),
+        ...(msg.slashCommand &&
+        typeof msg.slashCommand === 'object' &&
+        !Array.isArray(msg.slashCommand) &&
+        typeof (msg.slashCommand as { name?: unknown }).name === 'string' &&
+        typeof (msg.slashCommand as { displayText?: unknown }).displayText === 'string'
+          ? {
+              slashCommand: {
+                name: (msg.slashCommand as { name: string }).name,
+                args:
+                  typeof (msg.slashCommand as { args?: unknown }).args === 'string'
+                    ? (msg.slashCommand as { args: string }).args
+                    : '',
+                displayText: (msg.slashCommand as { displayText: string }).displayText,
+              },
+            }
+          : {}),
         createdAt,
       });
     }

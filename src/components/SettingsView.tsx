@@ -4,6 +4,7 @@ import { type SettingsTab, lastActiveTab } from './settings/types';
 import { GeneralContent } from './settings/GeneralContent';
 import { AgentContent } from './settings/AgentContent';
 import { SkillsContent } from './settings/SkillsContent';
+import { PluginsContent } from './settings/PluginsContent';
 import { RulesContent } from './settings/RulesContent';
 import { AIManagementContent } from './settings/AIManagementContent';
 import { AIConfigContent } from './settings/AIConfigContent';
@@ -64,6 +65,11 @@ export default function SettingsView() {
           onClick={() => setActiveTab('skills')}
         />
         <TabItem
+          label={t.settingsTabs.plugins}
+          isActive={activeTab === 'plugins'}
+          onClick={() => setActiveTab('plugins')}
+        />
+        <TabItem
           label={t.settingsTabs.rules}
           isActive={activeTab === 'rules'}
           onClick={() => setActiveTab('rules')}
@@ -119,6 +125,7 @@ export default function SettingsView() {
         {activeTab === 'general' && <GeneralContent />}
         {activeTab === 'agent' && <AgentContent />}
         {activeTab === 'skills' && <SkillsContent />}
+        {activeTab === 'plugins' && <PluginsContent />}
         {activeTab === 'rules' && <RulesContent />}
         {activeTab === 'ai-management' && <AIManagementContent />}
         {activeTab === 'ai-config' && <AIConfigContent />}

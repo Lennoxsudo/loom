@@ -121,6 +121,9 @@ pub struct AgentMessage {
     /// Persisted subagent card snapshots on tool result messages
     #[serde(default)]
     pub subagent_runs: Option<serde_json::Value>,
+    /// Slash skill invocation metadata: bubble shows /name args, text holds expanded body
+    #[serde(default)]
+    pub slash_command: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -1687,6 +1690,7 @@ mod tests {
                     executed_tools: None,
                     thinking_signature: None,
                     subagent_runs: None,
+                    slash_command: None,
                 }],
                 created_at: 1,
                 updated_at: 2,

@@ -109,6 +109,7 @@ pub async fn generate_conversation_title(
         thinking_ended_at: None,
         thinking_signature: None,
         is_error: None,
+        slash_command: None,
     }];
 
     let result = match provider.as_str() {
@@ -487,6 +488,7 @@ pub async fn generate_compact_summary(
                     thinking_ended_at: None,
                     thinking_signature: None,
                     is_error: None,
+                    slash_command: None,
                 });
             }
         }
@@ -511,6 +513,7 @@ pub async fn generate_compact_summary(
         thinking_ended_at: None,
         thinking_signature: None,
         is_error: None,
+        slash_command: None,
     });
 
     let result = match provider.as_str() {

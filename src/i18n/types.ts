@@ -901,6 +901,7 @@ export interface I18nMessages {
     general: string;
     agent: string;
     skills: string;
+    plugins: string;
     rules: string;
     aiManagement: string;
     aiConfig: string;
@@ -1198,6 +1199,12 @@ export interface I18nMessages {
     openFolder: string;
     openFolderFailed: string;
   };
+  settingsPlugins: {
+    title: string;
+    description: string;
+    installed: string;
+    comingSoon: string;
+  };
   settingsRules: {
     title: string;
     chatRules: string;
@@ -1385,6 +1392,9 @@ export interface I18nMessages {
     title: string;
     hint: string;
     addProfile: string;
+    copyProfile: string;
+    profileCopied: string;
+    profileCopyName: string;
     enabled: string;
     confirmDelete: string;
     deleteProfile: {

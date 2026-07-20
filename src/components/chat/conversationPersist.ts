@@ -29,6 +29,7 @@ export function mapMessageToConversationMessage(m: Message) {
     compactBoundary: m.compactBoundary,
     compactSummary: m.compactSummary,
     compactMetadata: m.compactMetadata,
+    ...(m.slashCommand ? { slashCommand: m.slashCommand } : {}),
   };
 }
 

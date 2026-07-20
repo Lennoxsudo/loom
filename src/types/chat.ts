@@ -117,8 +117,8 @@ export interface ChatMessage {
   /** Optional file attachments (content injected into AI request, not shown in bubble) */
   fileAttachments?: FileAttachment[];
   /**
-   * When the user sent a /skill-name invocation, text holds the expanded skill body
-   * for the model; displayText is the short /name args form for the bubble UI.
+   * When the user sent a /skill-name link, text holds a short link cue for the model
+   * (not the skill body); displayText is the short /name args form for the bubble UI.
    */
   slashCommand?: {
     name: string;

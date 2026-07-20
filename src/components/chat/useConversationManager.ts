@@ -129,29 +129,43 @@ export function useConversationManager({
       // Restore plan panel state from the conversation file
       hydratePlan(conv.id, conv.planDocument);
 
-      const loadedMessages: Message[] = conv.messages.map((m, idx) => ({
-        id: m.id ?? `${Date.now()}-${idx}`,
-        role: m.role as Message['role'],
-        content: m.content,
-        attachments: m.attachments,
-        tool_calls: m.tool_calls,
-        tool_call_id: m.tool_call_id,
-        tool_name: m.tool_name,
-        tool_args: m.tool_args,
-        thinking: m.thinking,
-        tokens: m.tokens ? m.tokens.input + m.tokens.output : undefined,
-        timestamp: new Date(m.timestamp).getTime(),
-        startTime: m.startTime,
-        firstChunkTime: m.firstChunkTime,
-        firstContentTime: m.firstContentTime,
-        endTime: m.endTime,
-        thinkingStartedAt: m.thinkingStartedAt,
-        thinkingEndedAt: m.thinkingEndedAt,
-        compactBoundary: m.compactBoundary,
-        compactSummary: m.compactSummary,
-        compactMetadata: m.compactMetadata,
-        isStreaming: false,
-      }));
+      const loadedMessages: Message[] = conv.messages.map((m, idx) => {
+        const slash =
+          m.slashCommand &&
+          typeof m.slashCommand === 'object' &&
+          typeof m.slashCommand.name === 'string' &&
+          typeof m.slashCommand.displayText === 'string'
+            ? {
+                name: m.slashCommand.name,
+                args: typeof m.slashCommand.args === 'string' ? m.slashCommand.args : '',
+                displayText: m.slashCommand.displayText,
+              }
+            : undefined;
+        return {
+          id: m.id ?? `${Date.now()}-${idx}`,
+          role: m.role as Message['role'],
+          content: m.content,
+          attachments: m.attachments,
+          tool_calls: m.tool_calls,
+          tool_call_id: m.tool_call_id,
+          tool_name: m.tool_name,
+          tool_args: m.tool_args,
+          thinking: m.thinking,
+          tokens: m.tokens ? m.tokens.input + m.tokens.output : undefined,
+          timestamp: new Date(m.timestamp).getTime(),
+          startTime: m.startTime,
+          firstChunkTime: m.firstChunkTime,
+          firstContentTime: m.firstContentTime,
+          endTime: m.endTime,
+          thinkingStartedAt: m.thinkingStartedAt,
+          thinkingEndedAt: m.thinkingEndedAt,
+          compactBoundary: m.compactBoundary,
+          compactSummary: m.compactSummary,
+          compactMetadata: m.compactMetadata,
+          ...(slash ? { slashCommand: slash } : {}),
+          isStreaming: false,
+        };
+      });
 
       setMessages(loadedMessages);
       setProtocolSelection(conv.provider as ChatProtocolSelection);

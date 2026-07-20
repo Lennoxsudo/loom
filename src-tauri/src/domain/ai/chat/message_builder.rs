@@ -414,6 +414,7 @@ mod tests {
             thinking_ended_at: None,
             thinking_signature: None,
             is_error: None,
+            slash_command: None,
         };
 
         let result = build_anthropic_message_content(&msg).unwrap();

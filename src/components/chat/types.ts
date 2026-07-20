@@ -85,8 +85,8 @@ export interface Message {
   compactSummary?: boolean;
   compactMetadata?: CompactMetadata;
   /**
-   * When the user sent a /skill-name invocation, content holds the expanded skill body
-   * for the model; displayText is the short /name args form for the bubble UI.
+   * When the user sent a /skill-name link, content holds a short link cue for the model
+   * (not the skill body); displayText is the short /name args form for the bubble UI.
    */
   slashCommand?: {
     name: string;
@@ -121,6 +121,11 @@ interface ConversationMessage {
   compactBoundary?: boolean;
   compactSummary?: boolean;
   compactMetadata?: CompactMetadata;
+  slashCommand?: {
+    name: string;
+    args: string;
+    displayText: string;
+  };
 }
 
 /** Plan document embedded with the conversation (follows session save/delete). */

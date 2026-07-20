@@ -16,6 +16,7 @@ import {
   applySkillArguments,
   expandSkillSlashCommand,
   formatSlashCommandDisplay,
+  formatSkillLinkMessage,
 } from '../skillSlashCommand';
 import { loadSkillContent, type SkillEntry } from '../skills';
 
@@ -129,6 +130,16 @@ describe('formatSlashCommandDisplay', () => {
   });
 });
 
+describe('formatSkillLinkMessage', () => {
+  it('keeps short form and asks model to load_skill', () => {
+    const text = formatSkillLinkMessage('taste-skill', 'hello');
+    expect(text).toContain('/taste-skill hello');
+    expect(text).toContain('load_skill');
+    expect(text).toContain('skill_name="taste-skill"');
+    expect(text).not.toContain('Review:');
+  });
+});
+
 describe('expandSkillSlashCommand', () => {
   beforeEach(() => {
     mockedLoad.mockReset();
@@ -142,24 +153,23 @@ describe('expandSkillSlashCommand', () => {
     expect(mockedLoad).not.toHaveBeenCalled();
   });
 
-  it('expands known skill with $ARGUMENTS', async () => {
+  it('links known skill without expanding body', async () => {
     mockedLoad.mockResolvedValue({
-      content: 'Review:\n$ARGUMENTS',
+      content: 'Review:\n$ARGUMENTS\nFULL SKILL BODY THAT MUST NOT APPEAR',
       scope: 'project',
       userInvocable: true,
       argumentHint: '[summary]',
       description: 'review',
     });
     const result = await expandSkillSlashCommand('/pr fix login', '/repo');
-    expect(result).toEqual({
-      kind: 'expanded',
-      original: '/pr fix login',
-      skillName: 'pr',
-      args: 'fix login',
-      expandedText: 'Review:\nfix login',
-      description: 'review',
-      scope: 'project',
-    });
+    expect(result.kind).toBe('linked');
+    if (result.kind !== 'linked') return;
+    expect(result.skillName).toBe('pr');
+    expect(result.args).toBe('fix login');
+    expect(result.linkedText).toContain('/pr fix login');
+    expect(result.linkedText).toContain('load_skill');
+    expect(result.linkedText).not.toContain('FULL SKILL BODY');
+    expect(result.linkedText).not.toContain('Review:');
     expect(mockedLoad).toHaveBeenCalledWith('pr', '/repo');
   });
 

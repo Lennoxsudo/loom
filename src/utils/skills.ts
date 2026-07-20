@@ -238,7 +238,7 @@ function formatSkillsIndex(skills: SkillEntry[]): string {
     '<available_skills>',
     ...items,
     '</available_skills>',
-    '当用户请求与某个 skill 的描述匹配时，调用 load_skill 工具并传入 skill_name 来加载完整指令。',
+    '当用户请求与某个 skill 的描述匹配，或用户消息以 /skill-name 技能链接形式出现时，调用 load_skill 工具并传入 skill_name 来加载完整指令；不要假设 skill 正文已在用户消息中。',
   ].join('\n');
 }
 

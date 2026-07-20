@@ -913,6 +913,7 @@ export const enUS: I18nMessages = {
     general: 'General',
     agent: 'agent',
     skills: 'Skills',
+    plugins: 'Plugins',
     rules: 'Rules',
     aiManagement: 'AI Configuration Management',
     aiConfig: 'AI Protocol (Custom)',
@@ -1216,11 +1217,17 @@ export const enUS: I18nMessages = {
     projectHint:
       'Project skills apply to current project only. Same-name files override global ones',
     slashHint:
-      'Type /skill-name in Chat or Agent to expand a skill as the user message. Use $ARGUMENTS in the body for trailing args. Set user-invocable: false to hide from / autocomplete (load_skill still works).',
+      'Type /skill-name in Chat or Agent to insert a skill link (not the full body). The model should call load_skill for instructions; use $ARGUMENTS in the skill body for trailing args. Set user-invocable: false to hide from / autocomplete (load_skill still works).',
     copyPath: 'Copy Path',
     pathCopied: 'Path copied to clipboard',
     openFolder: 'Open Folder',
     openFolderFailed: 'Failed to open folder',
+  },
+  settingsPlugins: {
+    title: 'Plugins',
+    description: 'Manage installed plugins that extend the editor and agent capabilities.',
+    installed: 'Installed plugins',
+    comingSoon: 'Plugin management is coming soon.',
   },
   settingsRules: {
     title: 'Rules Configuration',
@@ -1411,8 +1418,11 @@ export const enUS: I18nMessages = {
     },
     loading: 'Loading configuration...',
     title: 'AI Configuration (Protocol)',
-    hint: 'Click card to expand, click edit button to modify profile name',
+    hint: 'Click card to expand, click edit to rename, click copy to duplicate a profile',
     addProfile: 'Add Profile',
+    copyProfile: 'Copy Profile',
+    profileCopied: 'Profile copied',
+    profileCopyName: '{name} (copy)',
     enabled: 'Enabled',
     confirmDelete: 'Confirm Delete',
     deleteProfile: {

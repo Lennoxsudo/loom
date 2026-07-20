@@ -109,9 +109,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
   const resolveUserBody = async (raw: string) => {
     const trimmed = raw.trim();
     const expansion = await expandSkillSlashCommand(trimmed, opts.projectPathRef.current || '');
-    if (expansion.kind === 'expanded') {
+    if (expansion.kind === 'linked') {
       return {
-        body: expansion.expandedText,
+        // Link-style: keep short form + load_skill cue; do not inject skill body.
+        body: expansion.linkedText,
         slashCommand: {
           name: expansion.skillName,
           args: expansion.args,
