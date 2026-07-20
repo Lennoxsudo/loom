@@ -66,7 +66,7 @@ describe('ExecCommandCard', () => {
 
   test('shows output while running and collapses when finished', () => {
     const output = 'terminal output line';
-    const { rerender, container } = render(
+    const { rerender } = render(
       <I18nProvider defaultLocale="en-US">
         <ExecCommandCard
           parsed={{ ...baseParsed, output, exitCode: null, durationMs: null }}

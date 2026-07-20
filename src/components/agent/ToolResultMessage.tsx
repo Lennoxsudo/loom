@@ -62,11 +62,8 @@ const TOOL_TEXT = 'var(--text-primary)';
 const TOOL_TEXT_MUTED = 'var(--text-secondary)';
 const TOOL_TEXT_SUBTLE = 'color-mix(in srgb, var(--text-secondary) 82%, var(--bg-app))';
 const TOOL_SUCCESS = 'color-mix(in srgb, #2f9e44 82%, var(--text-primary))';
-const TOOL_SUCCESS_BG = 'color-mix(in srgb, #2f9e44 12%, var(--bg-sidebar))';
 const TOOL_WARNING = 'color-mix(in srgb, var(--text-warning) 88%, var(--text-primary))';
 const TOOL_WARNING_BG = 'color-mix(in srgb, var(--text-warning) 14%, var(--bg-sidebar))';
-const TOOL_ERROR = 'var(--text-error)';
-const TOOL_ERROR_BG = 'color-mix(in srgb, var(--text-error) 10%, var(--bg-sidebar))';
 
 /** Strip fenced code blocks before error heuristics — tool output often embeds source containing "failed", "error:", etc. */
 function stripCodeFencesForErrorHeuristics(text: string): string {
