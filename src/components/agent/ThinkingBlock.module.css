@@ -28,6 +28,33 @@
   color: var(--text-primary);
 }
 
+.shimmerLabel {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.shimmerChar {
+  display: inline-block;
+  animation: thinkingCharShimmer 1.15s ease-in-out infinite;
+  will-change: opacity, color;
+}
+
+@keyframes thinkingCharShimmer {
+  0%,
+  100% {
+    opacity: 0.42;
+    color: var(--text-secondary);
+  }
+  40% {
+    opacity: 1;
+    color: var(--text-primary);
+  }
+  55% {
+    opacity: 1;
+    color: var(--text-primary);
+  }
+}
+
 .headerExpanded {
   /* no separator line — frameless */
 }

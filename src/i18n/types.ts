@@ -1204,6 +1204,21 @@ export interface I18nMessages {
     description: string;
     installed: string;
     comingSoon: string;
+    builtin: string;
+    cdpBrowser: string;
+    cdpBrowserDesc: string;
+    cdpBrowserToggle: string;
+    enabledHint: string;
+    disabledHint: string;
+    browserPath: string;
+    browserNotFound: string;
+    sessionStatus: string;
+    sessionRunning: string;
+    sessionIdle: string;
+    debugPort: string;
+    currentUrl: string;
+    desktopOnly: string;
+    cdpActionsHint: string;
   };
   settingsRules: {
     title: string;
@@ -1416,6 +1431,7 @@ export interface I18nMessages {
       organizationIdPlaceholder: string;
       testing: string;
       testConnection: string;
+      testModel: string;
       saveConfig: string;
       saving: string;
       modelRequiredError: string;

@@ -44,11 +44,14 @@ function ChatListRow({
   const isToolGroup = 'type' in item && item.type === 'tool_group';
   const isPendingChanges = 'type' in item && item.type === 'pending_changes';
   const isPlanDocument = 'type' in item && item.type === 'plan_document';
+  const isUserMessage =
+    !isToolGroup && !isPendingChanges && !isPlanDocument && 'role' in item && item.role === 'user';
 
   return (
     <div
       style={{
-        paddingBottom: isToolGroup ? 0 : isLast ? 20 : 5,
+        // Only open space after user bubbles; keep tool/thinking rows compact.
+        paddingBottom: isToolGroup ? 0 : isLast ? 20 : isUserMessage ? 14 : 5,
         paddingLeft: 16,
         paddingRight: 16,
         paddingTop: index === 0 ? 20 : 0,

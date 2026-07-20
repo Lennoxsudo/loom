@@ -171,6 +171,11 @@ export interface SettingsState {
   recentWorkspaces: RecentWorkspace[];
   /** Enable built-in code knowledge graph (CBM) tools */
   enableCodeGraph: boolean;
+  /**
+   * Enable CDP browser automation plugin (system Chrome/Edge via DevTools Protocol).
+   * When on, the browser agent tool gains click/type/screenshot/content actions.
+   */
+  enableCdpBrowser: boolean;
   /** Auto-index workspace when opened */
   graphAutoIndexOnOpen: boolean;
   /** Max files for auto-index; 0 = no limit */

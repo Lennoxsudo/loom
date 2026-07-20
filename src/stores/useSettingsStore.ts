@@ -63,6 +63,7 @@ interface SettingsActions {
   updateThinkingBlockAutoExpand: (enabled: boolean) => Promise<void>;
   updateEnableSubagents: (enabled: boolean) => Promise<void>;
   updateEnableCodeGraph: (enabled: boolean) => Promise<void>;
+  updateEnableCdpBrowser: (enabled: boolean) => Promise<void>;
   updateGraphAutoIndexOnOpen: (enabled: boolean) => Promise<void>;
   updateGraphAutoIndexMaxFiles: (maxFiles: number) => Promise<void>;
   updateReasoningEffort: (effort: ReasoningEffort) => Promise<void>;
@@ -104,6 +105,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   agentRuntimeMode: 'local' as AgentRuntimeMode,
   recentWorkspaces: [] as RecentWorkspace[],
   enableCodeGraph: true,
+  enableCdpBrowser: false,
   graphAutoIndexOnOpen: true,
   graphAutoIndexMaxFiles: 50_000,
   enableSpendCap: false,
@@ -145,6 +147,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     agentRuntimeMode: state.agentRuntimeMode,
     recentWorkspaces: state.recentWorkspaces,
     enableCodeGraph: state.enableCodeGraph,
+    enableCdpBrowser: state.enableCdpBrowser,
     graphAutoIndexOnOpen: state.graphAutoIndexOnOpen,
     graphAutoIndexMaxFiles: state.graphAutoIndexMaxFiles,
     enableSpendCap: state.enableSpendCap,
@@ -240,6 +243,10 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (typeof settings.enableCodeGraph === 'boolean') {
     result.enableCodeGraph = settings.enableCodeGraph;
+  }
+
+  if (typeof settings.enableCdpBrowser === 'boolean') {
+    result.enableCdpBrowser = settings.enableCdpBrowser;
   }
 
   if (typeof settings.graphAutoIndexOnOpen === 'boolean') {
@@ -537,6 +544,20 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
 
+      updateEnableCdpBrowser: async (enableCdpBrowser) => {
+        set({ enableCdpBrowser });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+        // Best-effort: stop CDP session when plugin is disabled.
+        if (!enableCdpBrowser && isTauri()) {
+          try {
+            await invoke('cdp_browser_stop');
+          } catch {
+            // ignore — browser may already be idle
+          }
+        }
+      },
+
       updateGraphAutoIndexOnOpen: async (graphAutoIndexOnOpen) => {
         set({ graphAutoIndexOnOpen });
         const state = get();
@@ -714,9 +735,11 @@ export const useUpdateToolCallDelay = () => useSettingsStore((state) => state.up
 export const useUpdateThinkingBlockAutoExpand = () => useSettingsStore((state) => state.updateThinkingBlockAutoExpand);
 export const useUpdateEnableSubagents = () => useSettingsStore((state) => state.updateEnableSubagents);
 export const useEnableCodeGraph = () => useSettingsStore((state) => state.enableCodeGraph);
+export const useEnableCdpBrowser = () => useSettingsStore((state) => state.enableCdpBrowser);
 export const useGraphAutoIndexOnOpen = () => useSettingsStore((state) => state.graphAutoIndexOnOpen);
 export const useGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.graphAutoIndexMaxFiles);
 export const useUpdateEnableCodeGraph = () => useSettingsStore((state) => state.updateEnableCodeGraph);
+export const useUpdateEnableCdpBrowser = () => useSettingsStore((state) => state.updateEnableCdpBrowser);
 export const useUpdateGraphAutoIndexOnOpen = () => useSettingsStore((state) => state.updateGraphAutoIndexOnOpen);
 export const useUpdateGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.updateGraphAutoIndexMaxFiles);
 export const useUpdateReasoningEffort = () => useSettingsStore((state) => state.updateReasoningEffort);

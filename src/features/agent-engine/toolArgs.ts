@@ -115,8 +115,35 @@ export type GetSymbolDefinitionArgs = {
 };
 
 export type ControlBrowserArgs = {
-  action: 'open' | 'navigate' | 'refresh';
+  action:
+    | 'open'
+    | 'close'
+    | 'navigate'
+    | 'refresh'
+    | 'click'
+    | 'type'
+    | 'press_key'
+    | 'content'
+    | 'evaluate'
+    | 'wait'
+    | 'screenshot';
   url?: string;
+  /** CSS selector for click / type / wait */
+  selector?: string;
+  /** Text to type into the selected element */
+  text?: string;
+  /** Key name for press_key (e.g. Enter, Tab, Escape) */
+  key?: string;
+  /** Clear existing value before type */
+  clear?: boolean;
+  /** JavaScript expression for evaluate */
+  expression?: string;
+  /** Wait timeout in milliseconds (default 10000) */
+  timeout_ms?: number;
+  /** Capture full page screenshot */
+  full_page?: boolean;
+  /** Include base64 payload in screenshot result */
+  include_base64?: boolean;
 };
 
 export type FetchWebContentArgs = {

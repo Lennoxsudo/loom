@@ -283,12 +283,12 @@ function ConfigForm({
   config,
   onConfigChange,
   onSave,
-  onTest,
+  onTestModel,
   onFetchModels,
   isSaving,
-  isTesting,
+  testingModelIndexes,
   isFetchingModels,
-  testResult,
+  modelTestResults,
   modelFetch,
   onCopyModel,
   onAddModel,
@@ -299,12 +299,12 @@ function ConfigForm({
   config: Partial<AIConfig>;
   onConfigChange: (field: keyof AIConfig, value: string | string[]) => void;
   onSave: () => void;
-  onTest: () => void;
+  onTestModel: (index: number) => void;
   onFetchModels: () => void;
   isSaving: boolean;
-  isTesting: boolean;
+  testingModelIndexes: Set<number>;
   isFetchingModels: boolean;
-  testResult: { success: boolean; message: string } | null;
+  modelTestResults: Record<number, { success: boolean; message: string } | null>;
   modelFetch: { models: string[]; error?: string } | undefined;
   onCopyModel: (model: string) => void;
   onAddModel: () => void;
@@ -374,37 +374,35 @@ function ConfigForm({
               : t.settingsAiConfig.form.fetchModels}
           </button>
         </div>
-        {models.map((model, index) => (
-          <div key={index} className={styles.modelRow}>
-            <input
-              type="text"
-              value={model}
-              onChange={(e) => onModelChange(index, e.target.value)}
-              placeholder={t.settingsAiConfig.form.modelPlaceholder.replace('{index}', String(index + 1))}
-              className={`${styles.formInput} ${styles.modelInput} ${!model.trim() && index === 0 ? styles.formInputError : ''}`}
-            />
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {index === 0 && models.length < 10 && (
+        {models.map((model, index) => {
+          const isTestingThis = testingModelIndexes.has(index);
+          const modelResult = modelTestResults[index] ?? null;
+          return (
+            <div key={index} className={styles.modelItem}>
+              <div className={styles.modelRow}>
                 <button
                   type="button"
-                  onClick={onAddModel}
-                  className={`${styles.modelBtn} ${styles.modelBtnAdd}`}
-                  title={t.settingsAiConfig.form.addModel}
+                  onClick={() => onTestModel(index)}
+                  disabled={isTestingThis || !model.trim()}
+                  className={styles.modelTestBtn}
+                  title={t.settingsAiConfig.form.testModel}
                 >
-                  +
+                  {isTestingThis
+                    ? t.settingsAiConfig.form.testing
+                    : t.settingsAiConfig.form.testModel}
                 </button>
-              )}
-              {index > 0 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveModel(index)}
-                    className={`${styles.modelBtn} ${styles.modelBtnRemove}`}
-                    title={t.settingsAiConfig.form.removeModel}
-                  >
-                    −
-                  </button>
-                  {index === models.length - 1 && models.length < 10 && (
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => onModelChange(index, e.target.value)}
+                  placeholder={t.settingsAiConfig.form.modelPlaceholder.replace(
+                    '{index}',
+                    String(index + 1)
+                  )}
+                  className={`${styles.formInput} ${styles.modelInput} ${!model.trim() && index === 0 ? styles.formInputError : ''}`}
+                />
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {index === 0 && models.length < 10 && (
                     <button
                       type="button"
                       onClick={onAddModel}
@@ -414,12 +412,48 @@ function ConfigForm({
                       +
                     </button>
                   )}
-                </>
-              )}
-              {index === 0 && models.length >= 10 && <div style={{ width: '30px', flexShrink: 0 }} />}
+                  {index > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveModel(index)}
+                        className={`${styles.modelBtn} ${styles.modelBtnRemove}`}
+                        title={t.settingsAiConfig.form.removeModel}
+                      >
+                        −
+                      </button>
+                      {index === models.length - 1 && models.length < 10 && (
+                        <button
+                          type="button"
+                          onClick={onAddModel}
+                          className={`${styles.modelBtn} ${styles.modelBtnAdd}`}
+                          title={t.settingsAiConfig.form.addModel}
+                        >
+                          +
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {index === 0 && models.length >= 10 && (
+                    <div style={{ width: '30px', flexShrink: 0 }} />
+                  )}
+                </div>
+              </div>
+              {modelResult ? (
+                <div
+                  className={`${styles.modelTestResult} ${
+                    modelResult.success
+                      ? styles.modelTestResultSuccess
+                      : styles.modelTestResultError
+                  }`}
+                >
+                  <span>{modelResult.success ? '✓' : '✗'}</span>
+                  <span>{modelResult.message}</span>
+                </div>
+              ) : null}
             </div>
-          </div>
-        ))}
+          );
+        })}
         {!models[0]?.trim() && (
           <div className={styles.formError}>{t.settingsAiConfig.form.modelRequiredError}</div>
         )}
@@ -497,29 +531,12 @@ function ConfigForm({
       <div className={styles.formFooter}>
         <button
           type="button"
-          onClick={onTest}
-          disabled={isTesting}
-          className={styles.secondaryBtn}
-        >
-          {isTesting ? t.settingsAiConfig.form.testing : t.settingsAiConfig.form.testConnection}
-        </button>
-        <button
-          type="button"
           onClick={onSave}
           disabled={isSaving}
           className={styles.primaryBtn}
         >
           {isSaving ? t.settingsAiConfig.form.saving : t.settingsAiConfig.form.saveConfig}
         </button>
-
-        {testResult && (
-          <div
-            className={`${styles.testResult} ${testResult.success ? styles.testResultSuccess : styles.testResultError}`}
-          >
-            <span>{testResult.success ? '✓' : '✗'}</span>
-            <span>{testResult.message}</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -629,9 +646,9 @@ export function AIConfigContent() {
   const [expandedProfileId, setExpandedProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [testingProfileId, setTestingProfileId] = useState<string | null>(null);
-  const [testResultsByProfileId, setTestResultsByProfileId] = useState<
-    Record<string, { success: boolean; message: string } | null>
+  const [testingModelKeys, setTestingModelKeys] = useState<Set<string>>(() => new Set());
+  const [modelTestResultsByProfileId, setModelTestResultsByProfileId] = useState<
+    Record<string, Record<number, { success: boolean; message: string } | null>>
   >({});
   const [fetchingModelsProfileId, setFetchingModelsProfileId] = useState<string | null>(null);
   const [modelFetchByProfileId, setModelFetchByProfileId] = useState<
@@ -824,6 +841,17 @@ export function AIConfigContent() {
         'models',
         currentModels.filter((_, i) => i !== index)
       );
+      setModelTestResultsByProfileId((prev) => {
+        const current = prev[profileId];
+        if (!current) return prev;
+        const next: Record<number, { success: boolean; message: string } | null> = {};
+        Object.entries(current).forEach(([key, value]) => {
+          const i = Number(key);
+          if (Number.isNaN(i) || i === index) return;
+          next[i > index ? i - 1 : i] = value;
+        });
+        return { ...prev, [profileId]: next };
+      });
     }
   };
 
@@ -833,6 +861,12 @@ export function AIConfigContent() {
     const currentModels = [...(target?.models || [])];
     currentModels[index] = value;
     handleProfileConfigChange(profileId, 'models', currentModels);
+    setModelTestResultsByProfileId((prev) => {
+      const current = prev[profileId];
+      if (!current || current[index] == null) return prev;
+      const next = { ...current, [index]: null };
+      return { ...prev, [profileId]: next };
+    });
   };
 
   const persistConfig = async (
@@ -1142,31 +1176,52 @@ export function AIConfigContent() {
     }
   };
 
-  const handleTestConnection = async (profileId: string) => {
-    setTestingProfileId(profileId);
-    setTestResultsByProfileId((prev) => ({ ...prev, [profileId]: null }));
+  const handleTestModel = async (profileId: string, modelIndex: number) => {
+    const testKey = `${profileId}:${modelIndex}`;
+    setTestingModelKeys((prev) => {
+      const next = new Set(prev);
+      next.add(testKey);
+      return next;
+    });
+    setModelTestResultsByProfileId((prev) => ({
+      ...prev,
+      [profileId]: {
+        ...(prev[profileId] || {}),
+        [modelIndex]: null,
+      },
+    }));
+
+    const clearTesting = () => {
+      setTestingModelKeys((prev) => {
+        if (!prev.has(testKey)) return prev;
+        const next = new Set(prev);
+        next.delete(testKey);
+        return next;
+      });
+    };
 
     try {
       const providerProfiles = profiles[selectedProvider];
       const target = providerProfiles.items.find((it) => it.id === profileId);
       if (!target) {
-        setTestingProfileId(null);
+        clearTesting();
         return;
       }
 
+      const modelName = (target.models || [])[modelIndex]?.trim() || '';
       const requiresApiKey = selectedProvider !== 'ollama';
-      if (
-        !target.endpoint ||
-        (requiresApiKey && !target.apiKey) ||
-        !target.models ||
-        target.models.length === 0 ||
-        !target.models[0]
-      ) {
-        setTestResultsByProfileId((prev) => ({
+      if (!target.endpoint || (requiresApiKey && !target.apiKey) || !modelName) {
+        setModelTestResultsByProfileId((prev) => ({
           ...prev,
-          [profileId]: { success: false, message: t.settingsAiConfig.errors.incompleteConfig },
+          [profileId]: {
+            ...(prev[profileId] || {}),
+            [modelIndex]: {
+              success: false,
+              message: t.settingsAiConfig.errors.incompleteConfig,
+            },
+          },
         }));
-        setTestingProfileId(null);
+        clearTesting();
         return;
       }
 
@@ -1177,18 +1232,30 @@ export function AIConfigContent() {
           apiKey: target.apiKey,
           models: target.models,
           organizationId: target.organizationId,
-          model: target.models[0],
+          model: modelName,
         },
       });
 
-      setTestResultsByProfileId((prev) => ({ ...prev, [profileId]: result }));
-    } catch (error) {
-      setTestResultsByProfileId((prev) => ({
+      setModelTestResultsByProfileId((prev) => ({
         ...prev,
-        [profileId]: { success: false, message: t.settingsAiConfig.errors.testFailed.replace('{error}', String(error)) },
+        [profileId]: {
+          ...(prev[profileId] || {}),
+          [modelIndex]: result,
+        },
+      }));
+    } catch (error) {
+      setModelTestResultsByProfileId((prev) => ({
+        ...prev,
+        [profileId]: {
+          ...(prev[profileId] || {}),
+          [modelIndex]: {
+            success: false,
+            message: t.settingsAiConfig.errors.testFailed.replace('{error}', String(error)),
+          },
+        },
       }));
     } finally {
-      setTestingProfileId(null);
+      clearTesting();
     }
   };
 
@@ -1289,12 +1356,19 @@ export function AIConfigContent() {
                   handleProfileConfigChange(item.id, field, value)
                 }
                 onSave={handleSaveConfig}
-                onTest={() => void handleTestConnection(item.id)}
+                onTestModel={(index) => void handleTestModel(item.id, index)}
                 onFetchModels={() => void handleFetchModels(item.id)}
                 isSaving={isSaving}
-                isTesting={testingProfileId === item.id}
+                testingModelIndexes={
+                  new Set(
+                    Array.from(testingModelKeys)
+                      .filter((key) => key.startsWith(`${item.id}:`))
+                      .map((key) => Number(key.slice(item.id.length + 1)))
+                      .filter((n) => Number.isFinite(n))
+                  )
+                }
                 isFetchingModels={fetchingModelsProfileId === item.id}
-                testResult={testResultsByProfileId[item.id] || null}
+                modelTestResults={modelTestResultsByProfileId[item.id] || {}}
                 modelFetch={modelFetchByProfileId[item.id]}
                 onCopyModel={(model) => void handleCopyModel(model)}
                 onAddModel={() => handleAddModel(item.id)}

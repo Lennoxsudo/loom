@@ -590,21 +590,65 @@ export const AI_TOOLS: ToolDefinition[] = [
   {
     name: 'browser',
     description:
-      'Control the built-in browser window. Available actions: ' +
-      'open - open the built-in browser and navigate to a URL; ' +
-      'navigate - navigate the browser to a new URL; ' +
-      'refresh - refresh the current page.',
+      'Control the browser. Basic actions always work on the built-in preview: open, navigate, refresh. ' +
+      'When the CDP browser plugin is enabled (Settings → Plugins), additional actions control system Chrome/Edge via CDP: ' +
+      'close, click, type, press_key, content, evaluate, wait, screenshot. ' +
+      'Prefer CDP actions for real DOM interaction and screenshots; use open/navigate/refresh for simple preview.',
     parameters: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
-          enum: ['open', 'navigate', 'refresh'],
+          enum: [
+            'open',
+            'close',
+            'navigate',
+            'refresh',
+            'click',
+            'type',
+            'press_key',
+            'content',
+            'evaluate',
+            'wait',
+            'screenshot',
+          ],
           description: 'The browser action to perform.',
         },
         url: {
           type: 'string',
-          description: 'The URL to navigate to. Required for open and navigate actions. Ignored for refresh.',
+          description: 'URL for open/navigate. Ignored for other actions.',
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS selector for click, type, and wait actions.',
+        },
+        text: {
+          type: 'string',
+          description: 'Text to type into the element (type action).',
+        },
+        key: {
+          type: 'string',
+          description: 'Key to press (press_key), e.g. Enter, Tab, Escape, ArrowDown.',
+        },
+        clear: {
+          type: 'boolean',
+          description: 'When typing, clear the existing value first. Default false.',
+        },
+        expression: {
+          type: 'string',
+          description: 'JavaScript expression to evaluate in the page (evaluate action).',
+        },
+        timeout_ms: {
+          type: 'number',
+          description: 'Timeout in ms for wait action (default 10000, max 60000).',
+        },
+        full_page: {
+          type: 'boolean',
+          description: 'Capture full-page screenshot when action is screenshot.',
+        },
+        include_base64: {
+          type: 'boolean',
+          description: 'Include base64 PNG data in screenshot result (large). Default false.',
         },
       },
       required: ['action'],

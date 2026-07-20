@@ -44,6 +44,8 @@ const ThinkingBlock = memo(function ThinkingBlock({
     }
   }
 
+  const showShimmer = isThinking && !hasThinkingEnded;
+
   return (
     <div className={styles.root} data-testid="thinking-block">
       <div
@@ -59,7 +61,21 @@ const ThinkingBlock = memo(function ThinkingBlock({
         tabIndex={0}
         aria-expanded={isExpanded}
       >
-        <span>{thinkingLabel}</span>
+        {showShimmer ? (
+          <span className={styles.shimmerLabel} aria-label={thinkingLabel}>
+            {Array.from(thinkingLabel).map((ch, i) => (
+              <span
+                key={`${i}-${ch}`}
+                className={styles.shimmerChar}
+                style={{ animationDelay: `${i * 0.09}s` }}
+              >
+                {ch === ' ' ? '\u00a0' : ch}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span>{thinkingLabel}</span>
+        )}
         <span className={`${styles.arrow} ${isExpanded ? styles.arrowExpanded : ''}`}>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
         </span>

@@ -31,6 +31,26 @@
   text-overflow: ellipsis;
 }
 
+/* Action verb — distinct from assistant prose / domain */
+.summaryAction {
+  font-family: 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-accent, #6ea8fe) 72%, var(--text-secondary));
+}
+
+.summarySep {
+  margin: 0 5px;
+  color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+/* Domain / path — quieter than action, still readable */
+.summaryTarget {
+  color: color-mix(in srgb, var(--text-primary) 78%, var(--text-secondary));
+  font-weight: 450;
+}
+
 .summaryStrong {
   color: var(--text-primary);
 }

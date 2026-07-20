@@ -16,7 +16,7 @@ import { extractVisionCapabilities } from '../utils/visionCapabilities';
 import { useToolStore } from '../stores/useToolStore';
 import { useRulesStore } from '../stores/useRulesStore';
 import { useUsageStore } from '../stores/useUsageStore';
-import { useAgentAccessMode, useStreamSpeed, useEnableCodeGraph } from '../stores';
+import { useAgentAccessMode, useStreamSpeed, useEnableCodeGraph, useEnableCdpBrowser } from '../stores';
 import { estimateTokens, estimateMessageTokens } from '../utils/contextBudget';
 import { useTranslation } from '../i18n';
 import { logDebug, isTauriCancellationError } from '../utils/errorHandling';
@@ -78,6 +78,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const t = useTranslation();
   const streamSpeed = useStreamSpeed();
   const agentAccessMode = useAgentAccessMode();
+  const enableCdpBrowser = useEnableCdpBrowser();
   const mcpTools = useToolStore((s) => s.mcpTools);
   const chatRules = useRulesStore((s) => s.chatRules);
   const imageGenConfig = useImageGenConfig();
@@ -88,7 +89,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         ...(isImageGenConfigured(imageGenConfig) ? [buildGenerateImageTool(imageGenConfig)] : []),
         ...mcpTools,
       ]),
-    [imageGenConfig, mcpTools]
+    // Recompute when CDP plugin toggles so browser action enum updates.
+    [imageGenConfig, mcpTools, enableCdpBrowser]
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');

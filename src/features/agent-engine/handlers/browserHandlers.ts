@@ -2,13 +2,14 @@
  * 浏览器 / 网络处理器模块
  *
  * 本模块提供浏览器与网络相关工具的处理器实现：
- * - ControlBrowserHandler: 控制内置浏览器
+ * - ControlBrowserHandler: 控制内置浏览器 / CDP 浏览器
  * - FetchWebContentHandler: 抓取网页内容（增强版，参照 Claude Code WebFetch）
  * - WebSearchHandler: 原生 Web 搜索（轻量 SERP 结果入上下文）
  *
  * @module aiTools/handlers/browserHandlers
  */
 
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler } from '../types';
 import type { ControlBrowserArgs, FetchWebContentArgs, WebSearchArgs } from '../toolArgs';
@@ -16,6 +17,77 @@ import { ToolError, handleToolError } from '../errors';
 import { browserController } from '../../../utils/browserController';
 import { validateFetchUrl, checkFetchPermission } from '../webFetchUtils';
 import { getCachedContent, setCachedContent } from '../webFetchCache';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
+
+interface CdpActionResult {
+  ok: boolean;
+  message: string;
+  url?: string | null;
+  title?: string | null;
+  content?: string | null;
+  screenshotPath?: string | null;
+  screenshotBase64?: string | null;
+  value?: unknown;
+}
+
+function isCdpBrowserEnabled(): boolean {
+  try {
+    return Boolean(useSettingsStore.getState().enableCdpBrowser);
+  } catch {
+    return false;
+  }
+}
+
+function formatCdpResult(result: CdpActionResult): string {
+  const parts = [result.message];
+  if (result.url) parts.push(`URL: ${result.url}`);
+  if (result.title) parts.push(`Title: ${result.title}`);
+  if (result.screenshotPath) parts.push(`Screenshot: ${result.screenshotPath}`);
+  if (result.content) {
+    const content = result.content;
+    const max = 80_000;
+    parts.push('---');
+    parts.push(content.length > max ? `${content.slice(0, max)}\n…(truncated)` : content);
+  }
+  if (result.value !== undefined && result.value !== null) {
+    parts.push('Value:');
+    parts.push(
+      typeof result.value === 'string'
+        ? result.value
+        : JSON.stringify(result.value, null, 2),
+    );
+  }
+  if (result.screenshotBase64) {
+    parts.push(`screenshot_base64_length: ${result.screenshotBase64.length}`);
+  }
+  return parts.join('\n');
+}
+
+async function invokeCdp(
+  command: string,
+  args: Record<string, unknown> = {},
+): Promise<ToolResult> {
+  if (!isTauri()) {
+    return {
+      tool_call_id: '',
+      output: '',
+      error: 'CDP browser is only available in the desktop app.',
+    };
+  }
+  try {
+    const result = await invoke<CdpActionResult>(command, args);
+    if (!result?.ok) {
+      return {
+        tool_call_id: '',
+        output: '',
+        error: result?.message || `CDP command failed: ${command}`,
+      };
+    }
+    return { tool_call_id: '', output: formatCdpResult(result) };
+  } catch (e) {
+    return { tool_call_id: '', output: '', error: String(e) };
+  }
+}
 
 /** 控制浏览器处理器 */
 class ControlBrowserHandler implements ToolHandler<'browser'> {
@@ -27,17 +99,103 @@ class ControlBrowserHandler implements ToolHandler<'browser'> {
         throw ToolError.missingParam('action');
       }
 
+      const cdpEnabled = isCdpBrowserEnabled();
+      const cdpActions = new Set([
+        'click',
+        'type',
+        'press_key',
+        'content',
+        'evaluate',
+        'wait',
+        'screenshot',
+        'close',
+      ]);
+
+      // CDP-only actions require the plugin switch.
+      if (cdpActions.has(args.action) && !cdpEnabled) {
+        return {
+          tool_call_id: '',
+          output: '',
+          error:
+            'CDP browser plugin is disabled. Enable it in Settings → Plugins, or use open/navigate/refresh on the built-in preview.',
+        };
+      }
+
+      // When CDP is enabled, prefer CDP for open/navigate/refresh/close as well.
+      if (cdpEnabled) {
+        switch (args.action) {
+          case 'open':
+            return invokeCdp('cdp_browser_start', { url: args.url || 'about:blank' });
+          case 'navigate':
+            if (!args.url) throw ToolError.missingParam('url');
+            // start creates a session if needed; if already running it navigates.
+            return invokeCdp('cdp_browser_start', { url: args.url });
+          case 'refresh':
+            return invokeCdp('cdp_browser_refresh');
+          case 'close':
+            return invokeCdp('cdp_browser_stop');
+          case 'click':
+            if (!args.selector) throw ToolError.missingParam('selector');
+            return invokeCdp('cdp_browser_click', { selector: args.selector });
+          case 'type':
+            if (!args.selector) throw ToolError.missingParam('selector');
+            if (args.text == null) throw ToolError.missingParam('text');
+            return invokeCdp('cdp_browser_type', {
+              selector: args.selector,
+              text: args.text,
+              clear: args.clear ?? false,
+            });
+          case 'press_key':
+            if (!args.key) throw ToolError.missingParam('key');
+            return invokeCdp('cdp_browser_press_key', { key: args.key });
+          case 'content':
+            return invokeCdp('cdp_browser_content');
+          case 'evaluate':
+            if (!args.expression) throw ToolError.missingParam('expression');
+            return invokeCdp('cdp_browser_evaluate', { expression: args.expression });
+          case 'wait':
+            if (!args.selector) throw ToolError.missingParam('selector');
+            return invokeCdp('cdp_browser_wait_for_selector', {
+              selector: args.selector,
+              timeoutMs: args.timeout_ms ?? 10_000,
+            });
+          case 'screenshot':
+            return invokeCdp('cdp_browser_screenshot', {
+              fullPage: args.full_page ?? false,
+              includeBase64: args.include_base64 ?? false,
+            });
+          default:
+            return { tool_call_id: '', output: '', error: `未知操作: ${args.action}` };
+        }
+      }
+
+      // Built-in preview path (iframe / webview window events)
       if (args.action === 'open') {
         browserController.open(args.url || 'http://localhost:3000');
         return { tool_call_id: '', output: `已打开浏览器: ${args.url || 'http://localhost:3000'}` };
-      } else if (args.action === 'navigate') {
+      }
+      if (args.action === 'navigate') {
         browserController.navigate(args.url || 'http://localhost:3000');
         return { tool_call_id: '', output: `已导航到: ${args.url || 'http://localhost:3000'}` };
-      } else if (args.action === 'refresh') {
+      }
+      if (args.action === 'refresh') {
         browserController.refresh();
         return { tool_call_id: '', output: '已刷新浏览器' };
       }
-      return { tool_call_id: '', output: '', error: `未知操作: ${args.action}` };
+      if (args.action === 'close') {
+        try {
+          await browserController.closeWindow();
+        } catch {
+          // preview panel has no close command
+        }
+        return { tool_call_id: '', output: '已关闭浏览器窗口（如有）' };
+      }
+
+      return {
+        tool_call_id: '',
+        output: '',
+        error: `未知操作: ${args.action}`,
+      };
     } catch (error) {
       if (error instanceof ToolError) {
         return error.toToolResult();

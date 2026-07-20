@@ -180,19 +180,54 @@ const UndoChangesSchema = ToolParametersSchema.extend({
  * Browser tool schemas
  */
 const ControlBrowserSchema = ToolParametersSchema.extend({
-  action: z.enum(['open', 'close', 'navigate', 'refresh', 'back', 'forward']),
+  action: z.enum([
+    'open',
+    'close',
+    'navigate',
+    'refresh',
+    'back',
+    'forward',
+    'click',
+    'type',
+    'press_key',
+    'content',
+    'evaluate',
+    'wait',
+    'screenshot',
+  ]),
   url: z.string().url().optional(),
   title: z.string().optional(),
+  selector: z.string().min(1).optional(),
+  text: z.string().optional(),
+  key: z.string().min(1).optional(),
+  clear: z.boolean().optional(),
+  expression: z.string().min(1).optional(),
+  timeout_ms: z.number().int().positive().max(60_000).optional(),
+  full_page: z.boolean().optional(),
+  include_base64: z.boolean().optional(),
 }).refine(
   (data) => {
     if (['open', 'navigate'].includes(data.action) && !data.url) {
       return false;
     }
+    if (['click', 'type', 'wait'].includes(data.action) && !data.selector) {
+      return false;
+    }
+    if (data.action === 'type' && data.text == null) {
+      return false;
+    }
+    if (data.action === 'press_key' && !data.key) {
+      return false;
+    }
+    if (data.action === 'evaluate' && !data.expression) {
+      return false;
+    }
     return true;
   },
   {
-    message: 'URL is required for open and navigate actions',
-    path: ['url'],
+    message:
+      'Missing required params for browser action (url / selector / text / key / expression)',
+    path: ['action'],
   }
 );
 

@@ -75,8 +75,24 @@ const BrowserToolResultCard = memo(function BrowserToolResultCard({
   const action = (args.action as string) || '';
   const url = (args.url as string) || '';
 
+  const browserActionLabels: Record<string, string> = {
+    open: 'Open',
+    close: 'Close',
+    navigate: 'Navigate',
+    refresh: 'Refresh',
+    click: 'Click',
+    type: 'Type',
+    press_key: 'Press',
+    wait: 'Wait',
+    evaluate: 'Evaluate',
+    content: 'Content',
+    screenshot: 'Screenshot',
+    scroll: 'Scroll',
+    hover: 'Hover',
+    select: 'Select',
+  };
   const actionLabel = isControlBrowser
-    ? ({ open: 'Open', navigate: 'Navigate', refresh: 'Refresh' } as Record<string, string>)[action] || action || 'Browser'
+    ? browserActionLabels[action] || action || 'Browser'
     : isFetchWeb
       ? 'Fetch'
       : 'Browser';
@@ -120,25 +136,25 @@ const BrowserToolResultCard = memo(function BrowserToolResultCard({
         disabled={!hasExpandableContent}
       >
         <span className={styles.summary}>
-          <span className={styles.summaryStrong}>{actionLabel}</span>
-          {domain && (
+          <span className={styles.summaryAction}>{actionLabel}</span>
+          {domain ? (
             <>
-              {' · '}
-              <span className={styles.summaryStrong}>{truncate(domain, 48)}</span>
+              <span className={styles.summarySep}>·</span>
+              <span className={styles.summaryTarget}>{truncate(domain, 48)}</span>
             </>
-          )}
-          {httpCode && (
+          ) : null}
+          {httpCode ? (
             <>
-              {' · '}
+              <span className={styles.summarySep}>·</span>
               <span className={codeIsOk ? styles.summaryOk : styles.summaryError}>{httpCode}</span>
             </>
-          )}
-          {isError && (
+          ) : null}
+          {isError ? (
             <>
-              {' · '}
+              <span className={styles.summarySep}>·</span>
               <span className={styles.summaryError}>✘</span>
             </>
-          )}
+          ) : null}
         </span>
 
         {hasExpandableContent && (

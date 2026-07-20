@@ -10,7 +10,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 import { useTranslation, useLocale } from '../i18n';
 import { useNotification } from '../contexts/NotificationContext';
-import { useAgentAccessMode, useStreamSpeed, useThinkingBlockAutoExpand, useRecentWorkspaces, useTouchRecentWorkspace, useRemoveRecentWorkspace, useUpdateAgentAccessMode, useReasoningEffort, useUpdateReasoningEffort, useEnableCodeGraph, useGraphAutoIndexOnOpen, useGraphAutoIndexMaxFiles } from '../stores';
+import { useAgentAccessMode, useStreamSpeed, useThinkingBlockAutoExpand, useRecentWorkspaces, useTouchRecentWorkspace, useRemoveRecentWorkspace, useUpdateAgentAccessMode, useReasoningEffort, useUpdateReasoningEffort, useEnableCodeGraph, useEnableCdpBrowser, useGraphAutoIndexOnOpen, useGraphAutoIndexMaxFiles } from '../stores';
 import { useCbmGraphReady } from '../stores/useCbmStore';
 import { useCbmIndexEvents } from '../hooks/useCbmIndexEvents';
 import { useCbmConfigSync } from '../hooks/useCbmConfigSync';
@@ -52,6 +52,7 @@ import {
   AI_TOOLS,
   filterToolsByContext,
   dedupeToolsByName,
+  getAIToolsWithBrowserConfig,
 } from '../features/agent-engine';
 import type { ToolDefinition } from '../types/ai';
 import type { QuestionInput, UserAnswer } from '../features/agent-engine/toolArgs';
@@ -152,6 +153,7 @@ export default function AgentPanel({
   const updateReasoningEffort = useUpdateReasoningEffort();
   const thinkingBlockAutoExpand = useThinkingBlockAutoExpand();
   const enableCodeGraph = useEnableCodeGraph();
+  const enableCdpBrowser = useEnableCdpBrowser();
   const graphAutoIndexOnOpen = useGraphAutoIndexOnOpen();
   const graphAutoIndexMaxFiles = useGraphAutoIndexMaxFiles();
   const cbmGraphEnabled = useCbmGraphReady(enableCodeGraph);
@@ -161,12 +163,13 @@ export default function AgentPanel({
   const imageGenConfig = useImageGenConfig();
   const getAgentToolDefinitions = (currentAgentId?: string): ToolDefinition[] => {
     const currentAgent = agentRef.current;
-    const baseTools = dedupeToolsByName(
-      [
+    // Apply CDP-aware browser tool schema (preview vs full CDP actions).
+    const baseTools = getAIToolsWithBrowserConfig(
+      dedupeToolsByName([
         ...AI_TOOLS,
         ...(isImageGenConfigured(imageGenConfig) ? [buildGenerateImageTool(imageGenConfig)] : []),
         ...mcpTools,
-      ]
+      ]),
     );
     const shouldApplyGlobalCommandPolicy = !!currentAgent;
     const capabilityForFilter =
@@ -186,6 +189,7 @@ export default function AgentPanel({
       String(agentAccessMode),
       JSON.stringify(projectContextRef.current),
       String(cbmGraphEnabled),
+      String(enableCdpBrowser),
     ].join('|');
 
     const cached = rawAgentToolsCacheRef.current[cacheKey];
@@ -230,6 +234,7 @@ export default function AgentPanel({
       String(agentAccessMode),
       JSON.stringify(projectContextRef.current),
       String(cbmGraphEnabled),
+      String(enableCdpBrowser),
     ].join('|');
 
     const cached = providerToolsCacheRef.current[cacheKey];

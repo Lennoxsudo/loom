@@ -33,7 +33,7 @@ pub use core::{config_paths, debug_log};
 pub use domain::agent::{agent_store, automation, conversation};
 pub use domain::ai::{chat, image_gen};
 pub use domain::integration::{
-    browser, checkpoint, git_diff, git_workspace, git_worktree, mcp,
+    browser, cdp_browser, checkpoint, git_diff, git_workspace, git_worktree, mcp,
 };
 /// Public for `bin/cbm_acceptance` and external tooling.
 pub use domain::integration::cbm;
@@ -53,6 +53,7 @@ pub use chat::normalize_path_string;
 
 use automation::AutomationStoreState;
 use browser::BrowserWindowState;
+use cdp_browser::CdpBrowserState;
 use chat::ChatTaskMap;
 use file_watcher::WatcherState;
 use live_server::LiveServerManager;
@@ -90,6 +91,7 @@ pub fn run() {
         .manage(BrowserWindowState {
             window_label: Arc::new(Mutex::new(None)),
         })
+        .manage(CdpBrowserState::default())
         .manage(McpServerState::default())
         .manage(agent_store::AgentStoreState::default())
         .manage(AutomationStoreState::default())
