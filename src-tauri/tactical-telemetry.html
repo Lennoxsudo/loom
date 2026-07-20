@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TACTICAL TELEMETRY // SYS.7.2</title>
+    <style>
+        /* ============================================
+           TACTICAL TELEMETRY INTERFACE
+           Archetype: CRT Terminal / Aerospace HUD
+           ============================================ */
+
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@900&display=swap');
+
+        :root {
+            --bg-deep: #0A0A0A;
+            --bg-panel: #0F0F0F;
+            --fg-phosphor: #EAEAEA;
+            --accent-hazard: #E61919;
+            --terminal-green: #4AF626;
+            --grid-line: #1A1A1A;
+            --scanline-opacity: 0.08;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--fg-phosphor);
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* MECHANICAL NOISE OVERLAY */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        /* CRT SCANLINES */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, var(--scanline-opacity)) 2px,
+                rgba(0, 0, 0, var(--scanline-opacity)) 4px
+            );
+        }
+
+        /* PHOSPHOR GLOW FOR HEADERS */
+        .glow-text {
+            text-shadow: 0 0 8px rgba(74, 246, 38, 0.3);
+        }
+
+        .glow-red {
+            text-shadow: 0 0 10px rgba(230, 25, 25, 0.5);
+        }
+
+        /* ============================================
+           BLUEPRINT GRID SYSTEM
+           ============================================ */
+        .grid-container {
+            display: grid;
+            gap: 1px;
+            background-color: var(--grid-line);
+            border: 1px solid var(--grid-line);
+        }
+
+        .grid-12 {
+            grid-template-columns: repeat(12, 1fr);
+        }
+
+        .grid-6 {
+            grid-template-columns: repeat(6, 1fr);
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .panel {
+            background-color: var(--bg-deep);
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .panel-inset {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--grid-line);
+            padding: 1rem;
+        }
+
+        /* ============================================
+           TYPOGRAPHIC ARCHITECTURE
+           ============================================ */
+        
+        /* Macro-Typography: Structural Headers */
+        h1, h2, .macro-type {
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.04em;
+            line-height: 0.9;
+            color: var(--fg-phosphor);
+        }
+
+        .hero-title {
+            font-size: clamp(3.5rem, 12vw, 14rem);
+            line-height: 0.85;
+            letter-spacing: -0.06em;
+            word-break: break-all;
+        }
+
+        .section-title {
+            font-size: clamp(1.5rem, 4vw, 3.5rem);
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+        }
+
+        /* Micro-Typography: Data & Telemetry */
+        .telemetry-text, .mono-text, dl, dd, dt, samp, kbd, data, output {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .telemetry-label {
+            font-size: 0.65rem;
+            color: #666;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.25rem;
+        }
+
+        .telemetry-value {
+            font-size: 1.1rem;
+            color: var(--fg-phosphor);
+            font-weight: 700;
+        }
+
+        .telemetry-value.hazard {
+            color: var(--accent-hazard);
+        }
+
+        .telemetry-value.green {
+            color: var(--terminal-green);
+        }
+
+        /* ============================================
+           SYNTAX DECORATION & ASCII FRAMING
+           ============================================ */
+        .ascii-frame {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #444;
+            letter-spacing: 0.1em;
+        }
+
+        .crosshair {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        .crosshair::before,
+        .crosshair::after {
+            content: "";
+            position: absolute;
+            background: #333;
+        }
+
+        .crosshair::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            transform: translateY(-50%);
+        }
+
+        .crosshair::after {
+            left: 50%;
+            top: 0;
+            height: 100%;
+            width: 1px;
+            transform: translateX(-50%);
+        }
+
+        /* ============================================
+           COMPONENTS
+           ============================================ */
+        
+        /* Industrial Markers */
+        .marker {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 0.6rem;
+            color: #333;
+            letter-spacing: 0.2em;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        /* Thick Horizontal Rules */
+        hr.structural {
+            border: none;
+            border-top: 2px solid var(--accent-hazard);
+            margin: 2rem 0;
+            width: 100%;
+        }
+
+        hr.divider {
+            border: none;
+            border-top: 1px solid var(--grid-line);
+            margin: 1rem 0;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--terminal-green);
+            box-shadow: 0 0 8px var(--terminal-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.hazard {
+            background-color: var(--accent-hazard);
+            box-shadow: 0 0 8px var(--accent-hazard);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Data Tables */
+        .telemetry-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .telemetry-table th,
+        .telemetry-table td {
+            text-align: left;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid var(--grid-line);
+            font-size: 0.75rem;
+        }
+
+        .telemetry-table th {
+            color: #555;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            font-size: 0.65rem;
+        }
+
+        .telemetry-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Barcode / Serial Decoration */
+        .barcode {
+            display: flex;
+            gap: 1px;
+            height: 2rem;
+            margin: 1rem 0;
+            opacity: 0.4;
+        }
+
+        .barcode span {
+            flex: 1;
+            background: var(--fg-phosphor);
+            max-width: 3px;
+        }
+
+        /* ============================================
+           LAYOUT UTILITIES
+           ============================================ */
+        .viewport-bleed {
+            width: 100vw;
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .section {
+            padding: 4rem 2rem;
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        /* ============================================
+           SPECIFIC SECTIONS
+           ============================================ */
+        
+        /* HEADER */
+        .site-header {
+            border-bottom: 2px solid var(--accent-hazard);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+        }
+
+        .site-header::before {
+            content: "+";
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-right: 2px solid var(--accent-hazard);
+            border-bottom: 2px solid var(--accent-hazard);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--accent-hazard);
+        }
+
+        .sys-id {
+            font-size: 0.65rem;
+            color: #555;
+            letter-spacing: 0.2em;
+        }
+
+        /* HERO */
+        .hero {
+            padding: 6rem 2rem;
+            border-bottom: 1px solid var(--grid-line);
+            position: relative;
+        }
+
+        .hero-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+            font-size: 0.7rem;
+            color: #555;
+            letter-spacing: 0.15em;
+        }
+
+        .hero-title-wrapper {
+            position: relative;
+        }
+
+        .hero-title-wrapper::after {
+            content: "";
+            position: absolute;
+            bottom: -1rem;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent-hazard);
+        }
+
+        .coord-display {
+            font-size: 0.65rem;
+            color: #444;
+            letter-spacing: 0.2em;
+            margin-top: 2rem;
+        }
+
+        /* TELEMETRY GRID */
+        .telemetry-section {
+            padding: 3rem 2rem;
+        }
+
+        .telemetry-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        .section-tag {
+            font-size: 0.6rem;
+            color: var(--accent-hazard);
+            letter-spacing: 0.3em;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* DATA READOUT PANELS */
+        .data-panel {
+            border: 1px solid var(--grid-line);
+            padding: 1.5rem;
+            position: relative;
+            margin-bottom: 1px;
+        }
+
+        .data-panel::before {
+            content: "///";
+            position: absolute;
+            top: 0.5rem;
+            right: 1rem;
+            color: #333;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+        }
+
+        .data-panel.highlight {
+            border-color: var(--accent-hazard);
+            background: rgba(230, 25, 25, 0.02);
+        }
+
+        .data-panel.highlight::before {
+            color: var(--accent-hazard);
+        }
+
+        /* METRIC DISPLAY */
+        .metric-large {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: clamp(2rem, 6vw, 5rem);
+            line-height: 1;
+            letter-spacing: -0.04em;
+            color: var(--fg-phosphor);
+        }
+
+        .metric-unit {
+            font-size: 0.7rem;
+            color: #555;
+            letter-spacing: 0.2em;
+            margin-top: 0.5rem;
+        }
+
+        /* PROGRESS / GAUGE */
+        .gauge-bar {
+            height: 4px;
+            background: var(--grid-line);
+            margin-top: 1rem;
+            position: relative;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: var(--terminal-green);
+            box-shadow: 0 0 10px var(--terminal-green);
+            transition: width 0.3s ease;
+        }
+
+        .gauge-fill.hazard {
+            background: var(--accent-hazard);
+            box-shadow: 0 0 10px var(--accent-hazard);
+        }
+
+        /* COORDINATE STRING */
+        .coord-string {
+            font-size: 0.65rem;
+            color: #444;
+            letter-spacing: 0.15em;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        /* FOOTER */
+        .site-footer {
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--grid-line);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .footer-block {
+            max-width: 300px;
+        }
+
+        .footer-block h4 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            color: var(--fg-phosphor);
+        }
+
+        .footer-block p,
+        .footer-block dl {
+            font-size: 0.7rem;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .copyright {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--grid-line);
+            font-size: 0.6rem;
+            color: #333;
+            letter-spacing: 0.2em;
+            text-align: center;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .grid-12,
+            .grid-6,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero {
+                padding: 3rem 1.5rem;
+            }
+            
+            .section {
+                padding: 2rem 1.5rem;
+            }
+            
+            .site-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+
+        /* SELECTION STYLING */
+        ::selection {
+            background: var(--accent-hazard);
+            color: var(--bg-deep);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div>
+            <div class="sys-id">SYS.7.2 // TACTICAL TELEMETRY INTERFACE</div>
+            <div class="sys-id" style="margin-top: 0.25rem;">REV 2.6.1 // UNIT / D-01</div>
+        </div>
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span>LINK ESTABLISHED</span>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-meta">
+            <span>OP: NIGHTFALL // CLEARANCE: ALPHA</span>
+            <span>2024.12.15 // 04:32:17 UTC</span>
+        </div>
+        
+        <div class="hero-title-wrapper">
+            <h1 class="hero-title">TACTICAL<br>TELEMETRY</h1>
+        </div>
+
+        <div class="coord-display">
+            <span class="ascii-frame">[ LAT: 47.6062° N // LONG: 122.3321° W // ALT: 0M MSL ]</span><br>
+            <span class="ascii-frame" style="margin-top: 0.5rem; display: inline-block;">>>> SIGNAL STRENGTH: OPTIMAL // ENCRYPTION: AES-256 // PROTOCOL: SECURE</span>
+        </div>
+    </section>
+
+    <!-- TELEMETRY GRID -->
+    <section class="telemetry-section">
+        <div class="section-header">
+            <div>
+                <span class="section-tag">[ DELIVERY SYSTEMS ]</span>
+                <h2 class="section-title">SYSTEM<br>STATUS</h2>
+            </div>
+            <div class="ascii-frame">
+                < RE-IND ><br>
+                <span style="color: var(--terminal-green);">● ONLINE</span>
+            </div>
+        </div>
+
+        <div class="grid-container grid-12">
+            <!-- PANEL 1: CORE METRIC -->
+            <div class="panel" style="grid-column: span 4;">
+                <div class="telemetry-label">CORE TEMP</div>
+                <div class="metric-large hazard">847<span style="font-size: 0.4em; vertical-align: super;">°C</span></div>
+                <div class="metric-unit">REACTOR CORE // NOMINAL</div>
+                <div class="gauge-bar">
+                    <div class="gauge-fill hazard" style="width: 78%;"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: PRESSURE -->
+            <div class="panel" style="grid-column: span 4;">
+                <div class="telemetry-label">CHAMBER PRESSURE</div>
+                <div class="metric-large">12.4<span style="font-size: 0.4em; vertical-align: super;"> MPa</span></div>
+                <div class="metric-unit">HYDRAULIC // STABLE</div>
+                <div class="gauge-bar">
+                    <div class="gauge-fill" style="width: 45%;"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 3: VELOCITY -->
+            <div class="panel" style="grid-column: span 4;">
+                <div class="telemetry-label">EXHAUST VELOCITY</div>
+                <div class="metric-large">3,420<span style="font-size: 0.4em; vertical-align: super;"> m/s</span></div>
+                <div class="metric-unit">NOZZLE OUTPUT // ACTIVE</div>
+                <div class="gauge-bar">
+                    <div class="gauge-fill" style="width: 62%;"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 4: FUEL CELLS -->
+            <div class="panel" style="grid-column: span 6;">
+                <div class="telemetry-label">FUEL CELL ARRAY</div>
+                <div class="telemetry-value" style="font-size: 1.5rem; margin-bottom: 1rem;">
+                    94.7<span style="font-size: 0.5em; color: #555;">% CAPACITY</span>
+                </div>
+                <div style="display: flex; gap: 2rem; margin-top: 1.5rem;">
+                    <div>
+                        <div class="telemetry-label">CELLS ACTIVE</div>
+                        <div class="telemetry-value green">48 / 48</div>
+                    </div>
+                    <div>
+                        <div class="telemetry-label">DEGRADATION</div>
+                        <div class="telemetry-value">0.03%</div>
+                    </div>
+                    <div>
+                        <div class="telemetry-label">TEMP DELTA</div>
+                        <div class="telemetry-value">+2.4°C</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 5: NAVIGATION -->
+            <div class="panel" style="grid-column: span 6;">
+                <div class="telemetry-label">NAVIGATION VECTOR</div>
+                <div class="telemetry-value" style="font-size: 1.3rem; margin-bottom: 1rem;">
+                    HEADING <span class="hazard">277.4°</span> TRUE
+                </div>
+                <div class="coord-string">
+                    WAYPOINT: TANGO-7 // DIST: 847.2 KM<br>
+                    ETA: 00:42:18 // SPEED: MACH 2.4<br>
+                    NEXT CHECKPOINT: ROMEO-3 // DIST: 1,247.6 KM
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DATA LOG SECTION -->
+    <section class="telemetry-section" style="background: var(--bg-panel);">
+        <div class="section-header">
+            <div>
+                <span class="section-tag">[ EVENT LOG ]</span>
+                <h2 class="section-title">SEQUENCE<br>RECORDS</h2>
+            </div>
+            <div class="ascii-frame">
+                < RE-IND ><br>
+                <span style="color: var(--accent-hazard);">● 3 ALERTS</span>
+            </div>
+        </div>
+
+        <div class="grid-container grid-12">
+            <div class="panel" style="grid-column: span 12;">
+                <table class="telemetry-table">
+                    <thead>
+                        <tr>
+                            <th>TIMESTAMP</th>
+                            <th>EVENT ID</th>
+                            <th>CLASSIFICATION</th>
+                            <th>SOURCE</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>04:32:17.442</td>
+                            <td>EVT-7742-A</td>
+                            <td>TELEMETRY SYNC</td>
+                            <td>NAV-CORE</td>
+                            <td><span class="status-dot" style="display: inline-block; width: 6px; height: 6px;"></span> CONFIRMED</td>
+                        </tr>
+                        <tr>
+                            <td>04:31:58.991</td>
+                            <td>EVT-7741-B</td>
+                            <td>FUEL CELL CHECK</td>
+                            <td>PWR-MGMT</td>
+                            <td><span class="status-dot" style="display: inline-block; width: 6px; height: 6px; background: var(--terminal-green); box-shadow: 0 0 6px var(--terminal-green);"></span> NOMINAL</td>
+                        </tr>
+                        <tr>
+                            <td>04:30:12.003</td>
+                            <td>EVT-7740-C</td>
+                            <td>CORE TEMP SPIKE</td>
+                            <td>REACTOR</td>
+                            <td><span class="status-dot hazard" style="display: inline-block; width: 6px; height: 6px;"></span> <span class="hazard">RESOLVED</span></td>
+                        </tr>
+                        <tr>
+                            <td>04:28:44.221</td>
+                            <td>EVT-7739-D</td>
+                            <td>COMM ARRAY CAL</td>
+                            <td>COMMS</td>
+                            <td><span class="status-dot" style="display: inline-block; width: 6px; height: 6px;"></span> COMPLETE</td>
+                        </tr>
+                        <tr>
+                            <td>04:25:00.000</td>
+                            <td>EVT-7738-E</td>
+                            <td>SYSTEM BOOT</td>
+                            <td>MAINFRAME</td>
+                            <td><span class="status-dot" style="display: inline-block; width: 6px; height: 6px;"></span> INITIALIZED</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECHNICAL SPECS -->
+    <section class="telemetry-section">
+        <div class="section-header">
+            <div>
+                <span class="section-tag">[ TECHNICAL SPECS ]</span>
+                <h2 class="section-title">SYSTEM<br>PARAMETERS</h2>
+            </div>
+        </div>
+
+        <div class="grid-container grid-6">
+            <div class="panel" style="grid-column: span 2;">
+                <div class="telemetry-label">PROCESSOR</div>
+                <div class="telemetry-value">QUANTUM-7</div>
+                <div class="metric-unit">128-CORE // 4.7 THz</div>
+            </div>
+            <div class="panel" style="grid-column: span 2;">
+                <div class="telemetry-label">MEMORY</div>
+                <div class="telemetry-value">512 TB</div>
+                <div class="metric-unit">HOLOGRAPHIC STORAGE</div>
+            </div>
+            <div class="panel" style="grid-column: span 2;">
+                <div class="telemetry-label">NETWORK</div>
+                <div class="telemetry-value green">10 Gbps</div>
+                <div class="metric-unit">QUANTUM TUNNELING</div>
+            </div>
+            <div class="panel" style="grid-column: span 2;">
+                <div class="telemetry-label">UPTIME</div>
+                <div class="telemetry-value">847:22:14</div>
+                <div class="metric-unit">DAYS:HR:MIN</div>
+            </div>
+            <div class="panel" style="grid-column: span 2;">
+                <div class="telemetry-label">LATENCY</div>
+                <div class="telemetry-value">0.003<span style="font-size: 0.6em;">ms</span></div>
+                <div class="metric-unit">INTERNAL BUS</div>
+            </div>
+            <div class="panel" style="grid-column: span 2;">
+                <div class="telemetry-label">ERROR RATE</div>
+                <div class="telemetry-value hazard">0.0001%</div>
+                <div class="metric-unit">ECC CORRECTED</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BARCODE / SERIAL SECTION -->
+    <section class="telemetry-section" style="border-top: 2px solid var(--accent-hazard);">
+        <div class="grid-container grid-4">
+            <div class="panel" style="grid-column: span 4; text-align: center;">
+                <div class="barcode" style="justify-content: center; opacity: 0.6;">
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 3px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 4px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 3px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 4px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 3px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 4px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 3px;"></span>
+                    <span style="max-width: 1px;"></span>
+                    <span style="max-width: 2px;"></span>
+                    <span style="max-width: 4px;"></span>
+                </div>
+                <div class="marker">SERIAL: TX-7742-ALPHA-9X // CLASSIFICATION: RESTRICTED</div>
+                <div class="marker" style="margin-left: 1rem;">© 2024 TACTICAL SYSTEMS DIVISION // ALL RIGHTS RESERVED</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-block">
+            <h4>/// SYSTEM INTEGRITY</h4>
+            <p>
+                ALL SUBSYSTEMS OPERATIONAL<br>
+                NO CRITICAL FAULTS DETECTED<br>
+                LAST DIAGNOSTIC: 04:30:00 UTC
+            </p>
+        </div>
+        <div class="footer-block">
+            <h4>/// CONTACT</h4>
+            <dl>
+                <dt>ENCRYPTED CHANNEL</dt>
+                <dd>FREQ: 147.325 MHz</dd>
+                <dt>BACKUP FREQUENCY</dt>
+                <dd>FREQ: 442.750 MHz</dd>
+                <dt>DIGITAL HANDLE</dt>
+                <dd>@TACTICAL-OPS-7</dd>
+            </dl>
+        </div>
+        <div class="footer-block">
+            <h4>/// LOCATION</h4>
+            <p>
+                FACILITY: SECTOR-7G<br>
+                COMPLEX: MOUNTAIN VIEW<br>
+                CLEARANCE: ALPHA-1 REQUIRED
+            </p>
+        </div>
+
+        <div class="copyright" style="grid-column: span 12; width: 100%;">
+            <span class="marker">®</span> TACTICAL TELEMETRY SYSTEMS <span class="marker">™</span> // AUTHORIZED PERSONNEL ONLY // PROPERTY OF UNITED EARTH GOVERNMENT
+        </div>
+    </footer>
+
+</body>
+</html>
