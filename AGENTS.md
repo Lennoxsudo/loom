@@ -6,7 +6,7 @@
 
 Loom 是本地运行的 AI 辅助 IDE：在同一工作流中整合代码编辑、项目检索、Agent、MCP、终端、内嵌浏览器、Live Server、Git 工作区与代码图谱。
 
-- **版本**：`0.1.0`（manifest）；活跃开发中
+- **版本**：`0.1.3`（manifest）；活跃开发中
 - **仓库**：https://github.com/Lennoxsudo/loom
 
 ## 技术栈
@@ -85,8 +85,17 @@ loom/
 ### Provider 与路由
 
 - 支持 openai、anthropic、ollama
+- 协议配置：每协议多 profile；可复制配置；可按模型单独测试连接（`AIConfigContent`）
 - 自动路由：设置页配置 fallback 链；新消息从链首开始
-- Anthropic Extended Thinking + Prompt Caching（`src-tauri/src/chat/`）
+- Anthropic Extended Thinking + Prompt Caching（`src-tauri/src/domain/ai/chat/`）
+
+### 内置 CDP 浏览器
+
+- Rust：`src-tauri/src/domain/integration/cdp_browser.rs`
+- **固定 profile**：`~/.loom/cdp-browser-profile`（复用，非每步操作新建）
+- 启动时清理旧版孤儿目录 `cdp-browser-profile-<pid>-…`
+- 截图目录：`~/.loom/cdp-screenshots`（每张截图一个 PNG）
+- 前端结果卡：`BrowserToolResultCard`（动作名与正文区分色）
 
 ### 工具系统
 

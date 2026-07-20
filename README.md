@@ -20,7 +20,7 @@ Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-i
 
 <!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-> **Status:** First open-source release · `v0.1.0` · Under active development — expect rapid changes.
+> **Status:** Open-source · `v0.1.3` · Under active development — expect rapid changes.
 
 Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
@@ -52,6 +52,7 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 
 - Multiple providers: **OpenAI, Anthropic, Ollama** — streaming output, tool calls, thinking blocks, vision/image attachments
 - Single global agent config; **per-project conversations with disk as the single source of truth**
+- **AI protocol profiles**: multiple endpoints per provider, **duplicate profile**, **per-model connection test**
 - **Tool approval** — how each tool runs before execution:
   - `always` — run without asking
   - `request` — ask for approval first
@@ -60,6 +61,7 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
   - `canExecuteCommands` · `canAccessBrowser` · `canUseGit` · `canUseMcp`
 - Auto model routing with a configurable fallback chain
 - Anthropic Extended Thinking + Prompt Caching; automatic context compaction with session persistence
+- Chat UX polish: clearer spacing after user bubbles, **shimmer “Thinking…”** label while reasoning runs
 
 ### 👥 Sub-agent Orchestration
 
@@ -73,14 +75,15 @@ Loom exposes **22 unified agent tools**, grouped as follows:
 | Group | Tools |
 |-------|-------|
 | Files & search | `read`, `edit`, `write`, `delete_file`, `search`, `finfo`, `sym` |
-| Terminal & network | `term`, `fetch`, `browser`, `web_search` |
+| Terminal & network | `term`, `fetch`, `browser` (built-in CDP), `web_search` |
 | Git & workflow | `git`, `ask`, `todo`, `skill` |
 | Code graph (CBM) | `graph_index`, `graph_query`, `graph_trace` |
 | Sub-agents | `Agent`, `Task`, `run_subagent`, `run_subagents` |
 
 - **Built-in code knowledge graph (CBM)**: bundled [`codebase-memory`](https://github.com/DeusData/codebase-memory-mcp) sidecar (`npm run fetch:cbm`) — Cypher queries and a 3D graph UI
+- **Built-in CDP browser automation** (`browser` / `control_browser`): open, navigate, click, type, wait, evaluate, content, screenshot — reuses one stable Chrome/Edge profile under `~/.loom/cdp-browser-profile` (not one folder per action); screenshots land in `~/.loom/cdp-screenshots`
 - **MCP**: multi-server lifecycle, tools / resources / prompts, Claude config sync
-- Skills, image generation, and symbol-definition jump (TS/TSX/Vue)
+- Skills, slash-command expansion / plugins tab, image generation, and symbol-definition jump (TS/TSX/Vue)
 
 ### 🌿 Git & Automation
 
@@ -145,8 +148,10 @@ User data stays on your machine and is never committed to the repository:
 | Agent config & conversations | `%APPDATA%\com.administrator.loom\agent-data\` |
 | AI provider config | `%USERPROFILE%\Loom\ai-config.json` |
 | Code graph index cache | `%APPDATA%\Loom\cbm\` |
+| CDP browser profile (stable, reused) | `%USERPROFILE%\.loom\cdp-browser-profile\` |
+| CDP screenshots | `%USERPROFILE%\.loom\cdp-screenshots\` |
 
-API keys and provider credentials are stored locally only.
+API keys and provider credentials are stored locally only. Legacy `cdp-browser-profile-<pid>-…` folders from older builds are cleaned up on browser start and are safe to delete manually.
 
 ## Sub-agent Orchestration
 
@@ -182,11 +187,11 @@ The main agent delegates to sub-agents through Claude Code-style tools; all prov
 
 ## Roadmap
 
-This is the first public release. Planned / under consideration:
+Active release: **v0.1.3**. Planned / under consideration:
 
 - Database connectors (MySQL / PostgreSQL / Redis)
-- Plugin system & marketplace
-- Continuous integration and prebuilt release binaries
+- Plugin marketplace expansion
+- Continuous integration
 - Further context-caching and performance improvements
 
 ## Contributing

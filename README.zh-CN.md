@@ -20,7 +20,7 @@
 
 <!-- TODO: 在此处放一张应用截图或演示 GIF，例如 ![Loom](docs/assets/screenshot.png) -->
 
-> **状态：** 首个开源版本 · `v0.1.0` · 持续活跃开发中，变化较快。
+> **状态：** 开源版本 · `v0.1.3` · 持续活跃开发中，变化较快。
 
 Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 辅助的 IDE：Agent 可以读写你的代码、调用工具、编排子代理，并通过内置的代码知识图谱理解你的项目。
 
@@ -50,8 +50,9 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 
 ### 🤖 AI 与 Agent
 
-- 多 Provider：**OpenAI、Anthropic、Gemini、Ollama** — 流式输出、工具调用、思考块、图片附件
+- 多 Provider：**OpenAI、Anthropic、Ollama** — 流式输出、工具调用、思考块、图片附件
 - 单 Agent 全局配置；**按项目分会话，磁盘为唯一真相源**
+- **AI 协议配置**：同一协议下多份 Endpoint 配置、**复制配置**、**按模型单独测试连接**
 - **工具审批模式** — 执行前如何对待工具调用：
   - `always` — 自动执行，不询问
   - `request` — 先征求用户同意
@@ -60,6 +61,7 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
   - `canExecuteCommands` · `canAccessBrowser` · `canUseGit` · `canUseMcp`
 - 自动模型路由与 fallback 链
 - Anthropic Extended Thinking + Prompt Caching；自动上下文压缩与会话持久化
+- 聊天体验：用户气泡与 AI 输出间距更清晰；思考中标签**逐字闪光**
 
 ### 👥 子代理编排
 
@@ -73,14 +75,15 @@ Loom 提供 **22 个统一 Agent 工具**，按类别划分如下：
 | 类别 | 工具 |
 |------|------|
 | 文件与搜索 | `read`、`edit`、`write`、`delete_file`、`search`、`finfo`、`sym` |
-| 终端与网络 | `term`、`fetch`、`browser`、`web_search` |
+| 终端与网络 | `term`、`fetch`、`browser`（内置 CDP）、`web_search` |
 | Git 与工作流 | `git`、`ask`、`todo`、`skill` |
 | 代码图谱（CBM） | `graph_index`、`graph_query`、`graph_trace` |
 | 子代理 | `Agent`、`Task`、`run_subagent`、`run_subagents` |
 
 - **内置代码知识图谱（CBM）**：捆绑 [`codebase-memory`](https://github.com/DeusData/codebase-memory-mcp) sidecar（`npm run fetch:cbm` 下载），支持 Cypher 查询与 3D 图谱 UI
+- **内置 CDP 浏览器自动化**（`browser` / `control_browser`）：open、navigate、click、type、wait、evaluate、content、screenshot 等；**复用** `~/.loom/cdp-browser-profile` 固定配置目录（不是每次操作一个文件夹）；截图写入 `~/.loom/cdp-screenshots`
 - **MCP**：多服务器生命周期、tools / resources / prompts、Claude 配置联动
-- Skills 技能、图片生成、符号定义跳转（TS/TSX/Vue）
+- Skills、斜杠命令展开 / 插件页、图片生成、符号定义跳转（TS/TSX/Vue）
 
 ### 🌿 Git 与自动化
 
@@ -145,8 +148,10 @@ cd src-tauri && cargo test   # Rust 测试
 | Agent 配置与会话 | `%APPDATA%\com.administrator.loom\agent-data\` |
 | AI Provider 配置 | `%USERPROFILE%\Loom\ai-config.json` |
 | 代码图谱索引缓存 | `%APPDATA%\Loom\cbm\` |
+| CDP 浏览器配置（固定复用） | `%USERPROFILE%\.loom\cdp-browser-profile\` |
+| CDP 截图 | `%USERPROFILE%\.loom\cdp-screenshots\` |
 
-API Key 与凭据仅保存在本地。
+API Key 与凭据仅保存在本地。旧版本遗留的 `cdp-browser-profile-<pid>-…` 目录会在启动浏览器时尝试清理，也可手动删除。
 
 ## 子代理编排
 
@@ -182,11 +187,11 @@ API Key 与凭据仅保存在本地。
 
 ## 路线图
 
-这是首个公开版本。规划中 / 考虑中：
+当前发布：**v0.1.3**。规划中 / 考虑中：
 
 - 数据库连接器（MySQL / PostgreSQL / Redis）
-- 插件系统与市场
-- 持续集成（CI）与预构建发布产物
+- 插件市场扩展
+- 持续集成（CI）
 - 上下文缓存与性能的进一步优化
 
 ## 贡献
