@@ -42,7 +42,7 @@ describe('BrowserToolResultCard', () => {
     });
 
     expect(screen.getByText(/Open/)).toBeInTheDocument();
-    expect(screen.getByText(/example\.com/)).toBeInTheDocument();
+    expect(screen.getAllByText(/example\.com/).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('BROWSER')).not.toBeInTheDocument();
     expect(screen.queryByText(/Completed/)).not.toBeInTheDocument();
   });
@@ -60,9 +60,8 @@ describe('BrowserToolResultCard', () => {
     });
 
     expect(screen.getByText(/Fetch/)).toBeInTheDocument();
-    expect(screen.getByText(/example\.com/)).toBeInTheDocument();
-    expect(screen.getByText(/200/)).toBeInTheDocument();
-    expect(screen.queryByText('Content')).not.toBeInTheDocument();
+    expect(screen.getAllByText(/example\.com/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/200/).length).toBeGreaterThanOrEqual(1);
   });
 
   test('expands to show meta and body when header is clicked', async () => {
@@ -100,7 +99,7 @@ describe('BrowserToolResultCard', () => {
     });
 
     expect(screen.getByText(/Navigate/)).toBeInTheDocument();
-    expect(screen.getByText(/localhost:9999/)).toBeInTheDocument();
+    expect(screen.getAllByText(/localhost:9999/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('✘')).toBeInTheDocument();
   });
 });

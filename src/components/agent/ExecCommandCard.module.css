@@ -11,8 +11,8 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: 4px;
-  border-radius: 7px;
+  margin-bottom: 1px;
+  border-radius: 5px;
   border: 1px solid transparent;
   background: transparent;
   overflow: hidden;
@@ -23,16 +23,20 @@
 
 .execCard:hover {
   background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
-  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
 }
 
+/* Frameless expand — matches ThinkingBlock / ToolActivityRow */
 .execCard.isOpen {
-  background: var(--exec-surface);
-  border-color: var(--exec-line);
+  background: transparent;
+  border-color: transparent;
+}
+
+.execCard.isOpen:hover {
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, transparent);
 }
 
 .execCardDense {
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .execCard.isOk {
@@ -60,21 +64,22 @@
   opacity: 0.88;
 }
 
-/* ── Header row (~28px) ── */
+/* ── Header row — aligned with ToolActivityRow grid ── */
 
 .header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
-  padding: 3px 8px 3px 6px;
+  min-height: 22px;
+  padding: 1px 4px 1px 2px;
 }
 
 .headerToggle {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto max-content minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
+  column-gap: 6px;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -92,14 +97,15 @@
 }
 
 .chevron {
-  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
   color: var(--text-secondary);
   opacity: 0.55;
+  line-height: 0;
   transition:
     transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
     opacity 0.15s ease;
@@ -114,17 +120,33 @@
   opacity: 0.9;
 }
 
+.verb {
+  font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--exec-accent) 55%, var(--text-secondary));
+  white-space: nowrap;
+}
+
+.commandMain {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 0;
+}
+
 .prompt {
   flex-shrink: 0;
   color: color-mix(in srgb, var(--exec-accent) 70%, var(--text-secondary));
   font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.3;
+  margin-right: 5px;
 }
 
 .commandLine {
-  flex: 1;
   min-width: 0;
   color: var(--text-primary);
   font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
@@ -154,26 +176,19 @@
 .meta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
   font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
   font-size: 10px;
   line-height: 1;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  padding-left: 4px;
 }
 
-.statusDot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--exec-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--exec-accent) 16%, transparent);
-  flex-shrink: 0;
-}
-
-.execCard.isRun .statusDot {
-  animation: execPulse 1.15s ease-in-out infinite;
+.execCard.isRun .exitSuccess,
+.execCard.isRun .metaMuted {
+  /* running uses metaMuted for exitDisplay "run" */
 }
 
 @keyframes execPulse {
@@ -226,29 +241,47 @@
   color: var(--text-primary);
 }
 
-/* ── Body ── */
+/* ── Body — same grid-rows expand as ThinkingBlock ── */
 
 .body {
-  position: relative;
-  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
-  animation: execBodyIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
 }
 
-@keyframes execBodyIn {
-  from {
-    opacity: 0;
-    transform: translateY(-2px);
-  }
+.bodyExpanded {
+  grid-template-rows: 1fr;
+}
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.bodyInner {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-left: calc(8px + 6px);
+  padding-left: 8px;
+  border-left: 1px solid transparent;
+  transition:
+    opacity 0.18s ease,
+    border-color 0.25s ease;
+}
+
+.bodyInnerExpanded {
+  opacity: 1;
+  border-left-color: color-mix(in srgb, var(--text-secondary) 22%, transparent);
+}
+
+/* Keep collapsed body out of hit-testing / assistive tree noise */
+.body:not(.bodyExpanded) {
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .body {
-    animation: none;
+    transition: none;
+  }
+
+  .bodyInner {
+    transition: none;
   }
 
   .execCard.isRun .statusDot {
@@ -258,7 +291,7 @@
 
 .output {
   margin: 0;
-  padding: 7px 10px 6px 26px;
+  padding: 4px 0 4px;
   color: color-mix(in srgb, var(--text-primary) 92%, var(--text-secondary));
   font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
   font-size: 11px;
@@ -281,7 +314,7 @@
 
 .emptyOutput,
 .backgroundNote {
-  padding: 8px 10px 10px 26px;
+  padding: 4px 0 6px;
   color: var(--text-secondary);
   font-size: 11px;
   font-family: 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
@@ -301,7 +334,7 @@
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 2px 10px 7px 26px;
+  padding: 2px 0 6px;
 }
 
 .railLeft {

@@ -1,5 +1,6 @@
-import { memo, useState, type CSSProperties } from 'react';
+import { memo, useState } from 'react';
 import ToolResultMessage from '../agent/ToolResultMessage';
+import ToolActivityRow, { ToolActivityChildren } from '../agent/ToolActivityRow';
 import GraphToolResultCard from './GraphToolResultCard';
 import ToolApprovalBar from '../agent/ToolApprovalBar';
 import ToolApprovalShell from '../agent/ToolApprovalShell';
@@ -144,58 +145,23 @@ function segmentToolMessages(messages: Message[]): ToolSegment[] {
 const ChatReadListGroup = memo(function ChatReadListGroup({ messages }: { messages: Message[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const headerStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginBottom: '8px',
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    userSelect: 'none',
-  };
-
-  const chevronStyle: CSSProperties = {
-    display: 'inline-flex',
-    transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-    transition: 'transform 0.15s ease',
-    flexShrink: 0,
-  };
-
-  const listStyle: CSSProperties = {
-    marginLeft: '12px',
-    marginBottom: '4px',
-  };
-
-  const itemStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginBottom: '4px',
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-  };
-
   return (
-    <div style={{ marginBottom: '6px' }}>
-      <div style={headerStyle} onClick={() => setIsExpanded((v) => !v)}>
-        <span style={chevronStyle}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 6 15 12 9 18" />
-          </svg>
-        </span>
-        <span>Read List ({messages.length} files)</span>
-      </div>
-      {isExpanded && (
-        <div style={listStyle}>
-          {messages.map((msg) => (
-            <div key={msg.id} style={itemStyle}>
-              <span>{readDisplayName(msg)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <ToolActivityRow
+      verb="read"
+      main={`${messages.length} files`}
+      status="ok"
+      expandable
+      expanded={isExpanded}
+      onToggle={() => setIsExpanded((v) => !v)}
+      detail={
+        <ToolActivityChildren
+          items={messages.map((msg) => ({
+            id: msg.id,
+            name: readDisplayName(msg).replace(/^Read\s+/, ''),
+          }))}
+        />
+      }
+    />
   );
 });
 

@@ -11,6 +11,14 @@ import AskToolResultCard from './AskToolResultCard';
 import GraphToolResultCard from './GraphToolResultCard';
 import CompactToolResultCard from './CompactToolResultCard';
 import ToolApprovalBar, { ToolApprovalOutcomeLabel } from './ToolApprovalBar';
+import ToolActivityRow, {
+  ToolActivityChildren,
+  ToolActivityDetailPre,
+  ToolActivityPath,
+  shortActivityPath,
+  type ToolActivityMetaItem,
+  type ToolActivityStatus,
+} from './ToolActivityRow';
 import { useEnableSubagents } from '../../stores';
 import { isRunCommandToolName, parseCommandExecOutput } from '../../utils/parseCommandExecOutput';
 import { useTranslation } from '../../i18n';
@@ -23,6 +31,22 @@ import {
 } from './toolResultSummaries';
 import { toolCardShell, toolCompactShell, TOOL_RESULT_WIDTH, formatToolDisplayName } from './toolResultLayout';
 import { TodoInProgressIndicator } from './TodoInProgressIndicator';
+
+function activityStatus(isError: boolean, isRunning = false): ToolActivityStatus {
+  if (isRunning) return 'run';
+  if (isError) return 'error';
+  return 'ok';
+}
+
+function activityMeta(...parts: Array<string | null | undefined | false>): ToolActivityMetaItem[] {
+  const items: ToolActivityMetaItem[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    if (items.length > 0) items.push({ kind: 'sep' });
+    items.push({ kind: 'text', value: part });
+  }
+  return items;
+}
 
 interface ToolResultMessageProps {
   message: ChatMessage;
@@ -78,12 +102,12 @@ const ToolResultMessage = memo(function ToolResultMessage({
   const t = useTranslation();
   const enableSubagents = useEnableSubagents();
   const [isExpanded, setIsExpanded] = useState(false);
-  const compactMarginBottom = dense ? '6px' : '6px';
+  const compactMarginBottom = '1px';
   const createCompactStyle = (marginBottom = compactMarginBottom): CSSProperties => ({
     ...toolCompactShell(marginBottom),
     color: TOOL_TEXT_MUTED,
   });
-  const createToolCardStyle = (marginBottom = compactMarginBottom): CSSProperties =>
+  const createToolCardStyle = (marginBottom = dense ? '6px' : '1px'): CSSProperties =>
     toolCardShell(marginBottom);
   const fileReadTools = ['read', 'read_file', 'view_file', 'get_file_info', 'finfo'];
   const isFileReadTool = fileReadTools.includes(message.tool_name || '');
@@ -422,7 +446,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     );
   }
 
-  let displayName = formatToolDisplayName(message.tool_name, t.agentInternal.toolResult);
+  // File read tools: unified activity row
   if (isFileReadTool) {
     const args = message.tool_args || {};
     const pathFromArgs = args.path as string | undefined;
@@ -442,30 +466,25 @@ const ToolResultMessage = memo(function ToolResultMessage({
       }
     }
 
-    // 有 max_lines 时显示行号范围
+    let range: string | undefined;
     if (maxLines !== undefined) {
-      const start = startLine ?? 1; // 默认从第1行开始
-      const endLine = start + maxLines - 1;
-      displayName = `Read ${fileName} ${start}-${endLine}`;
+      const start = startLine ?? 1;
+      range = `${start}–${start + maxLines - 1}`;
     } else if (startLine !== undefined) {
-      displayName = `Read ${fileName} ${startLine}+`;
-    } else {
-      displayName = `Read ${fileName}`;
+      range = `${startLine}+`;
     }
-  }
-
-  // File read tools: keep compact one-line style
-  if (isFileReadTool) {
-    const compactStyle = createCompactStyle();
 
     return (
-      <div style={compactStyle}>
-        <span>{displayName}</span>
-      </div>
+      <ToolActivityRow
+        verb="read"
+        main={<ToolActivityPath path={fileName} suffix={range} />}
+        status={activityStatus(isToolError)}
+        meta={activityMeta(range ? `${range} ln` : undefined)}
+      />
     );
   }
 
-  // write_file: compact "write filename +xx" style
+  // write_file
   if (isWriteFileTool) {
     const args = message.tool_args || {};
     const pathFromArgs = args.path as string | undefined;
@@ -476,44 +495,38 @@ const ToolResultMessage = memo(function ToolResultMessage({
     if (pathFromArgs) {
       fileName = pathFromArgs.split(/[/\\]/).pop() || pathFromArgs;
     } else {
-      // Fallback: extract from result text "成功写入文件: path"
       const pathMatch = message.text.match(/成功写入文件:\s*(.+?)(?:\n|$)/);
       if (pathMatch) {
         fileName = pathMatch[1].trim().split(/[/\\]/).pop() || pathMatch[1].trim();
       }
     }
 
-    // Count lines from content
     let addedLines = 0;
     if (contentFromArgs) {
       addedLines = contentFromArgs.split('\n').length;
     } else {
-      // Fallback: estimate from character count in result text
       const charMatch = message.text.match(/写入了\s*(\d+)\s*个字符/);
       if (charMatch) {
-        // Rough estimate: ~40 chars per line
         addedLines = Math.max(1, Math.round(parseInt(charMatch[1], 10) / 40));
       }
     }
 
-    const compactStyle = createCompactStyle(dense ? '3px' : '10px');
+    const meta: ToolActivityMetaItem[] = [];
+    if (!isError && addedLines > 0) {
+      meta.push({ kind: 'text', value: `+${addedLines}`, tone: 'add' });
+    }
 
-    return wrapCompactRow(
-      compactStyle,
-      <span>
-        {formatToolDisplayName('write')}{' '}
-        <span style={{ color: TOOL_TEXT }}>{fileName}</span>
-        {!isError && addedLines > 0 && (
-          <span style={{ color: TOOL_SUCCESS, marginLeft: '6px' }}>+{addedLines}</span>
-        )}
-        {isError && (
-          <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-        )}
-      </span>
+    return (
+      <ToolActivityRow
+        verb="write"
+        main={<ToolActivityPath path={fileName} />}
+        status={activityStatus(isError)}
+        meta={meta}
+      />
     );
   }
 
-  // edit_file: compact "edit filename +xx -xx" style
+  // edit_file
   if (message.tool_name === 'edit' || message.tool_name === 'edit_file') {
     const args = message.tool_args || {};
     const pathFromArgs = args.path as string | undefined;
@@ -533,28 +546,24 @@ const ToolResultMessage = memo(function ToolResultMessage({
 
     const removedLines = oldString ? oldString.split('\n').length : 0;
     const addedLines = newString ? newString.split('\n').length : 0;
+    const meta: ToolActivityMetaItem[] = [];
+    if (!isError && addedLines > 0) meta.push({ kind: 'text', value: `+${addedLines}`, tone: 'add' });
+    if (!isError && removedLines > 0) {
+      if (meta.length) meta.push({ kind: 'sep' });
+      meta.push({ kind: 'text', value: `-${removedLines}`, tone: 'del' });
+    }
 
-    const compactStyle = createCompactStyle();
-
-    return wrapCompactRow(
-      compactStyle,
-      <span>
-        {formatToolDisplayName('edit')}{' '}
-        <span style={{ color: TOOL_TEXT }}>{fileName}</span>
-        {!isError && addedLines > 0 && (
-          <span style={{ color: TOOL_SUCCESS, marginLeft: '6px' }}>+{addedLines}</span>
-        )}
-        {!isError && removedLines > 0 && (
-          <span style={{ color: TOOL_ERROR, marginLeft: '4px' }}>-{removedLines}</span>
-        )}
-        {isError && (
-          <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-        )}
-      </span>
+    return (
+      <ToolActivityRow
+        verb="edit"
+        main={<ToolActivityPath path={fileName} />}
+        status={activityStatus(isError)}
+        meta={meta}
+      />
     );
   }
 
-  // delete_file: compact "delete filename" style
+  // delete_file
   if (message.tool_name === 'delete_file') {
     const args = message.tool_args || {};
     const pathFromArgs = args.path as string | undefined;
@@ -570,47 +579,17 @@ const ToolResultMessage = memo(function ToolResultMessage({
       }
     }
 
-    const compactStyle: CSSProperties = {
-      ...createCompactStyle(),
-      gap: '8px',
-    };
-
     return wrapCompactRow(
-      compactStyle,
-      <>
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '2px 6px',
-          borderRadius: '999px',
-          background: TOOL_ERROR_BG,
-          color: TOOL_ERROR,
-          fontSize: '10px',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          userSelect: 'none',
-        }}>
-          DEL
-        </span>
-        <span style={{
-          color: TOOL_TEXT,
-          background: TOOL_SURFACE_SOFT,
-          padding: '2px 6px',
-          borderRadius: '6px',
-          textDecoration: approvalOutcome === 'denied' ? undefined : 'line-through',
-          textDecorationThickness: '1px',
-          textDecorationColor: 'color-mix(in srgb, var(--text-error) 60%, transparent)',
-        }}>
-          {fileName}
-        </span>
-        {isError && (
-          <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-        )}
-      </>
+      { width: '100%', maxWidth: '100%', boxSizing: 'border-box', marginBottom: compactMarginBottom },
+      <ToolActivityRow
+        verb="del"
+        main={<ToolActivityPath path={fileName} strike={approvalOutcome !== 'denied'} />}
+        status={activityStatus(isError)}
+      />
     );
   }
 
-  // move_file: compact "Rename name -> newname" or "move ~folder/file -> ~folder/file" style
+  // move_file
   if (message.tool_name === 'move_file') {
     const args = message.tool_args || {};
     const source = (args.source as string) || '';
@@ -621,34 +600,32 @@ const ToolResultMessage = memo(function ToolResultMessage({
       const segs = p.replace(/\\/g, '/').split('/').filter(Boolean);
       return { dir: segs.slice(0, -1), name: segs[segs.length - 1] || p };
     };
-
     const src = parts(source);
     const dst = parts(destination);
     const isSameDir = src.dir.join('/') === dst.dir.join('/');
-
     const shortPath = (p: { dir: string[]; name: string }) => {
       if (p.dir.length === 0) return p.name;
       return `~${p.dir[p.dir.length - 1]}/${p.name}`;
     };
-
-    const compactStyle = createCompactStyle();
+    const left = isSameDir ? src.name : shortPath(src);
+    const right = isSameDir ? dst.name : shortPath(dst);
 
     return (
-      <div style={compactStyle}>
-        <span>
-          {isSameDir ? 'Rename' : formatToolDisplayName('move')}{' '}
-          <span style={{ color: TOOL_TEXT }}>{isSameDir ? src.name : shortPath(src)}</span>
-          <span style={{ color: TOOL_TEXT_SUBTLE, margin: '0 4px' }}>→</span>
-          <span style={{ color: TOOL_TEXT }}>{isSameDir ? dst.name : shortPath(dst)}</span>
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb={isSameDir ? 'rename' : 'move'}
+        main={
+          <>
+            {left}
+            <span className="muted" style={{ color: 'var(--text-secondary)' }}> → </span>
+            {right}
+          </>
+        }
+        status={activityStatus(isError)}
+      />
     );
   }
 
-  // copy_file: compact "Copy src → dst" style
+  // copy_file
   if (message.tool_name === 'copy_file') {
     const args = message.tool_args || {};
     const source = (args.source as string) || '';
@@ -659,37 +636,40 @@ const ToolResultMessage = memo(function ToolResultMessage({
       const segs = p.replace(/\\/g, '/').split('/').filter(Boolean);
       return { dir: segs.slice(0, -1), name: segs[segs.length - 1] || p };
     };
-
     const src = parts(source);
     const dst = parts(destination);
     const isSameDir = src.dir.join('/') === dst.dir.join('/');
-
     const shortPath = (p: { dir: string[]; name: string }) => {
       if (p.dir.length === 0) return p.name;
       return `~${p.dir[p.dir.length - 1]}/${p.name}`;
     };
-
-    const compactStyle = createCompactStyle();
+    const left = isSameDir ? src.name : shortPath(src);
+    const right = isSameDir ? dst.name : shortPath(dst);
 
     return (
-      <div style={compactStyle}>
-        <span>
-          Copy{' '}
-          <span style={{ color: TOOL_TEXT }}>{isSameDir ? src.name : shortPath(src)}</span>
-          <span style={{ color: TOOL_TEXT_SUBTLE, margin: '0 4px' }}>→</span>
-          <span style={{ color: TOOL_TEXT }}>{isSameDir ? dst.name : shortPath(dst)}</span>
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="copy"
+        main={
+          <>
+            {left}
+            <span style={{ color: 'var(--text-secondary)' }}> → </span>
+            {right}
+          </>
+        }
+        status={activityStatus(isError)}
+      />
     );
   }
 
-  // search_files: custom "Searched [count] files" style
+  // search_files
   if (message.tool_name === 'search_files') {
     const isError = isToolError;
-    
+    const sfArgs = message.tool_args || {};
+    const pattern =
+      (sfArgs.query as string | undefined) ||
+      (sfArgs.pattern as string | undefined) ||
+      (sfArgs.glob as string | undefined) ||
+      '';
     let fileCount = 0;
     const countMatch = message.text.match(/找到\s*(\d+)\s*个匹配文件/);
     if (countMatch) {
@@ -698,24 +678,24 @@ const ToolResultMessage = memo(function ToolResultMessage({
       fileCount = (message.text.match(/^- /gm) || []).length;
     }
 
-    const compactStyle = createCompactStyle();
-
     return (
-      <div style={compactStyle}>
-        <span>
-          Searched <span style={{ color: TOOL_TEXT }}>{fileCount}</span> files
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="glob"
+        main={pattern ? `"${pattern}"` : <span style={{ color: 'var(--text-secondary)' }}>files</span>}
+        status={activityStatus(isError)}
+        meta={activityMeta(`${fileCount}`)}
+      />
     );
   }
 
-  // search_content: custom "Searchcontent [count] Place" style
+  // search_content
   if (message.tool_name === 'search_content') {
     const isError = isToolError;
-
+    const scArgs = message.tool_args || {};
+    const query =
+      (scArgs.query as string | undefined) ||
+      (scArgs.pattern as string | undefined) ||
+      '';
     let matchCount = 0;
     const totalMatchItems = message.text.match(/(\d+)\s*个匹配项/g);
     if (totalMatchItems) {
@@ -726,104 +706,63 @@ const ToolResultMessage = memo(function ToolResultMessage({
     }
     if (!matchCount) {
       const fileCountMatch = message.text.match(/找到\s*(\d+)\s*个文件包含/);
-      if (fileCountMatch) {
-        matchCount = parseInt(fileCountMatch[1], 10);
-      }
+      if (fileCountMatch) matchCount = parseInt(fileCountMatch[1], 10);
     }
     if (!matchCount && !isError) {
       matchCount = (message.text.match(/^📄 /gm) || []).length;
     }
 
-    const compactStyle = createCompactStyle();
-
     return (
-      <div style={compactStyle}>
-        <span>
-          Searchcontent <span style={{ color: TOOL_TEXT }}>{matchCount}</span> Place
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="grep"
+        main={query ? `"${query}"` : <span style={{ color: 'var(--text-secondary)' }}>content</span>}
+        status={activityStatus(isError)}
+        meta={activityMeta(`${matchCount}`)}
+      />
     );
   }
 
-  // search_both: combined filename + content search
+  // search_both
   if (message.tool_name === 'search_both') {
     const isError = isToolError;
     const summary = summarizeSearchBoth(message.text, message.tool_args);
-    const queryLabel = summary.query ? `"${summary.query}"` : '';
-    const compactStyle = createCompactStyle();
-
-    const summaryLine = (
-      <span>
-        Search both
-        {queryLabel && <span style={{ color: TOOL_TEXT }}> · {queryLabel}</span>}
-        {summary.noMatches ? (
-          <span style={{ color: TOOL_TEXT_SUBTLE }}> · no matches</span>
-        ) : (
-          <>
-            {summary.fileCount !== null && summary.fileCount > 0 && (
-              <span style={{ color: TOOL_TEXT }}> · {summary.fileCount} files</span>
-            )}
-            {summary.placeCount !== null && summary.placeCount > 0 && (
-              <span style={{ color: TOOL_TEXT }}> · {summary.placeCount} places</span>
-            )}
-          </>
-        )}
-        {isError && <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>}
-      </span>
+    const queryLabel = summary.query ? `"${summary.query}"` : 'both';
+    const meta = activityMeta(
+      summary.noMatches ? '0' : undefined,
+      !summary.noMatches && summary.fileCount != null && summary.fileCount > 0
+        ? `${summary.fileCount} files`
+        : undefined,
+      !summary.noMatches && summary.placeCount != null && summary.placeCount > 0
+        ? `${summary.placeCount} places`
+        : undefined,
     );
 
     if (summary.expandable) {
-      const headerStyle: CSSProperties = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        cursor: 'pointer',
-        userSelect: 'none',
-        fontSize: '12px',
-        color: TOOL_TEXT_MUTED,
-      };
-      const contentStyle: CSSProperties = {
-        marginTop: '6px',
-        paddingLeft: '2px',
-        fontSize: '12px',
-        lineHeight: '1.5',
-        color: TOOL_TEXT,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-        fontFamily: 'monospace',
-        maxHeight: '200px',
-        overflowY: 'auto',
-      };
-
       return (
-        <div style={createToolCardStyle()}>
-          <div style={headerStyle} onClick={() => setIsExpanded(!isExpanded)}>
-            {summaryLine}
-            <span style={{
-              fontSize: '10px',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              opacity: 0.5,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </span>
-          </div>
-          {isExpanded && <div style={contentStyle}>{message.text}</div>}
-        </div>
+        <ToolActivityRow
+          verb="grep"
+          main={queryLabel}
+          status={activityStatus(isError)}
+          meta={meta}
+          expandable
+          expanded={isExpanded}
+          onToggle={() => setIsExpanded((v) => !v)}
+          detail={<ToolActivityDetailPre>{message.text}</ToolActivityDetailPre>}
+        />
       );
     }
 
-    return <div style={compactStyle}>{summaryLine}</div>;
+    return (
+      <ToolActivityRow
+        verb="grep"
+        main={queryLabel}
+        status={activityStatus(isError)}
+        meta={meta}
+      />
+    );
   }
 
-  // list_directory: custom "Listdirectory /path" style
+  // list_directory
   if (message.tool_name === 'list_directory') {
     const isError = isToolError;
     const ldArgs = message.tool_args || {};
@@ -833,27 +772,28 @@ const ToolResultMessage = memo(function ToolResultMessage({
       const match = message.text.match(/目录内容\s*\((.+?)\)\s*:/);
       if (match) ldPath = match[1];
     }
-    const ldShortPath = (() => {
-      if (!ldPath) return '';
-      const segs = ldPath.replace(/\\/g, '/').split('/').filter(Boolean);
-      const tail = segs.slice(-2).join('/');
-      return tail ? `~/${tail}` : '';
-    })();
-    const compactStyle = createCompactStyle();
+    const ldShortPath = shortActivityPath(ldPath) || ldPath || '.';
+    let entryCount: number | undefined;
+    const countMatch =
+      message.text.match(/共\s*(\d+)\s*项/) ||
+      message.text.match(/(\d+)\s*(?:items?|entries)/i);
+    if (countMatch) entryCount = parseInt(countMatch[1], 10);
+    else if (!isError) {
+      const lines = message.text.split('\n').filter((l) => l.trim() && !l.includes('目录内容'));
+      if (lines.length > 0) entryCount = lines.length;
+    }
 
     return (
-      <div style={compactStyle}>
-        <span>
-          Listdirectory{ldShortPath ? ` ${ldShortPath}` : ''}
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="list"
+        main={<ToolActivityPath path={ldShortPath} />}
+        status={activityStatus(isError)}
+        meta={activityMeta(entryCount != null ? String(entryCount) : undefined)}
+      />
     );
   }
 
-  // create_folder: custom "Create folderName folder" style
+  // create_folder
   if (message.tool_name === 'create_folder') {
     const isError = isToolError;
     const cfArgs = message.tool_args || {};
@@ -865,21 +805,16 @@ const ToolResultMessage = memo(function ToolResultMessage({
     }
     const folderName = cfPath.split(/[/\\]/).filter(Boolean).pop() || cfPath || 'folder';
 
-    const compactStyle = createCompactStyle('8px');
-
     return (
-      <div style={compactStyle}>
-        <span>
-          Create <span style={{ color: TOOL_TEXT }}>{folderName}</span> folder
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="mkdir"
+        main={<ToolActivityPath path={folderName} />}
+        status={activityStatus(isError)}
+      />
     );
   }
 
-  // get_file_tree: custom "File tree ~/a/b · D: x · F: y · Depth: n" style
+  // get_file_tree
   if (message.tool_name === 'get_file_tree') {
     const isError = isToolError;
     const ftArgs = message.tool_args || {};
@@ -893,12 +828,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
       const match = message.text.match(/项目根目录:\s*(.+?)(?:\n|$)/);
       if (match) ftRoot = match[1].trim();
     }
-    const ftShortPath = (() => {
-      if (!ftRoot) return '';
-      const segs = ftRoot.replace(/\\/g, '/').split('/').filter(Boolean);
-      const tail = segs.slice(-2).join('/');
-      return tail ? `~/${tail}` : '';
-    })();
+    const ftShortPath = shortActivityPath(ftRoot) || ftRoot || '.';
     let dirCount: number | null = null;
     let fileCount: number | null = null;
     const totalMatch = message.text.match(/总计:\s*(\d+)\s*个目录(?:\s*,\s*(\d+)\s*个文件)?/);
@@ -910,347 +840,178 @@ const ToolResultMessage = memo(function ToolResultMessage({
       (ftArgs.max_depth as number | undefined) ??
       (ftArgs.maxDepth as number | undefined) ??
       3;
-
-    const compactStyle = createCompactStyle();
+    const total =
+      dirCount != null || fileCount != null
+        ? String((dirCount || 0) + (fileCount || 0) || dirCount || fileCount || 0)
+        : undefined;
 
     return (
-      <div style={compactStyle}>
-        <span>
-          File tree{ftShortPath ? ` ${ftShortPath}` : ''}
-          {dirCount !== null && (
-            <span style={{ color: TOOL_TEXT }}> · D: {dirCount}</span>
-          )}
-          {fileCount !== null && (
-            <span style={{ color: TOOL_TEXT }}> · F: {fileCount}</span>
-          )}
-          <span style={{ color: TOOL_TEXT_SUBTLE }}> · Depth: {depth}</span>
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="tree"
+        main={<ToolActivityPath path={ftShortPath} suffix={`depth ${depth}`} />}
+        status={activityStatus(isError)}
+        meta={activityMeta(total)}
+      />
     );
   }
 
-  // read_terminal_output: compact "Output · <terminal_id> · <N> lines" with expandable content
+  // read_terminal_output
   if (message.tool_name === 'read_terminal_output') {
     const isError = isToolError;
     const rtoArgs = message.tool_args || {};
     const terminalId = (rtoArgs.terminal_id as string | undefined) || '';
     const shortId = terminalId.length > 16 ? terminalId.slice(0, 16) + '…' : terminalId;
-
-    // 从输出文本中提取实际内容（去掉前缀行如 "Terminal output:" 或 "Background command..."）
     const outputText = message.text
       .replace(/^Terminal output:\s*\n*/i, '')
       .replace(/^Background command (?:completed|still running)[^.]*\.\s*\n*/i, '');
     const outputLines = outputText.trim() ? outputText.split('\n').length : 0;
 
-    const compactStyle = createCompactStyle();
-
-    // 有输出内容时，显示可展开的卡片
     if (outputLines > 0) {
-      const headerStyle: CSSProperties = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        cursor: 'pointer',
-        userSelect: 'none',
-        fontSize: '12px',
-        color: TOOL_TEXT_MUTED,
-      };
-
-      const contentStyle: CSSProperties = {
-        marginTop: '6px',
-        paddingLeft: '2px',
-        fontSize: '12px',
-        lineHeight: '1.5',
-        color: TOOL_TEXT,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-        fontFamily: 'monospace',
-        maxHeight: '200px',
-        overflowY: 'auto',
-      };
-
       return (
-        <div style={createToolCardStyle()}>
-          <div
-            style={headerStyle}
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            <span>
-              Output
-              {shortId && <span style={{ color: TOOL_TEXT }}> · {shortId}</span>}
-              <span style={{ color: TOOL_TEXT_SUBTLE }}> · {outputLines} lines</span>
-              {isError && <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>}
-            </span>
-            <span style={{
-              fontSize: '10px',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              opacity: 0.5,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </span>
-          </div>
-          {isExpanded && (
-            <div style={contentStyle}>{outputText}</div>
-          )}
-        </div>
+        <ToolActivityRow
+          verb="out"
+          main={<ToolActivityPath path={shortId || 'terminal'} />}
+          status={activityStatus(isError)}
+          meta={activityMeta(`${outputLines} ln`)}
+          expandable
+          expanded={isExpanded}
+          onToggle={() => setIsExpanded((v) => !v)}
+          detail={<ToolActivityDetailPre>{outputText}</ToolActivityDetailPre>}
+        />
       );
     }
 
-    // 无输出时，紧凑一行
     return (
-      <div style={compactStyle}>
-        <span>
-          Output
-          {shortId && <span style={{ color: TOOL_TEXT }}> · {shortId}</span>}
-          <span style={{ color: TOOL_TEXT_SUBTLE }}> · No output</span>
-          {isError && <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="out"
+        main={<ToolActivityPath path={shortId || 'terminal'} suffix="no output" />}
+        status={activityStatus(isError)}
+      />
     );
   }
 
-  // list_bg_tasks: background task listing
+  // list_bg_tasks
   if (message.tool_name === 'list_bg_tasks') {
     const isError = isToolError;
     const summary = summarizeListBgTasks(message.text);
-    const compactStyle = createCompactStyle();
-
-    const summaryLine = (
-      <span>
-        Background tasks
-        {summary.empty ? (
-          <span style={{ color: TOOL_TEXT_SUBTLE }}> · none</span>
-        ) : (
-          <>
-            <span style={{ color: TOOL_TEXT }}> · {summary.total} total</span>
-            {summary.running > 0 && (
-              <span style={{ color: TOOL_WARNING }}> · {summary.running} running</span>
-            )}
-            {summary.completed > 0 && (
-              <span style={{ color: TOOL_SUCCESS }}> · {summary.completed} completed</span>
-            )}
-          </>
-        )}
-        {isError && <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>}
-      </span>
+    const meta = activityMeta(
+      summary.empty ? 'none' : `${summary.total}`,
+      !summary.empty && summary.running > 0 ? `${summary.running} run` : undefined,
+      !summary.empty && summary.completed > 0 ? `${summary.completed} done` : undefined,
     );
 
     if (!summary.empty && summary.tasks.length > 0) {
-      const headerStyle: CSSProperties = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        cursor: 'pointer',
-        userSelect: 'none',
-        fontSize: '12px',
-        color: TOOL_TEXT_MUTED,
-      };
-      const entryStyle: CSSProperties = {
-        marginTop: '4px',
-        fontSize: '12px',
-        lineHeight: '1.5',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        overflow: 'hidden',
-      };
-
       return (
-        <div style={createToolCardStyle()}>
-          <div style={headerStyle} onClick={() => setIsExpanded(!isExpanded)}>
-            {summaryLine}
-            <span style={{
-              fontSize: '10px',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              opacity: 0.5,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </span>
-          </div>
-          {isExpanded && summary.tasks.map((task) => {
-            const isRunning = task.status === 'running';
-            return (
-              <div key={task.id} style={entryStyle}>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 6px',
-                  borderRadius: '999px',
-                  background: isRunning ? TOOL_WARNING_BG : TOOL_SUCCESS_BG,
-                  color: isRunning ? TOOL_WARNING : TOOL_SUCCESS,
-                  fontSize: '10px',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  userSelect: 'none',
-                  flexShrink: 0,
-                }}>
-                  {isRunning ? 'RUN' : 'DONE'}
-                </span>
-                <span style={{ color: TOOL_TEXT, flexShrink: 0 }}>{shortenId(task.id)}</span>
-                <span style={{
-                  color: TOOL_TEXT_SUBTLE,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {task.command}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <ToolActivityRow
+          verb="bg"
+          main="tasks"
+          status={activityStatus(isError)}
+          meta={meta}
+          expandable
+          expanded={isExpanded}
+          onToggle={() => setIsExpanded((v) => !v)}
+          detail={
+            <ToolActivityChildren
+              items={summary.tasks.map((task) => ({
+                id: task.id,
+                name: `${shortenId(task.id)}  ${task.command}`,
+                meta: task.status === 'running' ? 'run' : 'done',
+              }))}
+            />
+          }
+        />
       );
     }
 
-    return <div style={compactStyle}>{summaryLine}</div>;
+    return (
+      <ToolActivityRow
+        verb="bg"
+        main="tasks"
+        status={activityStatus(isError)}
+        meta={meta}
+      />
+    );
   }
 
-  // kill_bg_task: terminate background task
+  // kill_bg_task
   if (message.tool_name === 'kill_bg_task') {
     const isError = isToolError;
     const summary = summarizeKillBgTask(message.text, message.tool_args);
     const shortId = summary.taskId ? shortenId(summary.taskId) : 'task';
 
     return (
-      <div style={createCompactStyle()}>
-        <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '2px 6px',
-            borderRadius: '999px',
-            background: TOOL_ERROR_BG,
-            color: TOOL_ERROR,
-            fontSize: '10px',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            userSelect: 'none',
-          }}>
-            KILL
-          </span>
-          <span style={{
-            color: TOOL_TEXT,
-            background: TOOL_SURFACE_SOFT,
-            padding: '2px 6px',
-            borderRadius: '6px',
-          }}>
-            {shortId}
-          </span>
-          {summary.terminated && !isError && (
-            <span style={{ color: TOOL_TEXT_SUBTLE }}>terminated</span>
-          )}
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>✘</span>
-          )}
-      </div>
+      <ToolActivityRow
+        verb="kill"
+        main={<ToolActivityPath path={shortId} />}
+        status={activityStatus(isError)}
+        meta={activityMeta(summary.terminated && !isError ? 'terminated' : undefined)}
+      />
     );
   }
 
-  // get_symbol_definition: custom "Symbol: <name> · <type> · ~/<path>:<line>" style
+  // get_symbol_definition
   if (message.tool_name === 'sym' || message.tool_name === 'get_symbol_definition') {
     const isError = isToolError;
     const gsArgs = message.tool_args || {};
     const nameFromArgs = (gsArgs.symbol_name as string | undefined) || '';
-
     const nameMatch = message.text.match(/symbol_name\s*[:：]\s*(.+?)(?:\n|$)/i);
     const typeMatch = message.text.match(/definition_type\s*[:：]\s*(.+?)(?:\n|$)/i);
     const pathMatch = message.text.match(/resolved_path\s*[:：]\s*(.+?)(?:\n|$)/i);
     const lineMatch = message.text.match(/definition_line\s*[:：]\s*(\d+)/i);
-
     const name = nameFromArgs || (nameMatch ? nameMatch[1].trim() : '') || 'symbol';
     const defType = typeMatch ? typeMatch[1].trim() : '';
     const rawPath = pathMatch ? pathMatch[1].trim() : '';
     const line = lineMatch ? lineMatch[1] : '';
-
-    const shortPath = (() => {
-      if (!rawPath) return '';
-      const segs = rawPath.replace(/\\/g, '/').split('/').filter(Boolean);
-      const tail = segs.slice(-2).join('/');
-      return tail ? `~/${tail}` : '';
-    })();
-
-    const compactStyle = createCompactStyle();
+    const shortPath = shortActivityPath(rawPath);
+    const loc = shortPath ? `${shortPath}${line ? `:${line}` : ''}` : '';
 
     return (
-      <div style={compactStyle}>
-        <span>
-          Symbol: <span style={{ color: TOOL_TEXT }}>{name}</span>
-          {defType && <span style={{ color: TOOL_TEXT_SUBTLE }}> · {defType}</span>}
-          {shortPath && (
-            <span style={{ color: TOOL_TEXT_SUBTLE }}>
-              {' '}· {shortPath}{line ? `:${line}` : ''}
-            </span>
-          )}
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="sym"
+        main={<ToolActivityPath path={name} suffix={defType || undefined} />}
+        status={activityStatus(isError)}
+        meta={activityMeta(loc || undefined)}
+      />
     );
   }
 
-  // get_git_diff: custom "Git diff · ~/<path> · +x −y · z files" style
+  // get_git_diff
   if (message.tool_name === 'get_git_diff') {
     const isError = isToolError;
     const gdArgs = message.tool_args || {};
     const filePathFromArgs = (gdArgs.file_path as string | undefined) || '';
     const repoPathFromArgs = (gdArgs.repo_path as string | undefined) || '';
     const maxLines = (gdArgs.max_lines as number | undefined) || null;
-
     const addMatch = message.text.match(/\+(\d+)\s*行/);
     const delMatch = message.text.match(/-(\d+)\s*行/);
     const filesMatch = message.text.match(/变更文件:\s*(\d+)\s*个/);
-
     const added = addMatch ? parseInt(addMatch[1], 10) : null;
     const removed = delMatch ? parseInt(delMatch[1], 10) : null;
     const files = filesMatch ? parseInt(filesMatch[1], 10) : null;
-
     const rawPath = filePathFromArgs || repoPathFromArgs;
-    const shortPath = (() => {
-      if (!rawPath) return '';
-      const segs = rawPath.replace(/\\/g, '/').split('/').filter(Boolean);
-      const tail = segs.slice(-2).join('/');
-      return tail ? `~/${tail}` : '';
-    })();
-
-    const compactStyle = createCompactStyle();
+    const shortPath = shortActivityPath(rawPath) || 'diff';
+    const meta: ToolActivityMetaItem[] = [];
+    if (added !== null) meta.push({ kind: 'text', value: `+${added}`, tone: 'add' });
+    if (removed !== null) {
+      if (meta.length) meta.push({ kind: 'sep' });
+      meta.push({ kind: 'text', value: `-${removed}`, tone: 'del' });
+    }
+    if (files !== null) {
+      if (meta.length) meta.push({ kind: 'sep' });
+      meta.push({ kind: 'text', value: `${files} files` });
+    }
 
     return (
-      <div style={compactStyle}>
-        <span>
-          Git diff
-          {shortPath && <span style={{ color: TOOL_TEXT_SUBTLE }}> · {shortPath}</span>}
-          {added !== null && (
-            <span style={{ color: TOOL_SUCCESS }}> · +{added}</span>
-          )}
-          {removed !== null && (
-            <span style={{ color: TOOL_ERROR }}> −{removed}</span>
-          )}
-          {files !== null && (
-            <span style={{ color: TOOL_TEXT }}> · {files} files</span>
-          )}
-          {maxLines && <span style={{ color: TOOL_TEXT_SUBTLE }}> · (truncated)</span>}
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="git"
+        main={<ToolActivityPath path={shortPath} suffix={maxLines ? 'truncated' : undefined} />}
+        status={activityStatus(isError)}
+        meta={meta}
+      />
     );
   }
 
-  // undo_changes: custom "Undo changes · <restored> restored · <skipped> skipped" style
+  // undo_changes
   if (message.tool_name === 'undo_changes') {
     const isError = isToolError;
     const restoredMatch =
@@ -1264,19 +1025,13 @@ const ToolResultMessage = memo(function ToolResultMessage({
       if (listMatches) restored = listMatches.length;
     }
 
-    const compactStyle = createCompactStyle();
-
     return (
-      <div style={compactStyle}>
-        <span>
-          Undo changes
-          <span style={{ color: TOOL_TEXT }}> · {restored} restored</span>
-          <span style={{ color: TOOL_TEXT_SUBTLE }}> · {skipped} skipped</span>
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="undo"
+        main="changes"
+        status={activityStatus(isError)}
+        meta={activityMeta(`${restored} restored`, `${skipped} skipped`)}
+      />
     );
   }
 
@@ -1302,7 +1057,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     return <GraphToolResultCard message={message} />;
   }
 
-  // Task: custom "Task · <type> · <status>" style
+  // Task (compact when subagents disabled)
   if (message.tool_name === 'Task') {
     const isError = isToolError;
     const tArgs = message.tool_args || {};
@@ -1316,19 +1071,13 @@ const ToolResultMessage = memo(function ToolResultMessage({
       ? statusMatch[1].toLowerCase()
       : (isError ? 'failed' : 'completed');
 
-    const compactStyle = createCompactStyle();
-
     return (
-      <div style={compactStyle}>
-        <span>
-          Task
-          {taskType && <span style={{ color: TOOL_TEXT }}> · {taskType}</span>}
-          {status && <span style={{ color: TOOL_TEXT_SUBTLE }}> · {status}</span>}
-          {isError && (
-            <span style={{ color: TOOL_ERROR, marginLeft: '6px' }}>❌</span>
-          )}
-        </span>
-      </div>
+      <ToolActivityRow
+        verb="task"
+        main={taskType || 'agent'}
+        status={activityStatus(isError, status === 'running')}
+        meta={activityMeta(status)}
+      />
     );
   }
 
@@ -1471,10 +1220,27 @@ const ToolResultMessage = memo(function ToolResultMessage({
           </div>
         )}
 
-        {!isError && isExpanded && hasHidden && (
-          <div>
-            {pendingItems.length > 0 && renderHiddenGroup(t.todo.pending, pendingItems, 'muted')}
-            {completedItems.length > 0 && renderHiddenGroup(t.todo.completed, completedItems, 'success')}
+        {!isError && hasHidden && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateRows: isExpanded ? '1fr' : '0fr',
+              transition: 'grid-template-rows 0.25s ease',
+            }}
+            aria-hidden={!isExpanded}
+          >
+            <div
+              style={{
+                minHeight: 0,
+                overflow: 'hidden',
+                opacity: isExpanded ? 1 : 0,
+                pointerEvents: isExpanded ? 'auto' : 'none',
+                transition: 'opacity 0.18s ease',
+              }}
+            >
+              {pendingItems.length > 0 && renderHiddenGroup(t.todo.pending, pendingItems, 'muted')}
+              {completedItems.length > 0 && renderHiddenGroup(t.todo.completed, completedItems, 'success')}
+            </div>
           </div>
         )}
       </div>
@@ -1493,47 +1259,25 @@ const ToolResultMessage = memo(function ToolResultMessage({
     );
   }
 
-  // skill / load_skill: compact "Load skill · <name> · <scope>" style
+  // skill / load_skill
   if (message.tool_name === 'skill' || message.tool_name === 'load_skill') {
     const isError = isToolError;
     const lsArgs = message.tool_args || {};
-    const skillName = (lsArgs.skill_name as string | undefined) || (lsArgs.name as string | undefined) || '';
-
-    // Extract scope from output: <skill name="..." scope="global|project">
+    const skillName =
+      (lsArgs.skill_name as string | undefined) ||
+      (lsArgs.name as string | undefined) ||
+      'skill';
     let scope: string | null = null;
     const scopeMatch = message.text.match(/<skill\s+[^>]*scope="(\w+)"/);
-    if (scopeMatch) {
-      scope = scopeMatch[1];
-    }
-
-    const compactStyle = createCompactStyle();
-
-    const scopeBadge = scope && !isError ? (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '1px 6px',
-        borderRadius: '999px',
-        fontSize: '10px',
-        letterSpacing: '0.04em',
-        userSelect: 'none',
-        background: scope === 'project' ? 'rgba(74, 222, 128, 0.12)' : 'rgba(168, 162, 255, 0.12)',
-        color: scope === 'project' ? 'rgba(74, 222, 128, 0.85)' : 'rgba(168, 162, 255, 0.85)',
-      }}>
-        {scope === 'project' ? 'PROJ' : 'GLOBAL'}
-      </span>
-    ) : null;
+    if (scopeMatch) scope = scopeMatch[1];
 
     return (
-      <div style={compactStyle}>
-        <span>
-          Load skill{skillName && <span style={{ color: TOOL_TEXT }}> · {skillName}</span>}
-        </span>
-        {scopeBadge}
-        {isError && (
-          <span style={{ color: TOOL_ERROR, marginLeft: '4px' }}>✘</span>
-        )}
-      </div>
+      <ToolActivityRow
+        verb="skill"
+        main={<ToolActivityPath path={skillName} />}
+        status={activityStatus(isError)}
+        meta={activityMeta(scope === 'project' ? 'proj' : scope === 'global' ? 'global' : undefined)}
+      />
     );
   }
 
@@ -1541,16 +1285,20 @@ const ToolResultMessage = memo(function ToolResultMessage({
   if (approvalOutcome) {
     const cleanToolName = formatToolDisplayName(message.tool_name);
     const summary = message.approvalSummary;
-    const compactStyle = createCompactStyle();
-
     return wrapCompactRow(
-      compactStyle,
-      <>
-        <span style={{ color: TOOL_TEXT_MUTED }}>{cleanToolName}</span>
-        {summary?.label && (
-          <span style={{ color: TOOL_TEXT_SUBTLE }}>{summary.label}</span>
-        )}
-      </>
+      { width: '100%', maxWidth: '100%', boxSizing: 'border-box', marginBottom: compactMarginBottom },
+      <ToolActivityRow
+        verb="tool"
+        main={
+          <>
+            {cleanToolName}
+            {summary?.label ? (
+              <span style={{ color: 'var(--text-secondary)' }}> {summary.label}</span>
+            ) : null}
+          </>
+        }
+        status="neutral"
+      />
     );
   }
 

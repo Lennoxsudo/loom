@@ -98,78 +98,85 @@ export const GraphToolResultView = memo(function GraphToolResultView({
         {hasExpandable && <ChevronIcon expanded={isExpanded} />}
       </button>
 
-      {hasExpandable && isExpanded && (
-        <div className={`${styles.panel} ${styles.panelOpen}`}>
-          {view.panelMeta && (
-            <div className={styles.panelMeta}>{truncate(view.panelMeta, 120)}</div>
-          )}
+      {hasExpandable && (
+        <div
+          className={`${styles.panel} ${isExpanded ? styles.panelExpanded : ''}`}
+          aria-hidden={!isExpanded}
+        >
+          <div
+            className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}
+          >
+            {view.panelMeta && (
+              <div className={styles.panelMeta}>{truncate(view.panelMeta, 120)}</div>
+            )}
 
-          {view.stats && view.stats.length > 0 && (
-            <div className={styles.stats}>
-              {view.stats.map((stat) => (
-                <span key={stat.label} className={styles.statItem}>
-                  <span>{stat.label}</span>
-                  <span className={styles.statValue}>{stat.value}</span>
-                </span>
-              ))}
-            </div>
-          )}
+            {view.stats && view.stats.length > 0 && (
+              <div className={styles.stats}>
+                {view.stats.map((stat) => (
+                  <span key={stat.label} className={styles.statItem}>
+                    <span>{stat.label}</span>
+                    <span className={styles.statValue}>{stat.value}</span>
+                  </span>
+                ))}
+              </div>
+            )}
 
-          {view.table && (
-            <>
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      {view.table.headers.map((header) => (
-                        <th key={header}>{header}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewRows.map((row, rowIdx) => (
-                      <tr key={`row-${rowIdx}`}>
-                        {row.map((cell, cellIdx) => (
-                          <td key={`${rowIdx}-${cellIdx}`}>{cell}</td>
+            {view.table && (
+              <>
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        {view.table.headers.map((header) => (
+                          <th key={header}>{header}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, rowIdx) => (
+                        <tr key={`row-${rowIdx}`}>
+                          {row.map((cell, cellIdx) => (
+                            <td key={`${rowIdx}-${cellIdx}`}>{cell}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {hiddenRowCount > 0 && (
+                  <div className={styles.moreRows}>{labels.moreRows(hiddenRowCount)}</div>
+                )}
+              </>
+            )}
+
+            {view.codeBlock && (
+              <>
+                <div className={styles.codeHeader}>
+                  {view.codeBlock.file && <span className={styles.codeFile}>{view.codeBlock.file}</span>}
+                  {view.codeBlock.range && <span>{view.codeBlock.range}</span>}
+                  {view.codeBlock.qualifiedName && <span>{view.codeBlock.qualifiedName}</span>}
+                </div>
+                <pre className={styles.codeBlock}>{view.codeBlock.code}</pre>
+              </>
+            )}
+
+            {view.sections?.map((section) => (
+              <div key={section.title} className={styles.section}>
+                <div className={styles.sectionTitle}>{section.title}</div>
+                <ul className={styles.sectionList}>
+                  {section.items.map((item, idx) => (
+                    <li key={`${section.title}-${idx}`} className={styles.sectionItem}>{item}</li>
+                  ))}
+                </ul>
               </div>
-              {hiddenRowCount > 0 && (
-                <div className={styles.moreRows}>{labels.moreRows(hiddenRowCount)}</div>
-              )}
-            </>
-          )}
+            ))}
 
-          {view.codeBlock && (
-            <>
-              <div className={styles.codeHeader}>
-                {view.codeBlock.file && <span className={styles.codeFile}>{view.codeBlock.file}</span>}
-                {view.codeBlock.range && <span>{view.codeBlock.range}</span>}
-                {view.codeBlock.qualifiedName && <span>{view.codeBlock.qualifiedName}</span>}
-              </div>
-              <pre className={styles.codeBlock}>{view.codeBlock.code}</pre>
-            </>
-          )}
-
-          {view.sections?.map((section) => (
-            <div key={section.title} className={styles.section}>
-              <div className={styles.sectionTitle}>{section.title}</div>
-              <ul className={styles.sectionList}>
-                {section.items.map((item, idx) => (
-                  <li key={`${section.title}-${idx}`} className={styles.sectionItem}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-
-          {view.rawBody && (
-            <pre className={`${styles.rawBody} ${view.isError ? styles.rawBodyError : ''}`}>
-              {view.rawBody}
-            </pre>
-          )}
+            {view.rawBody && (
+              <pre className={`${styles.rawBody} ${view.isError ? styles.rawBodyError : ''}`}>
+                {view.rawBody}
+              </pre>
+            )}
+          </div>
         </div>
       )}
     </div>

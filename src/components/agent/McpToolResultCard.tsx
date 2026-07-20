@@ -320,68 +320,84 @@ const McpToolResultCard = memo(function McpToolResultCard({
           </div>
         </button>
 
-        <div style={{ padding: isExpanded ? '0 14px 14px' : '0 14px 0' }}>
-          {isExpanded && summaryEntries.length > 0 && (
-            <div style={{ marginBottom: isExpanded ? '14px' : 0 }}>
-              <div style={sectionTitleStyle}>{summaryLabel}</div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: '8px',
-                }}
-              >
-                {summaryEntries.map((entry) => (
-                  <div
-                    key={`${entry.label}-${entry.value}`}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
-                    }}
-                  >
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                      {entry.label}
-                    </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateRows: isExpanded ? '1fr' : '0fr',
+            transition: 'grid-template-rows 0.25s ease',
+          }}
+          aria-hidden={!isExpanded}
+        >
+          <div
+            style={{
+              minHeight: 0,
+              overflow: 'hidden',
+              opacity: isExpanded ? 1 : 0,
+              padding: isExpanded ? '0 14px 14px' : '0 14px 0',
+              pointerEvents: isExpanded ? 'auto' : 'none',
+              transition: 'opacity 0.18s ease, padding 0.25s ease',
+            }}
+          >
+            {summaryEntries.length > 0 && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={sectionTitleStyle}>{summaryLabel}</div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: '8px',
+                  }}
+                >
+                  {summaryEntries.map((entry) => (
                     <div
+                      key={`${entry.label}-${entry.value}`}
                       style={{
-                        fontSize: '12px',
-                        color: 'var(--text-primary)',
-                        lineHeight: 1.5,
-                        wordBreak: 'break-word',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
                       }}
                     >
-                      {entry.value}
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                        {entry.label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: 'var(--text-primary)',
+                          lineHeight: 1.5,
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {entry.value}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {isExpanded && argumentEntries.length > 0 && (
-            <div style={{ marginBottom: '14px' }}>
-              <div style={sectionTitleStyle}>{argumentsLabel}</div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(120px, 180px) minmax(0, 1fr)',
-                  gap: '8px 12px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  background: 'rgba(0, 0, 0, 0.14)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                }}
-              >
-                {argumentEntries.map((entry) => (
-                  <FragmentRow key={entry.label} label={entry.label} value={entry.value} />
-                ))}
+            {argumentEntries.length > 0 && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={sectionTitleStyle}>{argumentsLabel}</div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(120px, 180px) minmax(0, 1fr)',
+                    gap: '8px 12px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 0, 0, 0.14)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                  }}
+                >
+                  {argumentEntries.map((entry) => (
+                    <FragmentRow key={entry.label} label={entry.label} value={entry.value} />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {isExpanded && (
             <div>
               <div style={sectionTitleStyle}>{rawOutputLabel}</div>
               <pre
@@ -404,7 +420,7 @@ const McpToolResultCard = memo(function McpToolResultCard({
                 {rawOutput}
               </pre>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

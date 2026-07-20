@@ -150,18 +150,25 @@ const BrowserToolResultCard = memo(function BrowserToolResultCard({
         )}
       </button>
 
-      {hasExpandableContent && isExpanded && (
-        <div className={`${styles.panel} ${styles.panelOpen}`}>
-          {metaParts.length > 0 && (
-            <div className={styles.meta}>
-              {metaParts.join(' · ')}
-            </div>
-          )}
-          {bodyText && (
-            <pre className={`${styles.body} ${isError ? styles.bodyError : ''}`}>
-              {bodyText}
-            </pre>
-          )}
+      {hasExpandableContent && (
+        <div
+          className={`${styles.panel} ${isExpanded ? styles.panelExpanded : ''}`}
+          aria-hidden={!isExpanded}
+        >
+          <div
+            className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}
+          >
+            {metaParts.length > 0 && (
+              <div className={styles.meta}>
+                {metaParts.join(' · ')}
+              </div>
+            )}
+            {bodyText && (
+              <pre className={`${styles.body} ${isError ? styles.bodyError : ''}`}>
+                {bodyText}
+              </pre>
+            )}
+          </div>
         </div>
       )}
     </div>

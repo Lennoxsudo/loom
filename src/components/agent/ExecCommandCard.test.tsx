@@ -42,9 +42,10 @@ describe('ExecCommandCard', () => {
     renderCard();
     expect(screen.getByText('echo hello')).toBeInTheDocument();
     // exit code + duration are visible in header without expanding
-    expect(screen.getByText('0')).toBeInTheDocument();
-    expect(screen.getByText('42ms')).toBeInTheDocument();
-    expect(screen.getByText('1 ln')).toBeInTheDocument();
+    // body stays mounted for expand animation, so meta may appear twice in DOM
+    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('42ms').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('1 ln').length).toBeGreaterThanOrEqual(1);
   });
 
   test('shows exit code and duration in rail when expanded', async () => {
@@ -65,7 +66,7 @@ describe('ExecCommandCard', () => {
 
   test('shows output while running and collapses when finished', () => {
     const output = 'terminal output line';
-    const { rerender } = render(
+    const { rerender, container } = render(
       <I18nProvider defaultLocale="en-US">
         <ExecCommandCard
           parsed={{ ...baseParsed, output, exitCode: null, durationMs: null }}
@@ -75,6 +76,7 @@ describe('ExecCommandCard', () => {
       </I18nProvider>
     );
     expect(screen.getByText(output)).toBeInTheDocument();
+    expect(screen.getByTestId('exec-command-body')).toHaveAttribute('aria-hidden', 'false');
 
     rerender(
       <I18nProvider defaultLocale="en-US">
@@ -85,16 +87,20 @@ describe('ExecCommandCard', () => {
         />
       </I18nProvider>
     );
-    expect(screen.queryByText(output)).not.toBeInTheDocument();
+    // body stays mounted for collapse animation; collapsed via grid-template-rows 0fr
+    expect(screen.getByText(output)).toBeInTheDocument();
+    expect(screen.getByTestId('exec-command-body')).toHaveAttribute('aria-hidden', 'true');
   });
 
   test('hides output by default and expands on header click', async () => {
     const user = userEvent.setup();
     renderCard({ ...baseParsed, output: 'terminal output line' });
 
-    expect(screen.queryByText('terminal output line')).not.toBeInTheDocument();
+    expect(screen.getByTestId('exec-command-body')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('terminal output line')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Expand all' }));
+    expect(screen.getByTestId('exec-command-body')).toHaveAttribute('aria-hidden', 'false');
     expect(screen.getByText('terminal output line')).toBeInTheDocument();
   });
 

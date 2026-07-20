@@ -153,14 +153,16 @@ const ExecCommandCard = memo(function ExecCommandCard({
               <polyline points="9 6 15 12 9 18" />
             </svg>
           </span>
-          <span className={styles.prompt} aria-hidden="true">
-            $
+          <span className={styles.verb}>exec</span>
+          <span className={styles.commandMain}>
+            <span className={styles.prompt} aria-hidden="true">
+              $
+            </span>
+            <span className={styles.commandLine}>{parsed.command}</span>
           </span>
-          <div className={styles.commandLine}>{parsed.command}</div>
         </button>
 
         <div className={styles.meta}>
-          <span className={styles.statusDot} aria-hidden="true" />
           <span
             className={
               isRunning
@@ -199,8 +201,12 @@ const ExecCommandCard = memo(function ExecCommandCard({
         </div>
       </div>
 
-      {showBody && (
-        <div className={styles.body}>
+      <div
+        className={`${styles.body} ${showBody ? styles.bodyExpanded : ''}`}
+        data-testid="exec-command-body"
+        aria-hidden={!showBody}
+      >
+        <div className={`${styles.bodyInner} ${showBody ? styles.bodyInnerExpanded : ''}`}>
           {parsed.isBackgroundStart ? (
             <div className={styles.backgroundNote}>{parsed.output}</div>
           ) : isRunning && !parsed.output ? (
@@ -273,7 +279,7 @@ const ExecCommandCard = memo(function ExecCommandCard({
             </div>
           )}
         </div>
-      )}
+      </div>
 
       {footer}
     </div>

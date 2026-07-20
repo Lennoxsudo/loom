@@ -48,7 +48,8 @@ describe('CompactToolResultCard', () => {
 
     expect(screen.getByText('更新计划')).toBeInTheDocument();
     expect(screen.getByText('完成')).toBeInTheDocument();
-    expect(screen.getByText('React 19 changelog')).toBeInTheDocument();
+    // title appears in header meta and (mounted) panel body
+    expect(screen.getAllByText('React 19 changelog').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/✔/)).not.toBeInTheDocument();
   });
 

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ThinkingBlock from './ThinkingBlock';
 import ToolResultMessage from './ToolResultMessage';
 import ProviderSwitchNotice from './ProviderSwitchNotice';
+import ToolActivityRow, { ToolActivityChildren } from './ToolActivityRow';
 import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers';
 import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
 import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
@@ -75,6 +77,50 @@ function getDeleteDisplayName(m: ChatMessage) {
   return fileName;
 }
 
+function ReadGroupRow({ messages }: { messages: ChatMessage[] }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <ToolActivityRow
+      verb="read"
+      main={`${messages.length} files`}
+      status="ok"
+      expandable
+      expanded={expanded}
+      onToggle={() => setExpanded((v) => !v)}
+      detail={
+        <ToolActivityChildren
+          items={messages.map((msg) => ({
+            id: msg.id,
+            name: getReadDisplayName(msg).replace(/^Read\s+/, ''),
+          }))}
+        />
+      }
+    />
+  );
+}
+
+function DeleteGroupRow({ messages }: { messages: ChatMessage[] }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <ToolActivityRow
+      verb="del"
+      main={`${messages.length} files`}
+      status="error"
+      expandable
+      expanded={expanded}
+      onToggle={() => setExpanded((v) => !v)}
+      detail={
+        <ToolActivityChildren
+          items={messages.map((msg) => ({
+            id: msg.id,
+            name: getDeleteDisplayName(msg),
+          }))}
+        />
+      }
+    />
+  );
+}
+
 export default function AgentMessageRow({
   item,
   expandedThinkingIds,
@@ -97,174 +143,11 @@ export default function AgentMessageRow({
   }
 
   if (item.kind === 'readGroup') {
-    return (
-      <div style={{ marginBottom: '10px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '8px',
-            fontSize: '12px',
-            color: '#a0a0a0',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-          onClick={(e) => {
-            const list = e.currentTarget.nextElementSibling as HTMLElement | null;
-            if (!list) return;
-            const hidden = list.style.display === 'none';
-            list.style.display = hidden ? 'block' : 'none';
-            const chevron = e.currentTarget.querySelector(
-              '.read-list-chevron'
-            ) as HTMLElement | null;
-            if (chevron) {
-              chevron.style.transform = hidden ? 'rotate(90deg)' : 'rotate(0deg)';
-            }
-          }}
-        >
-          <span
-            className="read-list-chevron"
-            style={{
-              display: 'inline-flex',
-              transform: 'rotate(0deg)',
-              transition: 'transform 0.15s ease',
-              flexShrink: 0,
-            }}
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 6 15 12 9 18" />
-            </svg>
-          </span>
-          <span>Read List ({item.messages.length} files)</span>
-        </div>
-        <div style={{ display: 'none', marginLeft: '16px', marginBottom: '4px' }}>
-          {item.messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '4px',
-                fontSize: '12px',
-                color: '#a0a0a0',
-              }}
-            >
-              <span>{getReadDisplayName(msg)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <ReadGroupRow messages={item.messages} />;
   }
 
   if (item.kind === 'deleteGroup') {
-    return (
-      <div style={{ marginBottom: '10px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '8px',
-            fontSize: '12px',
-            color: '#fca5a5',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-          onClick={(e) => {
-            const list = e.currentTarget.nextElementSibling as HTMLElement | null;
-            if (!list) return;
-            const hidden = list.style.display === 'none';
-            list.style.display = hidden ? 'block' : 'none';
-            const chevron = e.currentTarget.querySelector(
-              '.delete-list-chevron'
-            ) as HTMLElement | null;
-            if (chevron) {
-              chevron.style.transform = hidden ? 'rotate(90deg)' : 'rotate(0deg)';
-            }
-          }}
-        >
-          <span
-            className="delete-list-chevron"
-            style={{
-              display: 'inline-flex',
-              transform: 'rotate(0deg)',
-              transition: 'transform 0.15s ease',
-              flexShrink: 0,
-            }}
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 6 15 12 9 18" />
-            </svg>
-          </span>
-          <span>Delete List ({item.messages.length} files)</span>
-        </div>
-        <div style={{ display: 'none', marginLeft: '16px', marginBottom: '4px' }}>
-          {item.messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '4px',
-                fontSize: '12px',
-                color: '#a0a0a0',
-              }}
-            >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 6px',
-                  borderRadius: '999px',
-                  background: 'rgba(248, 113, 113, 0.12)',
-                  color: '#fca5a5',
-                  fontSize: '10px',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                delete
-              </span>
-              <span
-                style={{
-                  color: '#e5e7eb',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  padding: '2px 6px',
-                  borderRadius: '6px',
-                  textDecoration: 'line-through',
-                  textDecorationThickness: '1px',
-                  textDecorationColor: 'rgba(248, 113, 113, 0.6)',
-                }}
-              >
-                {getDeleteDisplayName(msg)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <DeleteGroupRow messages={item.messages} />;
   }
 
   const message = item.message;
@@ -350,7 +233,7 @@ export default function AgentMessageRow({
 
   if (message.role === 'tool') {
     return (
-      <div style={{ width: '100%', marginBottom: '6px' }}>
+      <div style={{ width: '100%', marginBottom: '1px' }}>
         <ToolResultMessage
           message={message}
           onApproveTool={onApproveTool}

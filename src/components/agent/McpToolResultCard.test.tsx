@@ -48,11 +48,12 @@ describe('McpToolResultCard', () => {
 
     expect(screen.getByText('MCP')).toBeInTheDocument();
     expect(screen.getByText('filesystem')).toBeInTheDocument();
-    expect(screen.getByText('Search_code')).toBeInTheDocument();
+    // display name is spaced (formatToolDisplayName)
+    expect(screen.getByText('Search code')).toBeInTheDocument();
     expect(screen.getByText('Completed')).toBeInTheDocument();
-    expect(screen.queryByText('Summary')).not.toBeInTheDocument();
-    expect(screen.queryByText('Arguments')).not.toBeInTheDocument();
-    expect(screen.queryByText('Raw Output')).not.toBeInTheDocument();
+    // panel stays mounted for expand animation
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument();
+    expect(screen.getByText('Summary')).toBeInTheDocument();
   });
 
   test('collapses MCP details when header is clicked', async () => {
@@ -69,10 +70,12 @@ describe('McpToolResultCard', () => {
       },
     });
 
-    expect(screen.queryByText('Raw Output')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument();
+    expect(screen.getByText('Raw Output')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { expanded: false }));
 
+    expect(screen.getByRole('button', { expanded: true })).toBeInTheDocument();
     expect(screen.getByText('Summary')).toBeInTheDocument();
     expect(screen.getByText('Arguments')).toBeInTheDocument();
     expect(screen.getByText('Raw Output')).toBeInTheDocument();

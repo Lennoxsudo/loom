@@ -72,29 +72,36 @@ const CompactToolResultCard = memo(function CompactToolResultCard({
           )}
         </button>
 
-        {hasBody && isExpanded && (
-          <div className={styles.panel}>
-            {planMeta ? (
-              <div className={styles.specRows}>
-                {planMeta.lead && (
-                  <p className={styles.body}>{planMeta.lead}</p>
-                )}
-                {planMeta.title && (
-                  <div className={styles.specRow}>
-                    <span className={styles.specLabel}>{labels.planTitle}</span>
-                    <span className={styles.specValue}>{planMeta.title}</span>
-                  </div>
-                )}
-                {planMeta.length && (
-                  <div className={styles.specRow}>
-                    <span className={styles.specLabel}>{labels.planLength}</span>
-                    <span className={styles.specValue}>{planMeta.length}</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <pre className={styles.body}>{truncatedText}</pre>
-            )}
+        {hasBody && (
+          <div
+            className={`${styles.panel} ${isExpanded ? styles.panelExpanded : ''}`}
+            aria-hidden={!isExpanded}
+          >
+            <div
+              className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}
+            >
+              {planMeta ? (
+                <div className={styles.specRows}>
+                  {planMeta.lead && (
+                    <p className={styles.body}>{planMeta.lead}</p>
+                  )}
+                  {planMeta.title && (
+                    <div className={styles.specRow}>
+                      <span className={styles.specLabel}>{labels.planTitle}</span>
+                      <span className={styles.specValue}>{planMeta.title}</span>
+                    </div>
+                  )}
+                  {planMeta.length && (
+                    <div className={styles.specRow}>
+                      <span className={styles.specLabel}>{labels.planLength}</span>
+                      <span className={styles.specValue}>{planMeta.length}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <pre className={styles.body}>{truncatedText}</pre>
+              )}
+            </div>
           </div>
         )}
       </div>

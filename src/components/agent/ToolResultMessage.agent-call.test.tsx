@@ -27,7 +27,7 @@ vi.mock('../../stores', async (importOriginal) => {
 });
 
 function renderToolResult(message: ChatMessage) {
-  render(
+  return render(
     <I18nProvider defaultLocale="en-US">
       <ToolResultMessage message={message} />
     </I18nProvider>
@@ -74,8 +74,9 @@ describe('ToolResultMessage agent call rendering', () => {
       },
     });
 
-    expect(screen.getByText(/Task/)).toBeInTheDocument();
-    expect(screen.getByText(/plan/)).toBeInTheDocument();
+    expect(screen.getByTestId('tool-activity-row')).toBeInTheDocument();
+    expect(screen.getByText('task')).toBeInTheDocument();
+    expect(screen.getByText('plan')).toBeInTheDocument();
     expect(screen.getByText(/completed/i)).toBeInTheDocument();
     expect(screen.queryByText('Planning completed.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
@@ -102,18 +103,19 @@ describe('ToolResultMessage agent call rendering', () => {
       tool_args: { query: 'auth' },
     });
 
-    expect(screen.getByText(/Search both/)).toBeInTheDocument();
-    expect(screen.getByText(/"auth"/)).toBeInTheDocument();
+    expect(screen.getByText('grep')).toBeInTheDocument();
+    expect(screen.getAllByText(/"auth"/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/3 files/)).toBeInTheDocument();
     expect(screen.getByText(/2 places/)).toBeInTheDocument();
-    expect(screen.queryByText('src/auth.ts')).not.toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
 
-    fireEvent.click(screen.getByText(/Search both/).closest('div')!);
-    expect(screen.getByText(/src\/auth\.ts/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByText(/src\/auth\.ts/).length).toBeGreaterThanOrEqual(1);
   });
 
   test('renders search_both no matches without error marker', () => {
-    renderToolResult({
+    const { container } = renderToolResult({
       id: 'tool-search-both-2',
       role: 'tool',
       text: '未找到匹配 "missing" 的文件或内容',
@@ -122,8 +124,10 @@ describe('ToolResultMessage agent call rendering', () => {
       tool_args: { query: 'missing' },
     });
 
-    expect(screen.getByText(/no matches/)).toBeInTheDocument();
+    expect(screen.getByText('grep')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.queryByText('✘')).not.toBeInTheDocument();
+    expect(container.querySelector('[class*="isError"]')).toBeNull();
   });
 
   test('renders list_bg_tasks summary and expands task commands', () => {
@@ -141,13 +145,16 @@ describe('ToolResultMessage agent call rendering', () => {
       tool_name: 'list_bg_tasks',
     });
 
-    expect(screen.getByText(/2 total/)).toBeInTheDocument();
-    expect(screen.getByText(/1 running/)).toBeInTheDocument();
-    expect(screen.getByText(/1 completed/)).toBeInTheDocument();
-    expect(screen.queryByText('npm run dev')).not.toBeInTheDocument();
+    expect(screen.getByText('bg')).toBeInTheDocument();
+    expect(screen.getByText('tasks')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('1 run')).toBeInTheDocument();
+    expect(screen.getByText('1 done')).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
 
-    fireEvent.click(screen.getByText(/Background tasks/).closest('div')!);
-    expect(screen.getByText('npm run dev')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/npm run dev/)).toBeInTheDocument();
   });
 
   test('renders empty list_bg_tasks as none', () => {
@@ -162,7 +169,7 @@ describe('ToolResultMessage agent call rendering', () => {
     expect(screen.getByText(/none/)).toBeInTheDocument();
   });
 
-  test('renders kill_bg_task success with KILL badge', () => {
+  test('renders kill_bg_task success with kill verb', () => {
     renderToolResult({
       id: 'tool-kill-bg-1',
       role: 'tool',
@@ -172,14 +179,14 @@ describe('ToolResultMessage agent call rendering', () => {
       tool_args: { terminal_id: 'abc123longtaskid' },
     });
 
-    expect(screen.getByText('KILL')).toBeInTheDocument();
+    expect(screen.getByText('kill')).toBeInTheDocument();
     expect(screen.getByText(/abc123longtaski/)).toBeInTheDocument();
     expect(screen.getByText(/terminated/)).toBeInTheDocument();
     expect(screen.queryByText('✘')).not.toBeInTheDocument();
   });
 
   test('renders kill_bg_task failure marker', () => {
-    renderToolResult({
+    const { container } = renderToolResult({
       id: 'tool-kill-bg-2',
       role: 'tool',
       text: '错误: No terminal_id (tid) specified.',
@@ -189,12 +196,13 @@ describe('ToolResultMessage agent call rendering', () => {
       isError: true,
     });
 
-    expect(screen.getByText('KILL')).toBeInTheDocument();
-    expect(screen.getByText('✘')).toBeInTheDocument();
+    expect(screen.getByText('kill')).toBeInTheDocument();
+    expect(container.querySelector('[class*="isError"]')).not.toBeNull();
+    expect(screen.queryByText('✘')).not.toBeInTheDocument();
   });
 
   test('renders sym success without false error when definition code contains "failed"', () => {
-    renderToolResult({
+    const { container } = renderToolResult({
       id: 'tool-sym-1',
       role: 'tool',
       text: [
@@ -221,11 +229,13 @@ describe('ToolResultMessage agent call rendering', () => {
     });
 
     expect(screen.getByText(/useImageLoader/)).toBeInTheDocument();
+    expect(screen.getByText('sym')).toBeInTheDocument();
     expect(screen.queryByText('❌')).not.toBeInTheDocument();
+    expect(container.querySelector('[class*="isError"]')).toBeNull();
   });
 
   test('renders sym failure marker when isError is true', () => {
-    renderToolResult({
+    const { container } = renderToolResult({
       id: 'tool-sym-2',
       role: 'tool',
       text: '查找符号定义失败: Symbol not found',
@@ -236,7 +246,9 @@ describe('ToolResultMessage agent call rendering', () => {
     });
 
     expect(screen.getByText(/MissingSymbol/)).toBeInTheDocument();
-    expect(screen.getByText('❌')).toBeInTheDocument();
+    expect(screen.getByText('sym')).toBeInTheDocument();
+    expect(container.querySelector('[class*="isError"]')).not.toBeNull();
+    expect(screen.queryByText('❌')).not.toBeInTheDocument();
   });
 
   test('renders TodoWrite as in-progress summary and expandable hidden sections', () => {
@@ -258,8 +270,11 @@ describe('ToolResultMessage agent call rendering', () => {
 
     expect(screen.getByText('active task c')).toBeInTheDocument();
     expect(screen.getByTestId('todo-in-progress-indicator')).toBeInTheDocument();
-    expect(screen.queryByText('pending task a')).not.toBeInTheDocument();
-    expect(screen.queryByText('done task d')).not.toBeInTheDocument();
+    // hidden sections stay mounted for expand animation
+    expect(screen.getByText('pending task a')).toBeInTheDocument();
+    expect(screen.getByText('done task d')).toBeInTheDocument();
+    expect(screen.getByTestId('todo-expand-toggle').closest('[aria-hidden]')
+      || screen.getByTestId('todo-expand-toggle').parentElement?.querySelector('[aria-hidden]')).toBeTruthy();
 
     fireEvent.click(screen.getByTestId('todo-expand-toggle'));
     expect(screen.getByText('pending task a')).toBeInTheDocument();
@@ -283,6 +298,7 @@ describe('ToolResultMessage agent call rendering', () => {
       </I18nProvider>
     );
 
-    expect(screen.getByText(/Search both/)).toBeInTheDocument();
+    expect(screen.getByText('grep')).toBeInTheDocument();
+    expect(screen.getByText(/"x"/)).toBeInTheDocument();
   });
 });
