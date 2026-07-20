@@ -45,7 +45,7 @@ const ThinkingBlock = memo(function ThinkingBlock({
   }
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-testid="thinking-block">
       <div
         className={`${styles.header} ${isExpanded ? styles.headerExpanded : ''}`}
         onClick={onToggle}
@@ -68,6 +68,7 @@ const ThinkingBlock = memo(function ThinkingBlock({
         <div
           ref={contentRef}
           className={`${styles.contentInner} ${isExpanded ? styles.contentInnerExpanded : ''}`}
+          data-testid="thinking-content"
         >
           {thinking}
         </div>

@@ -287,18 +287,19 @@ function MessageBubble({
                       maxWidth: '100%',
                     }
                   : {
+                      // Cursor-like assistant: content only, no bubble chrome
                       width: '100%',
                       maxWidth: '100%',
                       boxSizing: 'border-box',
-                      padding: '6px 10px',
-                      background: 'var(--bg-sidebar)',
-                      borderRadius: '4px 14px 14px 14px',
+                      padding: 0,
+                      background: 'transparent',
+                      borderRadius: 0,
                       color: 'var(--text-primary)',
                       fontSize: '13px',
-                      lineHeight: '1.55',
+                      lineHeight: '1.65',
                       wordWrap: 'break-word',
-                      border: '1px solid var(--border-primary)',
-                      boxShadow: 'var(--shadow-sm)',
+                      border: 'none',
+                      boxShadow: 'none',
                     }
               }
             >

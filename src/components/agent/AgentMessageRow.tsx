@@ -378,11 +378,8 @@ export default function AgentMessageRow({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '8px 12px',
-            borderRadius: '4px 14px 14px 14px',
-            backgroundColor: '#1e1e1e',
-            border: '1px solid rgba(60, 60, 60, 0.4)',
-            color: 'rgba(216, 216, 216, 0.75)',
+            padding: '2px 0',
+            color: 'var(--text-secondary)',
             fontSize: '12px',
           }}
         >
@@ -414,14 +411,14 @@ export default function AgentMessageRow({
       {hasVisibleAssistantText && (
         <div
           style={{
-            padding: '10px 14px',
-            borderRadius: '4px 14px 14px 14px',
-            backgroundColor: '#1e1e1e',
-            border: '1px solid rgba(60, 60, 60, 0.4)',
-            color: '#d8d8d8',
+            padding: 0,
+            borderRadius: 0,
+            backgroundColor: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            color: 'var(--text-primary)',
             lineHeight: '1.65',
             fontSize: '13px',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
           }}
         >
           {isActivelyStreaming ? (

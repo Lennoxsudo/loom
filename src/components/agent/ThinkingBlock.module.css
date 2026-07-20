@@ -1,41 +1,49 @@
+/* Cursor-like thinking: label row only, no card chrome */
+
 .root {
-  border-radius: 6px;
-  overflow: hidden;
-  background-color: var(--surface-overlay-soft);
-  border: 1px solid var(--surface-overlay-border);
   margin-bottom: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
 }
 
 .header {
-  padding: 6px 12px;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.3s ease;
+  border: none;
+  border-bottom: none;
   cursor: pointer;
   user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: transparent;
+  transition: color 0.15s ease;
+}
+
+.header:hover {
+  color: var(--text-primary);
 }
 
 .headerExpanded {
-  border-bottom-color: var(--surface-overlay-border);
+  /* no separator line — frameless */
 }
 
 .arrow {
   display: inline-flex;
   align-items: center;
-  opacity: 0;
+  opacity: 0.45;
   transition:
-    transform 0.2s ease,
+    transform 0.18s ease,
     opacity 0.15s ease;
 }
 
 .header:hover .arrow,
 .header:focus-visible .arrow {
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 .arrowExpanded {
@@ -45,7 +53,7 @@
 .content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s ease;
+  transition: grid-template-rows 0.25s ease;
 }
 
 .contentExpanded {
@@ -54,19 +62,28 @@
 
 .contentInner {
   overflow: hidden;
-  max-height: 300px;
+  max-height: 280px;
   opacity: 0;
-  padding: 0 12px;
+  padding: 0;
+  margin: 0;
   font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-primary);
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
   white-space: pre-wrap;
   word-wrap: break-word;
-  transition: opacity 0.2s ease, padding 0.3s ease;
+  border: none;
+  background: transparent;
+  transition:
+    opacity 0.18s ease,
+    padding 0.25s ease;
 }
 
 .contentInnerExpanded {
   overflow: auto;
   opacity: 1;
-  padding: 10px 12px;
+  padding: 4px 0 2px;
+  /* subtle left rail instead of a full box */
+  border-left: 1px solid color-mix(in srgb, var(--text-secondary) 22%, transparent);
+  padding-left: 10px;
+  margin-left: 2px;
 }

@@ -106,7 +106,7 @@ describe('ChatMessageBubble', () => {
     expect(screen.getByText(/让我先分析项目结构和依赖关系/)).toBeInTheDocument();
     expect(screen.getByText(/这是项目总结正文，包含最后一段结论/)).toBeInTheDocument();
 
-    const thinkingBlock = container.querySelector('[style*="grid-template-rows"]');
+    const thinkingBlock = container.querySelector('[data-testid="thinking-block"]');
     expect(thinkingBlock?.textContent).toContain('让我先分析项目结构和依赖关系');
     expect(thinkingBlock?.textContent).not.toContain('这是项目总结正文');
   });
@@ -126,7 +126,7 @@ describe('ChatMessageBubble', () => {
     expect(screen.getByText(/正在检索 README 与 package\.json/)).toBeInTheDocument();
     expect(screen.getByText(/总结：这是一个基于 Tauri 的桌面编辑器项目/)).toBeInTheDocument();
 
-    const thinkingBlock = container.querySelector('[style*="grid-template-rows"]');
+    const thinkingBlock = container.querySelector('[data-testid="thinking-block"]');
     expect(thinkingBlock?.textContent).toContain('正在检索 README');
     expect(thinkingBlock?.textContent).not.toContain('总结：这是一个基于 Tauri');
   });
