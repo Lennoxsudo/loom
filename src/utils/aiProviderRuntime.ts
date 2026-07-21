@@ -61,9 +61,21 @@ export function findProfileIdForModel(
   provider: AIProvider,
   model: string
 ): string | undefined {
+  const trimmed = model.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // Prefer the provider's active profile when it lists this model, so chat uses the
+  // same endpoint as settings/tests instead of the first duplicate in the list.
+  const active = getActiveProfileRuntime(config, provider);
+  if (active?.profileId && active.models.includes(trimmed)) {
+    return active.profileId;
+  }
+
   const items = config.profiles?.[provider]?.items ?? [];
   for (const item of items) {
-    if (item.models?.some((entry) => entry === model)) {
+    if (item.models?.some((entry) => entry.trim() === trimmed)) {
       return item.id;
     }
   }

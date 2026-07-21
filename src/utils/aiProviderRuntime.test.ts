@@ -54,6 +54,35 @@ describe('findProfileIdForModel', () => {
   it('finds the profile that owns a model', () => {
     expect(findProfileIdForModel(sampleConfig, 'openai', 'glm-4.7-flash')).toBe('profile-b');
   });
+
+  it('prefers active profile when the same model exists on multiple profiles', () => {
+    const duplicateModelConfig: LoadedAiConfig = {
+      profiles: {
+        openai: {
+          activeId: 'profile-gateway',
+          items: [
+            {
+              id: 'profile-direct',
+              name: '直连',
+              models: ['shared-model', 'only-direct'],
+            },
+            {
+              id: 'profile-gateway',
+              name: 'Gateway',
+              models: ['shared-model', 'gateway-only'],
+            },
+          ],
+        },
+      },
+    };
+
+    expect(findProfileIdForModel(duplicateModelConfig, 'openai', 'shared-model')).toBe(
+      'profile-gateway'
+    );
+    expect(findProfileIdForModel(duplicateModelConfig, 'openai', 'only-direct')).toBe(
+      'profile-direct'
+    );
+  });
 });
 
 describe('pickModelFromAvailable', () => {
@@ -236,6 +265,34 @@ describe('reconcileProviderRequest', () => {
       provider: 'openai',
       model: 'glm-4.7-flash',
       profileId: 'profile-b',
+    });
+  });
+
+  it('prefers active profile for duplicate models when profileId is omitted', () => {
+    const duplicateModelConfig: LoadedAiConfig = {
+      profiles: {
+        openai: {
+          activeId: 'profile-gateway',
+          items: [
+            {
+              id: 'profile-direct',
+              models: ['sensenova-6.7-flash-lite'],
+            },
+            {
+              id: 'profile-gateway',
+              models: ['sensenova-6.7-flash-lite'],
+            },
+          ],
+        },
+      },
+    };
+
+    expect(
+      reconcileProviderRequest(duplicateModelConfig, 'openai', 'sensenova-6.7-flash-lite')
+    ).toEqual({
+      provider: 'openai',
+      model: 'sensenova-6.7-flash-lite',
+      profileId: 'profile-gateway',
     });
   });
 
