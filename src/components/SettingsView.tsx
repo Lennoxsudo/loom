@@ -14,6 +14,7 @@ import { CodeGraphContent } from './settings/CodeGraphContent';
 import { ClaudeContent } from './settings/ClaudeContent';
 import { AutoRoutingContent } from './settings/AutoRoutingContent';
 import { PortsContent } from './settings/PortsContent';
+import { UpdateContent } from './settings/UpdateContent';
 import { UsageContent } from './settings/UsageContent';
 import styles from './SettingsView.module.css';
 
@@ -115,6 +116,11 @@ export default function SettingsView() {
           onClick={() => setActiveTab('ports')}
         />
         <TabItem
+          label={t.settingsTabs.update}
+          isActive={activeTab === 'update'}
+          onClick={() => setActiveTab('update')}
+        />
+        <TabItem
           label={t.settingsTabs.usage}
           isActive={activeTab === 'usage'}
           onClick={() => setActiveTab('usage')}
@@ -135,6 +141,7 @@ export default function SettingsView() {
         {activeTab === 'claude' && <ClaudeContent />}
         {activeTab === 'auto-routing' && <AutoRoutingContent />}
         {activeTab === 'ports' && <PortsContent />}
+        {activeTab === 'update' && <UpdateContent />}
         {activeTab === 'usage' && <UsageContent />}
       </div>
     </div>

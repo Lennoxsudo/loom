@@ -923,6 +923,7 @@ export const enUS: I18nMessages = {
     claude: 'Claude',
     autoRouting: 'Auto Routing',
     ports: 'Port Manager',
+    update: 'Updates',
     usage: 'Usage',
   },
   settingsUsage: {
@@ -951,6 +952,9 @@ export const enUS: I18nMessages = {
     overCapWarning: 'Cumulative cost has exceeded the configured spend cap ({cap} USD).',
     enableTracking: 'Enable usage recording',
     enableTrackingHint: 'When off, new tokens and cost are no longer accumulated (existing data is kept).',
+    prevPage: 'Previous',
+    nextPage: 'Next',
+    pageInfo: 'Page {page} / {totalPages} · {total} total',
   },
   settingsPorts: {
     title: 'Port Manager',

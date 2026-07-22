@@ -916,6 +916,7 @@ export const zhCN: I18nMessages = {
     claude: 'Claude',
     autoRouting: '自动路由',
     ports: '端口管理',
+    update: '版本更新',
     usage: '用量',
   },
   settingsUsage: {
@@ -942,6 +943,9 @@ export const zhCN: I18nMessages = {
     overCapWarning: '累计成本已超过设定的花费上限（{cap} USD）。',
     enableTracking: '启用用量记录',
     enableTrackingHint: '关闭后将不再累计新的 token 与成本（已有数据保留）。',
+    prevPage: '上一页',
+    nextPage: '下一页',
+    pageInfo: '第 {page} / {totalPages} 页 · 共 {total} 条',
   },
   settingsPorts: {
     title: '端口管理',

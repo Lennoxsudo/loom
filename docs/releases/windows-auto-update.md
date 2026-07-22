@@ -5,7 +5,7 @@ Loom 使用 Tauri 2 Updater，从 **正式版** GitHub Release 的 `latest.json`
 ## 行为
 
 - 启动且设置加载完成后，若开启「启动时检查更新」，在后台静默检查（不自动下载）。
-- 设置 → 常规 → **应用更新** 可手动检查；发现新版本后需用户点击 **下载并安装**。
+- 设置 → **版本更新** 可手动检查；发现新版本后需用户点击 **下载并安装**。
 - 仅 Windows；仅 `/releases/latest`（非 prerelease / 非 draft）。
 - 更新包为 **NSIS**（`*-setup.exe`）+ 对应 `.sig`；MSI 仅作手动安装资产。
 

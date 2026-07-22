@@ -186,6 +186,65 @@
   text-align: center;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 14px 10px;
+  padding: 0 2px;
+}
+
+.paginationInfo {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.paginationControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.pageButton:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-secondary) 22%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
+}
+
+.pageButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @keyframes usageStatIn {
   from {
     opacity: 0;
@@ -214,7 +273,8 @@
   }
 
   .list,
-  .emptyState {
+  .emptyState,
+  .pagination {
     margin-inline: 10px;
   }
 }
@@ -224,7 +284,8 @@
     animation: none;
   }
 
-  .resetButton:active {
+  .resetButton:active,
+  .pageButton:active:not(:disabled) {
     transform: none;
   }
 }

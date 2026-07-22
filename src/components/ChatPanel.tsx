@@ -41,6 +41,7 @@ import { CHAT_PROTOCOL_STORAGE_KEY, type ChatRuntimeSnapshot } from './chat/chat
 import { useChatConfig } from './chat/useChatConfig';
 import { useChatAttachments } from './chat/useChatAttachments';
 import { useStreamChunkQueue } from './chat/useStreamChunkQueue';
+import { StreamCompletionCoordinator } from './chat/streamCompletionCoordinator';
 import { useChatStickToBottom } from './chat/useChatStickToBottom';
 import { useStopHandler, finalizeStoppedMessage } from './chat/useStopHandler';
 import { useToolCalls } from './chat/useToolCalls';
@@ -294,8 +295,6 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     streamChunkQueueRef,
     streamChunkTimerRef,
     flushAllQueuedChunks,
-    drainQueuedChunksFast,
-    hasQueuedChunksForMessage,
     flushQueuedChunksForMessage,
     enqueueStreamChunk,
     stopStreamChunkTimer,
@@ -305,6 +304,10 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     isMountedRef,
     streamSpeedRef,
   });
+  const streamCompletionCoordinatorRef = useRef<StreamCompletionCoordinator | null>(null);
+  if (!streamCompletionCoordinatorRef.current) {
+    streamCompletionCoordinatorRef.current = new StreamCompletionCoordinator(flushQueuedChunksForMessage);
+  }
 
   const [pendingQuestionsByConversation, setPendingQuestionsByConversation] = useState<
     Record<string, QuestionInput[]>
@@ -423,6 +426,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     canceledMessageIdsRef,
     ownedStreamMessageIdsRef,
     flushQueuedChunksForMessage,
+    cancelStreamCompletion: (messageId) => streamCompletionCoordinatorRef.current?.cancel(messageId),
     setMessages,
     setError,
     autoSaveTimeoutRef,
@@ -872,6 +876,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         streamChunkTimerRef.current = null;
       }
       streamChunkQueueRef.current = [];
+      streamCompletionCoordinatorRef.current?.dispose();
 
       const activeMessageId = currentAssistantMessageIdRef.current;
       if (activeMessageId) {
@@ -940,6 +945,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         if (!ownedStreamMessageIdsRef.current.has(message_id)) return;
         if (canceledMessageIdsRef.current.has(message_id)) return;
 
+        streamCompletionCoordinatorRef.current?.noteChunk(message_id);
         enqueueStreamChunk({
           message_id,
           chunk,
@@ -1150,12 +1156,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           ownedStreamMessageIdsRef.current.delete(message_id);
         };
 
-        if (streamSpeedRef.current !== 'fast' && hasQueuedChunksForMessage(message_id)) {
-          drainQueuedChunksFast(finalizeCompletion);
-          return;
-        }
-
-        finalizeCompletion();
+        streamCompletionCoordinatorRef.current?.complete(message_id, finalizeCompletion);
       }
     );
 
@@ -1203,6 +1204,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           return;
         }
 
+        streamCompletionCoordinatorRef.current?.cancel(message_id);
         ownedStreamMessageIdsRef.current.delete(message_id);
 
         if (canceledMessageIdsRef.current.has(message_id)) {
@@ -1307,6 +1309,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       }
 
       canceledMessageIdsRef.current.add(message_id);
+      streamCompletionCoordinatorRef.current?.cancel(message_id);
       flushQueuedChunksForMessage(message_id);
       ownedStreamMessageIdsRef.current.delete(message_id);
 
@@ -1324,7 +1327,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       unlistenProviderSwitched.then((fn) => fn());
       unlistenCancelled.then((fn) => fn());
     };
-  }, [enqueueStreamChunk, flushQueuedChunksForMessage, hasQueuedChunksForMessage]);
+  }, [enqueueStreamChunk, flushQueuedChunksForMessage]);
 
   useEffect(() => {
     const handler = () => {

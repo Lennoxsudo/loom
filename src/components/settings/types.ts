@@ -1,4 +1,19 @@
-export type SettingsTab = 'general' | 'agent' | 'skills' | 'plugins' | 'rules' | 'ai-management' | 'ai-config' | 'mcp-config' | 'preferences' | 'code-graph' | 'claude' | 'auto-routing' | 'ports' | 'usage';
+export type SettingsTab =
+  | 'general'
+  | 'agent'
+  | 'skills'
+  | 'plugins'
+  | 'rules'
+  | 'ai-management'
+  | 'ai-config'
+  | 'mcp-config'
+  | 'preferences'
+  | 'code-graph'
+  | 'claude'
+  | 'auto-routing'
+  | 'ports'
+  | 'update'
+  | 'usage';
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';
 
 export type AIConfigTab = AIProvider | 'image-generation';

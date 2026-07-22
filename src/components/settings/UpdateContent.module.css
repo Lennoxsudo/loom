@@ -1,0 +1,381 @@
+/* Version update — status-stage layout (not generic settings rows) */
+
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.2fr);
+  gap: 0;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background:
+    radial-gradient(
+      120% 90% at 0% 0%,
+      color-mix(in srgb, var(--text-primary) 4.5%, transparent),
+      transparent 55%
+    ),
+    color-mix(in srgb, var(--surface-overlay-soft) 34%, var(--bg-sidebar));
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.stageToneUpToDate::before,
+.stageToneIdle::before {
+  background: color-mix(in srgb, #3d9970 72%, var(--text-secondary));
+  opacity: 0.85;
+}
+
+.stageToneAvailable::before {
+  background: color-mix(in srgb, #c9a227 78%, var(--text-secondary));
+  opacity: 0.9;
+}
+
+.stageToneBusy::before {
+  background: color-mix(in srgb, var(--text-accent, #6b9fff) 70%, var(--text-secondary));
+  opacity: 0.9;
+}
+
+.stageToneError::before {
+  background: color-mix(in srgb, var(--text-error) 80%, var(--text-secondary));
+  opacity: 0.95;
+}
+
+.stageToneDesktopOnly::before {
+  background: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+.versionPane {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 168px;
+  padding: 22px 20px 20px 22px;
+  border-right: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+}
+
+.versionEyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+}
+
+.versionNumber {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  color: var(--text-primary);
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  text-wrap: balance;
+}
+
+.versionMeta {
+  margin: 0;
+  max-width: 28ch;
+  font-size: 12px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+}
+
+.statusPane {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 168px;
+  padding: 20px 20px 18px;
+}
+
+.statusTop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 5px 10px 5px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-secondary) 10%, transparent);
+}
+
+.stageToneUpToDate .statusDot,
+.stageToneIdle .statusDot {
+  background: color-mix(in srgb, #3d9970 88%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #3d9970 14%, transparent);
+}
+
+.stageToneAvailable .statusDot {
+  background: color-mix(in srgb, #c9a227 90%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #c9a227 16%, transparent);
+}
+
+.stageToneBusy .statusDot {
+  background: color-mix(in srgb, var(--text-accent, #6b9fff) 88%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-accent, #6b9fff) 16%, transparent);
+  animation: updatePulse 1.2s ease-in-out infinite;
+}
+
+.stageToneError .statusDot {
+  background: color-mix(in srgb, var(--text-error) 90%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-error) 14%, transparent);
+}
+
+.statusDetail {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 12px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+}
+
+.statusDetailError {
+  color: color-mix(in srgb, var(--text-error) 78%, var(--text-primary));
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  color: var(--bg-primary, #1e1e1e);
+  background: var(--text-primary);
+  cursor: pointer;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.primaryButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.primaryButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-secondary) 22%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-secondary) 6%, transparent);
+}
+
+.secondaryButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.progressTrack {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--text-accent, #6b9fff) 72%, var(--text-primary));
+  transition: width 0.2s ease;
+}
+
+.progressLabel {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+}
+
+.notes {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 28%, transparent);
+}
+
+.notesLabel {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+}
+
+.notesBody {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.prefRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 22%, transparent);
+}
+
+.prefCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prefLabel {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+.prefHint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+}
+
+@keyframes updatePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.88);
+  }
+}
+
+@media (max-width: 720px) {
+  .stage {
+    grid-template-columns: 1fr;
+  }
+
+  .versionPane {
+    min-height: 0;
+    border-right: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+    padding-bottom: 16px;
+  }
+
+  .versionNumber {
+    font-size: 34px;
+  }
+
+  .statusPane {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stageToneBusy .statusDot {
+    animation: none;
+  }
+
+  .primaryButton:active:not(:disabled),
+  .secondaryButton:active:not(:disabled) {
+    transform: none;
+  }
+
+  .progressFill {
+    transition: none;
+  }
+}

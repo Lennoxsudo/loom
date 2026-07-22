@@ -14,6 +14,7 @@ export interface UseStopHandlerOptions {
   canceledMessageIdsRef: React.MutableRefObject<Set<string>>;
   ownedStreamMessageIdsRef: React.MutableRefObject<Set<string>>;
   flushQueuedChunksForMessage: (messageId: string) => void;
+  cancelStreamCompletion: (messageId: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   autoSaveTimeoutRef: React.MutableRefObject<number | null>;
@@ -60,6 +61,7 @@ export function useStopHandler({
   canceledMessageIdsRef,
   ownedStreamMessageIdsRef,
   flushQueuedChunksForMessage,
+  cancelStreamCompletion,
   setMessages,
   setError,
   autoSaveTimeoutRef,
@@ -90,6 +92,7 @@ export function useStopHandler({
     const messageId = currentAssistantMessageId;
     logDebug('停止操作: 开始停止消息 ' + messageId, 'ChatPanel');
 
+    cancelStreamCompletion(messageId);
     flushQueuedChunksForMessage(messageId);
 
     canceledMessageIdsRef.current.add(messageId);

@@ -911,6 +911,7 @@ export interface I18nMessages {
     claude: string;
     autoRouting: string;
     ports: string;
+    update: string;
     usage: string;
   };
   settingsPorts: {
@@ -991,6 +992,9 @@ export interface I18nMessages {
     overCapWarning: string;
     enableTracking: string;
     enableTrackingHint: string;
+    prevPage: string;
+    nextPage: string;
+    pageInfo: string;
   };
   settingsAutoRouting: {
     title: string;
