@@ -20,7 +20,7 @@
 
 <!-- TODO: 在此处放一张应用截图或演示 GIF，例如 ![Loom](docs/assets/screenshot.png) -->
 
-> **状态：** 开源版本 · `v0.1.3` · 持续活跃开发中，变化较快。
+> **状态：** 开源版本 · `v0.1.5` · 持续活跃开发中，变化较快。
 
 Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 辅助的 IDE：Agent 可以读写你的代码、调用工具、编排子代理，并通过内置的代码知识图谱理解你的项目。
 
@@ -33,6 +33,7 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 - [本地数据](#本地数据)
 - [子代理编排](#子代理编排)
 - [文档](#文档)
+- [自动更新（Windows）](#自动更新windows)
 - [路线图](#路线图)
 - [贡献](#贡献)
 - [安全](#安全)
@@ -98,6 +99,7 @@ Loom 提供 **22 个统一 Agent 工具**，按类别划分如下：
 
 - 国际化（简体中文 / English）
 - Agent 独立窗口、内嵌终端（xterm + PTY）、内嵌浏览器
+- **Windows 应用内自动更新**（签名 GitHub Release + Tauri Updater）；设置 → **版本更新**
 
 ## 技术栈
 
@@ -182,16 +184,28 @@ API Key 与凭据仅保存在本地。旧版本遗留的 `cdp-browser-profile-<p
 | 文档 | 说明 |
 |------|------|
 | [AGENTS.md](./AGENTS.md) | 贡献者与 AI 代理的开发上下文、目录结构、开发约定 |
+| [docs/releases/windows-auto-update.md](./docs/releases/windows-auto-update.md) | Windows 签名自动更新（Tauri Updater + GitHub Releases） |
 | [SECURITY.md](./SECURITY.md) | 安全策略与漏洞上报 |
 | [NOTICE](./NOTICE) | 第三方组件声明 |
 
+## 自动更新（Windows）
+
+自 **v0.1.4** 起，正式版（非 prerelease）GitHub Release 可在 Windows 上应用内更新：
+
+- **更新通道：** `https://github.com/Lennoxsudo/loom/releases/latest/download/latest.json`
+- **界面：** 设置 → **版本更新** — 检查、下载并安装；可选启动时静默检查（不会自动下载）
+- **更新包：** 已签名 NSIS `*-setup.exe` + `.sig`（MSI 仅作手动安装）
+- **旧版本：** v0.1.3 及更早需先手动安装一次带 Updater 的版本
+
+维护者发版与签名流程见：[docs/releases/windows-auto-update.md](./docs/releases/windows-auto-update.md)。
+
 ## 路线图
 
-当前发布：**v0.1.3**。规划中 / 考虑中：
+当前发布：**v0.1.5**。规划中 / 考虑中：
 
 - 数据库连接器（MySQL / PostgreSQL / Redis）
 - 插件市场扩展
-- 持续集成（CI）
+- 跨平台自动更新（macOS / Linux）
 - 上下文缓存与性能的进一步优化
 
 ## 贡献
@@ -215,8 +229,4 @@ Loom 可在宿主机上执行命令、读写文件并发起网络请求。请只
 - [Tauri](https://tauri.app/)、[React](https://react.dev/)、[Monaco Editor](https://microsoft.github.io/monaco-editor/)、[Zustand](https://github.com/pmndrs/zustand)、[xterm.js](https://xtermjs.org/)
 - [codebase-memory](https://github.com/DeusData/codebase-memory-mcp)（MIT）— 驱动内置代码知识图谱
 - Anthropic Claude Code — 子代理模型的灵感来源
-
-## 自动更新（Windows）
-
-正式版 GitHub Release 支持应用内更新。详见 [docs/releases/windows-auto-update.md](docs/releases/windows-auto-update.md)。
 

@@ -20,7 +20,7 @@ Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-i
 
 <!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-> **Status:** Open-source · `v0.1.3` · Under active development — expect rapid changes.
+> **Status:** Open-source · `v0.1.5` · Under active development — expect rapid changes.
 
 Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
@@ -33,6 +33,7 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 - [Local Data](#local-data)
 - [Sub-agent Orchestration](#sub-agent-orchestration)
 - [Documentation](#documentation)
+- [Auto-update (Windows)](#auto-update-windows)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Security](#security)
@@ -98,6 +99,7 @@ Loom exposes **22 unified agent tools**, grouped as follows:
 
 - Internationalization (简体中文 / English)
 - Standalone agent window, embedded terminal (xterm + PTY), embedded browser
+- **Windows auto-update** via signed GitHub Releases (`latest.json` + Tauri Updater); Settings → **Update**
 
 ## Tech Stack
 
@@ -182,16 +184,28 @@ The main agent delegates to sub-agents through Claude Code-style tools; all prov
 | Document | Description |
 |----------|-------------|
 | [AGENTS.md](./AGENTS.md) | Contributor & AI-agent development context, directory layout, conventions |
+| [docs/releases/windows-auto-update.md](./docs/releases/windows-auto-update.md) | Windows signed auto-update (Tauri Updater + GitHub Releases) |
 | [SECURITY.md](./SECURITY.md) | Security policy and vulnerability reporting |
 | [NOTICE](./NOTICE) | Third-party component attributions |
 
+## Auto-update (Windows)
+
+From **v0.1.4** onward, stable (non-prerelease) GitHub Releases can update Loom in-app on Windows:
+
+- **Endpoint:** `https://github.com/Lennoxsudo/loom/releases/latest/download/latest.json`
+- **UI:** Settings → **Update** — check, download & install; optional check on startup (no silent download)
+- **Payload:** signed NSIS `*-setup.exe` + `.sig` (MSI is for manual install only)
+- **Older builds:** v0.1.3 and earlier must install a updater-enabled build once manually
+
+Release / signing procedure for maintainers: [docs/releases/windows-auto-update.md](./docs/releases/windows-auto-update.md).
+
 ## Roadmap
 
-Active release: **v0.1.3**. Planned / under consideration:
+Active release: **v0.1.5**. Planned / under consideration:
 
 - Database connectors (MySQL / PostgreSQL / Redis)
 - Plugin marketplace expansion
-- Continuous integration
+- Cross-platform auto-update (macOS / Linux)
 - Further context-caching and performance improvements
 
 ## Contributing
@@ -215,8 +229,4 @@ Licensed under the [Apache License 2.0](./LICENSE). Third-party notices are list
 - [Tauri](https://tauri.app/), [React](https://react.dev/), [Monaco Editor](https://microsoft.github.io/monaco-editor/), [Zustand](https://github.com/pmndrs/zustand), [xterm.js](https://xtermjs.org/)
 - [codebase-memory](https://github.com/DeusData/codebase-memory-mcp) (MIT) — powers the built-in code knowledge graph
 - Anthropic's Claude Code — inspiration for the sub-agent model
-
-## Auto-update (Windows)
-
-Stable GitHub Releases can update Loom in-app. See [docs/releases/windows-auto-update.md](docs/releases/windows-auto-update.md).
 
