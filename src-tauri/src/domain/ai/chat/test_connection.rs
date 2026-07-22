@@ -17,8 +17,10 @@ pub async fn test_ai_connection(provider: String, config: AIConfig) -> Result<Te
         });
     }
 
+    // 测试连接不设整体 timeout：Gateway 轮询/慢上游可能超过 10s 才返回 200，
+    // 应在收到 HTTP 错误（或非 2xx）时才判定失败，与流式聊天一致只限制建连超时。
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
+        .connect_timeout(std::time::Duration::from_secs(30))
         .build()
         .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
 
@@ -195,7 +197,7 @@ pub async fn test_ollama_connection(
             let error_msg = if e.is_connect() {
                 "无法连接到 Ollama 服务，请确保 Ollama 已启动".to_string()
             } else if e.is_timeout() {
-                "连接超时，请检查 Ollama 服务状态".to_string()
+                "连接建立超时，请检查 Ollama 服务状态".to_string()
             } else {
                 format!("连接失败: {}", e)
             };
