@@ -1,6 +1,6 @@
 [package]
 name = "loom"
-version = "0.1.4"
+version = "0.1.5"
 description = "AI-native desktop code editor and local development workbench built with Tauri 2, React and Rust."
 authors = ["Lennoxsudo"]
 license = "Apache-2.0"
