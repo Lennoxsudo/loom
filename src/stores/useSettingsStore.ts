@@ -64,6 +64,7 @@ interface SettingsActions {
   updateEnableSubagents: (enabled: boolean) => Promise<void>;
   updateEnableCodeGraph: (enabled: boolean) => Promise<void>;
   updateEnableCdpBrowser: (enabled: boolean) => Promise<void>;
+  updateCheckForUpdatesOnStartup: (enabled: boolean) => Promise<void>;
   updateGraphAutoIndexOnOpen: (enabled: boolean) => Promise<void>;
   updateGraphAutoIndexMaxFiles: (maxFiles: number) => Promise<void>;
   updateReasoningEffort: (effort: ReasoningEffort) => Promise<void>;
@@ -106,6 +107,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   recentWorkspaces: [] as RecentWorkspace[],
   enableCodeGraph: true,
   enableCdpBrowser: false,
+  checkForUpdatesOnStartup: true,
   graphAutoIndexOnOpen: true,
   graphAutoIndexMaxFiles: 50_000,
   enableSpendCap: false,
@@ -148,6 +150,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     recentWorkspaces: state.recentWorkspaces,
     enableCodeGraph: state.enableCodeGraph,
     enableCdpBrowser: state.enableCdpBrowser,
+    checkForUpdatesOnStartup: state.checkForUpdatesOnStartup,
     graphAutoIndexOnOpen: state.graphAutoIndexOnOpen,
     graphAutoIndexMaxFiles: state.graphAutoIndexMaxFiles,
     enableSpendCap: state.enableSpendCap,
@@ -247,6 +250,10 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (typeof settings.enableCdpBrowser === 'boolean') {
     result.enableCdpBrowser = settings.enableCdpBrowser;
+  }
+
+  if (typeof settings.checkForUpdatesOnStartup === 'boolean') {
+    result.checkForUpdatesOnStartup = settings.checkForUpdatesOnStartup;
   }
 
   if (typeof settings.graphAutoIndexOnOpen === 'boolean') {
@@ -558,6 +565,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         }
       },
 
+      updateCheckForUpdatesOnStartup: async (checkForUpdatesOnStartup) => {
+        set({ checkForUpdatesOnStartup });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
       updateGraphAutoIndexOnOpen: async (graphAutoIndexOnOpen) => {
         set({ graphAutoIndexOnOpen });
         const state = get();
@@ -736,10 +749,14 @@ export const useUpdateThinkingBlockAutoExpand = () => useSettingsStore((state) =
 export const useUpdateEnableSubagents = () => useSettingsStore((state) => state.updateEnableSubagents);
 export const useEnableCodeGraph = () => useSettingsStore((state) => state.enableCodeGraph);
 export const useEnableCdpBrowser = () => useSettingsStore((state) => state.enableCdpBrowser);
+export const useCheckForUpdatesOnStartup = () =>
+  useSettingsStore((state) => state.checkForUpdatesOnStartup);
 export const useGraphAutoIndexOnOpen = () => useSettingsStore((state) => state.graphAutoIndexOnOpen);
 export const useGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.graphAutoIndexMaxFiles);
 export const useUpdateEnableCodeGraph = () => useSettingsStore((state) => state.updateEnableCodeGraph);
 export const useUpdateEnableCdpBrowser = () => useSettingsStore((state) => state.updateEnableCdpBrowser);
+export const useUpdateCheckForUpdatesOnStartup = () =>
+  useSettingsStore((state) => state.updateCheckForUpdatesOnStartup);
 export const useUpdateGraphAutoIndexOnOpen = () => useSettingsStore((state) => state.updateGraphAutoIndexOnOpen);
 export const useUpdateGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.updateGraphAutoIndexMaxFiles);
 export const useUpdateReasoningEffort = () => useSettingsStore((state) => state.updateReasoningEffort);

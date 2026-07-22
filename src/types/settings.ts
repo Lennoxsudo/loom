@@ -176,6 +176,8 @@ export interface SettingsState {
    * When on, the browser agent tool gains click/type/screenshot/content actions.
    */
   enableCdpBrowser: boolean;
+  /** Check GitHub Releases for app updates after settings finish loading */
+  checkForUpdatesOnStartup: boolean;
   /** Auto-index workspace when opened */
   graphAutoIndexOnOpen: boolean;
   /** Max files for auto-index; 0 = no limit */

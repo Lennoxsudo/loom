@@ -62,10 +62,12 @@ export {
   useEnableSubagents,
   useEnableCodeGraph,
   useEnableCdpBrowser,
+  useCheckForUpdatesOnStartup,
   useGraphAutoIndexOnOpen,
   useGraphAutoIndexMaxFiles,
   useUpdateEnableCodeGraph,
   useUpdateEnableCdpBrowser,
+  useUpdateCheckForUpdatesOnStartup,
   useUpdateGraphAutoIndexOnOpen,
   useUpdateGraphAutoIndexMaxFiles,
   useReasoningEffort,
@@ -109,3 +111,5 @@ export {
   useRemoveRecentWorkspace,
   useInitializeSettings,
 } from './useSettingsStore';
+export { useAppUpdateStore, useAppUpdateState } from './useAppUpdateStore';
+export type { AppUpdateStatus } from './useAppUpdateStore';

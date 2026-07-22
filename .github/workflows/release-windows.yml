@@ -1,0 +1,107 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Verify release version consistency
+        shell: bash
+        run: node scripts/check-release-version.mjs
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build signed Windows installers + updater artifacts
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "Missing TAURI_SIGNING_PRIVATE_KEY secret" >&2
+            exit 1
+          fi
+          npm run tauri -- build
+
+      - name: Prepare release assets
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          NSIS=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe 2>/dev/null | head -n1 || true)
+          MSI=$(ls src-tauri/target/release/bundle/msi/*.msi 2>/dev/null | head -n1 || true)
+          if [ -z "$NSIS" ]; then
+            echo "NSIS installer not found" >&2
+            exit 1
+          fi
+          SIG="${NSIS}.sig"
+          if [ ! -f "$SIG" ]; then
+            echo "Missing updater signature: $SIG" >&2
+            exit 1
+          fi
+          mkdir -p dist-release
+          cp "$NSIS" dist-release/
+          [ -n "$MSI" ] && cp "$MSI" dist-release/ || true
+          cp "$SIG" dist-release/
+          NSIS_NAME=$(basename "$NSIS")
+          SIG_CONTENT=$(tr -d '\r\n' < "$SIG")
+          NOTES=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq .body 2>/dev/null || true)
+          if [ -z "$NOTES" ]; then
+            NOTES="Loom ${VERSION}"
+          fi
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          cat > dist-release/latest.json <<EOF
+          {
+            "version": "${VERSION}",
+            "notes": $(node -e 'console.log(JSON.stringify(process.argv[1]||""))' "$NOTES"),
+            "pub_date": "${PUB_DATE}",
+            "platforms": {
+              "windows-x86_64": {
+                "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${NSIS_NAME}",
+                "signature": "${SIG_CONTENT}"
+              }
+            }
+          }
+          EOF
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "nsis=$NSIS_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          files: |
+            dist-release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

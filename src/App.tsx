@@ -56,6 +56,7 @@ import {
   useBracketPairColorization,
   useSettingsLoading,
   useInitializeSettings,
+  useCheckForUpdatesOnStartup,
   useEditorOpenFiles,
   useEditorGroups,
   useEditorActiveGroupId,
@@ -76,6 +77,7 @@ import {
 } from './utils/fileTreeKeyboard';
 import { refreshMonacoTheme } from './utils/monacoTheme';
 import { useSettingsStore } from './stores/useSettingsStore';
+import { useAppUpdateStore } from './stores/useAppUpdateStore';
 import { useLayoutResize } from './hooks/useLayoutResize';
 import { useCbmGraphReady, useCbmSidecarState, useCbmStore } from './stores/useCbmStore';
 import { useUsageStore } from './stores/useUsageStore';
@@ -1947,11 +1949,17 @@ function AppWithSettings() {
   const currentLineHighlightColor = useCurrentLineHighlightColor();
   const loading = useSettingsLoading();
   const initializeSettings = useInitializeSettings();
+  const checkForUpdatesOnStartup = useCheckForUpdatesOnStartup();
 
   useEffect(() => {
     initializeSettings();
     void useUsageStore.getState().initUsage();
   }, [initializeSettings]);
+
+  useEffect(() => {
+    if (loading || !checkForUpdatesOnStartup) return;
+    void useAppUpdateStore.getState().checkForUpdates({ silent: true });
+  }, [loading, checkForUpdatesOnStartup]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

@@ -39,3 +39,6 @@ src-tauri/binaries/.extract-tmp/
 .arts/
 .aiasprrato/
 *.md
+
+# local release artifacts
+dist-release/

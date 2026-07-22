@@ -1220,6 +1220,26 @@ export interface I18nMessages {
     desktopOnly: string;
     cdpActionsHint: string;
   };
+  settingsUpdate: {
+    title: string;
+    description: string;
+    currentVersion: string;
+    unknownVersion: string;
+    checkForUpdates: string;
+    checking: string;
+    upToDate: string;
+    available: string;
+    downloadAndInstall: string;
+    downloading: string;
+    installing: string;
+    restartRequired: string;
+    checkOnStartup: string;
+    checkOnStartupHint: string;
+    desktopOnly: string;
+    checkFailed: string;
+    downloadFailed: string;
+    notes: string;
+  };
   settingsRules: {
     title: string;
     chatRules: string;

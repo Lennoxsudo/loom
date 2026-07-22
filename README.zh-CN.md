@@ -215,3 +215,8 @@ Loom 可在宿主机上执行命令、读写文件并发起网络请求。请只
 - [Tauri](https://tauri.app/)、[React](https://react.dev/)、[Monaco Editor](https://microsoft.github.io/monaco-editor/)、[Zustand](https://github.com/pmndrs/zustand)、[xterm.js](https://xtermjs.org/)
 - [codebase-memory](https://github.com/DeusData/codebase-memory-mcp)（MIT）— 驱动内置代码知识图谱
 - Anthropic Claude Code — 子代理模型的灵感来源
+
+## 自动更新（Windows）
+
+正式版 GitHub Release 支持应用内更新。详见 [docs/releases/windows-auto-update.md](docs/releases/windows-auto-update.md)。
+

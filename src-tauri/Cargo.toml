@@ -1,6 +1,6 @@
 [package]
 name = "loom"
-version = "0.1.3"
+version = "0.1.4"
 description = "AI-native desktop code editor and local development workbench built with Tauri 2, React and Rust."
 authors = ["Lennoxsudo"]
 license = "Apache-2.0"
@@ -55,6 +55,7 @@ notify = "6"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "net", "time", "fs", "process"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+tauri-plugin-updater = "2"
 
 # P1 sandbox: Windows Job Object for process lifecycle isolation
 # NOTE: Does NOT include filesystem/network isolation (write-restricted token is a future enhancement)

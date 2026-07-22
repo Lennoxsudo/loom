@@ -47,6 +47,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { resolveThemeFromMode } from '../../utils/lineHighlightColor';
 import pageStyles from './SettingsPage.module.css';
 import localStyles from './GeneralContent.module.css';
+import UpdateSettingsSection from './UpdateSettingsSection';
 import {
   SettingsBlockBody,
   SettingsInlineControls,
@@ -363,6 +364,8 @@ export function GeneralContent() {
             onChange={(behavior) => withUpdate(() => updateStartupBehavior(behavior))}
           />
         </SettingsSection>
+
+        <UpdateSettingsSection />
 
         <SettingsSection
           title={t.settingsGeneral.groups.hiddenRules}

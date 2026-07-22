@@ -215,3 +215,8 @@ Licensed under the [Apache License 2.0](./LICENSE). Third-party notices are list
 - [Tauri](https://tauri.app/), [React](https://react.dev/), [Monaco Editor](https://microsoft.github.io/monaco-editor/), [Zustand](https://github.com/pmndrs/zustand), [xterm.js](https://xtermjs.org/)
 - [codebase-memory](https://github.com/DeusData/codebase-memory-mcp) (MIT) — powers the built-in code knowledge graph
 - Anthropic's Claude Code — inspiration for the sub-agent model
+
+## Auto-update (Windows)
+
+Stable GitHub Releases can update Loom in-app. See [docs/releases/windows-auto-update.md](docs/releases/windows-auto-update.md).
+

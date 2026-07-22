@@ -101,7 +101,8 @@ pub fn run() {
         .manage(cbm::CbmTaskRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
 
     app::commands::attach_handlers(builder)
         .setup(|app| app::setup::run(app))
