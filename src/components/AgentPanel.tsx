@@ -1,4 +1,4 @@
-﻿import styles from './AgentPanel.module.css';
+import styles from './AgentPanel.module.css';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
