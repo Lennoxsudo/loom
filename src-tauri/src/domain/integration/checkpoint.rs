@@ -557,6 +557,7 @@ mod tests {
             session_key: session_key.clone(),
             project_path: project.to_string_lossy().to_string(),
             tool_call_id: Some("call-1".into()),
+            user_message_id: None,
             tool_name: "write".into(),
             label: Some("write · hello.txt".into()),
             files: vec![CheckpointFileInput {
@@ -601,6 +602,7 @@ mod tests {
             session_key: session_key.clone(),
             project_path: project.to_string_lossy().to_string(),
             tool_call_id: None,
+            user_message_id: None,
             tool_name: "write".into(),
             label: None,
             files: vec![CheckpointFileInput {

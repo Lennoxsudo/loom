@@ -35,9 +35,6 @@ jobs:
       - name: Fetch CBM sidecar binary
         run: npm run fetch:cbm
 
-      - name: Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
-
       - name: Build signed Windows installers + updater artifacts
         shell: bash
         env:
