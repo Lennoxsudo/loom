@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure git for consistent line endings
+        run: git config core.autocrlf false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
