@@ -11,8 +11,7 @@ export type ParsedCommandExec = {
   errorMessage?: string;
 };
 
-const BACKGROUND_START_RE =
-  /^Command running in background with task ID:\s*\S+/;
+const BACKGROUND_START_RE = /^Command running in background with task ID:\s*\S+/;
 
 const EXIT_CODE_RE = /<exit-code>(-?\d+|null)<\/exit-code>/;
 const DURATION_RE = /<duration>(\d+)ms<\/duration>/;
@@ -116,10 +115,7 @@ export function parseCommandExecOutput(
   };
 }
 
-export function isRunCommandToolName(
-  name?: string,
-  args?: Record<string, unknown>
-): boolean {
+export function isRunCommandToolName(name?: string, args?: Record<string, unknown>): boolean {
   if (!name) return false;
   if (name === 'run_command' || name === 'terminal') return true;
   if (name === 'term') {

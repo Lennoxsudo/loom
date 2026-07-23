@@ -46,7 +46,7 @@ debugLog('main-entry', {
 });
 
 // 初始化Monaco编辑器系统（异步不阻塞渲染）
-initializeMonacoSystem().catch(error => {
+initializeMonacoSystem().catch((error) => {
   console.error('Failed to initialize Monaco editor system:', error);
 });
 

@@ -4,7 +4,10 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useDroppable } from '@dnd-kit/core';
 import { isImageFilePath } from '../../utils/fileTreeUtils';
 import type { VisionCapability, AIProvider } from '../../utils/visionCapabilities';
-import { DEFAULT_VISION_CAPABILITIES, ALLOWED_IMAGE_MEDIA_TYPES } from '../../utils/visionCapabilities';
+import {
+  DEFAULT_VISION_CAPABILITIES,
+  ALLOWED_IMAGE_MEDIA_TYPES,
+} from '../../utils/visionCapabilities';
 import { logDebug } from '../../utils/errorHandling';
 import {
   CHAT_ATTACH_ZONE_ID,

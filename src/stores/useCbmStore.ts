@@ -27,7 +27,7 @@ interface CbmStoreState {
   initialize: () => Promise<void>;
   refreshProjects: () => Promise<CbmIndexedProject[]>;
   loadAndReconcile: (
-    enableCodeGraph: boolean,
+    enableCodeGraph: boolean
   ) => Promise<{ list: CbmIndexedProject[]; cleanedNames: string[] }>;
   deleteProject: (repoPath: string, enableCodeGraph: boolean) => Promise<void>;
 }
@@ -36,7 +36,7 @@ let refreshPromise: Promise<CbmIndexedProject[]> | null = null;
 let initPromise: Promise<void> | null = null;
 
 async function registerCbmEventListeners(
-  refresh: () => Promise<CbmIndexedProject[]>,
+  refresh: () => Promise<CbmIndexedProject[]>
 ): Promise<void> {
   if (!isTauri()) return;
   await Promise.all([
@@ -89,7 +89,7 @@ export const useCbmStore = create<CbmStoreState>()(
               const runtimeMajor = info.runtimeVersion.split('.')[0];
               if (pinnedMajor !== runtimeMajor) {
                 console.warn(
-                  `CBM version mismatch: pinned=${info.pinnedVersion}, runtime=${info.runtimeVersion}`,
+                  `CBM version mismatch: pinned=${info.pinnedVersion}, runtime=${info.runtimeVersion}`
                 );
                 sidecarAvailable = false;
                 versionMismatch = true;
@@ -176,8 +176,8 @@ export const useCbmStore = create<CbmStoreState>()(
         await get().refreshProjects();
       },
     }),
-    { name: 'CbmStore' },
-  ),
+    { name: 'CbmStore' }
+  )
 );
 
 export const useCbmSidecarState = () =>
@@ -188,7 +188,7 @@ export const useCbmSidecarState = () =>
       ipcReady: s.ipcReady,
       initialized: s.initialized,
       versionMismatch: s.versionMismatch,
-    })),
+    }))
   );
 
 export const useCbmProjects = () =>
@@ -200,7 +200,7 @@ export const useCbmProjects = () =>
       refresh: s.refreshProjects,
       loadAndReconcile: s.loadAndReconcile,
       deleteProject: s.deleteProject,
-    })),
+    }))
   );
 
 /** True when code graph tools and CBM commands may be used. */

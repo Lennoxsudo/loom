@@ -1,6 +1,6 @@
 /**
  * AI工具请求缓存系统
- * 
+ *
  * 缓存只读工具调用的结果，减少重复请求，提升性能。
  * 主要用于缓存搜索结果、文件读取等成本较高的操作。
  */
@@ -31,22 +31,18 @@ class ToolRequestCache {
     evictionCount: 0,
     hitRate: 0,
   };
-  
+
   // 默认缓存配置
   private defaultTTL: number = 5 * 60 * 1000; // 5分钟
   private maxEntries: number = 100;
   private maxTotalSize: number = 50 * 1024 * 1024; // 50MB
-  
-  constructor(options?: {
-    defaultTTL?: number;
-    maxEntries?: number;
-    maxTotalSize?: number;
-  }) {
+
+  constructor(options?: { defaultTTL?: number; maxEntries?: number; maxTotalSize?: number }) {
     if (options?.defaultTTL) this.defaultTTL = options.defaultTTL;
     if (options?.maxEntries) this.maxEntries = options.maxEntries;
     if (options?.maxTotalSize) this.maxTotalSize = options.maxTotalSize;
   }
-  
+
   /**
    * 生成缓存键
    */
@@ -68,32 +64,33 @@ class ToolRequestCache {
       return `${toolName}:${Date.now()}`; // 使用时间戳确保唯一
     }
   }
-  
+
   /**
    * 规范化参数，确保相同语义的参数生成相同键
    */
   private normalizeParams(params: any): any {
     if (params === null || params === undefined) return params;
-    
+
     if (Array.isArray(params)) {
-      return params.map(item => this.normalizeParams(item));
+      return params.map((item) => this.normalizeParams(item));
     }
-    
+
     if (typeof params === 'object' && !(params instanceof RegExp)) {
       const normalized: Record<string, any> = {};
       const keys = Object.keys(params).sort(); // 按键名排序确保稳定
       for (const key of keys) {
         const value = params[key];
-        if (value !== undefined) { // 排除undefined值
+        if (value !== undefined) {
+          // 排除undefined值
           normalized[key] = this.normalizeParams(value);
         }
       }
       return normalized;
     }
-    
+
     return params;
   }
-  
+
   /**
    * 计算数据大小（粗略估算）
    */
@@ -106,13 +103,13 @@ class ToolRequestCache {
       return 1024; // 1KB
     }
   }
-  
+
   /**
    * 清理过期缓存
    */
   private cleanupExpired(): void {
     const now = Date.now();
-    
+
     for (const [key, entry] of this.cache.entries()) {
       if (entry.expiresAt < now) {
         this.cache.delete(key);
@@ -121,18 +118,18 @@ class ToolRequestCache {
       }
     }
   }
-  
+
   /**
    * 清理超出限制的缓存（LRU策略）
    */
   private evictIfNeeded(): void {
     this.cleanupExpired();
-    
+
     // 按时间戳排序（最旧的在前）
-    const entries = Array.from(this.cache.entries()).sort((a, b) => 
-      a[1].timestamp - b[1].timestamp
+    const entries = Array.from(this.cache.entries()).sort(
+      (a, b) => a[1].timestamp - b[1].timestamp
     );
-    
+
     while (
       (this.stats.entryCount > this.maxEntries || this.stats.totalSize > this.maxTotalSize) &&
       entries.length > 0
@@ -144,19 +141,19 @@ class ToolRequestCache {
       this.stats.evictionCount++;
     }
   }
-  
+
   /**
    * 获取缓存结果
    */
   get<T = any>(toolName: string, params: any): T | null {
     const key = this.generateKey(toolName, params);
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       this.stats.misses++;
       return null;
     }
-    
+
     // 检查是否过期
     if (entry.expiresAt < Date.now()) {
       this.cache.delete(key);
@@ -165,11 +162,11 @@ class ToolRequestCache {
       this.stats.misses++;
       return null;
     }
-    
+
     this.stats.hits++;
     return entry.data as T;
   }
-  
+
   /**
    * 设置缓存结果
    */
@@ -178,10 +175,11 @@ class ToolRequestCache {
     if (data === null || data === undefined) {
       return;
     }
-    
+
     // 不缓存过大的数据
     const size = this.calculateSize(data);
-    if (size > 10 * 1024 * 1024) { // 10MB限制
+    if (size > 10 * 1024 * 1024) {
+      // 10MB限制
       return;
     }
 
@@ -191,20 +189,20 @@ class ToolRequestCache {
     } catch {
       return;
     }
-    
+
     const key = this.generateKey(toolName, params);
     const expiresAt = Date.now() + (ttl || this.defaultTTL);
-    
+
     const entry: CacheEntry<T> = {
       data,
       timestamp: Date.now(),
       expiresAt,
       size,
     };
-    
+
     // 先清理空间
     this.evictIfNeeded();
-    
+
     // 检查是否有旧条目
     const oldEntry = this.cache.get(key);
     if (oldEntry) {
@@ -212,29 +210,29 @@ class ToolRequestCache {
     } else {
       this.stats.entryCount++;
     }
-    
+
     // 添加新条目
     this.cache.set(key, entry);
     this.stats.totalSize += size;
   }
-  
+
   /**
    * 删除缓存
    */
   delete(toolName: string, params: any): boolean {
     const key = this.generateKey(toolName, params);
     const entry = this.cache.get(key);
-    
+
     if (entry) {
       this.cache.delete(key);
       this.stats.totalSize -= entry.size;
       this.stats.entryCount--;
       return true;
     }
-    
+
     return false;
   }
-  
+
   /**
    * 清除所有缓存
    */
@@ -243,21 +241,22 @@ class ToolRequestCache {
     this.stats.totalSize = 0;
     this.stats.entryCount = 0;
   }
-  
+
   /**
    * 获取缓存统计信息
    */
   getStats(): CacheStats {
-    const hitRate = this.stats.hits + this.stats.misses > 0 
-      ? (this.stats.hits / (this.stats.hits + this.stats.misses)) * 100 
-      : 0;
-    
+    const hitRate =
+      this.stats.hits + this.stats.misses > 0
+        ? (this.stats.hits / (this.stats.hits + this.stats.misses)) * 100
+        : 0;
+
     return {
       ...this.stats,
       hitRate: parseFloat(hitRate.toFixed(2)),
     };
   }
-  
+
   /**
    * 获取缓存条目列表
    */
@@ -282,51 +281,51 @@ export const toolCache = new ToolRequestCache();
 // 缓存配置：哪些工具可以缓存
 const cacheableTools = {
   // New short names - read only tools: cacheable
-  'read': true,
-  'finfo': true,
-  'search': true,
-  'sym': true,
-  'fetch': true,
-  'web_search': true,
+  read: true,
+  finfo: true,
+  search: true,
+  sym: true,
+  fetch: true,
+  web_search: true,
 
   // New short names - write tools: not cacheable
-  'write': false,
-  'edit': false,
-  'term': false,
-  'git': false,
-  'browser': false,
-  'todo': false,
-  'ask': false,
-  'skill': false,
+  write: false,
+  edit: false,
+  term: false,
+  git: false,
+  browser: false,
+  todo: false,
+  ask: false,
+  skill: false,
 
   // Legacy names (kept for backward compatibility)
-  'read_file': true,
-  'search_files': true,
-  'search_content': true,
-  'list_directory': true,
-  'get_file_tree': true,
-  'get_file_info': true,
-  'get_git_diff': true,
-  'get_symbol_definition': true,
-  'fetch_web_content': true,
-  
-  'write_file': false,
-  'edit_file': false,
-  'create_folder': false,
-  'move_file': false,
-  'delete_file': false,
-  'run_command': false,
-  'read_terminal_output': false,
-  'list_bg_tasks': false,
-  'kill_bg_task': false,
-  'undo_changes': false,
-  'control_browser': false,
-  'TodoWrite': false,
-  'ask_user_question': false,
-  'load_skill': false,
-  
-  'terminal': false,
-  'file_info': true,
+  read_file: true,
+  search_files: true,
+  search_content: true,
+  list_directory: true,
+  get_file_tree: true,
+  get_file_info: true,
+  get_git_diff: true,
+  get_symbol_definition: true,
+  fetch_web_content: true,
+
+  write_file: false,
+  edit_file: false,
+  create_folder: false,
+  move_file: false,
+  delete_file: false,
+  run_command: false,
+  read_terminal_output: false,
+  list_bg_tasks: false,
+  kill_bg_task: false,
+  undo_changes: false,
+  control_browser: false,
+  TodoWrite: false,
+  ask_user_question: false,
+  load_skill: false,
+
+  terminal: false,
+  file_info: true,
 };
 
 /**
@@ -340,26 +339,26 @@ function isToolCacheable(toolName: string): boolean {
  * 工具执行结果缓存包装器
  */
 export async function executeWithCache<T = any>(
-  toolName: string, 
-  params: any, 
+  toolName: string,
+  params: any,
   executor: () => Promise<T>,
   ttl?: number
 ): Promise<T> {
   if (!isToolCacheable(toolName)) {
     return executor();
   }
-  
+
   const cached = toolCache.get<T>(toolName, params);
   if (cached !== null) {
     return cached;
   }
 
   const result = await executor();
-  
+
   // 缓存成功结果
   if (result !== null && result !== undefined) {
     toolCache.set(toolName, params, result, ttl);
   }
-  
+
   return result;
 }

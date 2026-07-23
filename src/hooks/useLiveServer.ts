@@ -34,7 +34,9 @@ export function useLiveServer(): UseLiveServerReturn {
    * 获取 Live Server 状态
    */
   const getLiveServerStatus = useCallback(async (): Promise<LiveServerStatus> => {
-    const res = await invoke<{ running?: boolean; port?: number; root?: string }>('get_live_server_status');
+    const res = await invoke<{ running?: boolean; port?: number; root?: string }>(
+      'get_live_server_status'
+    );
     const out: LiveServerStatus = {
       running: !!res?.running,
       port: typeof res?.port === 'number' ? res.port : null,
@@ -51,7 +53,10 @@ export function useLiveServer(): UseLiveServerReturn {
     async (projectPath: string): Promise<number> => {
       if (!projectPath) throw new Error('请先打开一个文件夹');
 
-      const startRes = await invoke<{ running?: boolean; port?: number; root?: string }>('start_live_server', { root: projectPath });
+      const startRes = await invoke<{ running?: boolean; port?: number; root?: string }>(
+        'start_live_server',
+        { root: projectPath }
+      );
       const startPort = typeof startRes?.port === 'number' ? startRes.port : null;
       setLiveServerStatus({
         running: !!startRes?.running,

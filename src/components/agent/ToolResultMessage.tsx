@@ -1,4 +1,11 @@
-import { memo, useState, cloneElement, isValidElement, type CSSProperties, type ReactNode } from 'react';
+import {
+  memo,
+  useState,
+  cloneElement,
+  isValidElement,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { GenerateImageToolCard } from './GenerateImageToolCard';
 import { parseGenerateImageAbsolutePaths } from '../../utils/imageGenConfig';
 import McpToolResultCard from './McpToolResultCard';
@@ -29,7 +36,12 @@ import {
   summarizeListBgTasks,
   summarizeSearchBoth,
 } from './toolResultSummaries';
-import { toolCardShell, toolCompactShell, TOOL_RESULT_WIDTH, formatToolDisplayName } from './toolResultLayout';
+import {
+  toolCardShell,
+  toolCompactShell,
+  TOOL_RESULT_WIDTH,
+  formatToolDisplayName,
+} from './toolResultLayout';
 import { TodoInProgressIndicator } from './TodoInProgressIndicator';
 
 function activityStatus(isError: boolean, isRunning = false): ToolActivityStatus {
@@ -72,22 +84,24 @@ function stripCodeFencesForErrorHeuristics(text: string): string {
 
 function matchesToolErrorSummaryHeuristics(text: string): boolean {
   const summary = stripCodeFencesForErrorHeuristics(text);
-  return summary.startsWith('❌')
-    || summary.includes('错误:')
-    || summary.includes('执行失败')
-    || summary.includes('编辑失败')
-    || summary.includes('无法写入')
-    || summary.includes('无法编辑')
-    || summary.includes('无法读取')
-    || summary.includes('无法删除')
-    || summary.includes('无法移动')
-    || summary.includes('文件不存在')
-    || summary.includes('缺少必需参数')
-    || summary.includes('参数无效')
-    || summary.includes('权限不足')
-    || summary.includes('权限被拒绝')
-    || summary.toLowerCase().includes('failed')
-    || summary.toLowerCase().includes('error:');
+  return (
+    summary.startsWith('❌') ||
+    summary.includes('错误:') ||
+    summary.includes('执行失败') ||
+    summary.includes('编辑失败') ||
+    summary.includes('无法写入') ||
+    summary.includes('无法编辑') ||
+    summary.includes('无法读取') ||
+    summary.includes('无法删除') ||
+    summary.includes('无法移动') ||
+    summary.includes('文件不存在') ||
+    summary.includes('缺少必需参数') ||
+    summary.includes('参数无效') ||
+    summary.includes('权限不足') ||
+    summary.includes('权限被拒绝') ||
+    summary.toLowerCase().includes('failed') ||
+    summary.toLowerCase().includes('error:')
+  );
 }
 
 const ToolResultMessage = memo(function ToolResultMessage({
@@ -110,8 +124,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
   const isFileReadTool = fileReadTools.includes(message.tool_name || '');
   const isWriteFileTool = message.tool_name === 'write' || message.tool_name === 'write_file';
 
-  const isPendingApproval =
-    message.approvalStatus === 'pending' && message.approvalSummary != null;
+  const isPendingApproval = message.approvalStatus === 'pending' && message.approvalSummary != null;
   const approvalOutcome =
     message.approvalStatus === 'approved'
       ? ('approved' as const)
@@ -185,41 +198,38 @@ const ToolResultMessage = memo(function ToolResultMessage({
       );
     } else if (approvalOutcome) {
       approvalStatus = approvalOutcome;
-      approvalFooter = (
-        <ToolApprovalBar status={approvalOutcome} layout="footer" />
-      );
+      approvalFooter = <ToolApprovalBar status={approvalOutcome} layout="footer" />;
     }
 
     // Clone the card element to inject footer + approvalStatus props
     if (isValidElement(card)) {
       return (
         <div style={{ ...TOOL_RESULT_WIDTH, marginBottom: compactMarginBottom }}>
-          {cloneElement(card as React.ReactElement<{
-            footer?: ReactNode;
-            approvalStatus?: 'pending' | 'approved' | 'denied';
-          }>, {
-            footer: approvalFooter,
-            approvalStatus,
-          })}
+          {cloneElement(
+            card as React.ReactElement<{
+              footer?: ReactNode;
+              approvalStatus?: 'pending' | 'approved' | 'denied';
+            }>,
+            {
+              footer: approvalFooter,
+              approvalStatus,
+            }
+          )}
         </div>
       );
     }
 
-    return (
-      <div style={{ ...TOOL_RESULT_WIDTH, marginBottom: compactMarginBottom }}>
-        {card}
-      </div>
-    );
+    return <div style={{ ...TOOL_RESULT_WIDTH, marginBottom: compactMarginBottom }}>{card}</div>;
   };
 
   // 统一错误检测：优先使用结构化 isError 字段，兜底使用文本模式匹配（排除代码块内容）
   const isToolError =
     approvalOutcome === 'denied'
       ? false
-      : message.isError === true
-        || (message.isError !== false
-          && !isPendingApproval
-          && matchesToolErrorSummaryHeuristics(message.text));
+      : message.isError === true ||
+        (message.isError !== false &&
+          !isPendingApproval &&
+          matchesToolErrorSummaryHeuristics(message.text));
 
   if (isPendingApproval) {
     const summary = message.approvalSummary;
@@ -237,14 +247,13 @@ const ToolResultMessage = memo(function ToolResultMessage({
     } else {
       return (
         <>
-          {wrapCompactRow(createCompactStyle('0'), (
+          {wrapCompactRow(
+            createCompactStyle('0'),
             <>
               <span style={{ color: TOOL_TEXT_MUTED }}>{cleanToolName}</span>
-              {summary?.label && (
-                <span style={{ color: TOOL_TEXT_SUBTLE }}>{summary.label}</span>
-              )}
+              {summary?.label && <span style={{ color: TOOL_TEXT_SUBTLE }}>{summary.label}</span>}
             </>
-          ))}
+          )}
           {summary?.detail && (
             <div style={{ ...TOOL_RESULT_WIDTH, marginBottom: compactMarginBottom }}>
               <pre
@@ -321,8 +330,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
   if (message.tool_name === 'generate_image') {
     const prompt =
       typeof message.tool_args?.prompt === 'string' ? message.tool_args.prompt : undefined;
-    const size =
-      typeof message.tool_args?.size === 'string' ? message.tool_args.size : undefined;
+    const size = typeof message.tool_args?.size === 'string' ? message.tool_args.size : undefined;
     const rawCount = message.tool_args?.n;
     const imageCount =
       typeof rawCount === 'number' && Number.isFinite(rawCount)
@@ -346,16 +354,10 @@ const ToolResultMessage = memo(function ToolResultMessage({
   }
 
   if (isRunCommandToolName(message.tool_name, message.tool_args)) {
-    const isRunning =
-      message.isStreaming === true && !/<exit-code>/.test(message.text);
+    const isRunning = message.isStreaming === true && !/<exit-code>/.test(message.text);
     const parsed = parseCommandExecOutput(message.text, message.tool_args, { isRunning });
     return wrapCommandCardRow(
-      <ExecCommandCard
-        dense={dense}
-        parsed={parsed}
-        isRunning={isRunning}
-        isError={isToolError}
-      />
+      <ExecCommandCard dense={dense} parsed={parsed} isRunning={isRunning} isError={isToolError} />
     );
   }
 
@@ -389,27 +391,31 @@ const ToolResultMessage = memo(function ToolResultMessage({
         <div style={pendingCardStyle}>
           <div style={pendingHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 500,
-                color: TOOL_TEXT_MUTED,
-                fontFamily: 'monospace',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: TOOL_TEXT_MUTED,
+                  fontFamily: 'monospace',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {pendingToolName}
               </span>
-              <span style={{
-                fontSize: '10px',
-                fontWeight: 500,
-                color: pendingBadgeColor,
-                background: pendingBadgeBg,
-                padding: '1px 8px',
-                borderRadius: '10px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: pendingBadgeColor,
+                  background: pendingBadgeBg,
+                  padding: '1px 8px',
+                  borderRadius: '10px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
                 ⏳ {t.agentInternal.callAgentRunning || 'running'}
               </span>
             </div>
@@ -544,7 +550,8 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const removedLines = oldString ? oldString.split('\n').length : 0;
     const addedLines = newString ? newString.split('\n').length : 0;
     const meta: ToolActivityMetaItem[] = [];
-    if (!isError && addedLines > 0) meta.push({ kind: 'text', value: `+${addedLines}`, tone: 'add' });
+    if (!isError && addedLines > 0)
+      meta.push({ kind: 'text', value: `+${addedLines}`, tone: 'add' });
     if (!isError && removedLines > 0) {
       if (meta.length) meta.push({ kind: 'sep' });
       meta.push({ kind: 'text', value: `-${removedLines}`, tone: 'del' });
@@ -577,7 +584,12 @@ const ToolResultMessage = memo(function ToolResultMessage({
     }
 
     return wrapCompactRow(
-      { width: '100%', maxWidth: '100%', boxSizing: 'border-box', marginBottom: compactMarginBottom },
+      {
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        marginBottom: compactMarginBottom,
+      },
       <ToolActivityRow
         verb="del"
         main={<ToolActivityPath path={fileName} strike={approvalOutcome !== 'denied'} />}
@@ -613,7 +625,10 @@ const ToolResultMessage = memo(function ToolResultMessage({
         main={
           <>
             {left}
-            <span className="muted" style={{ color: 'var(--text-secondary)' }}> → </span>
+            <span className="muted" style={{ color: 'var(--text-secondary)' }}>
+              {' '}
+              →{' '}
+            </span>
             {right}
           </>
         }
@@ -678,7 +693,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
     return (
       <ToolActivityRow
         verb="glob"
-        main={pattern ? `"${pattern}"` : <span style={{ color: 'var(--text-secondary)' }}>files</span>}
+        main={
+          pattern ? `"${pattern}"` : <span style={{ color: 'var(--text-secondary)' }}>files</span>
+        }
         status={activityStatus(isError)}
         meta={activityMeta(`${fileCount}`)}
       />
@@ -690,9 +707,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const isError = isToolError;
     const scArgs = message.tool_args || {};
     const query =
-      (scArgs.query as string | undefined) ||
-      (scArgs.pattern as string | undefined) ||
-      '';
+      (scArgs.query as string | undefined) || (scArgs.pattern as string | undefined) || '';
     let matchCount = 0;
     const totalMatchItems = message.text.match(/(\d+)\s*个匹配项/g);
     if (totalMatchItems) {
@@ -712,7 +727,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
     return (
       <ToolActivityRow
         verb="grep"
-        main={query ? `"${query}"` : <span style={{ color: 'var(--text-secondary)' }}>content</span>}
+        main={
+          query ? `"${query}"` : <span style={{ color: 'var(--text-secondary)' }}>content</span>
+        }
         status={activityStatus(isError)}
         meta={activityMeta(`${matchCount}`)}
       />
@@ -731,7 +748,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
         : undefined,
       !summary.noMatches && summary.placeCount != null && summary.placeCount > 0
         ? `${summary.placeCount} places`
-        : undefined,
+        : undefined
     );
 
     if (summary.expandable) {
@@ -750,12 +767,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     }
 
     return (
-      <ToolActivityRow
-        verb="grep"
-        main={queryLabel}
-        status={activityStatus(isError)}
-        meta={meta}
-      />
+      <ToolActivityRow verb="grep" main={queryLabel} status={activityStatus(isError)} meta={meta} />
     );
   }
 
@@ -772,8 +784,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const ldShortPath = shortActivityPath(ldPath) || ldPath || '.';
     let entryCount: number | undefined;
     const countMatch =
-      message.text.match(/共\s*(\d+)\s*项/) ||
-      message.text.match(/(\d+)\s*(?:items?|entries)/i);
+      message.text.match(/共\s*(\d+)\s*项/) || message.text.match(/(\d+)\s*(?:items?|entries)/i);
     if (countMatch) entryCount = parseInt(countMatch[1], 10);
     else if (!isError) {
       const lines = message.text.split('\n').filter((l) => l.trim() && !l.includes('目录内容'));
@@ -834,9 +845,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
       if (totalMatch[2]) fileCount = parseInt(totalMatch[2], 10);
     }
     const depth =
-      (ftArgs.max_depth as number | undefined) ??
-      (ftArgs.maxDepth as number | undefined) ??
-      3;
+      (ftArgs.max_depth as number | undefined) ?? (ftArgs.maxDepth as number | undefined) ?? 3;
     const total =
       dirCount != null || fileCount != null
         ? String((dirCount || 0) + (fileCount || 0) || dirCount || fileCount || 0)
@@ -894,7 +903,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const meta = activityMeta(
       summary.empty ? 'none' : `${summary.total}`,
       !summary.empty && summary.running > 0 ? `${summary.running} run` : undefined,
-      !summary.empty && summary.completed > 0 ? `${summary.completed} done` : undefined,
+      !summary.empty && summary.completed > 0 ? `${summary.completed} done` : undefined
     );
 
     if (!summary.empty && summary.tasks.length > 0) {
@@ -920,14 +929,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
       );
     }
 
-    return (
-      <ToolActivityRow
-        verb="bg"
-        main="tasks"
-        status={activityStatus(isError)}
-        meta={meta}
-      />
-    );
+    return <ToolActivityRow verb="bg" main="tasks" status={activityStatus(isError)} meta={meta} />;
   }
 
   // kill_bg_task
@@ -1038,18 +1040,18 @@ const ToolResultMessage = memo(function ToolResultMessage({
 
   // fetch / control_browser: use BrowserToolResultCard
   if (
-    message.tool_name === 'fetch'
-    || message.tool_name === 'fetch_web_content'
-    || message.tool_name === 'control_browser'
-    || message.tool_name === 'browser'
+    message.tool_name === 'fetch' ||
+    message.tool_name === 'fetch_web_content' ||
+    message.tool_name === 'control_browser' ||
+    message.tool_name === 'browser'
   ) {
     return <BrowserToolResultCard message={message} />;
   }
 
   if (
-    message.tool_name === 'graph_index'
-    || message.tool_name === 'graph_query'
-    || message.tool_name === 'graph_trace'
+    message.tool_name === 'graph_index' ||
+    message.tool_name === 'graph_query' ||
+    message.tool_name === 'graph_trace'
   ) {
     return <GraphToolResultCard message={message} />;
   }
@@ -1063,10 +1065,10 @@ const ToolResultMessage = memo(function ToolResultMessage({
       (tArgs.type as string | undefined) ||
       (tArgs.agent_type as string | undefined) ||
       '';
-    const statusMatch = message.text.match(/\b(completed|complete|failed|running|success|succeeded)\b/i);
-    const status = statusMatch
-      ? statusMatch[1].toLowerCase()
-      : (isError ? 'failed' : 'completed');
+    const statusMatch = message.text.match(
+      /\b(completed|complete|failed|running|success|succeeded)\b/i
+    );
+    const status = statusMatch ? statusMatch[1].toLowerCase() : isError ? 'failed' : 'completed';
 
     return (
       <ToolActivityRow
@@ -1092,7 +1094,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const isCompleted = (status: string) => status === 'completed';
 
     const inProgressItems = todos.filter((item) => isInProgress(item.status));
-    const pendingItems = todos.filter((item) => !isInProgress(item.status) && !isCompleted(item.status));
+    const pendingItems = todos.filter(
+      (item) => !isInProgress(item.status) && !isCompleted(item.status)
+    );
     const completedItems = todos.filter((item) => isCompleted(item.status));
     const hasHidden = pendingItems.length > 0 || completedItems.length > 0;
 
@@ -1138,25 +1142,31 @@ const ToolResultMessage = memo(function ToolResultMessage({
       tone: 'muted' | 'success'
     ) => (
       <div key={label} style={hiddenSectionStyle}>
-        <div style={{ fontSize: '11px', color: tone === 'success' ? TOOL_SUCCESS : TOOL_TEXT_SUBTLE }}>
+        <div
+          style={{ fontSize: '11px', color: tone === 'success' ? TOOL_SUCCESS : TOOL_TEXT_SUBTLE }}
+        >
           {label} · {items.length}
         </div>
         {items.map((item, index) => (
           <div key={item.id || `${label}-${index}`} style={hiddenRowStyle}>
-            <span style={{
-              flexShrink: 0,
-              width: '6px',
-              height: '6px',
-              marginTop: '6px',
-              borderRadius: '50%',
-              background: tone === 'success' ? TOOL_SUCCESS : TOOL_TEXT_SUBTLE,
-              opacity: tone === 'success' ? 0.85 : 0.55,
-            }} />
-            <span style={{
-              flex: 1,
-              color: tone === 'success' ? TOOL_TEXT_SUBTLE : TOOL_TEXT_MUTED,
-              textDecoration: tone === 'success' ? 'line-through' : 'none',
-            }}>
+            <span
+              style={{
+                flexShrink: 0,
+                width: '6px',
+                height: '6px',
+                marginTop: '6px',
+                borderRadius: '50%',
+                background: tone === 'success' ? TOOL_SUCCESS : TOOL_TEXT_SUBTLE,
+                opacity: tone === 'success' ? 0.85 : 0.55,
+              }}
+            />
+            <span
+              style={{
+                flex: 1,
+                color: tone === 'success' ? TOOL_TEXT_SUBTLE : TOOL_TEXT_MUTED,
+                textDecoration: tone === 'success' ? 'line-through' : 'none',
+              }}
+            >
               {item.content}
             </span>
           </div>
@@ -1185,20 +1195,33 @@ const ToolResultMessage = memo(function ToolResultMessage({
             aria-label="Toggle todo details"
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              {inProgressItems.map((item, index) => renderInProgressRow(item, index, index === 0 ? '0' : '4px'))}
+              {inProgressItems.map((item, index) =>
+                renderInProgressRow(item, index, index === 0 ? '0' : '4px')
+              )}
             </div>
-            <span style={{
-              fontSize: '10px',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              opacity: 0.5,
-              display: 'inline-flex',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              marginTop: '2px',
-              flexShrink: 0,
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <span
+              style={{
+                fontSize: '10px',
+                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s',
+                opacity: 0.5,
+                display: 'inline-flex',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                marginTop: '2px',
+                flexShrink: 0,
+              }}
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="m6 9 6 6 6-6" />
               </svg>
             </span>
@@ -1207,7 +1230,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
 
         {!isError && inProgressItems.length > 0 && !hasHidden && (
           <div>
-            {inProgressItems.map((item, index) => renderInProgressRow(item, index, index === 0 ? '0' : '4px'))}
+            {inProgressItems.map((item, index) =>
+              renderInProgressRow(item, index, index === 0 ? '0' : '4px')
+            )}
           </div>
         )}
 
@@ -1236,7 +1261,8 @@ const ToolResultMessage = memo(function ToolResultMessage({
               }}
             >
               {pendingItems.length > 0 && renderHiddenGroup(t.todo.pending, pendingItems, 'muted')}
-              {completedItems.length > 0 && renderHiddenGroup(t.todo.completed, completedItems, 'success')}
+              {completedItems.length > 0 &&
+                renderHiddenGroup(t.todo.completed, completedItems, 'success')}
             </div>
           </div>
         )}
@@ -1245,7 +1271,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
   }
 
   if (message.tool_name === 'ask' || message.tool_name === 'ask_user_question') {
-    const args = message.tool_args as { questions?: Array<{ header: string; question: string }> } | undefined;
+    const args = message.tool_args as
+      | { questions?: Array<{ header: string; question: string }> }
+      | undefined;
     return (
       <AskToolResultCard
         isError={isToolError}
@@ -1261,9 +1289,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const isError = isToolError;
     const lsArgs = message.tool_args || {};
     const skillName =
-      (lsArgs.skill_name as string | undefined) ||
-      (lsArgs.name as string | undefined) ||
-      'skill';
+      (lsArgs.skill_name as string | undefined) || (lsArgs.name as string | undefined) || 'skill';
     let scope: string | null = null;
     const scopeMatch = message.text.match(/<skill\s+[^>]*scope="(\w+)"/);
     if (scopeMatch) scope = scopeMatch[1];
@@ -1273,7 +1299,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
         verb="skill"
         main={<ToolActivityPath path={skillName} />}
         status={activityStatus(isError)}
-        meta={activityMeta(scope === 'project' ? 'proj' : scope === 'global' ? 'global' : undefined)}
+        meta={activityMeta(
+          scope === 'project' ? 'proj' : scope === 'global' ? 'global' : undefined
+        )}
       />
     );
   }
@@ -1283,7 +1311,12 @@ const ToolResultMessage = memo(function ToolResultMessage({
     const cleanToolName = formatToolDisplayName(message.tool_name);
     const summary = message.approvalSummary;
     return wrapCompactRow(
-      { width: '100%', maxWidth: '100%', boxSizing: 'border-box', marginBottom: compactMarginBottom },
+      {
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        marginBottom: compactMarginBottom,
+      },
       <ToolActivityRow
         verb="tool"
         main={

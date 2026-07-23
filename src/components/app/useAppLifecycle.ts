@@ -48,13 +48,16 @@ export function useAppLifecycle(options: UseAppLifecycleOptions): UseAppLifecycl
       // MCP 服务异步自动启动（fire-and-forget），不阻塞 UI
       if (!mcpInitialized.current) {
         mcpInitialized.current = true;
-        mcpClient.startAsync().then((count) => {
-          if (count > 0) {
-            console.warn(`[MCP] 正在后台启动 ${count} 个服务...`);
-          }
-        }).catch((err) => {
-          console.warn('[MCP] 自动启动失败:', err);
-        });
+        mcpClient
+          .startAsync()
+          .then((count) => {
+            if (count > 0) {
+              console.warn(`[MCP] 正在后台启动 ${count} 个服务...`);
+            }
+          })
+          .catch((err) => {
+            console.warn('[MCP] 自动启动失败:', err);
+          });
       }
     }
 

@@ -1,6 +1,6 @@
 /**
  * Zod schemas for AI tool parameter validation
- * 
+ *
  * Provides runtime validation for tool parameters to prevent:
  * - Command injection attacks
  * - Invalid parameter types
@@ -23,7 +23,7 @@ const ToolParametersSchema = z.object({
   action: z.string().optional(),
   timeout: z.number().int().positive().max(600000).optional(), // max 10 minutes
   description: z.string().optional(),
-  
+
   // Tool-specific parameters
   old_string: z.string().optional(),
   new_string: z.string().optional(),
@@ -46,21 +46,33 @@ const ToolParametersSchema = z.object({
   branch: z.string().optional(),
   url: z.string().url().optional(),
   title: z.string().optional(),
-  questions: z.array(z.object({
-    header: z.string().optional(),
-    question: z.string(),
-    options: z.array(z.object({
-      label: z.string(),
-      description: z.string().optional(),
-    })).optional(),
-    multiSelect: z.boolean().optional(),
-    multiple: z.boolean().optional(),
-  })).optional(),
-  todos: z.array(z.object({
-    content: z.string(),
-    status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
-    priority: z.enum(['high', 'medium', 'low']).optional(),
-  })).optional(),
+  questions: z
+    .array(
+      z.object({
+        header: z.string().optional(),
+        question: z.string(),
+        options: z
+          .array(
+            z.object({
+              label: z.string(),
+              description: z.string().optional(),
+            })
+          )
+          .optional(),
+        multiSelect: z.boolean().optional(),
+        multiple: z.boolean().optional(),
+      })
+    )
+    .optional(),
+  todos: z
+    .array(
+      z.object({
+        content: z.string(),
+        status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+        priority: z.enum(['high', 'medium', 'low']).optional(),
+      })
+    )
+    .optional(),
   run_in_background: z.boolean().optional(),
   no_output_expected: z.boolean().optional(),
 });
@@ -112,13 +124,10 @@ const EditFileSchema = ToolParametersSchema.extend({
   old_string: z.string(),
   new_string: z.string(),
   replace_all: z.boolean().optional(),
-}).refine(
-  (data) => data.old_string.trim().length > 0,
-  {
-    message: 'old_string cannot be empty or whitespace only',
-    path: ['old_string'],
-  }
-);
+}).refine((data) => data.old_string.trim().length > 0, {
+  message: 'old_string cannot be empty or whitespace only',
+  path: ['old_string'],
+});
 
 const ReadFileSchema = ToolParametersSchema.extend({
   path: z.union([z.string(), z.array(z.string())]),
@@ -350,41 +359,53 @@ const AgentToolSchema = ToolParametersSchema.extend({
 });
 
 const RunSubagentsSchema = ToolParametersSchema.extend({
-  tasks: z.array(
-    z.object({
-      task: z.string(),
-      context: z.string().optional(),
-      allowed_tools: z.array(z.string()).optional(),
-      model: z.string().optional(),
-      preset: z.string().optional(),
-      subagent_type: z.string().optional(),
-      max_tool_rounds: z.number().int().positive().optional(),
-      context_budget: z.number().int().positive().optional(),
-    })
-  ).min(1),
+  tasks: z
+    .array(
+      z.object({
+        task: z.string(),
+        context: z.string().optional(),
+        allowed_tools: z.array(z.string()).optional(),
+        model: z.string().optional(),
+        preset: z.string().optional(),
+        subagent_type: z.string().optional(),
+        max_tool_rounds: z.number().int().positive().optional(),
+        context_budget: z.number().int().positive().optional(),
+      })
+    )
+    .min(1),
 });
 
 /**
  * Interaction tool schemas
  */
 const AskUserQuestionSchema = ToolParametersSchema.extend({
-  questions: z.array(z.object({
-    header: z.string(),
-    question: z.string(),
-    options: z.array(z.object({
-      label: z.string(),
-      description: z.string().optional(),
-    })),
-    multiSelect: z.boolean().optional(),
-  })).min(1),
+  questions: z
+    .array(
+      z.object({
+        header: z.string(),
+        question: z.string(),
+        options: z.array(
+          z.object({
+            label: z.string(),
+            description: z.string().optional(),
+          })
+        ),
+        multiSelect: z.boolean().optional(),
+      })
+    )
+    .min(1),
 });
 
 const TodoWriteSchema = ToolParametersSchema.extend({
-  todos: z.array(z.object({
-    content: z.string(),
-    status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
-    priority: z.enum(['high', 'medium', 'low']).optional(),
-  })).min(1),
+  todos: z
+    .array(
+      z.object({
+        content: z.string(),
+        status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+        priority: z.enum(['high', 'medium', 'low']).optional(),
+      })
+    )
+    .min(1),
 });
 
 const UpdatePlanSchema = z.object({
@@ -426,11 +447,7 @@ const GraphQuerySchema = ToolParametersSchema.extend({
   pattern: z.string().optional(),
   regex: z.boolean().optional(),
 }).superRefine((data, ctx) => {
-  if (
-    data.action === 'snippet' &&
-    !data.qualified_name?.trim() &&
-    !data.name_pattern?.trim()
-  ) {
+  if (data.action === 'snippet' && !data.qualified_name?.trim() && !data.name_pattern?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'qualified_name or name_pattern is required for snippet',
@@ -448,7 +465,8 @@ const GraphQuerySchema = ToolParametersSchema.extend({
   if (data.action === 'code' && !data.pattern?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'action=code requires `pattern` (text/regex to grep inside symbol bodies, e.g. "TODO")',
+      message:
+        'action=code requires `pattern` (text/regex to grep inside symbol bodies, e.g. "TODO")',
       path: ['pattern'],
     });
   }
@@ -481,7 +499,7 @@ export function validateToolParameters(
 ): { success: true; data: any } | { success: false; error: string } {
   try {
     let schema;
-    
+
     switch (toolName) {
       case 'term':
       case 'terminal':
@@ -584,32 +602,32 @@ export function validateToolParameters(
         // For tools without specific schema, use base validation
         schema = ToolParametersSchema;
     }
-    
+
     const result = schema.safeParse(params);
-    
+
     if (result.success) {
       return { success: true, data: result.data };
     } else {
       // Handle case where result.error might be undefined
       if (result.error && result.error.issues) {
-        const errors = result.error.issues.map(err =>
-          `${err.path.join('.')}: ${err.message}`
-        ).join(', ');
-        return { 
-          success: false, 
-          error: `Validation failed for tool "${toolName}": ${errors}` 
+        const errors = result.error.issues
+          .map((err) => `${err.path.join('.')}: ${err.message}`)
+          .join(', ');
+        return {
+          success: false,
+          error: `Validation failed for tool "${toolName}": ${errors}`,
         };
       } else {
-        return { 
-          success: false, 
-          error: `Validation failed for tool "${toolName}" with unknown error` 
+        return {
+          success: false,
+          error: `Validation failed for tool "${toolName}" with unknown error`,
         };
       }
     }
   } catch (error) {
-    return { 
-      success: false, 
-      error: `Validation error for tool "${toolName}": ${error instanceof Error ? error.message : String(error)}` 
+    return {
+      success: false,
+      error: `Validation error for tool "${toolName}": ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

@@ -90,9 +90,7 @@ describe('Automation types', () => {
         accessMode: 'read_only',
         lastRunAt: '2026-01-01T09:00:00Z',
         nextRunAt: '2026-01-08T09:00:00Z',
-        runHistory: [
-          { runAt: '2026-01-01T09:00:00Z', status: 'succeeded', summary: 'Done' },
-        ],
+        runHistory: [{ runAt: '2026-01-01T09:00:00Z', status: 'succeeded', summary: 'Done' }],
         createdAt: '2025-12-01T00:00:00Z',
         updatedAt: '2026-01-01T09:00:00Z',
       };

@@ -25,13 +25,14 @@ describe('cbmRuntime IPC helpers', () => {
 
   it('invokeWithTimeout rejects when invoke hangs', async () => {
     vi.mocked(invoke).mockImplementation(
-      () => new Promise(() => {
-        /* never resolves */
-      }),
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        })
     );
 
     await expect(invokeWithTimeout('cbm_sidecar_available', undefined, 50)).rejects.toThrow(
-      /timeout/i,
+      /timeout/i
     );
   });
 
@@ -82,10 +83,7 @@ describe('normalizeCbmIndexedProject', () => {
   });
 
   it('produces stable unique keys when repo_path is missing', () => {
-    const list = normalizeCbmIndexedProjects([
-      { displayName: 'a' },
-      { displayName: 'a' },
-    ]);
+    const list = normalizeCbmIndexedProjects([{ displayName: 'a' }, { displayName: 'a' }]);
 
     const keys = list.map((project, index) => cbmIndexedProjectKey(project, index));
     expect(new Set(keys).size).toBe(2);
@@ -140,8 +138,8 @@ describe('parseCbmCliErrorMessage', () => {
   it('extracts error field from CBM JSON payloads', () => {
     expect(
       parseCbmCliErrorMessage(
-        '{"project":"D-project","status":"delete_failed","error":"Permission denied"}',
-      ),
+        '{"project":"D-project","status":"delete_failed","error":"Permission denied"}'
+      )
     ).toBe('Permission denied');
   });
 

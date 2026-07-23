@@ -12,9 +12,9 @@ const g = {
 
 describe('formatGitCommitFailureMessage', () => {
   it('maps author identity', () => {
-    expect(
-      formatGitCommitFailureMessage('fatal: Please tell me who you are.', g),
-    ).toBe('NEED_USER');
+    expect(formatGitCommitFailureMessage('fatal: Please tell me who you are.', g)).toBe(
+      'NEED_USER'
+    );
   });
 
   it('maps nothing to commit', () => {

@@ -28,19 +28,9 @@ export const BROWSER_TOOLS = new Set([
 
 export const GIT_TOOLS = new Set(['get_git_diff', 'undo_changes', 'git']);
 
-export const CREATE_DELETE_TOOLS = new Set([
-  'create_folder',
-  'move_file',
-  'delete_file',
-]);
+export const CREATE_DELETE_TOOLS = new Set(['create_folder', 'move_file', 'delete_file']);
 
-export const WRITE_TOOLS = new Set([
-  'write_file',
-  'edit_file',
-  'write',
-  'edit',
-  'generate_image',
-]);
+export const WRITE_TOOLS = new Set(['write_file', 'edit_file', 'write', 'edit', 'generate_image']);
 
 const PLAN_MODE_BLOCKED_TOOLS = new Set([
   'write_file',
@@ -85,8 +75,7 @@ export function normalizeCapabilities(
   return {
     canExecuteCommands:
       capabilities?.canExecuteCommands ?? DEFAULT_AGENT_CAPABILITIES.canExecuteCommands,
-    canAccessBrowser:
-      capabilities?.canAccessBrowser ?? DEFAULT_AGENT_CAPABILITIES.canAccessBrowser,
+    canAccessBrowser: capabilities?.canAccessBrowser ?? DEFAULT_AGENT_CAPABILITIES.canAccessBrowser,
     canUseGit: capabilities?.canUseGit ?? DEFAULT_AGENT_CAPABILITIES.canUseGit,
     canUseMcp: capabilities?.canUseMcp ?? DEFAULT_AGENT_CAPABILITIES.canUseMcp,
   };
@@ -136,9 +125,18 @@ export function isToolBlockedInPlanMode(toolName: string): boolean {
   if (toolName.startsWith('mcp_')) {
     const normalizedToolName = normalizeToolName(toolName);
     // 常见的 MCP 写入工具名称模式
-    const mcpWritePatterns = ['write', 'edit', 'create', 'delete', 'update', 'save', 'execute', 'run'];
+    const mcpWritePatterns = [
+      'write',
+      'edit',
+      'create',
+      'delete',
+      'update',
+      'save',
+      'execute',
+      'run',
+    ];
     const toolLower = normalizedToolName.toLowerCase();
-    if (mcpWritePatterns.some(pattern => toolLower.includes(pattern))) {
+    if (mcpWritePatterns.some((pattern) => toolLower.includes(pattern))) {
       return true;
     }
   }

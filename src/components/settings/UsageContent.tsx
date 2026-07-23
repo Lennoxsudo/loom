@@ -84,19 +84,15 @@ export function UsageContent() {
   const updateUsageTracking = useUpdateUsageTracking();
 
   const sessionEntries = useMemo(
-    () =>
-      Object.entries(sessions).sort(
-        (a, b) => (b[1].updatedAt ?? 0) - (a[1].updatedAt ?? 0),
-      ),
-    [sessions],
+    () => Object.entries(sessions).sort((a, b) => (b[1].updatedAt ?? 0) - (a[1].updatedAt ?? 0)),
+    [sessions]
   );
   const modelEntries = useMemo(
     () =>
       Object.entries(byModel).sort(
-        (a, b) =>
-          b[1].inputTokens + b[1].outputTokens - (a[1].inputTokens + a[1].outputTokens),
+        (a, b) => b[1].inputTokens + b[1].outputTokens - (a[1].inputTokens + a[1].outputTokens)
       ),
-    [byModel],
+    [byModel]
   );
 
   const sessionTotalPages = Math.max(1, Math.ceil(sessionEntries.length / PAGE_SIZE));
@@ -112,7 +108,7 @@ export function UsageContent() {
 
   const pagedSessions = sessionEntries.slice(
     (sessionPage - 1) * PAGE_SIZE,
-    sessionPage * PAGE_SIZE,
+    sessionPage * PAGE_SIZE
   );
   const pagedModels = modelEntries.slice((modelPage - 1) * PAGE_SIZE, modelPage * PAGE_SIZE);
 

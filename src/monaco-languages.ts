@@ -91,15 +91,21 @@ export function forceRegisterTokenizers() {
   for (const [langId, mod] of Object.entries(LANG_MODULES)) {
     try {
       const existingLangs = languages.getLanguages();
-      if (!existingLangs.some(l => l.id === langId)) {
+      if (!existingLangs.some((l) => l.id === langId)) {
         languages.register({ id: langId });
       }
       if (mod.language) {
-        languages.setMonarchTokensProvider(langId, mod.language as Parameters<typeof languages.setMonarchTokensProvider>[1]);
+        languages.setMonarchTokensProvider(
+          langId,
+          mod.language as Parameters<typeof languages.setMonarchTokensProvider>[1]
+        );
         registered++;
       }
       if (mod.conf) {
-        languages.setLanguageConfiguration(langId, mod.conf as Parameters<typeof languages.setLanguageConfiguration>[1]);
+        languages.setLanguageConfiguration(
+          langId,
+          mod.conf as Parameters<typeof languages.setLanguageConfiguration>[1]
+        );
       }
     } catch {
       // ignore

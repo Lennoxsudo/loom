@@ -37,7 +37,7 @@ export function buildConversationPayload(
   conv: Conversation,
   messages: Message[],
   compactState?: CompactState | null,
-  pendingChanges?: Conversation['pendingChanges'],
+  pendingChanges?: Conversation['pendingChanges']
 ): Conversation {
   const planDocument = exportPlanForSave(conv.id) ?? null;
   return {

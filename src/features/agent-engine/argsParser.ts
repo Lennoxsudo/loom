@@ -41,15 +41,15 @@ export { isAbsolutePath };
 
 /**
  * 尝试提取并修复不完整的 JSON
- * 
+ *
  * 从文本中提取 JSON 片段，如果 JSON 不完整则尝试自动补全。
- * 
+ *
  * @param source - 源文本
  * @returns 提取并可能修复后的 JSON 字符串，如果无法提取则返回 null
  */
 function extractAndFixJson(source: string): string | null {
   const s = source.trim();
-  
+
   // 检查是否有 Markdown 代码块
   const fenceMatch = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
   const input = (fenceMatch?.[1] ?? s).trim();
@@ -106,7 +106,7 @@ function extractAndFixJson(source: string): string | null {
   // JSON 不完整，尝试修复
   // 提取从开始位置到字符串末尾的内容
   let jsonPart = input.slice(start);
-  
+
   // 统计未闭合的括号
   let braceDepth = 0;
   let bracketDepth = 0;
@@ -115,24 +115,24 @@ function extractAndFixJson(source: string): string | null {
 
   for (let i = 0; i < jsonPart.length; i++) {
     const ch = jsonPart[i];
-    
+
     if (escaped) {
       escaped = false;
       continue;
     }
-    
+
     if (ch === '\\') {
       escaped = true;
       continue;
     }
-    
+
     if (ch === '"') {
       inString = !inString;
       continue;
     }
-    
+
     if (inString) continue;
-    
+
     if (ch === '{') braceDepth++;
     else if (ch === '}') braceDepth--;
     else if (ch === '[') bracketDepth++;
@@ -159,17 +159,17 @@ function extractAndFixJson(source: string): string | null {
 
 /**
  * 解析工具参数字符串
- * 
+ *
  * 支持多种格式：
  * - 标准 JSON 格式
  * - 不完整的 JSON（自动补全闭合括号）
  * - Markdown 代码块包裹的 JSON
  * - 键值对格式 (key=value)
- * 
+ *
  * @param argsStr - 参数字符串
  * @returns 解析后的参数对象
  * @throws 如果无法解析则抛出错误
- * 
+ *
  * @example
  * ```typescript
  * parseToolArguments('{"path": "/test"}'); // { path: '/test' }
@@ -206,8 +206,10 @@ export function parseToolArguments(argsStr: string): unknown {
       if (eqIdx > 0) {
         const key = pair.slice(0, eqIdx);
         let value = pair.slice(eqIdx + 1);
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
           value = value.slice(1, -1);
         }
         obj[key] = value;

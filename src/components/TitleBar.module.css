@@ -87,7 +87,9 @@
   cursor: pointer;
   font-size: 13px;
   color: var(--text-primary);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .dropdownItem:hover {
@@ -108,7 +110,9 @@
   border-radius: 3px;
   font-size: 11px;
   -webkit-app-region: no-drag;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
   margin-right: 4px;
 }
 

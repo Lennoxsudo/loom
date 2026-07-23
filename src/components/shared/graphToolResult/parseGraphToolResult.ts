@@ -17,15 +17,14 @@ function detectGraphToolError(text: string, isError?: boolean): boolean {
   if (isError === true) return true;
   const summary = stripCodeFences(text);
   return (
-    summary.startsWith('❌')
-    || summary.includes('错误:')
-    || summary.includes('执行失败')
-    || summary.includes('索引超时')
-    || summary.includes('代码图谱')
-    && summary.includes('失败')
-    || summary.toLowerCase().includes('failed')
-    || summary.toLowerCase().includes('error:')
-    || summary.toLowerCase().includes('timeout')
+    summary.startsWith('❌') ||
+    summary.includes('错误:') ||
+    summary.includes('执行失败') ||
+    summary.includes('索引超时') ||
+    (summary.includes('代码图谱') && summary.includes('失败')) ||
+    summary.toLowerCase().includes('failed') ||
+    summary.toLowerCase().includes('error:') ||
+    summary.toLowerCase().includes('timeout')
   );
 }
 
@@ -39,7 +38,10 @@ function parseHeader(text: string): { tool?: GraphToolName; action?: string; bod
 }
 
 function parseMarkdownTable(body: string): GraphToolResultTable | undefined {
-  const lines = body.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
   const headerIdx = lines.findIndex((line) => line.startsWith('|') && line.endsWith('|'));
   if (headerIdx === -1 || headerIdx + 1 >= lines.length) return undefined;
 
@@ -59,14 +61,13 @@ function parseMarkdownTable(body: string): GraphToolResultTable | undefined {
       line
         .slice(1, -1)
         .split('|')
-        .map((cell) => cell.trim()),
+        .map((cell) => cell.trim())
     );
   }
 
   if (headers.length === 0) return undefined;
 
-  const countMatch = body.match(/Found\s+(\d+)\s+/i)
-    || body.match(/Detected\s+(\d+)\s+/i);
+  const countMatch = body.match(/Found\s+(\d+)\s+/i) || body.match(/Detected\s+(\d+)\s+/i);
   const total = countMatch ? Number(countMatch[1]) : rows.length;
 
   return { headers, rows, total };
@@ -140,13 +141,15 @@ function parseSections(body: string): GraphToolResultSection[] {
 function isEmptyBody(body: string): boolean {
   const normalized = body.trim();
   if (!normalized) return true;
-  return /^_(No [^._]+|No data returned)\._$/i.test(normalized)
-    || normalized.includes('No symbols found')
-    || normalized.includes('No results')
-    || normalized.includes('No indexed projects')
-    || normalized.includes('No changes detected')
-    || normalized.includes('No call chain found')
-    || normalized.includes('No code matches found');
+  return (
+    /^_(No [^._]+|No data returned)\._$/i.test(normalized) ||
+    normalized.includes('No symbols found') ||
+    normalized.includes('No results') ||
+    normalized.includes('No indexed projects') ||
+    normalized.includes('No changes detected') ||
+    normalized.includes('No call chain found') ||
+    normalized.includes('No code matches found')
+  );
 }
 
 function truncateMeta(value: string, max = 72): string {
@@ -167,7 +170,7 @@ function enrichSummaryFromArgs(
   tool: GraphToolName,
   action: string,
   summary: string,
-  toolArgs?: Record<string, unknown>,
+  toolArgs?: Record<string, unknown>
 ): string {
   if (summary.toLowerCase() !== action.toLowerCase()) return summary;
 
@@ -193,7 +196,9 @@ function enrichSummaryFromArgs(
 }
 
 function countSectionItems(sections: GraphToolResultSection[], titleIncludes: string): number {
-  const section = sections.find((item) => item.title.toLowerCase().includes(titleIncludes.toLowerCase()));
+  const section = sections.find((item) =>
+    item.title.toLowerCase().includes(titleIncludes.toLowerCase())
+  );
   if (!section) return 0;
   if (section.items.length === 1 && section.items[0].toLowerCase().includes('none')) return 0;
   return section.items.length;
@@ -210,7 +215,7 @@ function buildSummary(
     stats: GraphToolResultStat[];
     isEmpty: boolean;
     isError: boolean;
-  },
+  }
 ): string {
   if (parsed.isError) return 'Failed';
 
@@ -276,14 +281,17 @@ function buildSummary(
       const nodes = parsed.stats.find((s) => s.label === 'Nodes')?.value;
       const edges = parsed.stats.find((s) => s.label === 'Edges')?.value;
       if (nodes || edges) {
-        return [nodes ? `${nodes} nodes` : '', edges ? `${edges} edges` : ''].filter(Boolean).join(' · ');
+        return [nodes ? `${nodes} nodes` : '', edges ? `${edges} edges` : '']
+          .filter(Boolean)
+          .join(' · ');
       }
     }
     if (action === 'changes') {
       const match = body.match(/Detected\s+(\d+)\s+changed file/i);
       if (match) return `${match[1]} changed file${match[1] === '1' ? '' : 's'}`;
       const listSection = parsed.sections[0];
-      if (listSection) return `${listSection.items.length} changed file${listSection.items.length === 1 ? '' : 's'}`;
+      if (listSection)
+        return `${listSection.items.length} changed file${listSection.items.length === 1 ? '' : 's'}`;
     }
   }
 
@@ -293,7 +301,9 @@ function buildSummary(
   return action;
 }
 
-export function parseGraphToolResult(input: ParseGraphToolResultInput): GraphToolResultViewModel | null {
+export function parseGraphToolResult(
+  input: ParseGraphToolResultInput
+): GraphToolResultViewModel | null {
   const toolFromName = isGraphToolName(input.toolName) ? input.toolName : undefined;
   if (!toolFromName && !input.text.includes('graph_')) return null;
 
@@ -311,19 +321,20 @@ export function parseGraphToolResult(input: ParseGraphToolResultInput): GraphToo
   const stats = parseStats(body);
   const sections = parseSections(body);
 
-  const hasStructured = Boolean(
-    table
-    || codeBlock
-    || stats.length > 0
-    || sections.length > 0,
-  );
+  const hasStructured = Boolean(table || codeBlock || stats.length > 0 || sections.length > 0);
 
   let rawBody: string | undefined;
   if (!hasStructured && body.trim()) {
     rawBody = body;
   }
 
-  if (tool === 'graph_trace' && action === 'changes' && !table && sections.length === 0 && body.includes('- `')) {
+  if (
+    tool === 'graph_trace' &&
+    action === 'changes' &&
+    !table &&
+    sections.length === 0 &&
+    body.includes('- `')
+  ) {
     const items = body
       .split('\n')
       .map((line) => line.trim())
@@ -345,7 +356,7 @@ export function parseGraphToolResult(input: ParseGraphToolResultInput): GraphToo
       isEmpty,
       isError,
     }),
-    input.toolArgs,
+    input.toolArgs
   );
 
   return {

@@ -144,8 +144,14 @@ function compareFileNodes(
   }
 
   if (sortBy === 'modified') {
-    const am = typeof (a as { modified_at?: number }).modified_at === 'number' ? (a as { modified_at?: number }).modified_at : 0;
-    const bm = typeof (b as { modified_at?: number }).modified_at === 'number' ? (b as { modified_at?: number }).modified_at : 0;
+    const am =
+      typeof (a as { modified_at?: number }).modified_at === 'number'
+        ? (a as { modified_at?: number }).modified_at
+        : 0;
+    const bm =
+      typeof (b as { modified_at?: number }).modified_at === 'number'
+        ? (b as { modified_at?: number }).modified_at
+        : 0;
     if (am !== bm) return (bm ?? 0) - (am ?? 0);
     return compareText(a.name, b.name);
   }

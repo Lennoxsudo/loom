@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { appendThinkingStreamChunk, countStreamTextUnits, takeStreamTextUnits } from './streamTextUnits';
+import {
+  appendThinkingStreamChunk,
+  countStreamTextUnits,
+  takeStreamTextUnits,
+} from './streamTextUnits';
 
 function hasLoneSurrogate(text: string): boolean {
   for (let i = 0; i < text.length; i++) {

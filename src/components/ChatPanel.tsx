@@ -16,14 +16,16 @@ import { extractVisionCapabilities } from '../utils/visionCapabilities';
 import { useToolStore } from '../stores/useToolStore';
 import { useRulesStore } from '../stores/useRulesStore';
 import { useUsageStore } from '../stores/useUsageStore';
-import { useAgentAccessMode, useStreamSpeed, useEnableCodeGraph, useEnableCdpBrowser } from '../stores';
+import {
+  useAgentAccessMode,
+  useStreamSpeed,
+  useEnableCodeGraph,
+  useEnableCdpBrowser,
+} from '../stores';
 import { estimateTokens, estimateMessageTokens } from '../utils/contextBudget';
 import { useTranslation } from '../i18n';
 import { logDebug, isTauriCancellationError } from '../utils/errorHandling';
-import {
-  isBuiltinProtocol,
-  resolveBuiltinStreamError,
-} from '../utils/builtinGateway';
+import { isBuiltinProtocol, resolveBuiltinStreamError } from '../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../stores/useBuiltinGatewayStore';
 import styles from './ChatPanel.module.css';
 import {
@@ -316,15 +318,17 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   });
   const streamCompletionCoordinatorRef = useRef<StreamCompletionCoordinator | null>(null);
   if (!streamCompletionCoordinatorRef.current) {
-    streamCompletionCoordinatorRef.current = new StreamCompletionCoordinator(flushQueuedChunksForMessage);
+    streamCompletionCoordinatorRef.current = new StreamCompletionCoordinator(
+      flushQueuedChunksForMessage
+    );
   }
 
   const [pendingQuestionsByConversation, setPendingQuestionsByConversation] = useState<
     Record<string, QuestionInput[]>
   >({});
-  const resolveQuestionsByConversationRef = useRef<
-    Record<string, (answers: UserAnswer[]) => void>
-  >({});
+  const resolveQuestionsByConversationRef = useRef<Record<string, (answers: UserAnswer[]) => void>>(
+    {}
+  );
 
   const handleCancelPendingQuestions = useCallback(() => {
     const conversationId = currentConversationRef.current?.id;
@@ -385,16 +389,11 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
 
   /** Non-blocking: show plan panel and end the agent turn (handled in tool loop). */
   const handleExitPlanMode = useCallback(
-    (req: {
-      conversationId: string;
-      agentId?: string;
-      plan: string;
-      title?: string;
-    }) => {
+    (req: { conversationId: string; agentId?: string; plan: string; title?: string }) => {
       setPlanReviewConversationId(req.conversationId);
       void saveCurrentConversationRef.current?.();
     },
-    [],
+    []
   );
 
   /** User accepted the plan — switch to execute and start a new turn. */
@@ -419,13 +418,10 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         void handleSendMessageRef.current?.();
       }, 80);
     },
-    [planReviewConversationId],
+    [planReviewConversationId]
   );
 
-  const {
-    handleStop,
-    stopTimeoutRef,
-  } = useStopHandler({
+  const { handleStop, stopTimeoutRef } = useStopHandler({
     currentAssistantMessageId,
     setCurrentAssistantMessageId,
     setIsLoading,
@@ -436,18 +432,15 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     canceledMessageIdsRef,
     ownedStreamMessageIdsRef,
     flushQueuedChunksForMessage,
-    cancelStreamCompletion: (messageId) => streamCompletionCoordinatorRef.current?.cancel(messageId),
+    cancelStreamCompletion: (messageId) =>
+      streamCompletionCoordinatorRef.current?.cancel(messageId),
     setMessages,
     setError,
     autoSaveTimeoutRef,
     saveCurrentConversationRef,
   });
 
-  const {
-    handleToolCallsRef,
-    approvePendingToolCalls,
-    denyPendingToolCalls,
-  } = useToolCalls({
+  const { handleToolCallsRef, approvePendingToolCalls, denyPendingToolCalls } = useToolCalls({
     chatRuntimeRef,
     toolsEnabled,
     allConfiguredTools,
@@ -495,11 +488,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     t,
   });
 
-  const {
-    acceptPendingChange,
-    rejectPendingChange,
-    acceptAllPendingChanges,
-  } = usePendingChanges({
+  const { acceptPendingChange, rejectPendingChange, acceptAllPendingChanges } = usePendingChanges({
     setPendingChanges,
     setError,
     projectPathRef,
@@ -573,7 +562,16 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     return () => {
       cancelled = true;
     };
-  }, [chatMode, chatRules, effectiveProvider, getProviderToolsForChat, isAutoRouting, messages, projectPath, selectedModel]);
+  }, [
+    chatMode,
+    chatRules,
+    effectiveProvider,
+    getProviderToolsForChat,
+    isAutoRouting,
+    messages,
+    projectPath,
+    selectedModel,
+  ]);
 
   const {
     conversations,
@@ -633,8 +631,11 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     setPendingChanges,
   });
 
-  const { overlayInset: bottomOverlayInset, resizeKey: bottomDockRevision, handleOverlayChange } =
-    useBottomDockLayout(bottomDockRef, currentConversation?.id);
+  const {
+    overlayInset: bottomOverlayInset,
+    resizeKey: bottomDockRevision,
+    handleOverlayChange,
+  } = useBottomDockLayout(bottomDockRef, currentConversation?.id);
 
   useEffect(() => {
     currentConversationRef.current = currentConversation;
@@ -778,7 +779,13 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     if (streamChunkQueueRef.current.length > 0) {
       // Timer already managed by ensureStreamChunkTimer
     }
-  }, [streamSpeed, flushAllQueuedChunks, stopStreamChunkTimer, streamChunkTimerRef, streamChunkQueueRef]);
+  }, [
+    streamSpeed,
+    flushAllQueuedChunks,
+    stopStreamChunkTimer,
+    streamChunkTimerRef,
+    streamChunkQueueRef,
+  ]);
 
   useEffect(() => {
     chatModeRef.current = chatMode;
@@ -824,9 +831,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             }
           }
           setAvailableModels(models);
-          setSelectedModel((prev) =>
-            prev && models.includes(prev) ? prev : models[0] || ''
-          );
+          setSelectedModel((prev) => (prev && models.includes(prev) ? prev : models[0] || ''));
         } catch (error) {
           console.error('加载内置模型列表失败:', error);
         }
@@ -1020,199 +1025,199 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         cache_read_input_tokens?: number;
         cache_creation_input_tokens?: number;
       };
-    }>(
-      'ai-stream-complete',
-      (event) => {
-        const { message_id, tool_calls, usage, provider, model } = event.payload;
+    }>('ai-stream-complete', (event) => {
+      const { message_id, tool_calls, usage, provider, model } = event.payload;
 
-        if (!ownedStreamMessageIdsRef.current.has(message_id)) {
+      if (!ownedStreamMessageIdsRef.current.has(message_id)) {
+        return;
+      }
+
+      // 用量/成本追踪：Chat 页面只记录 token 数，不计算费用（费用不明确）
+      if (usage) {
+        useUsageStore.getState().addUsage({
+          sessionKey: currentConversationRef.current?.id,
+          provider,
+          model,
+          input: usage.input_tokens,
+          output: usage.output_tokens,
+          cacheRead: usage.cache_read_input_tokens,
+          cacheWrite: usage.cache_creation_input_tokens,
+          skipCost: true,
+        });
+      }
+
+      let pseudoToolCalls: ToolCall[] = [];
+      let finalToolCalls: ToolCall[] | undefined;
+
+      const extractPseudoToolCalls = (content: string): ToolCall[] => {
+        const result: ToolCall[] = [];
+        const toolNames = new Set(allConfiguredTools.map((t) => t.name));
+        const regex = /\[Tool:\s*([a-zA-Z0-9_]+)(?:\s*\(([^)]*)\))?\]\s*\n?/g;
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(content)) != null) {
+          let name = match[1];
+          const idHint = (match[2] || '').trim();
+          if (!toolNames.has(name)) {
+            const bestMatch = findBestToolMatch(name, Array.from(toolNames));
+            if (bestMatch) {
+              name = bestMatch;
+            } else {
+              continue;
+            }
+          }
+
+          const startIndex = regex.lastIndex;
+          const nextMatch = regex.exec(content);
+          const endIndex = nextMatch ? nextMatch.index : content.length;
+
+          const slice = content.slice(startIndex, endIndex).trim();
+          let args: unknown = {};
+          if (slice) {
+            const firstBrace = slice.indexOf('{');
+            const lastBrace = slice.lastIndexOf('}');
+            const jsonCandidate =
+              firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace
+                ? slice.slice(firstBrace, lastBrace + 1)
+                : slice;
+            try {
+              args = JSON.parse(jsonCandidate);
+            } catch {
+              args = {};
+            }
+          }
+
+          const id =
+            idHint && !idHint.includes(' ')
+              ? idHint
+              : `pseudo-${name}-${Date.now()}-${result.length}`;
+          result.push({
+            id,
+            type: 'function',
+            function: {
+              name,
+              arguments: JSON.stringify(args),
+            },
+          });
+
+          if (nextMatch) {
+            regex.lastIndex = nextMatch.index;
+          }
+        }
+
+        return result;
+      };
+
+      const finalizeCompletion = () => {
+        if (!isMountedRef.current) return;
+
+        if (canceledMessageIdsRef.current.has(message_id)) {
+          flushQueuedChunksForMessage(message_id);
+          setMessages((prev) => finalizeStoppedMessage(prev, message_id));
+          ownedStreamMessageIdsRef.current.delete(message_id);
+          setIsLoading(false);
+          setIsStopping(false);
           return;
         }
 
-        // 用量/成本追踪：Chat 页面只记录 token 数，不计算费用（费用不明确）
-        if (usage) {
-          useUsageStore.getState().addUsage({
-            sessionKey: currentConversationRef.current?.id,
-            provider,
-            model,
-            input: usage.input_tokens,
-            output: usage.output_tokens,
-            cacheRead: usage.cache_read_input_tokens,
-            cacheWrite: usage.cache_creation_input_tokens,
-            skipCost: true,
+        if (tool_calls && tool_calls.length > 0) {
+          const validNames = allConfiguredTools.map((t) => t.name);
+          finalToolCalls = tool_calls.map((tc) => {
+            if (validNames.includes(tc.function.name)) return tc;
+            const match = findBestToolMatch(tc.function.name, validNames);
+            if (match) {
+              logDebug(`工具名称修正: ${tc.function.name} → ${match}`, 'ChatPanel');
+              return { ...tc, function: { ...tc.function, name: match } };
+            }
+            return tc;
           });
+          logDebug('AI请求使用工具: ' + JSON.stringify(finalToolCalls), 'ChatPanel');
+        } else {
+          const currentMsg = messagesRef.current.find((m) => m.id === message_id);
+          const msgContent = currentMsg?.content;
+          if (typeof msgContent === 'string' && msgContent.includes('[Tool:')) {
+            pseudoToolCalls = extractPseudoToolCalls(msgContent);
+            if (pseudoToolCalls.length > 0) {
+              finalToolCalls = pseudoToolCalls;
+              logDebug(
+                'AI请求使用工具(解析自文本): ' + JSON.stringify(pseudoToolCalls),
+                'ChatPanel'
+              );
+            }
+          }
         }
 
-        let pseudoToolCalls: ToolCall[] = [];
-        let finalToolCalls: ToolCall[] | undefined;
+        setMessages((prev) => {
+          const index = prev.findIndex((m) => m.id === message_id);
+          if (index === -1) return prev;
 
-        const extractPseudoToolCalls = (content: string): ToolCall[] => {
-          const result: ToolCall[] = [];
-          const toolNames = new Set(allConfiguredTools.map((t) => t.name));
-          const regex = /\[Tool:\s*([a-zA-Z0-9_]+)(?:\s*\(([^)]*)\))?\]\s*\n?/g;
-          let match: RegExpExecArray | null;
+          const updated = [...prev];
+          const message = { ...updated[index] };
+          message.isStreaming = false;
+          message.endTime = Date.now();
 
-          while ((match = regex.exec(content)) != null) {
-            let name = match[1];
-            const idHint = (match[2] || '').trim();
-            if (!toolNames.has(name)) {
-              const bestMatch = findBestToolMatch(name, Array.from(toolNames));
-              if (bestMatch) {
-                name = bestMatch;
-              } else {
-                continue;
-              }
-            }
-
-            const startIndex = regex.lastIndex;
-            const nextMatch = regex.exec(content);
-            const endIndex = nextMatch ? nextMatch.index : content.length;
-
-            const slice = content.slice(startIndex, endIndex).trim();
-            let args: unknown = {};
-            if (slice) {
-              const firstBrace = slice.indexOf('{');
-              const lastBrace = slice.lastIndexOf('}');
-              const jsonCandidate =
-                firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace
-                  ? slice.slice(firstBrace, lastBrace + 1)
-                  : slice;
-              try {
-                args = JSON.parse(jsonCandidate);
-              } catch {
-                args = {};
-              }
-            }
-
-            const id =
-              idHint && !idHint.includes(' ')
-                ? idHint
-                : `pseudo-${name}-${Date.now()}-${result.length}`;
-            result.push({
-              id,
-              type: 'function',
-              function: {
-                name,
-                arguments: JSON.stringify(args),
-              },
-            });
-
-            if (nextMatch) {
-              regex.lastIndex = nextMatch.index;
-            }
-          }
-
-          return result;
-        };
-
-        const finalizeCompletion = () => {
-          if (!isMountedRef.current) return;
-
-          if (canceledMessageIdsRef.current.has(message_id)) {
-            flushQueuedChunksForMessage(message_id);
-            setMessages((prev) => finalizeStoppedMessage(prev, message_id));
-            ownedStreamMessageIdsRef.current.delete(message_id);
-            setIsLoading(false);
-            setIsStopping(false);
-            return;
-          }
-
-          if (tool_calls && tool_calls.length > 0) {
-            const validNames = allConfiguredTools.map((t) => t.name);
-            finalToolCalls = tool_calls.map((tc) => {
-              if (validNames.includes(tc.function.name)) return tc;
-              const match = findBestToolMatch(tc.function.name, validNames);
-              if (match) {
-                logDebug(`工具名称修正: ${tc.function.name} → ${match}`, 'ChatPanel');
-                return { ...tc, function: { ...tc.function, name: match } };
-              }
-              return tc;
-            });
-            logDebug('AI请求使用工具: ' + JSON.stringify(finalToolCalls), 'ChatPanel');
-          } else {
-            const currentMsg = messagesRef.current.find((m) => m.id === message_id);
-            const msgContent = currentMsg?.content;
-            if (typeof msgContent === 'string' && msgContent.includes('[Tool:')) {
-              pseudoToolCalls = extractPseudoToolCalls(msgContent);
-              if (pseudoToolCalls.length > 0) {
-                finalToolCalls = pseudoToolCalls;
-                logDebug('AI请求使用工具(解析自文本): ' + JSON.stringify(pseudoToolCalls), 'ChatPanel');
-              }
-            }
-          }
-
-          setMessages((prev) => {
-            const index = prev.findIndex((m) => m.id === message_id);
-            if (index === -1) return prev;
-
-            const updated = [...prev];
-            const message = { ...updated[index] };
-            message.isStreaming = false;
-            message.endTime = Date.now();
-
-            const rawContent = message.rawContent ?? message.content ?? '';
-            const rawThinking = message.rawThinking ?? message.thinking ?? '';
-            const separated = finalizeStreamMessage({
-              rawContent,
-              rawThinking,
-              streamContent: message.content,
-              streamThinking: message.thinking,
-              receivedThinkingChunks: message.receivedThinkingChunks,
-              hasToolCalls: Boolean(finalToolCalls && finalToolCalls.length > 0),
-            });
-            message.content = separated.content;
-            message.thinking = separated.thinking;
-            message.isThinking = false;
-
-            if (message.thinking) {
-              if (!message.thinkingStartedAt) {
-                message.thinkingStartedAt = message.firstChunkTime ?? message.startTime;
-              }
-              if (!message.thinkingEndedAt) {
-                message.thinkingEndedAt = message.firstContentTime ?? message.endTime;
-              }
-            }
-
-            if (finalToolCalls && finalToolCalls.length > 0) {
-              message.tool_calls = finalToolCalls;
-            }
-
-            const contentTokens = estimateMessageTokens({
-              role: message.role,
-              content: message.content,
-            });
-            const thinkingTokens = message.thinking ? estimateTokens(message.thinking) : 0;
-            message.tokens = contentTokens + thinkingTokens;
-
-            updated[index] = message;
-            // Keep ref in lockstep for tool-loop saves (useEffect lags one frame).
-            messagesRef.current = updated;
-            return updated;
+          const rawContent = message.rawContent ?? message.content ?? '';
+          const rawThinking = message.rawThinking ?? message.thinking ?? '';
+          const separated = finalizeStreamMessage({
+            rawContent,
+            rawThinking,
+            streamContent: message.content,
+            streamThinking: message.thinking,
+            receivedThinkingChunks: message.receivedThinkingChunks,
+            hasToolCalls: Boolean(finalToolCalls && finalToolCalls.length > 0),
           });
+          message.content = separated.content;
+          message.thinking = separated.thinking;
+          message.isThinking = false;
 
-          // Always snapshot after a stream finishes (with or without tools).
-          // Previously only non-tool completions were saved, so plan-mode tool
-          // turns vanished if the app closed while exit_plan_mode was waiting.
-          if (autoSaveTimeoutRef.current != null) {
-            window.clearTimeout(autoSaveTimeoutRef.current);
+          if (message.thinking) {
+            if (!message.thinkingStartedAt) {
+              message.thinkingStartedAt = message.firstChunkTime ?? message.startTime;
+            }
+            if (!message.thinkingEndedAt) {
+              message.thinkingEndedAt = message.firstContentTime ?? message.endTime;
+            }
           }
-          autoSaveTimeoutRef.current = window.setTimeout(() => {
-            if (!isMountedRef.current) return;
-            void saveCurrentConversation();
-          }, 300);
 
           if (finalToolCalls && finalToolCalls.length > 0) {
-            handleToolCallsRef.current?.(finalToolCalls);
-          } else {
-            setIsLoading(false);
+            message.tool_calls = finalToolCalls;
           }
 
-          ownedStreamMessageIdsRef.current.delete(message_id);
-        };
+          const contentTokens = estimateMessageTokens({
+            role: message.role,
+            content: message.content,
+          });
+          const thinkingTokens = message.thinking ? estimateTokens(message.thinking) : 0;
+          message.tokens = contentTokens + thinkingTokens;
 
-        streamCompletionCoordinatorRef.current?.complete(message_id, finalizeCompletion);
-      }
-    );
+          updated[index] = message;
+          // Keep ref in lockstep for tool-loop saves (useEffect lags one frame).
+          messagesRef.current = updated;
+          return updated;
+        });
+
+        // Always snapshot after a stream finishes (with or without tools).
+        // Previously only non-tool completions were saved, so plan-mode tool
+        // turns vanished if the app closed while exit_plan_mode was waiting.
+        if (autoSaveTimeoutRef.current != null) {
+          window.clearTimeout(autoSaveTimeoutRef.current);
+        }
+        autoSaveTimeoutRef.current = window.setTimeout(() => {
+          if (!isMountedRef.current) return;
+          void saveCurrentConversation();
+        }, 300);
+
+        if (finalToolCalls && finalToolCalls.length > 0) {
+          handleToolCallsRef.current?.(finalToolCalls);
+        } else {
+          setIsLoading(false);
+        }
+
+        ownedStreamMessageIdsRef.current.delete(message_id);
+      };
+
+      streamCompletionCoordinatorRef.current?.complete(message_id, finalizeCompletion);
+    });
 
     const unlistenToolExecuted = listen<{
       message_id: string;
@@ -1224,10 +1229,18 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       total_rounds_so_far: number;
     }>('ai-tool-executed', (event) => {
       if (!isMountedRef.current) return;
-      
-      const { message_id, tool_name, tool_call_id, result_preview, success, round, total_rounds_so_far } = event.payload;
-      
-      setMessages((prev) => 
+
+      const {
+        message_id,
+        tool_name,
+        tool_call_id,
+        result_preview,
+        success,
+        round,
+        total_rounds_so_far,
+      } = event.payload;
+
+      setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === message_id) {
             const newExecutedTool = {
@@ -1352,11 +1365,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
 
         const anchorIndex = prev.findIndex((message) => message.id === message_id);
         if (anchorIndex >= 0) {
-          return [
-            ...prev.slice(0, anchorIndex),
-            noticeMessage,
-            ...prev.slice(anchorIndex),
-          ];
+          return [...prev.slice(0, anchorIndex), noticeMessage, ...prev.slice(anchorIndex)];
         }
         return [...prev, noticeMessage];
       });
@@ -1400,8 +1409,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     return () => window.removeEventListener(CHAT_NEW_CONVERSATION_EVENT, handler as EventListener);
   }, [createNewConversation]);
 
-  const showPendingChangesBar =
-    pendingChanges.length > 0 && !isLoading && !isStopping;
+  const showPendingChangesBar = pendingChanges.length > 0 && !isLoading && !isStopping;
 
   const handleOpenPendingChangeFile = useCallback((filePath: string) => {
     window.dispatchEvent(
@@ -1423,7 +1431,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const chatConversationId = currentConversation?.id ?? '';
   const chatPlanVisible = usePlanDocumentVisible(chatConversationId || null);
   const chatPlanForceExpand = Boolean(
-    chatConversationId && planReviewConversationId === chatConversationId,
+    chatConversationId && planReviewConversationId === chatConversationId
   );
   // Anchored after the plan-tool turn inside the message list (not sticky list end).
   const chatPlanSlot = useMemo(() => {
@@ -1513,10 +1521,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     if (!currentConversation) return;
     const meta = conversations.find((conv) => conv.id === currentConversation.id);
     if (!meta) return;
-    requestDeleteConversation(
-      { stopPropagation: () => undefined } as React.MouseEvent,
-      meta
-    );
+    requestDeleteConversation({ stopPropagation: () => undefined } as React.MouseEvent, meta);
   }, [conversations, currentConversation, requestDeleteConversation]);
 
   return (
@@ -1574,7 +1579,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           style={{
             padding: '10px 14px',
             backgroundColor: 'color-mix(in srgb, var(--text-error) 10%, var(--bg-app))',
-            borderBottom: '1px solid color-mix(in srgb, var(--text-error) 24%, var(--border-primary))',
+            borderBottom:
+              '1px solid color-mix(in srgb, var(--text-error) 24%, var(--border-primary))',
             color: 'var(--text-error)',
             fontSize: '12px',
             display: 'flex',
@@ -1655,77 +1661,79 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         )}
 
         <ComposerQuestionAnchor
-        questions={
-          currentConversation?.id ? pendingQuestionsByConversation[currentConversation.id] : undefined
-        }
-        onSubmit={handleSubmitPendingQuestions}
-        onCancel={handleCancelPendingQuestions}
-      >
-        <ChatInputArea
-          inputValue={inputValue}
-          setInputValue={setInputValue}
-          isLoading={isLoading}
-          isStopping={isStopping}
-          canSend={canSend}
-          showStop={showStop}
-          modelMissing={modelMissing}
-          visionBlocked={visionBlocked}
-          isDragOver={isDragOver}
-          isOverChatAttach={isOverChatAttach}
-          attachedFiles={attachedFiles}
-          attachedImages={attachedImages}
-          textareaRef={textareaRef}
-          inputCardRef={inputCardRef}
-          setChatAttachRef={setChatAttachRef}
-          handleDragOver={handleDragOver}
-          handleDragLeave={handleDragLeave}
-          handleDrop={handleDrop}
-          handleInputPaste={handleInputPaste}
-          removeFileFromContext={removeFileFromContext}
-          removeImageFromContext={removeImageFromContext}
-          handleSendMessage={handleSendMessage}
-          handleStop={handleStop}
-          onPickAttachFiles={handlePickAttachFiles}
-          invocableSkills={invocableSkills}
-          metaLeft={
-            <TokenRingIndicator
-              safeTotalTokens={safeTotalTokens}
-              ctxPercent={ctxPercent}
-              MAX_CONTEXT_TOKENS={MAX_CONTEXT_TOKENS}
-              showInlineUsage={false}
-              t={t}
-            />
+          questions={
+            currentConversation?.id
+              ? pendingQuestionsByConversation[currentConversation.id]
+              : undefined
           }
-          metaToolbarRight={
-            <ChatModeToggle
-              chatMode={chatMode}
-              setChatMode={setChatMode}
-              variant="composer"
-              compact
-              t={t}
-            />
-          }
-          metaRight={
-            <ProviderModelSelector
-              selectedProtocol={protocolSelection}
-              onSelectProtocol={setProtocolSelection}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              availableModels={availableModels}
-              isDropdownOpen={isDropdownOpen}
-              setIsDropdownOpen={setIsDropdownOpen}
-              isModelDropdownOpen={isModelDropdownOpen}
-              setIsModelDropdownOpen={setIsModelDropdownOpen}
-              dropdownRef={dropdownRef}
-              modelDropdownRef={modelDropdownRef}
-              autoRoutingLabel={t.agent.autoRouting}
-              variant="ghost"
-              t={t}
-            />
-          }
-          t={t}
-        />
-      </ComposerQuestionAnchor>
+          onSubmit={handleSubmitPendingQuestions}
+          onCancel={handleCancelPendingQuestions}
+        >
+          <ChatInputArea
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            isLoading={isLoading}
+            isStopping={isStopping}
+            canSend={canSend}
+            showStop={showStop}
+            modelMissing={modelMissing}
+            visionBlocked={visionBlocked}
+            isDragOver={isDragOver}
+            isOverChatAttach={isOverChatAttach}
+            attachedFiles={attachedFiles}
+            attachedImages={attachedImages}
+            textareaRef={textareaRef}
+            inputCardRef={inputCardRef}
+            setChatAttachRef={setChatAttachRef}
+            handleDragOver={handleDragOver}
+            handleDragLeave={handleDragLeave}
+            handleDrop={handleDrop}
+            handleInputPaste={handleInputPaste}
+            removeFileFromContext={removeFileFromContext}
+            removeImageFromContext={removeImageFromContext}
+            handleSendMessage={handleSendMessage}
+            handleStop={handleStop}
+            onPickAttachFiles={handlePickAttachFiles}
+            invocableSkills={invocableSkills}
+            metaLeft={
+              <TokenRingIndicator
+                safeTotalTokens={safeTotalTokens}
+                ctxPercent={ctxPercent}
+                MAX_CONTEXT_TOKENS={MAX_CONTEXT_TOKENS}
+                showInlineUsage={false}
+                t={t}
+              />
+            }
+            metaToolbarRight={
+              <ChatModeToggle
+                chatMode={chatMode}
+                setChatMode={setChatMode}
+                variant="composer"
+                compact
+                t={t}
+              />
+            }
+            metaRight={
+              <ProviderModelSelector
+                selectedProtocol={protocolSelection}
+                onSelectProtocol={setProtocolSelection}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                availableModels={availableModels}
+                isDropdownOpen={isDropdownOpen}
+                setIsDropdownOpen={setIsDropdownOpen}
+                isModelDropdownOpen={isModelDropdownOpen}
+                setIsModelDropdownOpen={setIsModelDropdownOpen}
+                dropdownRef={dropdownRef}
+                modelDropdownRef={modelDropdownRef}
+                autoRoutingLabel={t.agent.autoRouting}
+                variant="ghost"
+                t={t}
+              />
+            }
+            t={t}
+          />
+        </ComposerQuestionAnchor>
       </div>
 
       <StoragePathModal

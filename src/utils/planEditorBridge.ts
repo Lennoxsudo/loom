@@ -6,11 +6,7 @@
  */
 
 import type { OpenFile } from '../types/app';
-import {
-  peekPlan,
-  setPlan,
-  type PlanDocument,
-} from '../features/agent-engine/planStore';
+import { peekPlan, setPlan, type PlanDocument } from '../features/agent-engine/planStore';
 import { useEditorStore } from '../stores/useEditorStore';
 import { toMonacoModelUri } from '../shared/lib/pathUtils';
 
@@ -47,15 +43,14 @@ export function isVirtualEditorPath(path: string | null | undefined): boolean {
   if (typeof path !== 'string' || !path) return false;
   const normalized = path.replace(/\\/g, '/');
   return VIRTUAL_EDITOR_PATH_PREFIXES.some(
-    (prefix) => normalized === prefix || normalized.startsWith(prefix),
+    (prefix) => normalized === prefix || normalized.startsWith(prefix)
   );
 }
 
 export function conversationIdFromPlanEditorPath(path: string): string | null {
   if (!isPlanEditorPath(path)) return null;
   const normalized = path.replace(/\\/g, '/');
-  const mapped =
-    pathToConversationId.get(path) ?? pathToConversationId.get(normalized);
+  const mapped = pathToConversationId.get(path) ?? pathToConversationId.get(normalized);
   if (mapped) return mapped;
 
   const rest = normalized.slice(PLAN_EDITOR_PATH_PREFIX.length);
@@ -87,7 +82,7 @@ function ensureTab(path: string, activate: boolean): void {
         tabPaths,
         activePath: activate ? path : g.activePath,
       };
-    }),
+    })
   );
   if (activate) {
     store.setActiveGroupId(groupId);
@@ -118,7 +113,7 @@ function pushContentToMonacoModel(path: string, content: string): void {
 export function openPlanInEditor(
   conversationId: string,
   plan?: Pick<PlanDocument, 'content' | 'title'>,
-  options?: { activate?: boolean; forceContent?: boolean },
+  options?: { activate?: boolean; forceContent?: boolean }
 ): string | null {
   if (!conversationId) return null;
 
@@ -169,7 +164,7 @@ export function openPlanInEditor(
 export function syncPlanToOpenEditor(
   conversationId: string,
   plan?: PlanDocument,
-  options?: { force?: boolean },
+  options?: { force?: boolean }
 ): void {
   if (!conversationId) return;
   const path = getPlanEditorPath(conversationId);

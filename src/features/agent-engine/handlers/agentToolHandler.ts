@@ -39,24 +39,25 @@ function formatSubagentToolResult(result: SubagentResult): ToolResult {
   };
 }
 
-async function executeAgentTool(
-  args: AgentToolArgs,
-  context?: ToolContext
-): Promise<ToolResult> {
+async function executeAgentTool(args: AgentToolArgs, context?: ToolContext): Promise<ToolResult> {
   if (!args.prompt || String(args.prompt).trim().length === 0) {
     throw ToolError.missingParam('prompt');
   }
 
   const parentAgent = await getAgent();
 
-  const parentProvider = (context?.parentProvider || parentAgent?.provider || 'openai') as AIProvider;
+  const parentProvider = (context?.parentProvider ||
+    parentAgent?.provider ||
+    'openai') as AIProvider;
   const parentModel = context?.parentModel || parentAgent?.model || '';
   const taskId =
     context?.toolCallId || `sub-task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
   const subagentType = resolveSubagentTypeName(args.subagent_type);
   const spawnMode =
-    args.resume === 'self' || args.spawn_mode === 'fork' ? ('fork' as const) : ('isolated' as const);
+    args.resume === 'self' || args.spawn_mode === 'fork'
+      ? ('fork' as const)
+      : ('isolated' as const);
 
   const spawnOptions = {
     taskId,

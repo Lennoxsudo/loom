@@ -27,7 +27,7 @@ function retryDelayMs(attempt: number): number {
 export async function invokeWithRetry<T>(
   cmd: string,
   args?: Record<string, unknown>,
-  timeoutMs = DEFAULT_INVOKE_TIMEOUT_MS,
+  timeoutMs = DEFAULT_INVOKE_TIMEOUT_MS
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < IPC_RETRY_ATTEMPTS; attempt++) {
@@ -48,7 +48,7 @@ export async function invokeWithRetry<T>(
 export async function invokeWithTimeout<T>(
   cmd: string,
   args?: Record<string, unknown>,
-  timeoutMs = DEFAULT_INVOKE_TIMEOUT_MS,
+  timeoutMs = DEFAULT_INVOKE_TIMEOUT_MS
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -57,7 +57,7 @@ export async function invokeWithTimeout<T>(
       new Promise<T>((_, reject) => {
         timer = setTimeout(
           () => reject(new Error(`Tauri invoke timeout (${timeoutMs}ms): ${cmd}`)),
-          timeoutMs,
+          timeoutMs
         );
       }),
     ]);
@@ -107,7 +107,7 @@ export interface ScheduleCbmOptions {
 
 export async function scheduleCbmWorkspaceIndex(
   repoPath: string,
-  options?: ScheduleCbmOptions,
+  options?: ScheduleCbmOptions
 ): Promise<CbmScheduleResult | null> {
   const trimmed = repoPath.trim();
   if (!trimmed) return null;
@@ -127,7 +127,7 @@ export async function scheduleCbmWorkspaceIndex(
 
 export async function reindexCbmWorkspaceIndex(
   repoPath: string,
-  options?: Omit<ScheduleCbmOptions, 'force'>,
+  options?: Omit<ScheduleCbmOptions, 'force'>
 ): Promise<CbmScheduleResult | null> {
   return scheduleCbmWorkspaceIndex(repoPath, { ...options, force: true });
 }
@@ -143,7 +143,7 @@ export type CbmScheduleOutcome =
   | 'unknown';
 
 export function getCbmScheduleOutcome(
-  result: CbmScheduleResult | null | undefined,
+  result: CbmScheduleResult | null | undefined
 ): CbmScheduleOutcome {
   if (!result) return 'failed';
   switch (result.status) {
@@ -194,7 +194,7 @@ export function parseCbmCliErrorMessage(raw: string | null | undefined): string 
 
 export async function deleteCbmWorkspaceIndex(
   repoPath: string,
-  enableCodeGraph: boolean,
+  enableCodeGraph: boolean
 ): Promise<CbmDeleteResult> {
   const trimmed = repoPath.trim();
   if (!trimmed) {
@@ -254,7 +254,7 @@ export type CbmIndexedProjectWire = {
 
 export function normalizeCbmIndexedProject(
   raw: CbmIndexedProjectWire,
-  index = 0,
+  index = 0
 ): CbmIndexedProject {
   const repo_path = (raw.repoPath ?? raw.repo_path ?? '').trim();
   const display_name =
@@ -332,9 +332,10 @@ export async function fetchCbmUiStatus(): Promise<CbmUiStatus | null> {
 const CBM_UI_READY_TIMEOUT_MS = 35_000;
 const CBM_UI_READY_POLL_MS = 400;
 
-export async function waitForCbmUiReady(
-  options?: { timeoutMs?: number; intervalMs?: number },
-): Promise<CbmUiStatus> {
+export async function waitForCbmUiReady(options?: {
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<CbmUiStatus> {
   const timeoutMs = options?.timeoutMs ?? CBM_UI_READY_TIMEOUT_MS;
   const intervalMs = options?.intervalMs ?? CBM_UI_READY_POLL_MS;
   const deadline = Date.now() + timeoutMs;
@@ -348,7 +349,7 @@ export async function waitForCbmUiReady(
   }
 
   throw new Error(
-    `CBM UI 在 ${Math.round(timeoutMs / 1000)} 秒内未就绪。请运行 npm run fetch:cbm -- --force 后重启应用；开发环境下请勿让 target/debug 中的 CLI 版 sidecar 覆盖 binaries 目录中的 UI 版。`,
+    `CBM UI 在 ${Math.round(timeoutMs / 1000)} 秒内未就绪。请运行 npm run fetch:cbm -- --force 后重启应用；开发环境下请勿让 target/debug 中的 CLI 版 sidecar 覆盖 binaries 目录中的 UI 版。`
   );
 }
 
@@ -377,7 +378,7 @@ export async function stopCbmUiServer(): Promise<CbmUiStatus | null> {
 export async function invokeCbmGraph(
   tool: string,
   action: string,
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown>
 ): Promise<string> {
   return invokeWithRetry<string>('cbm_graph', { tool, action, payload });
 }

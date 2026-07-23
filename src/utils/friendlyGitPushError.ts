@@ -12,7 +12,10 @@ type FormattedGitPushError = {
   detail: string;
 };
 
-export function formatGitPushFailureMessage(raw: string, g: GitPushErrorI18n): FormattedGitPushError {
+export function formatGitPushFailureMessage(
+  raw: string,
+  g: GitPushErrorI18n
+): FormattedGitPushError {
   const t = raw.trim();
   const s = t.toLowerCase();
 

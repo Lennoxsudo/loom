@@ -77,7 +77,7 @@ export interface ToolContext extends EngineHostCallbacks {
 export interface ToolHandler<TName extends ToolName = ToolName> {
   /** 工具名称 */
   name: TName;
-  
+
   /**
    * 执行工具
    *
@@ -86,7 +86,7 @@ export interface ToolHandler<TName extends ToolName = ToolName> {
    * @returns 工具执行结果
    */
   execute(args: GetToolArgs<TName>, context?: ToolContext): Promise<ToolResult>;
-  
+
   /**
    * 验证参数类型
    *

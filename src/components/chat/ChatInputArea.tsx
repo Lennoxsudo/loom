@@ -240,7 +240,9 @@ export default function ChatInputArea({
               <div className={styles.footerLeft}>{metaRight}</div>
               <div className={styles.footerRight}>
                 {metaToolbarRight}
-                {metaLeft && metaToolbarRight && <span className={styles.footerDivider} aria-hidden />}
+                {metaLeft && metaToolbarRight && (
+                  <span className={styles.footerDivider} aria-hidden />
+                )}
                 {metaLeft}
               </div>
             </div>

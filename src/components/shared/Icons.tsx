@@ -1,6 +1,6 @@
 /**
  * 共享图标组件
- * 
+ *
  * 被 ChatPanel 和 AgentPanel 共享使用的 SVG 图标
  */
 
@@ -48,13 +48,7 @@ export const SendIcon = ({ size = 16, style }: IconProps) => (
 );
 
 export const StopIcon = ({ size = 14, style }: IconProps) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="currentColor"
-    style={style}
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={style}>
     <rect x="6" y="6" width="12" height="12" rx="2" />
   </svg>
 );
@@ -376,5 +370,3 @@ export const BrowserRefreshIcon = ({ size = 16, style, className }: IconProps) =
     <path d="M21 3v6h-6" />
   </svg>
 );
-
-

@@ -3,10 +3,7 @@ import { memo, useMemo, type CSSProperties } from 'react';
 import { useTranslation } from '../../i18n';
 import type { ChatMessage } from '../../types/chat';
 import { TOOL_RESULT_WIDTH } from './toolResultLayout';
-import {
-  formatResultUrl,
-  parseWebSearchToolResult,
-} from './webSearchToolResult';
+import { formatResultUrl, parseWebSearchToolResult } from './webSearchToolResult';
 import styles from './WebSearchToolResultCard.module.css';
 
 interface WebSearchToolResultCardProps {
@@ -21,7 +18,7 @@ const WebSearchToolResultCard = memo(function WebSearchToolResultCard({
 
   const view = useMemo(
     () => parseWebSearchToolResult(message.text || '', message.isError === true),
-    [message.text, message.isError],
+    [message.text, message.isError]
   );
 
   const args = (message.tool_args || {}) as Record<string, unknown>;
@@ -49,9 +46,7 @@ const WebSearchToolResultCard = memo(function WebSearchToolResultCard({
         <div className={styles.headerBar}>
           <span className={styles.category}>{labels.category}</span>
           <div className={styles.headerMeta}>
-            <span
-              className={`${styles.countPill} ${view.isError ? styles.countPillError : ''}`}
-            >
+            <span className={`${styles.countPill} ${view.isError ? styles.countPillError : ''}`}>
               {statusLabel}
             </span>
             {!view.isError && view.provider && (
@@ -83,24 +78,16 @@ const WebSearchToolResultCard = memo(function WebSearchToolResultCard({
                 title={item.url}
               >
                 <span className={styles.resultTitle}>{item.title}</span>
-                {item.url && (
-                  <span className={styles.resultMeta}>{formatResultUrl(item.url)}</span>
-                )}
-                {item.snippet && (
-                  <p className={styles.snippet}>{item.snippet}</p>
-                )}
+                {item.url && <span className={styles.resultMeta}>{formatResultUrl(item.url)}</span>}
+                {item.snippet && <p className={styles.snippet}>{item.snippet}</p>}
               </button>
             ))}
           </div>
         ) : (
-          <div className={styles.emptyState}>
-            {view.emptyMessage || labels.empty}
-          </div>
+          <div className={styles.emptyState}>{view.emptyMessage || labels.empty}</div>
         )}
 
-        {!view.isError && footerHint && (
-          <div className={styles.footerHint}>{footerHint}</div>
-        )}
+        {!view.isError && footerHint && <div className={styles.footerHint}>{footerHint}</div>}
       </div>
     </div>
   );

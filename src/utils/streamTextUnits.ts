@@ -34,10 +34,7 @@ export function countStreamTextUnits(text: string): number {
 }
 
 /** 从文本头部取出指定数量的字素/码点，避免拆开 surrogate pair */
-export function takeStreamTextUnits(
-  text: string,
-  count: number,
-): { head: string; tail: string } {
+export function takeStreamTextUnits(text: string, count: number): { head: string; tail: string } {
   if (!text || count <= 0) {
     return { head: '', tail: text };
   }
@@ -55,7 +52,7 @@ export function takeStreamTextUnits(
 export function appendThinkingStreamChunk(
   existing: string,
   chunk: string,
-  lastChunk?: string,
+  lastChunk?: string
 ): { rawThinking: string; lastThinkingChunk: string } {
   if (!chunk) {
     return {

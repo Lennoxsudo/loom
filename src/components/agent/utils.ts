@@ -65,8 +65,7 @@ export function resolveAgentRequestRuntime(
     agent.provider ||
     'openai') as AIProvider;
   const model = parsed.model || rawModel;
-  const profileId =
-    runtime?.profileId?.trim() || parsed.profileId || agent.profileId || undefined;
+  const profileId = runtime?.profileId?.trim() || parsed.profileId || agent.profileId || undefined;
   return { provider, model, profileId };
 }
 
@@ -93,12 +92,7 @@ export function reconcileAgentRequestRuntime(
       profileId: BUILTIN_PROFILE_ID,
     };
   }
-  return reconcileProviderRequest(
-    config,
-    resolved.provider,
-    resolved.model,
-    resolved.profileId
-  );
+  return reconcileProviderRequest(config, resolved.provider, resolved.model, resolved.profileId);
 }
 
 export interface AgentRuntimeSnapshot {
@@ -190,10 +184,7 @@ export function isNativeReasoningModel(model: string): boolean {
  * 仅对 OpenAI 兼容 provider 且非推理模型（o1-*）注入。
  * Anthropic / Ollama 各有自己的思考机制，不需要此指令。
  */
-export function shouldInjectThinkingPrompt(
-  provider: AIProvider,
-  model: string,
-): boolean {
+export function shouldInjectThinkingPrompt(provider: AIProvider, model: string): boolean {
   // OpenAI-compatible transports (including built-in gateway)
   if (provider !== 'openai' && provider !== 'builtin') return false;
 
@@ -342,11 +333,15 @@ export function normalizeStoredMessages(raw: unknown): Record<string, ChatMessag
         ...(attachments && attachments.length > 0 ? { attachments } : {}),
         // Preserve fields that Rust now round-trips
         ...(typeof msg.isError === 'boolean' ? { isError: msg.isError } : {}),
-        ...(Array.isArray(msg.fileAttachments) && msg.fileAttachments.length > 0 ? { fileAttachments: msg.fileAttachments } : {}),
+        ...(Array.isArray(msg.fileAttachments) && msg.fileAttachments.length > 0
+          ? { fileAttachments: msg.fileAttachments }
+          : {}),
         ...(typeof msg.fromAgentId === 'string' ? { fromAgentId: msg.fromAgentId } : {}),
         ...(typeof msg.fromAgentName === 'string' ? { fromAgentName: msg.fromAgentName } : {}),
         ...(Array.isArray(msg.executedTools) ? { executedTools: msg.executedTools } : {}),
-        ...(typeof msg.thinkingSignature === 'string' ? { thinkingSignature: msg.thinkingSignature } : {}),
+        ...(typeof msg.thinkingSignature === 'string'
+          ? { thinkingSignature: msg.thinkingSignature }
+          : {}),
         ...(Array.isArray(msg.subagentRuns) && msg.subagentRuns.length > 0
           ? { subagentRuns: msg.subagentRuns as PersistedSubagentRun[] }
           : {}),
@@ -376,7 +371,10 @@ export function normalizeStoredMessages(raw: unknown): Record<string, ChatMessag
   return out;
 }
 
-export function buildConversationTitleFromMessages(messages: ChatMessage[], fallback = '新会话'): string {
+export function buildConversationTitleFromMessages(
+  messages: ChatMessage[],
+  fallback = '新会话'
+): string {
   const firstUserMessage = messages.find(
     (msg) => msg.role === 'user' && msg.text.trim().length > 0
   );
@@ -798,8 +796,7 @@ export function normalizeStoredConversations(raw: unknown): Record<string, Agent
           typeof convObj.title === 'string' && convObj.title.trim()
             ? convObj.title
             : buildConversationTitleFromMessages(normalizedMessages),
-        projectPath:
-          typeof convObj.projectPath === 'string' ? convObj.projectPath : undefined,
+        projectPath: typeof convObj.projectPath === 'string' ? convObj.projectPath : undefined,
         threadSettings: convObj.threadSettings as AgentConversation['threadSettings'],
         branchName: typeof convObj.branchName === 'string' ? convObj.branchName : undefined,
         createdAt,
@@ -866,14 +863,14 @@ function resolvePersistedSelectedConversationId(
     return null;
   }
 
-  if (
-    selectedConversationId &&
-    conversations.some((conv) => conv.id === selectedConversationId)
-  ) {
+  if (selectedConversationId && conversations.some((conv) => conv.id === selectedConversationId)) {
     return selectedConversationId;
   }
 
-  if (!selectedConversationIdByProject || Object.keys(selectedConversationIdByProject).length === 0) {
+  if (
+    !selectedConversationIdByProject ||
+    Object.keys(selectedConversationIdByProject).length === 0
+  ) {
     return conversations[0]?.id ?? null;
   }
 
@@ -916,7 +913,10 @@ export function inferToolMetadataFromResultText(
   const trimmed = text.trim();
   if (!trimmed) return null;
 
-  if (/^项目根目录:/m.test(trimmed) || (trimmed.includes('├──') && /总计:\s*\d+\s*个目录/.test(trimmed))) {
+  if (
+    /^项目根目录:/m.test(trimmed) ||
+    (trimmed.includes('├──') && /总计:\s*\d+\s*个目录/.test(trimmed))
+  ) {
     const rootMatch = trimmed.match(/项目根目录:\s*(.+?)(?:\n|$)/);
     const path = rootMatch?.[1]?.trim();
     return {
@@ -980,7 +980,7 @@ export function rehydrateToolMessages(messages: ChatMessage[]): ChatMessage[] {
   for (const message of messages) {
     if (message.role !== 'assistant' || !message.tool_calls?.length) continue;
     for (const toolCall of message.tool_calls) {
-      let args: Record<string, unknown> = {};
+      let args: Record<string, unknown>;
       try {
         args = JSON.parse(toolCall.function.arguments || '{}') as Record<string, unknown>;
       } catch {
@@ -1100,8 +1100,7 @@ export function projectStateToAgentConversationState(
     );
     // Prefer persisted planDocument; fall back to tool-history recovery for older saves
     // that dropped planDocument (Rust AgentConversation lacked the field).
-    const planRaw =
-      conversation.planDocument ?? recoverPlanFromMessages(messages) ?? null;
+    const planRaw = conversation.planDocument ?? recoverPlanFromMessages(messages) ?? null;
     hydratePlan(conversation.id, planRaw);
     const planDocument = exportPlanForSave(conversation.id) ?? planRaw ?? null;
     return {
@@ -1228,7 +1227,7 @@ function formatMessagesForProvider(
                 : JSON.stringify(toolCall.function.arguments ?? {});
             const parsedArgs = parseToolArguments(rawArgs);
             if (parsedArgs && typeof parsedArgs === 'object' && !Array.isArray(parsedArgs)) {
-              input = { ...parsedArgs as Record<string, unknown> };
+              input = { ...(parsedArgs as Record<string, unknown>) };
             }
           } catch {
             // ignore parse errors
@@ -1380,7 +1379,7 @@ function formatMessagesForProvider(
 export function formatMessagesForProviderCached(
   messages: ProviderRequestMessage[],
   provider: AIProvider,
-  cache: { lastMessageCount: number; lastMessageHash: string; convertedPrefix: unknown[] },
+  cache: { lastMessageCount: number; lastMessageHash: string; convertedPrefix: unknown[] }
 ): unknown[] {
   // 计算当前消息的签名（前缀部分）
   const prefixCount = Math.min(cache.lastMessageCount, messages.length);
@@ -1424,11 +1423,7 @@ function stableMessagePrefixHash(messages: ProviderRequestMessage[]): string {
   for (const msg of messages) {
     // 只取关键字段，避免 attachments 等大对象影响哈希
     const raw = msg.content as unknown;
-    const contentStr = typeof raw === 'string'
-      ? raw
-      : Array.isArray(raw)
-        ? String(raw.length)
-        : '';
+    const contentStr = typeof raw === 'string' ? raw : Array.isArray(raw) ? String(raw.length) : '';
     hash += `${msg.role}:${contentStr.length}|`;
   }
   return hash;
@@ -1438,50 +1433,51 @@ export function toProviderRequestMessages(messages: ChatMessage[]): ProviderRequ
   return messages
     .filter((msg) => !msg.uiNotice)
     .map((msg) => {
-    if (msg.compactBoundary) {
-      return {
-        role: 'system' as const,
-        content: '[Earlier conversation was compacted. Refer to the context summary message below.]',
-      };
-    }
+      if (msg.compactBoundary) {
+        return {
+          role: 'system' as const,
+          content:
+            '[Earlier conversation was compacted. Refer to the context summary message below.]',
+        };
+      }
 
-    if (msg.compactSummary) {
-      return {
-        role: 'user' as const,
-        content: `[Context Summary]\n${msg.text}`,
-      };
-    }
+      if (msg.compactSummary) {
+        return {
+          role: 'user' as const,
+          content: `[Context Summary]\n${msg.text}`,
+        };
+      }
 
-    if (msg.role === 'system') {
-      return {
-        role: 'system' as const,
-        content: msg.text || '',
-      };
-    }
+      if (msg.role === 'system') {
+        return {
+          role: 'system' as const,
+          content: msg.text || '',
+        };
+      }
 
-    if (msg.role === 'tool') {
-      const content = typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text ?? '');
-      return {
-        role: 'tool' as const,
-        content,
-        tool_call_id: msg.tool_call_id,
-      };
-    }
+      if (msg.role === 'tool') {
+        const content = typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text ?? '');
+        return {
+          role: 'tool' as const,
+          content,
+          tool_call_id: msg.tool_call_id,
+        };
+      }
 
-    if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-      return {
-        role: 'assistant' as const,
-        content: msg.text || null,
-        tool_calls: msg.tool_calls,
-      };
-    }
+      if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+        return {
+          role: 'assistant' as const,
+          content: msg.text || null,
+          tool_calls: msg.tool_calls,
+        };
+      }
 
-    return {
-      role: msg.role,
-      content: msg.text,
-      ...(msg.attachments && msg.attachments.length > 0 ? { attachments: msg.attachments } : {}),
-    };
-  });
+      return {
+        role: msg.role,
+        content: msg.text,
+        ...(msg.attachments && msg.attachments.length > 0 ? { attachments: msg.attachments } : {}),
+      };
+    });
 }
 
 export function appendToolMessages(
@@ -1583,7 +1579,11 @@ export interface BuildContextOptions {
   /** 子代理目录注入（仅主会话） */
   subagentCatalog?: string;
   /** formatMessagesForProvider 的转换缓存（方法 16），用于增量转换优化 */
-  formatConversionCache?: { lastMessageCount: number; lastMessageHash: string; convertedPrefix: unknown[] };
+  formatConversionCache?: {
+    lastMessageCount: number;
+    lastMessageHash: string;
+    convertedPrefix: unknown[];
+  };
 }
 
 /**
@@ -1627,9 +1627,7 @@ export function buildContextForRequest(options: BuildContextOptions): {
 
   if (includeCoreSystemPrompt) {
     systemLines.push(buildRuntimeIdentityPrompt({ provider, model }));
-    systemLines.push(
-      buildCoreSystemPrompt({ planMode: interactionMode === 'plan' }),
-    );
+    systemLines.push(buildCoreSystemPrompt({ planMode: interactionMode === 'plan' }));
   }
 
   // 3. agent.description（Agent 可选自定义，追加在核心提示词之后）
@@ -1654,9 +1652,7 @@ export function buildContextForRequest(options: BuildContextOptions): {
 
   // 7. thinking 指令（取决于 provider+model，最易变）
   if (shouldInjectThinkingPrompt(provider, model)) {
-    const alreadyInjected = systemLines.some((line) =>
-      line.includes(THINKING_PROMPT_MARKER)
-    );
+    const alreadyInjected = systemLines.some((line) => line.includes(THINKING_PROMPT_MARKER));
     if (!alreadyInjected) {
       systemLines.push(`${THINKING_PROMPT_MARKER}\n${THINKING_PROMPT_TEXT}`);
     }
@@ -1722,7 +1718,7 @@ export function buildContextForRequest(options: BuildContextOptions): {
     undefined,
     maxContextTokens,
     undefined,
-    provider,
+    provider
   );
 
   return { messages: budgetResult.messages, tools };
@@ -1742,7 +1738,12 @@ export const collectImagePathsFromMessages = (messages: ChatMessage[]): string[]
   return Array.from(paths);
 };
 
-export const TERMINAL_TOOL_NAMES = new Set(['run_command', 'read_terminal_output', 'terminal', 'term']);
+export const TERMINAL_TOOL_NAMES = new Set([
+  'run_command',
+  'read_terminal_output',
+  'terminal',
+  'term',
+]);
 
 export type PendingFileChange = {
   id: string;
@@ -1830,4 +1831,3 @@ export function removePreviewEntriesFromConversation(
     currentPreviewIndex: Math.max(0, nextIndex),
   };
 }
-

@@ -112,14 +112,20 @@ describe('areUserMsgMarkersEqual', () => {
   });
 
   it('returns false when marker ids differ', () => {
-    expect(areUserMsgMarkersEqual(markers, [{ id: 'u1', top: 10 }, { id: 'u3', top: 50 }])).toBe(
-      false
-    );
+    expect(
+      areUserMsgMarkersEqual(markers, [
+        { id: 'u1', top: 10 },
+        { id: 'u3', top: 50 },
+      ])
+    ).toBe(false);
   });
 
   it('returns false when marker tops differ beyond rounding', () => {
-    expect(areUserMsgMarkersEqual(markers, [{ id: 'u1', top: 10 }, { id: 'u2', top: 55 }])).toBe(
-      false
-    );
+    expect(
+      areUserMsgMarkersEqual(markers, [
+        { id: 'u1', top: 10 },
+        { id: 'u2', top: 55 },
+      ])
+    ).toBe(false);
   });
 });

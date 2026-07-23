@@ -61,7 +61,9 @@ function compactSchema(schema: Record<string, unknown>, depth = 0): Record<strin
     if (arr.length === 1 && arr[0] && typeof arr[0] === 'object') {
       return compactSchema(arr[0] as Record<string, unknown>, depth + 1);
     }
-    return arr.map((s) => (s && typeof s === 'object' ? compactSchema(s as Record<string, unknown>, depth + 1) : s));
+    return arr.map((s) =>
+      s && typeof s === 'object' ? compactSchema(s as Record<string, unknown>, depth + 1) : s
+    );
   };
 
   for (const key of ['oneOf', 'anyOf', 'allOf'] as const) {
@@ -86,7 +88,7 @@ function safeProcessParameters(parameters: ToolDefinition['parameters']): Record
   if (parameters && typeof parameters === 'object' && !Array.isArray(parameters)) {
     return parameters as Record<string, unknown>;
   }
-  
+
   // 如果参数是字符串，尝试解析为JSON
   if (typeof parameters === 'string') {
     try {
@@ -98,12 +100,12 @@ function safeProcessParameters(parameters: ToolDefinition['parameters']): Record
       // 如果解析失败，返回默认的schema
     }
   }
-  
+
   // 返回默认的schema
   return {
     type: 'object',
     properties: {},
-    required: []
+    required: [],
   };
 }
 

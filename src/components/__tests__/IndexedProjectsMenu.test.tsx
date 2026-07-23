@@ -104,7 +104,7 @@ describe('IndexedProjectsMenu', () => {
         onOpenMenu={onOpenMenu}
         onOpenProject={onOpenProject}
         onDeleteIndex={onDeleteIndex}
-      />,
+      />
     );
 
     await openMenu(user);

@@ -80,14 +80,17 @@ export function useFileOperations({
     setCreatingItem({ type: 'folder', parentPath: targetDir });
   }, [creatingItem, projectPath, focusedActiveFilePath, showWarning]);
 
-  const startCreateItemAt = useCallback((type: 'file' | 'folder', parentPath: string) => {
-    if (!projectPath) {
-      showWarning('请先打开一个文件夹');
-      return;
-    }
+  const startCreateItemAt = useCallback(
+    (type: 'file' | 'folder', parentPath: string) => {
+      if (!projectPath) {
+        showWarning('请先打开一个文件夹');
+        return;
+      }
 
-    setCreatingItem({ type, parentPath });
-  }, [projectPath, showWarning]);
+      setCreatingItem({ type, parentPath });
+    },
+    [projectPath, showWarning]
+  );
 
   const handleConfirmCreate = useCallback(
     async (name: string) => {

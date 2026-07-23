@@ -43,7 +43,11 @@
 
 .monoPath {
   font-size: 11px;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;

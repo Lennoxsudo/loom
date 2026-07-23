@@ -59,9 +59,7 @@ export function isBuiltinProtocol(
 }
 
 /** Logical UI/persistence providers that stream via the OpenAI-compatible path. */
-export function isOpenaiCompatibleLogicalProvider(
-  provider: string | null | undefined
-): boolean {
+export function isOpenaiCompatibleLogicalProvider(provider: string | null | undefined): boolean {
   return provider === 'openai' || provider === 'builtin';
 }
 
@@ -248,9 +246,7 @@ export function isGatewayAuthErrorMessage(errorMsg: string): boolean {
   const text = errorMsg.trim();
   if (!text) return false;
 
-  if (
-    /client request signature|re-activate|重新激活|缺少 clientSecret|X-Gateway-/i.test(text)
-  ) {
+  if (/client request signature|re-activate|重新激活|缺少 clientSecret|X-Gateway-/i.test(text)) {
     return true;
   }
 
@@ -340,10 +336,7 @@ export async function activateBuiltinGateway(
   }
 
   if (!res.ok) {
-    const msg =
-      extractGatewayErrorMessage(json) ||
-      text ||
-      `Activation failed (${res.status})`;
+    const msg = extractGatewayErrorMessage(json) || text || `Activation failed (${res.status})`;
     const err = new Error(msg) as Error & { status?: number };
     err.status = res.status;
     throw err;
@@ -514,7 +507,9 @@ export function mergeBuiltinProfileIntoAiConfig(
   profiles.openai = {
     ...openai,
     items,
-    activeId: makeActive ? BUILTIN_PROFILE_ID : openai.activeId || (items[0] as { id?: string })?.id,
+    activeId: makeActive
+      ? BUILTIN_PROFILE_ID
+      : openai.activeId || (items[0] as { id?: string })?.id,
   };
   const configs = {
     ...((config.configs as Record<string, unknown> | undefined) ?? {}),

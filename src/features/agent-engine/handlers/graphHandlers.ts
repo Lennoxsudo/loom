@@ -32,7 +32,7 @@ const GRAPH_QUERY_TIMEOUT_MS = 90 * 1000; // 90s > Rust 60s
 async function invokeCbmRaw(
   tool: 'graph_index' | 'graph_query' | 'graph_trace',
   args: Record<string, unknown>,
-  context?: ToolContext,
+  context?: ToolContext
 ): Promise<string> {
   const repoPathRaw = (args.repo_path as string | undefined) ?? context?.baseDir;
   const repo_path = repoPathRaw
@@ -56,28 +56,20 @@ async function invokeCbmRaw(
   if (tool === 'graph_query' && action === 'query' && typeof payload.query === 'string') {
     const normalized = normalizeCbmCypher(payload.query);
     if (normalized.hint) {
-      throw new ToolError(
-        ToolErrorCode.INVALID_PARAM,
-        normalized.hint,
-        true,
-      );
+      throw new ToolError(ToolErrorCode.INVALID_PARAM, normalized.hint, true);
     }
     payload.query = normalized.query;
   }
 
   const timeout = tool === 'graph_index' ? GRAPH_INDEX_TIMEOUT_MS : GRAPH_QUERY_TIMEOUT_MS;
 
-  return invokeWithTimeout<string>(
-    'cbm_graph',
-    { tool, action: String(action), payload },
-    timeout,
-  );
+  return invokeWithTimeout<string>('cbm_graph', { tool, action: String(action), payload }, timeout);
 }
 
 async function invokeCbm(
   tool: 'graph_index' | 'graph_query' | 'graph_trace',
   args: Record<string, unknown>,
-  context?: ToolContext,
+  context?: ToolContext
 ): Promise<ToolResult> {
   const action = String(args.action);
   const timeout = tool === 'graph_index' ? GRAPH_INDEX_TIMEOUT_MS : GRAPH_QUERY_TIMEOUT_MS;
@@ -94,9 +86,10 @@ async function invokeCbm(
       return {
         tool_call_id: '',
         output: '',
-        error: tool === 'graph_index'
-          ? `代码图谱索引超时（${Math.round(timeout / 1000)}s）。索引可能仍在后台进行，稍后可用 graph_index action=status 检查。`
-          : `代码图谱查询超时（${Math.round(timeout / 1000)}s）。`,
+        error:
+          tool === 'graph_index'
+            ? `代码图谱索引超时（${Math.round(timeout / 1000)}s）。索引可能仍在后台进行，稍后可用 graph_index action=status 检查。`
+            : `代码图谱查询超时（${Math.round(timeout / 1000)}s）。`,
       };
     }
     // CBM CLI Cypher lexer errors (e.g. "expected token type 0, got 85 at pos 0")
@@ -378,9 +371,11 @@ function formatSnippet(data: unknown): string {
   const lines: string[] = [];
   if (file) {
     const range =
-      startLine && endLine ? ` (lines ${startLine}–${endLine})`
-      : startLine ? ` (line ${startLine})`
-      : '';
+      startLine && endLine
+        ? ` (lines ${startLine}–${endLine})`
+        : startLine
+          ? ` (line ${startLine})`
+          : '';
     lines.push(`**File**: ${file}${range}`);
   }
   if (qn) lines.push(`**Qualified name**: ${qn}`);
@@ -499,10 +494,12 @@ function formatCodeSearch(data: unknown): string {
   });
 
   const summary = `Found ${results.length} symbol(s)${totalGrep ? ` (${totalGrep} grep matches${dedupRatio ? `, ${dedupRatio} dedup` : ''})` : ''}:\n\n`;
-  return summary +
+  return (
+    summary +
     '| Name | Type | File | Lines | Match Lines |\n' +
     '|------|------|------|-------|-------------|\n' +
-    rows.join('\n');
+    rows.join('\n')
+  );
 }
 
 // ── graph_trace ──
@@ -539,14 +536,14 @@ function formatTraceResult(data: unknown): string {
       sections.push(
         callers.length > 0
           ? `**Inbound (callers):**\n${formatNodeList(callers)}`
-          : '**Inbound (callers):** _None_',
+          : '**Inbound (callers):** _None_'
       );
     }
     if (callees) {
       sections.push(
         callees.length > 0
           ? `**Outbound (callees):**\n${formatNodeList(callees)}`
-          : '**Outbound (callees):** _None_',
+          : '**Outbound (callees):** _None_'
       );
     }
     return sections.join('\n\n');
@@ -683,9 +680,11 @@ function formatChanges(data: unknown): string {
     const impactStr =
       impact && impact.length > 0
         ? ` → ${impact
-            .map((i) =>
-              strVal(typeof i === 'object' && i !== null ? (i as Record<string, unknown>).name : i) ??
-                String(i),
+            .map(
+              (i) =>
+                strVal(
+                  typeof i === 'object' && i !== null ? (i as Record<string, unknown>).name : i
+                ) ?? String(i)
             )
             .join(', ')}`
         : '';
@@ -699,7 +698,7 @@ function formatChanges(data: unknown): string {
 export function filterDetectChangesRaw(
   raw: string,
   fileHint?: string,
-  options?: { excludeVendor?: boolean },
+  options?: { excludeVendor?: boolean }
 ): string {
   const excludeVendor = options?.excludeVendor !== false;
   let parsed: unknown;
@@ -716,10 +715,7 @@ export function filterDetectChangesRaw(
   const hint = fileHint?.trim().toLowerCase();
   const filtered = files.filter((f) => {
     const path = String(f).replace(/\\/g, '/');
-    if (
-      excludeVendor
-      && /(?:^|\/)(?:node_modules|vendor|dist)(?:\/|$)/i.test(path)
-    ) {
+    if (excludeVendor && /(?:^|\/)(?:node_modules|vendor|dist)(?:\/|$)/i.test(path)) {
       return false;
     }
     if (!hint) return true;
@@ -809,11 +805,32 @@ function inferLang(file?: string): string {
   if (!file) return '';
   const ext = file.split('.').pop()?.toLowerCase();
   const map: Record<string, string> = {
-    rs: 'rust', ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
-    py: 'python', go: 'go', java: 'java', c: 'c', cpp: 'cpp', h: 'c',
-    cs: 'csharp', rb: 'ruby', php: 'php', swift: 'swift', kt: 'kotlin',
-    vue: 'vue', svelte: 'svelte', css: 'css', scss: 'scss', html: 'html',
-    json: 'json', yaml: 'yaml', yml: 'yaml', toml: 'toml', md: 'markdown',
+    rs: 'rust',
+    ts: 'typescript',
+    tsx: 'tsx',
+    js: 'javascript',
+    jsx: 'jsx',
+    py: 'python',
+    go: 'go',
+    java: 'java',
+    c: 'c',
+    cpp: 'cpp',
+    h: 'c',
+    cs: 'csharp',
+    rb: 'ruby',
+    php: 'php',
+    swift: 'swift',
+    kt: 'kotlin',
+    vue: 'vue',
+    svelte: 'svelte',
+    css: 'css',
+    scss: 'scss',
+    html: 'html',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml',
+    toml: 'toml',
+    md: 'markdown',
   };
   return map[ext ?? ''] ?? '';
 }
@@ -856,7 +873,7 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
         if (!normalized.name_pattern?.trim()) {
           throw ToolError.invalidParam(
             'qualified_name',
-            'qualified_name or name_pattern is required for snippet (name_pattern supports globs like use*)',
+            'qualified_name or name_pattern is required for snippet (name_pattern supports globs like use*)'
           );
         }
         const searchRaw = await invokeCbmRaw(
@@ -870,20 +887,16 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
             repo_path: normalized.repo_path,
             project: normalized.project,
           },
-          context,
+          context
         );
         const qualifiedName = extractFirstQualifiedNameFromSearchRaw(searchRaw);
         if (!qualifiedName) {
           throw ToolError.invalidParam(
             'name_pattern',
-            'no symbol found; refine pattern or pass qualified_name from search',
+            'no symbol found; refine pattern or pass qualified_name from search'
           );
         }
-        return invokeCbm(
-          'graph_query',
-          { ...normalized, qualified_name: qualifiedName },
-          context,
-        );
+        return invokeCbm('graph_query', { ...normalized, qualified_name: qualifiedName }, context);
       }
       if (normalized.action === 'query' && !normalized.query?.trim()) {
         throw ToolError.invalidParam('query', formatGraphQueryValidationHint('query', 'query'));
@@ -896,9 +909,9 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
       }
 
       if (
-        normalized.action === 'query'
-        && normalized.query?.trim()
-        && (isLabelsTypesSchemaIntent(normalized.query) || /^\s*CALL\s+db\./i.test(normalized.query))
+        normalized.action === 'query' &&
+        normalized.query?.trim() &&
+        (isLabelsTypesSchemaIntent(normalized.query) || /^\s*CALL\s+db\./i.test(normalized.query))
       ) {
         const schemaRaw = await invokeCbmRaw(
           'graph_query',
@@ -907,7 +920,7 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
             repo_path: normalized.repo_path,
             project: normalized.project,
           },
-          context,
+          context
         );
         const body = formatGraphOutput('graph_query', 'schema', schemaRaw);
         return {
@@ -921,9 +934,9 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
       // Bug #1/#2 fix: CBM CLI returns wrong values for type(r)/labels(n) + count() aggregations
       // (returns total count instead of type/label names). Route to schema which has correct counts.
       if (
-        normalized.action === 'query'
-        && normalized.query?.trim()
-        && isAggregateSchemaIntent(normalized.query)
+        normalized.action === 'query' &&
+        normalized.query?.trim() &&
+        isAggregateSchemaIntent(normalized.query)
       ) {
         const schemaRaw = await invokeCbmRaw(
           'graph_query',
@@ -932,7 +945,7 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
             repo_path: normalized.repo_path,
             project: normalized.project,
           },
-          context,
+          context
         );
         const body = formatGraphOutput('graph_query', 'schema', schemaRaw);
         return {
@@ -946,9 +959,9 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
 
       // Bug #5 hint: MATCH path = ... is not supported by CBM CLI Cypher engine
       if (
-        normalized.action === 'query'
-        && normalized.query?.trim()
-        && /^\s*MATCH\s+path\s*=/i.test(normalized.query)
+        normalized.action === 'query' &&
+        normalized.query?.trim() &&
+        /^\s*MATCH\s+path\s*=/i.test(normalized.query)
       ) {
         return {
           tool_call_id: '',
@@ -971,7 +984,7 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
             repo_path: normalized.repo_path,
             project: normalized.project,
           },
-          context,
+          context
         );
         const symbolNames = extractSymbolNamesFromSearchRaw(searchRaw);
         if (symbolNames.size === 0) {
@@ -982,11 +995,7 @@ class GraphQueryHandler implements ToolHandler<'graph_query'> {
         }
 
         const { name_pattern: _omit, ...codeArgs } = normalized as Record<string, unknown>;
-        const codeRaw = await invokeCbmRaw(
-          'graph_query',
-          codeArgs,
-          context,
-        );
+        const codeRaw = await invokeCbmRaw('graph_query', codeArgs, context);
         const filtered = filterCodeSearchRawByNamePattern(codeRaw, normalized.name_pattern);
         return {
           tool_call_id: '',
@@ -1077,33 +1086,38 @@ class GraphTraceHandler implements ToolHandler<'graph_trace'> {
    * When trace_path returns empty callers AND callees, run a Cypher query
    * to discover relationships via ALL edge types (DEFINES, IMPORTS, USAGE, etc.).
    */
-  private async traceFallback(
-    args: GraphTraceArgs,
-    context?: ToolContext,
-  ): Promise<string | null> {
+  private async traceFallback(args: GraphTraceArgs, context?: ToolContext): Promise<string | null> {
     const fnName = args.function_name?.trim();
     if (!fnName) return null;
     const escaped = fnName.replace(/'/g, "\\'");
 
     try {
       // Bug #4 fix: don't constrain to :Function label — the target may be a Module, File, etc.
-      const incomingRaw = await invokeCbmRaw('graph_query', {
-        action: 'query',
-        query:
-          `MATCH (a)-[r]->(f {name: '${escaped}'}) ` +
-          `RETURN type(r) AS rel_type, a.name AS from_name LIMIT 20`,
-        repo_path: args.repo_path,
-        project: args.project,
-      }, context);
+      const incomingRaw = await invokeCbmRaw(
+        'graph_query',
+        {
+          action: 'query',
+          query:
+            `MATCH (a)-[r]->(f {name: '${escaped}'}) ` +
+            `RETURN type(r) AS rel_type, a.name AS from_name LIMIT 20`,
+          repo_path: args.repo_path,
+          project: args.project,
+        },
+        context
+      );
 
-      const outgoingRaw = await invokeCbmRaw('graph_query', {
-        action: 'query',
-        query:
-          `MATCH (f {name: '${escaped}'})-[r]->(b) ` +
-          `RETURN type(r) AS rel_type, b.name AS to_name LIMIT 20`,
-        repo_path: args.repo_path,
-        project: args.project,
-      }, context);
+      const outgoingRaw = await invokeCbmRaw(
+        'graph_query',
+        {
+          action: 'query',
+          query:
+            `MATCH (f {name: '${escaped}'})-[r]->(b) ` +
+            `RETURN type(r) AS rel_type, b.name AS to_name LIMIT 20`,
+          repo_path: args.repo_path,
+          project: args.project,
+        },
+        context
+      );
 
       const incoming = parseColumnsRows(incomingRaw);
       const outgoing = parseColumnsRows(outgoingRaw);
@@ -1118,13 +1132,13 @@ class GraphTraceHandler implements ToolHandler<'graph_trace'> {
       const sections: string[] = [];
       if (incoming.length > 0) {
         const lines = incoming.map(
-          (row) => `- \`${row[1] ?? '—'}\` —[${row[0] ?? '?'}]→ **${fnName}**`,
+          (row) => `- \`${row[1] ?? '—'}\` —[${row[0] ?? '?'}]→ **${fnName}**`
         );
         sections.push(`**Incoming** (${incoming.length}):\n${lines.join('\n')}`);
       }
       if (outgoing.length > 0) {
         const lines = outgoing.map(
-          (row) => `- **${fnName}** —[${row[0] ?? '?'}]→ \`${row[1] ?? '—'}\``,
+          (row) => `- **${fnName}** —[${row[0] ?? '?'}]→ \`${row[1] ?? '—'}\``
         );
         sections.push(`**Outgoing** (${outgoing.length}):\n${lines.join('\n')}`);
       }

@@ -35,7 +35,7 @@ export function formatPlanModeContext(): string {
  * 将计划文档格式化为结构化 PLAN 区块。
  */
 export function formatPlanDocumentContext(
-  plan: PlanDocument | { content: string; title?: string },
+  plan: PlanDocument | { content: string; title?: string }
 ): string {
   return formatPlanDocumentBlock(plan);
 }
@@ -69,7 +69,7 @@ export function prependPlanModeToUserMessage(content: string): string {
  */
 export function prependPlanDocumentToUserMessage(
   content: string,
-  plan: PlanDocument | { content: string; title?: string },
+  plan: PlanDocument | { content: string; title?: string }
 ): string {
   const body = plan.content?.trim() ?? '';
   if (!body) return content;
@@ -89,14 +89,13 @@ export function prependPlanDocumentToUserMessage(
  * 为消息列表中最后一条 user 消息附加 Plan 模式块。
  */
 export function prependPlanModeToLastUserMessage<T extends { role: string; content: unknown }>(
-  requestMessages: T[],
+  requestMessages: T[]
 ): boolean {
   for (let i = requestMessages.length - 1; i >= 0; i--) {
     const message = requestMessages[i];
     if (message.role !== 'user') continue;
 
-    const originalContent =
-      typeof message.content === 'string' ? message.content : '';
+    const originalContent = typeof message.content === 'string' ? message.content : '';
     requestMessages[i] = {
       ...message,
       content: prependPlanModeToUserMessage(originalContent),
@@ -111,14 +110,13 @@ export function prependPlanModeToLastUserMessage<T extends { role: string; conte
  */
 export function prependPlanDocumentToLastUserMessage<T extends { role: string; content: unknown }>(
   requestMessages: T[],
-  plan: PlanDocument | { content: string; title?: string },
+  plan: PlanDocument | { content: string; title?: string }
 ): boolean {
   for (let i = requestMessages.length - 1; i >= 0; i--) {
     const message = requestMessages[i];
     if (message.role !== 'user') continue;
 
-    const originalContent =
-      typeof message.content === 'string' ? message.content : '';
+    const originalContent = typeof message.content === 'string' ? message.content : '';
     requestMessages[i] = {
       ...message,
       content: prependPlanDocumentToUserMessage(originalContent, plan),
@@ -138,7 +136,7 @@ export function injectPlanContextForRequest<T extends { role: string; content: u
   options: {
     interactionMode: 'plan' | 'always-allow';
     conversationId?: string;
-  },
+  }
 ): void {
   const { interactionMode, conversationId } = options;
 
@@ -151,8 +149,7 @@ export function injectPlanContextForRequest<T extends { role: string; content: u
         for (let i = requestMessages.length - 1; i >= 0; i--) {
           const message = requestMessages[i];
           if (message.role !== 'user') continue;
-          const original =
-            typeof message.content === 'string' ? message.content : '';
+          const original = typeof message.content === 'string' ? message.content : '';
           if (hasPlanDocumentBlock(original)) break;
           const draftNote =
             '【当前计划草稿】以下为可编辑计划面板中的内容，可继续用 update_plan 修订：';

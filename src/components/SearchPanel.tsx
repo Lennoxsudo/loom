@@ -235,7 +235,9 @@ export default function SearchPanel({
             fontSize: '12px',
           }}
         >
-          <div>{loading ? t.search.searching : trimmed ? `${matchCount} ${t.search.results}` : ''}</div>
+          <div>
+            {loading ? t.search.searching : trimmed ? `${matchCount} ${t.search.results}` : ''}
+          </div>
           {error ? (
             <div
               style={{
@@ -254,23 +256,43 @@ export default function SearchPanel({
 
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {!hasProject ? (
-          <div className={styles.emptyState} style={{ textAlign: 'left' }}>{t.search.openFolderToSearch}</div>
+          <div className={styles.emptyState} style={{ textAlign: 'left' }}>
+            {t.search.openFolderToSearch}
+          </div>
         ) : !trimmed ? (
-          <div className={styles.emptyState} style={{ textAlign: 'left' }}>{t.search.enterKeywordToSearch}</div>
+          <div className={styles.emptyState} style={{ textAlign: 'left' }}>
+            {t.search.enterKeywordToSearch}
+          </div>
         ) : loading && results.length === 0 ? (
-          <div className={styles.emptyState} style={{ textAlign: 'left' }}>{t.search.searching}</div>
+          <div className={styles.emptyState} style={{ textAlign: 'left' }}>
+            {t.search.searching}
+          </div>
         ) : results.length === 0 ? (
-          <div className={styles.emptyState} style={{ textAlign: 'left' }}>{t.search.noResults}</div>
+          <div className={styles.emptyState} style={{ textAlign: 'left' }}>
+            {t.search.noResults}
+          </div>
         ) : (
           <div style={{ padding: '6px 0' }}>
             {results.map((file) => {
               const base = getBasename(file.path);
               return (
                 <div key={file.path} style={{ padding: '6px 10px' }}>
-                  <div style={{ color: 'var(--text-primary)', fontSize: '12px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div
+                    style={{
+                      color: 'var(--text-primary)',
+                      fontSize: '12px',
+                      marginBottom: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
                     <FileTypeIcon name={base} size={14} />
                     <span>
-                      {base} <span style={{ color: 'var(--text-secondary)' }}>({file.matches.length})</span>
+                      {base}{' '}
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        ({file.matches.length})
+                      </span>
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

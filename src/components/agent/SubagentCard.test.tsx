@@ -55,7 +55,9 @@ describe('SubagentCard Component', () => {
 
     // The summary should not be immediately visible because it is in the collapsible body (collapsed by default)
     expect(screen.queryByText('最终摘要')).not.toBeInTheDocument();
-    expect(screen.queryByText('Auth flow successfully refactored and verified.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Auth flow successfully refactored and verified.')
+    ).not.toBeInTheDocument();
 
     // Click to expand
     const user = userEvent.setup();

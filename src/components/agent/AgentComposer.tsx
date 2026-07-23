@@ -21,7 +21,7 @@ export function insertComposerMention(
   current: string,
   mention: string,
   selectionStart: number,
-  selectionEnd: number,
+  selectionEnd: number
 ): { nextValue: string; cursor: number } {
   const token = `@${mention}`;
   const before = current.slice(0, selectionStart);
@@ -70,7 +70,9 @@ const SideResourceCapsule = memo(function SideResourceCapsule({
         <span className={styles.sideIndicatorLabel}>{label}</span>
         <span className={styles.sideIndicatorMeta}>
           <span className={styles.sideIndicatorCount}>{count}</span>
-          <span className={`${styles.sideIndicatorChevron} ${isOpen ? styles.sideIndicatorChevronOpen : ''}`}>
+          <span
+            className={`${styles.sideIndicatorChevron} ${isOpen ? styles.sideIndicatorChevronOpen : ''}`}
+          >
             <ChevronDownIcon size={8} />
           </span>
         </span>
@@ -222,10 +224,7 @@ const AgentComposer = memo(function AgentComposer({
   useEffect(() => {
     if (!openSideCapsule) return;
     const onMouseDown = (event: MouseEvent) => {
-      if (
-        sideCapsulesRef.current &&
-        !sideCapsulesRef.current.contains(event.target as Node)
-      ) {
+      if (sideCapsulesRef.current && !sideCapsulesRef.current.contains(event.target as Node)) {
         setOpenSideCapsule(null);
       }
     };
@@ -247,7 +246,7 @@ const AgentComposer = memo(function AgentComposer({
         inputValue,
         item,
         selectionStart,
-        selectionEnd,
+        selectionEnd
       );
       setInputValue(nextValue);
       setOpenSideCapsule(null);
@@ -258,14 +257,10 @@ const AgentComposer = memo(function AgentComposer({
         el.setSelectionRange(cursor, cursor);
       });
     },
-    [disabled, inputValue, setInputValue, textareaRef],
+    [disabled, inputValue, setInputValue, textareaRef]
   );
 
-  const sendClass = showStop
-    ? styles.sendStop
-    : canSend
-      ? styles.sendActive
-      : styles.sendDisabled;
+  const sendClass = showStop ? styles.sendStop : canSend ? styles.sendActive : styles.sendDisabled;
 
   return (
     <div className={styles.shell} style={centered ? undefined : { maxWidth: 'none' }}>
@@ -390,11 +385,7 @@ const AgentComposer = memo(function AgentComposer({
                 void handleSend();
               }
             }}
-            placeholder={
-              disabled
-                ? t.agent.aiResponding
-                : t.agent.composerPlaceholder
-            }
+            placeholder={disabled ? t.agent.aiResponding : t.agent.composerPlaceholder}
             disabled={disabled}
             rows={1}
           />
@@ -416,8 +407,7 @@ const AgentComposer = memo(function AgentComposer({
               <ChatModeToggle
                 chatMode={agentMode}
                 setChatMode={(next) => {
-                  const value =
-                    typeof next === 'function' ? next(agentMode) : next;
+                  const value = typeof next === 'function' ? next(agentMode) : next;
                   onAgentModeChange(value);
                 }}
                 variant="composer"

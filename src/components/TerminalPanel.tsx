@@ -402,7 +402,13 @@ export default function TerminalPanel({
       terminalReadyRef.current = false;
       term.dispose();
     };
-  }, [activateTerminal, ensureTerminal, fitTerminalNow, openTerminalIfNeeded, scheduleTerminalResize]);
+  }, [
+    activateTerminal,
+    ensureTerminal,
+    fitTerminalNow,
+    openTerminalIfNeeded,
+    scheduleTerminalResize,
+  ]);
 
   useEffect(() => {
     const term = terminalRef.current;
@@ -449,11 +455,7 @@ export default function TerminalPanel({
       <div className={styles.tabsBar}>
         <div className={styles.tabStrip}>
           {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              className={styles.tabChrome}
-              data-active={tab.id === activeId}
-            >
+            <div key={tab.id} className={styles.tabChrome} data-active={tab.id === activeId}>
               <button
                 type="button"
                 onClick={() => void activateTerminal(tab.id)}

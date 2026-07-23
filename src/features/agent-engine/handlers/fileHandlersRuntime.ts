@@ -11,7 +11,6 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' ? value : undefined;
 }
 
-
 export class ReadFileHandler implements ToolHandler<'read'> {
   name = 'read' as const;
 
@@ -56,9 +55,9 @@ export class ReadFileHandler implements ToolHandler<'read'> {
             const info = result.binary_info;
             results.push(
               `文件是二进制: ${resolvedPath}\n` +
-              `类型: ${info.mime_type}\n` +
-              `大小: ${info.size_bytes} bytes` +
-              (info.width && info.height ? `\n尺寸: ${info.width}x${info.height}` : '')
+                `类型: ${info.mime_type}\n` +
+                `大小: ${info.size_bytes} bytes` +
+                (info.width && info.height ? `\n尺寸: ${info.width}x${info.height}` : '')
             );
           } else {
             results.push(`文件是二进制或不可读: ${resolvedPath}`);
@@ -139,15 +138,23 @@ export class EditFileHandler implements ToolHandler<'edit'> {
         if (result.success) {
           // 严格验证：读回文件，确认 new_string 存在且 old_string 不再存在
           try {
-            const verifyContent = await invoke<string>('read_file_content', { filePath: resolvedPath });
+            const verifyContent = await invoke<string>('read_file_content', {
+              filePath: resolvedPath,
+            });
             const verifyNorm = verifyContent.replace(/\r\n/g, '\n');
             const newNorm = newString.replace(/\r\n/g, '\n');
             const oldNorm = oldString.replace(/\r\n/g, '\n');
             const newStringPresent = !newNorm || verifyNorm.includes(newNorm);
             const oldStringGone = !verifyNorm.includes(oldNorm);
             if (!newStringPresent || !oldStringGone) {
-              console.warn('[EditFileHandler] 写入验证异常:', resolvedPath,
-                'new存在:', newStringPresent, 'old消失:', oldStringGone);
+              console.warn(
+                '[EditFileHandler] 写入验证异常:',
+                resolvedPath,
+                'new存在:',
+                newStringPresent,
+                'old消失:',
+                oldStringGone
+              );
             }
           } catch {
             // 验证失败不影响返回结果
@@ -161,7 +168,10 @@ export class EditFileHandler implements ToolHandler<'edit'> {
 
         const normalizeNewlines = (input: string) => input.replace(/\r\n/g, '\n');
         const normalizeTrailingWhitespacePerLine = (input: string) =>
-          input.split('\n').map((line) => line.replace(/[\t\x20]+$/g, '')).join('\n');
+          input
+            .split('\n')
+            .map((line) => line.replace(/[\t\x20]+$/g, ''))
+            .join('\n');
 
         const normalizedOld = normalizeTrailingWhitespacePerLine(normalizeNewlines(oldString));
         const normalizedNew = normalizeTrailingWhitespacePerLine(normalizeNewlines(newString));
@@ -180,10 +190,10 @@ export class EditFileHandler implements ToolHandler<'edit'> {
         // If both strict and normalized edits failed on the backend, return a descriptive error
         const oldSnippet = oldString.slice(0, 200).replace(/\n/g, '\\n');
         const errorMsg =
-            `编辑失败: old_string 未在文件中找到。\n\n` +
-            `- 文件: ${resolvedPath}\n` +
-            `- replace_all: ${replaceAll}\n` +
-            `- old_string 预览:\n\n${oldSnippet}`;
+          `编辑失败: old_string 未在文件中找到。\n\n` +
+          `- 文件: ${resolvedPath}\n` +
+          `- replace_all: ${replaceAll}\n` +
+          `- old_string 预览:\n\n${oldSnippet}`;
         return {
           tool_call_id: '',
           output: errorMsg,
@@ -205,12 +215,7 @@ class WriteFileHandler implements ToolHandler<'write'> {
   name = 'write' as const;
 
   validate(args: unknown): args is WriteFileArgs {
-    return (
-      typeof args === 'object' &&
-      args !== null &&
-      'path' in args &&
-      'content' in args
-    );
+    return typeof args === 'object' && args !== null && 'path' in args && 'content' in args;
   }
 
   async execute(args: WriteFileArgs, context?: ToolContext): Promise<ToolResult> {
@@ -250,7 +255,9 @@ class WriteFileHandler implements ToolHandler<'write'> {
       // 验证文件是否真正写入磁盘 (skip verify for append/prepend mode — partial content check)
       if (!isAppend && !isPrepend) {
         try {
-          const verifyContent = await invoke<string>('read_file_content', { filePath: resolvedPath });
+          const verifyContent = await invoke<string>('read_file_content', {
+            filePath: resolvedPath,
+          });
           const writeNorm = args.content.replace(/\r\n/g, '\n');
           const readNorm = verifyContent.replace(/\r\n/g, '\n');
           if (writeNorm !== readNorm) {
@@ -274,7 +281,11 @@ class WriteFileHandler implements ToolHandler<'write'> {
       }
 
       // Duration for larger files
-      if (result.duration_ms !== undefined && result.duration_ms !== null && result.duration_ms > 0) {
+      if (
+        result.duration_ms !== undefined &&
+        result.duration_ms !== null &&
+        result.duration_ms > 0
+      ) {
         output += `，耗时 ${result.duration_ms}ms`;
       }
 

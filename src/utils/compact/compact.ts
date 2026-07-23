@@ -5,7 +5,13 @@
 
 import { estimateMessageTokens } from '../contextBudget';
 import { toBudgetMessage } from './budgetMessage';
-import type { CompactableMessage, CompactMetadata, CompactPath, CompactResult, CompactType } from './types';
+import type {
+  CompactableMessage,
+  CompactMetadata,
+  CompactPath,
+  CompactResult,
+  CompactType,
+} from './types';
 import type { SplitByRetention } from './grouping';
 
 function createId(prefix: string): string {
@@ -91,9 +97,12 @@ export function evaluateCompactResult<T extends CompactableMessage>(
   originalTokens: number,
   compacted: boolean,
   compactPath: CompactPath | null,
-  metadata: CompactMetadata | null,
+  metadata: CompactMetadata | null
 ): CompactResult<T> {
-  const compressedTokens = messages.reduce((sum, m) => sum + estimateMessageTokens(toBudgetMessage(m)), 0);
+  const compressedTokens = messages.reduce(
+    (sum, m) => sum + estimateMessageTokens(toBudgetMessage(m)),
+    0
+  );
   return {
     messages,
     compacted,
@@ -108,11 +117,7 @@ export function messagesToConversationText(messages: CompactableMessage[]): stri
   const lines: string[] = [];
   for (const msg of messages) {
     const text =
-      typeof msg.text === 'string'
-        ? msg.text
-        : typeof msg.content === 'string'
-          ? msg.content
-          : '';
+      typeof msg.text === 'string' ? msg.text : typeof msg.content === 'string' ? msg.content : '';
     if (!text.trim()) continue;
     lines.push(`[${msg.role}] ${text}`);
   }

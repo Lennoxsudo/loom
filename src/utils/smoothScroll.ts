@@ -21,9 +21,7 @@ export function smoothScrollToBottom(
     return () => {};
   }
 
-  const duration =
-    options?.duration ??
-    Math.min(720, Math.max(320, Math.abs(distance) * 0.45));
+  const duration = options?.duration ?? Math.min(720, Math.max(320, Math.abs(distance) * 0.45));
   const startTime = performance.now();
   let frameId = 0;
 

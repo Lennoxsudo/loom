@@ -1,6 +1,6 @@
 /**
  * Subagent Resource Lock Serializer
- * 
+ *
  * Ensures that parallel subagents trying to write to the same files or terminal sessions
  * are executed sequentially (mutually exclusive) to avoid concurrent write conflicts.
  * Read-only operations can execute concurrently.
@@ -14,10 +14,16 @@ class SubagentResourceLock {
    */
   isWriteTool(toolName: string): boolean {
     const writeTools = [
-      'write', 'write_file',
-      'edit', 'edit_file',
-      'term', 'run_command',
-      'move_file', 'copy_file', 'delete_file', 'create_folder'
+      'write',
+      'write_file',
+      'edit',
+      'edit_file',
+      'term',
+      'run_command',
+      'move_file',
+      'copy_file',
+      'delete_file',
+      'create_folder',
     ];
     return writeTools.includes(toolName);
   }
@@ -30,12 +36,23 @@ class SubagentResourceLock {
     if (!args) return ['global_write'];
 
     // File writing tools: lock on file path
-    if (['write', 'write_file', 'edit', 'edit_file', 'create_folder', 'delete_file', 'get_file_info', 'finfo'].includes(toolName)) {
+    if (
+      [
+        'write',
+        'write_file',
+        'edit',
+        'edit_file',
+        'create_folder',
+        'delete_file',
+        'get_file_info',
+        'finfo',
+      ].includes(toolName)
+    ) {
       const p = args.path || args.filePath || args.folder_path;
       if (typeof p === 'string') {
         keys.push(`file:${p.toLowerCase()}`);
       } else if (Array.isArray(p)) {
-        p.forEach(x => {
+        p.forEach((x) => {
           if (typeof x === 'string') keys.push(`file:${x.toLowerCase()}`);
         });
       }
@@ -75,20 +92,20 @@ class SubagentResourceLock {
 
     const resourceKeys = this.getResourceKeys(toolName, args);
     const releaseFns: (() => void)[] = [];
-    
+
     // Sort keys to prevent deadlock (standard dining philosophers resolution)
     const sortedKeys = Array.from(new Set(resourceKeys)).sort();
-    
+
     for (const key of sortedKeys) {
       const currentLock = this.activeLocks.get(key) || Promise.resolve();
-      
+
       let resolveLock!: () => void;
       const nextLock = new Promise<void>((resolve) => {
         resolveLock = resolve;
       });
-      
+
       this.activeLocks.set(key, nextLock);
-      
+
       await currentLock;
       releaseFns.push(() => {
         resolveLock();

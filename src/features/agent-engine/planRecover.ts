@@ -35,7 +35,7 @@ function extractPlanFromText(body: string): { content: string; title: string } |
 function resolveStatus(
   toolName: string,
   messages: PlanRecoverMessage[],
-  planMessageIndex: number,
+  planMessageIndex: number
 ): PlanDocumentStatus {
   if (toolName !== 'exit_plan_mode') return 'draft';
   // If the user continued after submitting the plan, treat it as accepted.
@@ -50,7 +50,9 @@ function resolveStatus(
  * Walk tool messages and rebuild the latest plan document from
  * `update_plan` / `exit_plan_mode` args or `[PLAN]` blocks in the tool output.
  */
-export function recoverPlanFromMessages(messages: PlanRecoverMessage[] | undefined | null): PlanDocument | null {
+export function recoverPlanFromMessages(
+  messages: PlanRecoverMessage[] | undefined | null
+): PlanDocument | null {
   if (!messages?.length) return null;
 
   let best: PlanDocument | null = null;
@@ -65,7 +67,8 @@ export function recoverPlanFromMessages(messages: PlanRecoverMessage[] | undefin
     const args = m.tool_args || {};
     let content = typeof args.plan === 'string' ? args.plan : '';
     let title = typeof args.title === 'string' ? args.title.trim() : '';
-    const body = typeof m.text === 'string' ? m.text : typeof m.content === 'string' ? m.content : '';
+    const body =
+      typeof m.text === 'string' ? m.text : typeof m.content === 'string' ? m.content : '';
 
     if (!content.trim()) {
       const fromText = extractPlanFromText(body);
@@ -94,7 +97,7 @@ export function recoverPlanFromMessages(messages: PlanRecoverMessage[] | undefin
     status: resolveStatus(
       messages[bestIndex].tool_name === 'exit_plan_mode' ? 'exit_plan_mode' : 'update_plan',
       messages,
-      bestIndex,
+      bestIndex
     ),
   };
   return best;

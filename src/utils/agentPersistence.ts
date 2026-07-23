@@ -172,7 +172,9 @@ export async function createDefaultAgent(payload: CreateAgentPayload): Promise<A
   return saveAgent(agent);
 }
 
-export async function getProjectState(projectKey: string): Promise<ProjectConversationState | null> {
+export async function getProjectState(
+  projectKey: string
+): Promise<ProjectConversationState | null> {
   return await invoke<ProjectConversationState | null>('get_project_state', { projectKey });
 }
 
@@ -252,7 +254,9 @@ export async function recoverProjectStateForPath(
   }
 
   if (recovered && recovered.conversations.length > 0) {
-    console.warn(`从其他项目文件恢复 ${recovered.conversations.length} 条会话到 ${normalizedTarget}`);
+    console.warn(
+      `从其他项目文件恢复 ${recovered.conversations.length} 条会话到 ${normalizedTarget}`
+    );
   }
 
   return recovered;

@@ -74,7 +74,7 @@ export interface SplitByRetention {
  */
 export function splitByRoundRetention(
   messages: CompactableMessage[],
-  keepLastRounds: number,
+  keepLastRounds: number
 ): SplitByRetention | null {
   const rounds = groupMessagesByApiRound(messages);
   if (rounds.length <= keepLastRounds) {
@@ -105,7 +105,7 @@ export function splitByRoundRetention(
  */
 export function splitByMessageCountRetention(
   messages: CompactableMessage[],
-  keepCount: number,
+  keepCount: number
 ): SplitByRetention | null {
   const eligible: number[] = [];
   for (let i = 0; i < messages.length; i++) {

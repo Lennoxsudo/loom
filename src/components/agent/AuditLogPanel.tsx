@@ -139,9 +139,7 @@ export function AuditLogPanel() {
               >
                 {entry.source === 'ai' ? 'AI' : 'USER'}
               </span>
-              <span className={styles.action}>
-                {ACTION_LABELS[entry.action] ?? entry.action}
-              </span>
+              <span className={styles.action}>{ACTION_LABELS[entry.action] ?? entry.action}</span>
               <span className={styles.target} title={entry.target}>
                 {truncate(entry.target || '—', 60)}
               </span>

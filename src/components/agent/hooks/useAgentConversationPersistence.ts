@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { saveProjectState } from '../../../utils/agentPersistence';
-import { sanitizeConversationStateForPersistence, toProjectConversationStateForPersistence } from '../utils';
+import {
+  sanitizeConversationStateForPersistence,
+  toProjectConversationStateForPersistence,
+} from '../utils';
 import type { AgentConversationState } from '../../../types/chat';
 import {
   AGENT_CHAT_CONVERSATIONS_STORAGE_KEY,
@@ -122,8 +125,10 @@ export function useAgentConversationPersistence(options: UseAgentConversationPer
           sanitizeConversationStateForPersistence(conversationState)
         );
         const raw = localStorage.getItem(AGENT_CHAT_CONVERSATIONS_STORAGE_KEY);
-        const backup: Record<string, ReturnType<typeof toProjectConversationStateForPersistence>> =
-          raw ? JSON.parse(raw) : {};
+        const backup: Record<
+          string,
+          ReturnType<typeof toProjectConversationStateForPersistence>
+        > = raw ? JSON.parse(raw) : {};
         backup[activeProjectKey] = persistable;
         localStorage.setItem(AGENT_CHAT_CONVERSATIONS_STORAGE_KEY, JSON.stringify(backup));
       } catch {

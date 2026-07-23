@@ -29,11 +29,7 @@ vi.mock('../../i18n', () => ({
 describe('GenerateImageToolCard', () => {
   it('renders glass layer while pending', () => {
     const { container } = render(
-      <GenerateImageToolCard
-        isPending
-        prompt="A cute cat"
-        size="2752x1536"
-      />
+      <GenerateImageToolCard isPending prompt="A cute cat" size="2752x1536" />
     );
 
     expect(screen.getByText(/Generating image/i)).toBeTruthy();
@@ -42,25 +38,14 @@ describe('GenerateImageToolCard', () => {
 
   it('renders multiple glass viewports when imageCount > 1', () => {
     const { container } = render(
-      <GenerateImageToolCard
-        isPending
-        prompt="Two icons"
-        size="1024x1024"
-        imageCount={2}
-      />
+      <GenerateImageToolCard isPending prompt="Two icons" size="1024x1024" imageCount={2} />
     );
 
     expect(container.querySelectorAll('[data-testid="image-glass-viewport"]').length).toBe(2);
   });
 
   it('shows error text when failed', () => {
-    render(
-      <GenerateImageToolCard
-        isPending={false}
-        isError
-        errorText="Image generation failed"
-      />
-    );
+    render(<GenerateImageToolCard isPending={false} isError errorText="Image generation failed" />);
 
     expect(screen.getByText('Image generation failed')).toBeTruthy();
     expect(screen.getByText('Failed')).toBeTruthy();

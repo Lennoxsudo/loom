@@ -1,7 +1,18 @@
-import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDownIcon } from '../shared/Icons';
-import { parseHexColor, rgbToHex, applyCurrentLineHighlightColor } from '../../utils/lineHighlightColor';
+import {
+  parseHexColor,
+  rgbToHex,
+  applyCurrentLineHighlightColor,
+} from '../../utils/lineHighlightColor';
 import styles from './SettingsPrimitives.module.css';
 
 export interface SettingsSelectOption {
@@ -628,4 +639,3 @@ export function SettingsSelect({
 export function SettingsInlineControlsToggle({ children }: { children: ReactNode }) {
   return <span className={styles.inlineControlsToggle}>{children}</span>;
 }
-

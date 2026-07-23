@@ -25,8 +25,10 @@ const capabilitiesArb: fc.Arbitrary<AgentCapabilities> = fc.record({
 const rulesArb = fc.oneof(
   fc.constant(''),
   fc.constant(undefined),
-  fc.array(fc.constantFrom(' ', '\t', '\n', '\r'), { minLength: 1, maxLength: 10 }).map((arr) => arr.join('')),
-  fc.string({ minLength: 1, maxLength: 200 }),
+  fc
+    .array(fc.constantFrom(' ', '\t', '\n', '\r'), { minLength: 1, maxLength: 10 })
+    .map((arr) => arr.join('')),
+  fc.string({ minLength: 1, maxLength: 200 })
 );
 
 const createAgentPayloadArb: fc.Arbitrary<CreateAgentPayload> = fc.record({
@@ -34,7 +36,10 @@ const createAgentPayloadArb: fc.Arbitrary<CreateAgentPayload> = fc.record({
   type: fc.constantFrom('assistant', 'coder', 'reviewer'),
   icon: fc.option(fc.string({ minLength: 1, maxLength: 10 }), { nil: undefined }),
   model: fc.constantFrom('openai:gpt-4', 'anthropic:claude-3', 'ollama:llama3'),
-  provider: fc.option(fc.constantFrom('openai', 'anthropic', 'ollama') as fc.Arbitrary<AIProvider>, { nil: undefined }),
+  provider: fc.option(
+    fc.constantFrom('openai', 'anthropic', 'ollama') as fc.Arbitrary<AIProvider>,
+    { nil: undefined }
+  ),
   temperature: fc.double({ min: 0, max: 2, noNaN: true }),
   capabilities: capabilitiesArb,
   callable: fc.option(fc.boolean(), { nil: undefined }),
@@ -79,7 +84,7 @@ describe('Feature: agent-rules, Property 2: Agent Rules 持久化往返一致性
         const expectedRules = payload.rules ?? '';
         expect(loaded!.rules).toBe(expectedRules);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -115,9 +120,9 @@ describe('Feature: agent-rules, Property 2: Agent Rules 持久化往返一致性
 
           expect(loaded).toBeDefined();
           expect(loaded!.rules).toBe('');
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

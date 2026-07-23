@@ -75,12 +75,7 @@ describe('AskToolResultCard', () => {
   });
 
   it('renders failure state', () => {
-    render(
-      <AskToolResultCard
-        isError
-        outputText="ask_user_question 工具未在此环境中支持"
-      />
-    );
+    render(<AskToolResultCard isError outputText="ask_user_question 工具未在此环境中支持" />);
 
     expect(screen.getByText('失败')).toBeInTheDocument();
     expect(screen.getByText('ask_user_question 工具未在此环境中支持')).toBeInTheDocument();

@@ -15,10 +15,7 @@ import { useChatPinnedUserMessage } from './useChatPinnedUserMessage';
 import { getChatUserMessagePreviewText } from './chatPinnedUserMessage';
 import type { PendingFileChange } from './types';
 import type { I18nMessages } from '../../i18n/types';
-import {
-  findPlanAnchorMessageId,
-  insertAfterMessageAnchor,
-} from '../../utils/planMessageAnchor';
+import { findPlanAnchorMessageId, insertAfterMessageAnchor } from '../../utils/planMessageAnchor';
 import styles from './ChatMessageList.module.css';
 import userBubbleStyles from './ChatUserBubble.module.css';
 
@@ -163,7 +160,7 @@ export default function ChatMessageList({
     // (not stuck forever at the absolute bottom of the conversation).
     if (!planSlot) return result;
     const anchorId = findPlanAnchorMessageId(
-      messages.map((m) => ({ id: m.id, role: m.role, tool_name: m.tool_name })),
+      messages.map((m) => ({ id: m.id, role: m.role, tool_name: m.tool_name }))
     );
     const planItem: GroupedChatItem = {
       type: 'plan_document',

@@ -95,7 +95,7 @@ describe('Feature: agent-rules, Property 1: RulesConfig 持久化往返一致性
         expect(loaded.chatRules).toEqual(config.chatRules);
         expect(loaded.rulesTemplates).toEqual(config.rulesTemplates);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

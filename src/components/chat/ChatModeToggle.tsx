@@ -30,8 +30,7 @@ export default function ChatModeToggle({
   if (variant === 'composer') {
     const activeLabel = chatMode === 'plan' ? planLabel : allowLabel;
     const nextMode = chatMode === 'plan' ? 'always-allow' : 'plan';
-    const activeTitle =
-      chatMode === 'plan' ? t.agent.planModeDesc : t.agent.alwaysAllowModeDesc;
+    const activeTitle = chatMode === 'plan' ? t.agent.planModeDesc : t.agent.alwaysAllowModeDesc;
 
     return (
       <button

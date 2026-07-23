@@ -64,7 +64,9 @@ async function getUserAgentsDir(): Promise<string | null> {
 let cachedRegistry: Map<string, SubagentDefinition> | null = null;
 let cacheKey = '';
 
-export async function loadSubagentRegistry(projectPath?: string): Promise<Map<string, SubagentDefinition>> {
+export async function loadSubagentRegistry(
+  projectPath?: string
+): Promise<Map<string, SubagentDefinition>> {
   const key = projectPath || '';
   if (cachedRegistry && cacheKey === key) return cachedRegistry;
 

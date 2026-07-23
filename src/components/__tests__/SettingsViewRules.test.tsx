@@ -45,7 +45,7 @@ vi.mock('../../utils/mcpClient', () => ({
 
 // Mock stores
 vi.mock('../../stores', () => {
-  const mockFn = (val: any) => vi.fn((selector?: any) => selector ? selector(val) : val);
+  const mockFn = (val: any) => vi.fn((selector?: any) => (selector ? selector(val) : val));
   return {
     useFileStore: mockFn({ projectPath: '' }),
     useTabSize: mockFn(4),

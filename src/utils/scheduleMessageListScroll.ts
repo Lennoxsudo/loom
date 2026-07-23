@@ -8,7 +8,10 @@ function runAfterPaint(callback: () => void): void {
   });
 }
 
-export function scrollContainerToBottom(element: HTMLElement, behavior: ScrollBehavior = 'auto'): void {
+export function scrollContainerToBottom(
+  element: HTMLElement,
+  behavior: ScrollBehavior = 'auto'
+): void {
   const top = Math.max(element.scrollHeight - element.clientHeight, 0);
   if (behavior === 'smooth') {
     element.scrollTo({ top, behavior: 'smooth' });
@@ -22,7 +25,7 @@ export function scheduleScrollContainerToBottom(
   options?: {
     markNearBottom?: MutableRefObject<boolean>;
     behavior?: ScrollBehavior;
-  },
+  }
 ): void {
   if (options?.markNearBottom) {
     options.markNearBottom.current = true;

@@ -13,11 +13,7 @@ import {
   estimateToolsTokens,
 } from '../../utils/contextBudget';
 import { AI_TOOLS } from '../../features/agent-engine/definitions';
-import {
-  buildContextForRequest,
-  THINKING_PROMPT_MARKER,
-  THINKING_PROMPT_TEXT,
-} from './utils';
+import { buildContextForRequest, THINKING_PROMPT_MARKER, THINKING_PROMPT_TEXT } from './utils';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
 import { formatRulesContext } from '../../utils/rulesInjector';
 import type { AIProvider } from '../../utils/agentPersistence';
@@ -101,7 +97,9 @@ describe('Agent 单次请求 token 用量估算', () => {
     // === Token 估算 ===
     const breakdown = computeTokenBreakdown(messages, tools, provider, model);
 
-    console.warn('\n========== Agent 请求 Token 估算 (OpenAI, 首次, 有 Rules, 无 Skills) ==========');
+    console.warn(
+      '\n========== Agent 请求 Token 估算 (OpenAI, 首次, 有 Rules, 无 Skills) =========='
+    );
     logBreakdown(breakdown);
     console.warn('====================================================================\n');
 
@@ -135,7 +133,9 @@ describe('Agent 单次请求 token 用量估算', () => {
 
     const breakdown = computeTokenBreakdown(messages, tools, provider, model);
 
-    console.warn('\n========== Agent 请求 Token 估算 (Anthropic, 首次, 有 Rules, 有 Skills) ==========');
+    console.warn(
+      '\n========== Agent 请求 Token 估算 (Anthropic, 首次, 有 Rules, 有 Skills) =========='
+    );
     logBreakdown(breakdown);
     console.warn('========================================================================\n');
 
@@ -183,7 +183,9 @@ describe('Agent 单次请求 token 用量估算', () => {
 
     // Agent description
     const descTokens = estimateTokens(MOCK_AGENT_DESCRIPTION);
-    console.warn(`  Agent description:     ${descTokens} tokens (${MOCK_AGENT_DESCRIPTION.length} chars)`);
+    console.warn(
+      `  Agent description:     ${descTokens} tokens (${MOCK_AGENT_DESCRIPTION.length} chars)`
+    );
 
     // Rules
     const rulesContent = formatRulesContext(MOCK_RULES);
@@ -193,37 +195,58 @@ describe('Agent 单次请求 token 用量估算', () => {
     // Project path
     const projectPathContent = `${PROJECT_PATH_PREFIX}${MOCK_PROJECT_PATH}`;
     const projectPathTokens = estimateTokens(projectPathContent);
-    console.warn(`  Project path:          ${projectPathTokens} tokens (${projectPathContent.length} chars)`);
+    console.warn(
+      `  Project path:          ${projectPathTokens} tokens (${projectPathContent.length} chars)`
+    );
 
     // Thinking prompt
     const thinkingContent = `${THINKING_PROMPT_MARKER}\n${THINKING_PROMPT_TEXT}`;
     const thinkingTokens = estimateTokens(thinkingContent);
-    console.warn(`  Thinking prompt:       ${thinkingTokens} tokens (${thinkingContent.length} chars)`);
+    console.warn(
+      `  Thinking prompt:       ${thinkingTokens} tokens (${thinkingContent.length} chars)`
+    );
 
     // Plan mode prompt
     const planTokens = estimateTokens(PLAN_MODE_PROMPT);
-    console.warn(`  Plan mode prompt:      ${planTokens} tokens (${PLAN_MODE_PROMPT.length} chars)`);
+    console.warn(
+      `  Plan mode prompt:      ${planTokens} tokens (${PLAN_MODE_PROMPT.length} chars)`
+    );
 
     // Skills context (有 skills 时)
     const skillsTokens = estimateTokens(MOCK_SKILLS_CONTEXT);
-    console.warn(`  Skills index (4个):    ${skillsTokens} tokens (${MOCK_SKILLS_CONTEXT.length} chars)`);
+    console.warn(
+      `  Skills index (4个):    ${skillsTokens} tokens (${MOCK_SKILLS_CONTEXT.length} chars)`
+    );
 
     // 工具定义
     const openaiTools = getOpenAIToolsForProvider('openai');
     const openaiToolTokens = estimateToolsTokens(openaiTools);
-    console.warn(`  Tool 定义 (OpenAI):    ${openaiToolTokens} tokens (JSON: ${JSON.stringify(openaiTools).length} chars, ${Array.isArray(openaiTools) ? openaiTools.length : 0} tools)`);
+    console.warn(
+      `  Tool 定义 (OpenAI):    ${openaiToolTokens} tokens (JSON: ${JSON.stringify(openaiTools).length} chars, ${Array.isArray(openaiTools) ? openaiTools.length : 0} tools)`
+    );
 
     const anthropicTools = getOpenAIToolsForProvider('anthropic');
     const anthropicToolTokens = estimateToolsTokens(anthropicTools);
-    console.warn(`  Tool 定义 (Anthropic): ${anthropicToolTokens} tokens (JSON: ${JSON.stringify(anthropicTools).length} chars)`);
+    console.warn(
+      `  Tool 定义 (Anthropic): ${anthropicToolTokens} tokens (JSON: ${JSON.stringify(anthropicTools).length} chars)`
+    );
 
     // 用户消息
     const userMsgTokens = estimateTokens(MOCK_USER_MESSAGE);
-    console.warn(`  用户消息:              ${userMsgTokens} tokens (${MOCK_USER_MESSAGE.length} chars)`);
+    console.warn(
+      `  用户消息:              ${userMsgTokens} tokens (${MOCK_USER_MESSAGE.length} chars)`
+    );
 
     // 总开销估算
-    const overheadOpenAI = descTokens + rulesTokens + projectPathTokens + thinkingTokens + openaiToolTokens + userMsgTokens;
-    const overheadAnthropic = descTokens + rulesTokens + projectPathTokens + anthropicToolTokens + userMsgTokens;
+    const overheadOpenAI =
+      descTokens +
+      rulesTokens +
+      projectPathTokens +
+      thinkingTokens +
+      openaiToolTokens +
+      userMsgTokens;
+    const overheadAnthropic =
+      descTokens + rulesTokens + projectPathTokens + anthropicToolTokens + userMsgTokens;
     console.warn('');
     console.warn(`  --- 首次请求总开销估算 (不含对话历史) ---`);
     console.warn(`  OpenAI:    ~${overheadOpenAI} tokens`);
@@ -252,8 +275,15 @@ describe('Agent 单次请求 token 用量估算', () => {
 
       // 模拟 n 轮 user + assistant 对话
       for (let i = 0; i < n; i++) {
-        requestMessages.push(makeMsg('user', `第${i + 1}轮用户消息：帮我写一个函数实现 ${i + 1} 的功能`));
-        requestMessages.push(makeMsg('assistant', `第${i + 1}轮AI回复：好的，这是一个实现...\n\n\`\`\`typescript\nfunction impl${i + 1}() {\n  return ${i + 1};\n}\n\`\`\``));
+        requestMessages.push(
+          makeMsg('user', `第${i + 1}轮用户消息：帮我写一个函数实现 ${i + 1} 的功能`)
+        );
+        requestMessages.push(
+          makeMsg(
+            'assistant',
+            `第${i + 1}轮AI回复：好的，这是一个实现...\n\n\`\`\`typescript\nfunction impl${i + 1}() {\n  return ${i + 1};\n}\n\`\`\``
+          )
+        );
       }
       // 最后一轮用户消息
       requestMessages.push(makeMsg('user', '帮我继续优化上面的代码'));
@@ -269,10 +299,15 @@ describe('Agent 单次请求 token 用量估算', () => {
         tools,
       });
 
-      const msgTokens = messages.reduce<number>((sum, m) => sum + estimateMessageTokens(m as { role: string; content: unknown }), 0);
+      const msgTokens = messages.reduce<number>(
+        (sum, m) => sum + estimateMessageTokens(m as { role: string; content: unknown }),
+        0
+      );
       const totalTokens = msgTokens + toolTokens;
 
-      console.warn(`  ${n} 轮对话: messages=${messages.length}, msgTokens≈${msgTokens}, toolTokens≈${toolTokens}, total≈${totalTokens}`);
+      console.warn(
+        `  ${n} 轮对话: messages=${messages.length}, msgTokens≈${msgTokens}, toolTokens≈${toolTokens}, total≈${totalTokens}`
+      );
     }
 
     console.warn('================================================================\n');
@@ -326,7 +361,7 @@ function computeTokenBreakdown(
   messages: unknown[],
   tools: unknown,
   provider: AIProvider,
-  _model: string,
+  _model: string
 ): TokenBreakdown {
   let systemTokens = 0;
   let skillsTokens = 0;

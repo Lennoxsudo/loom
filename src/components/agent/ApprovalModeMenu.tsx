@@ -1,10 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDownIcon } from '../shared/Icons';
 import { useTranslation } from '../../i18n';
-import {
-  useAgentAccessMode,
-  useUpdateAgentAccessMode,
-} from '../../stores';
+import { useAgentAccessMode, useUpdateAgentAccessMode } from '../../stores';
 import type { AgentAccessMode } from '../../types/settings';
 import styles from './ApprovalModeMenu.module.css';
 

@@ -204,7 +204,12 @@ export default function TitleBar({
         <div className={styles.windowButton} onClick={handleToggleMaximize}>
           {isMaximized ? (
             <svg width="11" height="11" viewBox="0 0 11 11">
-              <path stroke="currentColor" strokeWidth="1" fill="none" d="M3.5 1.5h6v6 M1.5 3.5h6v6h-6z" />
+              <path
+                stroke="currentColor"
+                strokeWidth="1"
+                fill="none"
+                d="M3.5 1.5h6v6 M1.5 3.5h6v6h-6z"
+              />
             </svg>
           ) : (
             <svg width="11" height="11" viewBox="0 0 11 11">
@@ -214,7 +219,12 @@ export default function TitleBar({
         </div>
         <div className={styles.closeButton} onClick={handleClose}>
           <svg width="11" height="11" viewBox="0 0 11 11">
-            <path stroke="currentColor" strokeWidth="1" fill="none" d="M1.5 1.5l8 8 M9.5 1.5l-8 8" />
+            <path
+              stroke="currentColor"
+              strokeWidth="1"
+              fill="none"
+              d="M1.5 1.5l8 8 M9.5 1.5l-8 8"
+            />
           </svg>
         </div>
       </div>

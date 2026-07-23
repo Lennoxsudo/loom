@@ -15,12 +15,7 @@ export * from './sessionMemoryCompact';
 import { compactConversation } from './compactConversation';
 import { shouldAutoCompact, resetCompactTurns } from './autoCompact';
 import { computeCompressionThreshold } from './autoCompact';
-import type {
-  CompactableMessage,
-  CompactResult,
-  CompactState,
-  CompactType,
-} from './types';
+import type { CompactableMessage, CompactResult, CompactState, CompactType } from './types';
 
 export interface MaybeAutoCompactOptions<T extends CompactableMessage> {
   messages: T[];
@@ -45,7 +40,7 @@ export interface MaybeAutoCompactResult<T extends CompactableMessage> {
  * Check threshold and run compaction if needed. Returns updated messages + compact state.
  */
 export async function maybeAutoCompactConversation<T extends CompactableMessage>(
-  opts: MaybeAutoCompactOptions<T>,
+  opts: MaybeAutoCompactOptions<T>
 ): Promise<MaybeAutoCompactResult<T>> {
   const {
     messages,
@@ -65,7 +60,16 @@ export async function maybeAutoCompactConversation<T extends CompactableMessage>
     reserveTokens,
   });
 
-  if (!shouldAutoCompact({ messages, budgetTokens, tools, maxContextTokens, reserveTokens, compactState })) {
+  if (
+    !shouldAutoCompact({
+      messages,
+      budgetTokens,
+      tools,
+      maxContextTokens,
+      reserveTokens,
+      compactState,
+    })
+  ) {
     return {
       messages,
       compacted: false,

@@ -48,7 +48,13 @@ describe('imageGenConfig', () => {
 
   it('filters image model names from provider list', () => {
     expect(
-      filterImageModels(['gpt-4o', 'dall-e-3', 'text-embedding-3-small', 'flux-dev', 'sensenova-u1-fast'])
+      filterImageModels([
+        'gpt-4o',
+        'dall-e-3',
+        'text-embedding-3-small',
+        'flux-dev',
+        'sensenova-u1-fast',
+      ])
     ).toEqual(['dall-e-3', 'flux-dev', 'sensenova-u1-fast']);
   });
 
@@ -95,7 +101,9 @@ describe('imageGenConfig', () => {
       '  absolute: D:\\project\\demo\\public\\ai-gen-1.png',
     ].join('\n');
 
-    expect(parseGenerateImageAbsolutePaths(text)).toEqual(['D:\\project\\demo\\public\\ai-gen-1.png']);
+    expect(parseGenerateImageAbsolutePaths(text)).toEqual([
+      'D:\\project\\demo\\public\\ai-gen-1.png',
+    ]);
   });
 
   it('opens existing generated image in editor', async () => {

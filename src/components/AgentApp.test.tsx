@@ -87,7 +87,9 @@ describe('AgentApp', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'switch-project' }));
 
-    expect(screen.getByText((content) => content.includes('D:\\next\\project'))).toBeInTheDocument();
+    expect(
+      screen.getByText((content) => content.includes('D:\\next\\project'))
+    ).toBeInTheDocument();
     expect(replaceStateSpy).toHaveBeenCalled();
     replaceStateSpy.mockRestore();
   });

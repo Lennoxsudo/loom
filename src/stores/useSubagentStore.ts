@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { SubagentRun, SubagentTask, SubagentResult, SubagentRunStatus, PersistedSubagentRun } from '../types/subagent';
+import type {
+  SubagentRun,
+  SubagentTask,
+  SubagentResult,
+  SubagentRunStatus,
+  PersistedSubagentRun,
+} from '../types/subagent';
 import { persistedSubagentRunToSubagentRun } from '../types/subagent';
 
 const runControllers = new Map<string, AbortController>();
@@ -16,7 +22,12 @@ interface SubagentState {
   appendThinking: (id: string, chunk: string) => void;
   pushToolEvent: (
     id: string,
-    event: { id: string; toolName: string; status: 'running' | 'done' | 'error'; resultPreview?: string }
+    event: {
+      id: string;
+      toolName: string;
+      status: 'running' | 'done' | 'error';
+      resultPreview?: string;
+    }
   ) => void;
   updateToolEvent: (
     id: string,
@@ -30,7 +41,11 @@ interface SubagentState {
   removeController: (id: string) => void;
   setPendingApproval: (
     id: string,
-    req: { toolName: string; detailPreview: string; resolve: (choice: 'approve' | 'reject') => void }
+    req: {
+      toolName: string;
+      detailPreview: string;
+      resolve: (choice: 'approve' | 'reject') => void;
+    }
   ) => void;
   clearPendingApproval: (id: string) => void;
   hydrateRuns: (records: PersistedSubagentRun[]) => void;
@@ -291,7 +306,8 @@ export const useSubagentStore = create<SubagentState>()(
 // Selectors
 export const useSubagentRuns = () => useSubagentStore((state) => state.runs);
 export const useStartSubagent = () => useSubagentStore((state) => state.startSubagent);
-export const useUpdateSubagentStatus = () => useSubagentStore((state) => state.updateSubagentStatus);
+export const useUpdateSubagentStatus = () =>
+  useSubagentStore((state) => state.updateSubagentStatus);
 export const useFinishSubagent = () => useSubagentStore((state) => state.finishSubagent);
 export const useClearSubagent = () => useSubagentStore((state) => state.clearSubagent);
 export const useAppendStreamChunk = () => useSubagentStore((state) => state.appendStreamChunk);
@@ -301,4 +317,3 @@ export const useUpdateToolEvent = () => useSubagentStore((state) => state.update
 export const useCancelSubagent = () => useSubagentStore((state) => state.cancelSubagent);
 export const useCancelAllSubagents = () => useSubagentStore((state) => state.cancelAllSubagents);
 export const useHydrateSubagentRuns = () => useSubagentStore((state) => state.hydrateRuns);
-

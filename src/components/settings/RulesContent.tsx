@@ -17,11 +17,7 @@ import { ChevronDownIcon } from '../shared/Icons';
 import pageStyles from './SettingsPage.module.css';
 import { SettingsDeleteModal } from './SettingsDeleteModal';
 import styles from './RulesContent.module.css';
-import {
-  SettingsBlockBody,
-  SettingsPanel,
-  SettingsSection,
-} from './SettingsPrimitives';
+import { SettingsBlockBody, SettingsPanel, SettingsSection } from './SettingsPrimitives';
 
 function plainPreviewText(text: string, maxLen = 140): string {
   const plain = text
@@ -387,15 +383,14 @@ export function RulesContent() {
         <SettingsSection
           title={t.settingsRules.chatRules}
           action={
-            !showNewChatRule ? <AddRuleButton onClick={() => setShowNewChatRule(true)} /> : undefined
+            !showNewChatRule ? (
+              <AddRuleButton onClick={() => setShowNewChatRule(true)} />
+            ) : undefined
           }
         >
           {showNewChatRule ? (
             <SettingsBlockBody>
-              <NewRuleForm
-                onSave={handleAddChatRule}
-                onCancel={() => setShowNewChatRule(false)}
-              />
+              <NewRuleForm onSave={handleAddChatRule} onCancel={() => setShowNewChatRule(false)} />
             </SettingsBlockBody>
           ) : null}
           {chatRules.length === 0 ? (
@@ -424,10 +419,7 @@ export function RulesContent() {
         >
           {showNewTemplate ? (
             <SettingsBlockBody>
-              <NewRuleForm
-                onSave={handleAddTemplate}
-                onCancel={() => setShowNewTemplate(false)}
-              />
+              <NewRuleForm onSave={handleAddTemplate} onCancel={() => setShowNewTemplate(false)} />
             </SettingsBlockBody>
           ) : null}
           {rulesTemplates.length === 0 ? (

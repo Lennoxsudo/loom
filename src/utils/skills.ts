@@ -81,10 +81,9 @@ function joinPath(base: string, ...parts: string[]): string {
 /** 列出目录下的子目录名 */
 async function listSubDirs(dirPath: string): Promise<string[]> {
   try {
-    const nodes = await invoke<Array<{ name: string; is_dir: boolean }>>(
-      'read_folder_children',
-      { folderPath: dirPath }
-    );
+    const nodes = await invoke<Array<{ name: string; is_dir: boolean }>>('read_folder_children', {
+      folderPath: dirPath,
+    });
     return nodes.filter((n) => n.is_dir).map((n) => n.name);
   } catch {
     return [];
@@ -173,7 +172,10 @@ export function parseFrontmatter(raw: string): SkillFrontmatter {
 /** 从正文首行提取描述（去除 # 前缀） */
 function extractFirstLineAsDescription(body: string): string {
   const firstLine = body.split('\n')[0] || '';
-  return firstLine.replace(/^#+\s*/, '').trim().slice(0, 120);
+  return firstLine
+    .replace(/^#+\s*/, '')
+    .trim()
+    .slice(0, 120);
 }
 
 /**
@@ -230,9 +232,7 @@ function mergeSkills(globalSkills: SkillEntry[], projectSkills: SkillEntry[]): S
 function formatSkillsIndex(skills: SkillEntry[]): string {
   if (skills.length === 0) return '';
 
-  const items = skills.map(
-    (s) => `"${s.name}": ${s.description || '(无描述)'}`
-  );
+  const items = skills.map((s) => `"${s.name}": ${s.description || '(无描述)'}`);
 
   return [
     '<available_skills>',
@@ -251,11 +251,7 @@ function formatSkillsIndex(skills: SkillEntry[]): string {
 export async function loadSkillsContext(projectPath: string): Promise<string> {
   const now = Date.now();
 
-  if (
-    _cache &&
-    _lastProjectPath === projectPath &&
-    now - _cache.timestamp < CACHE_TTL_MS
-  ) {
+  if (_cache && _lastProjectPath === projectPath && now - _cache.timestamp < CACHE_TTL_MS) {
     return formatSkillsIndex(_cache.skills);
   }
 
@@ -333,7 +329,12 @@ export async function loadSkillContent(
 
     // 项目级优先
     if (projectPath) {
-      const projectSkillFile = joinPath(projectPath, PROJECT_SKILLS_DIR_NAME, skillName, SKILL_FILE_NAME);
+      const projectSkillFile = joinPath(
+        projectPath,
+        PROJECT_SKILLS_DIR_NAME,
+        skillName,
+        SKILL_FILE_NAME
+      );
       const raw = await readFileContent(projectSkillFile);
       if (raw && raw.trim()) {
         const parsed = parseFrontmatter(raw);
@@ -428,9 +429,8 @@ export async function saveSkill(
 ): Promise<void> {
   // skill 名称即目录名，去掉 .md 后缀（如果用户带了的话）
   const skillName = name.endsWith('.md') ? name.slice(0, -3) : name;
-  const baseDir = scope === 'global'
-    ? await getGlobalSkillsDir()
-    : getProjectSkillsDir(projectPath);
+  const baseDir =
+    scope === 'global' ? await getGlobalSkillsDir() : getProjectSkillsDir(projectPath);
 
   if (!baseDir) throw new Error('无法确定 skills 目录');
 
@@ -448,9 +448,8 @@ export async function deleteSkill(
   scope: 'global' | 'project',
   projectPath: string
 ): Promise<void> {
-  const baseDir = scope === 'global'
-    ? await getGlobalSkillsDir()
-    : getProjectSkillsDir(projectPath);
+  const baseDir =
+    scope === 'global' ? await getGlobalSkillsDir() : getProjectSkillsDir(projectPath);
 
   if (!baseDir) throw new Error('无法确定 skills 目录');
 

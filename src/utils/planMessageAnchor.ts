@@ -49,7 +49,7 @@ export function insertAfterMessageAnchor<TItem, TPlan>(
   items: TItem[],
   planItem: TPlan,
   anchorMessageId: string | null,
-  options?: { pendingChangesType?: string },
+  options?: { pendingChangesType?: string }
 ): Array<TItem | TPlan> {
   if (!items.length) return [planItem];
   const pendingType = options?.pendingChangesType ?? 'pending_changes';
@@ -80,9 +80,7 @@ export function insertAfterMessageAnchor<TItem, TPlan>(
   }
 
   // Fallback: before pending_changes footer, else end
-  const pendingIdx = items.findIndex(
-    (it) => (it as ListItemShape).type === pendingType,
-  );
+  const pendingIdx = items.findIndex((it) => (it as ListItemShape).type === pendingType);
   if (pendingIdx >= 0) {
     return [...items.slice(0, pendingIdx), planItem, ...items.slice(pendingIdx)];
   }

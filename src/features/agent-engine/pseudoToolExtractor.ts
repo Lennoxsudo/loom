@@ -20,7 +20,7 @@ interface ExtractResult {
  *
  * 支持格式：
  * 1. [Tool: name(args)]  -- ChatPanel 兼容格式
- * 2. 
+ * 2.
  * 3. <function_calls><invoke name="..."><parameter name="...">value</parameter></invoke></function_calls>
  * 4. <function name="..."><parameter name="...">value</parameter></function>
  * 5. <function><name>...</name><arguments>{...}</arguments></function>
@@ -104,12 +104,30 @@ export function extractPseudoToolCallsFromContent(
   }
 
   // -- 2. XML 格式 --
-  // 2a. 
-  extractXmlBlocks(content, /<tool_call\b[^>]*>([\s\S]*?)<\/tool_call>/g, knownToolNames, toolCalls, ranges);
+  // 2a.
+  extractXmlBlocks(
+    content,
+    /<tool_call\b[^>]*>([\s\S]*?)<\/tool_call>/g,
+    knownToolNames,
+    toolCalls,
+    ranges
+  );
   // 2b. <function_calls>...</function_calls>
-  extractXmlBlocks(content, /<function_calls\b[^>]*>([\s\S]*?)<\/function_calls>/g, knownToolNames, toolCalls, ranges);
+  extractXmlBlocks(
+    content,
+    /<function_calls\b[^>]*>([\s\S]*?)<\/function_calls>/g,
+    knownToolNames,
+    toolCalls,
+    ranges
+  );
   // 2c. 独立 <function>...</function>（如果前面未覆盖）
-  extractXmlBlocks(content, /<function\b[^>]*>([\s\S]*?)<\/function>/g, knownToolNames, toolCalls, ranges);
+  extractXmlBlocks(
+    content,
+    /<function\b[^>]*>([\s\S]*?)<\/function>/g,
+    knownToolNames,
+    toolCalls,
+    ranges
+  );
   // 3. tool_name + JSON 块（常见于部分模型纯文本输出）
   extractMultilineToolCalls(content, knownToolNames, toolCalls, ranges);
 
@@ -183,10 +201,7 @@ function expandPseudoToolAlias(
     };
   }
 
-  if (
-    (lower === 'get_file_tree' || lower === 'file_tree') &&
-    knownToolNames.includes('finfo')
-  ) {
+  if ((lower === 'get_file_tree' || lower === 'file_tree') && knownToolNames.includes('finfo')) {
     return {
       name: 'finfo',
       args: {
@@ -199,10 +214,7 @@ function expandPseudoToolAlias(
     };
   }
 
-  if (
-    (lower === 'get_file_info' || lower === 'stat') &&
-    knownToolNames.includes('finfo')
-  ) {
+  if ((lower === 'get_file_info' || lower === 'stat') && knownToolNames.includes('finfo')) {
     return {
       name: 'finfo',
       args: { action: 'info', path: args.path ?? args.file_path },
@@ -403,7 +415,8 @@ function parseXmlFunctionBlock(
 
   const args: Record<string, unknown> = {};
 
-  const paramRegex = /<parameter\b[^>]*?\s+name\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/parameter>/g;
+  const paramRegex =
+    /<parameter\b[^>]*?\s+name\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/parameter>/g;
   let pMatch: RegExpExecArray | null;
   while ((pMatch = paramRegex.exec(inner)) != null) {
     const key = pMatch[1].trim();

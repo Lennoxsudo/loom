@@ -43,9 +43,7 @@ export default function ProviderSwitchNotice({
   const isCompact = variant === 'compact';
   const fromLabel = isCompact ? shortModelName(notice.fromModel) : notice.fromModel;
   const toLabel = isCompact ? shortModelName(notice.toModel) : notice.toModel;
-  const label = t.agent.modelSwitchedFromTo
-    .replace('{from}', fromLabel)
-    .replace('{to}', toLabel);
+  const label = t.agent.modelSwitchedFromTo.replace('{from}', fromLabel).replace('{to}', toLabel);
   const detail = `${notice.fromProvider}/${notice.fromModel} -> ${notice.toProvider}/${notice.toModel}`;
   const iconSize = isCompact ? 10 : 14;
 

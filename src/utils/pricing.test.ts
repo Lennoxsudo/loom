@@ -49,8 +49,7 @@ describe('computeCost', () => {
       cacheRead: 800_000,
       cacheWrite: 100_000,
     };
-    const expected =
-      (100_000 / 1e6) * 3 + (800_000 / 1e6) * 0.3 + (100_000 / 1e6) * 3.75;
+    const expected = (100_000 / 1e6) * 3 + (800_000 / 1e6) * 0.3 + (100_000 / 1e6) * 3.75;
     expect(computeCost(usage, pricing)).toBeCloseTo(expected, 5);
   });
 

@@ -1,6 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { formatGraphOutput, graphHandlers, extractFirstQualifiedNameFromSearchRaw, filterCodeSearchRawByNamePattern, filterDetectChangesRaw } from '../handlers/graphHandlers';
+import {
+  formatGraphOutput,
+  graphHandlers,
+  extractFirstQualifiedNameFromSearchRaw,
+  filterCodeSearchRawByNamePattern,
+  filterDetectChangesRaw,
+} from '../handlers/graphHandlers';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -32,7 +38,7 @@ describe('graphHandlers', () => {
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
       { action: 'query', query: 'MATCH (f:Function) RETURN f LIMIT 5', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
@@ -92,7 +98,7 @@ describe('graphHandlers', () => {
     const output = formatGraphOutput(
       'graph_index',
       'status',
-      '{"indexed":true,"node_count":1234,"edge_count":5678,"indexed_at":"2026-01-01"}',
+      '{"indexed":true,"node_count":1234,"edge_count":5678,"indexed_at":"2026-01-01"}'
     );
     expect(output).toContain('**Indexed**: yes');
     expect(output).toContain('**Nodes**: 1,234');
@@ -101,11 +107,7 @@ describe('graphHandlers', () => {
   });
 
   it('formats index status with status string variant', () => {
-    const output = formatGraphOutput(
-      'graph_index',
-      'status',
-      '{"status":"indexed","nodes":42}',
-    );
+    const output = formatGraphOutput('graph_index', 'status', '{"status":"indexed","nodes":42}');
     expect(output).toContain('**Status**: indexed');
     expect(output).toContain('**Nodes**: 42');
   });
@@ -114,7 +116,7 @@ describe('graphHandlers', () => {
     const output = formatGraphOutput(
       'graph_index',
       'list',
-      '{"projects":[{"name":"D-project-foo","root_path":"D:/foo","node_count":10,"edge_count":20,"indexed_at":"2026-01-01"}]}',
+      '{"projects":[{"name":"D-project-foo","root_path":"D:/foo","node_count":10,"edge_count":20,"indexed_at":"2026-01-01"}]}'
     );
     expect(output).toContain('Found 1 indexed project');
     expect(output).toContain('| D-project-foo |');
@@ -135,11 +137,7 @@ describe('graphHandlers', () => {
   });
 
   it('formats delete not found', () => {
-    const output = formatGraphOutput(
-      'graph_index',
-      'delete',
-      '{"status":"not_found"}',
-    );
+    const output = formatGraphOutput('graph_index', 'delete', '{"status":"not_found"}');
     expect(output).toContain('already clean');
   });
 
@@ -149,7 +147,7 @@ describe('graphHandlers', () => {
     const output = formatGraphOutput(
       'graph_query',
       'search',
-      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}',
+      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}'
     );
     expect(output).toContain('Found 1 symbol');
     expect(output).toContain('| foo |');
@@ -157,31 +155,29 @@ describe('graphHandlers', () => {
     expect(output).toContain('src/lib.ts');
   });
 
-it('sanitizes invoke-links prefix from search qualified_name column', () => {
-const output = formatGraphOutput(
-'graph_query',
-'search',
-JSON.stringify({
-results: [{
-name: 'getProductById',
-label: 'Function',
-file: 'src/stores/products.ts',
-qualified_name:
-'.C-Users-Administrator-AppData-Roaming-Loom-cbm-invoke-links-ecfb22c20d710397.src.stores.products.getProductById',
-}],
-}),
-);
-expect(output).toContain('src.stores.products.getProductById');
-expect(output).not.toContain('invoke-links');
-expect(output).not.toContain('.src.stores');
-});
-
-  it('formats empty search results', () => {
+  it('sanitizes invoke-links prefix from search qualified_name column', () => {
     const output = formatGraphOutput(
       'graph_query',
       'search',
-      '{"results":[]}',
+      JSON.stringify({
+        results: [
+          {
+            name: 'getProductById',
+            label: 'Function',
+            file: 'src/stores/products.ts',
+            qualified_name:
+              '.C-Users-Administrator-AppData-Roaming-Loom-cbm-invoke-links-ecfb22c20d710397.src.stores.products.getProductById',
+          },
+        ],
+      })
     );
+    expect(output).toContain('src.stores.products.getProductById');
+    expect(output).not.toContain('invoke-links');
+    expect(output).not.toContain('.src.stores');
+  });
+
+  it('formats empty search results', () => {
+    const output = formatGraphOutput('graph_query', 'search', '{"results":[]}');
     expect(output).toContain('No symbols found');
   });
 
@@ -189,7 +185,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_query',
       'snippet',
-      '{"code":"fn foo() {}","file":"src/lib.rs","start_line":1,"end_line":1,"qualified_name":"crate::foo"}',
+      '{"code":"fn foo() {}","file":"src/lib.rs","start_line":1,"end_line":1,"qualified_name":"crate::foo"}'
     );
     expect(output).toContain('src/lib.rs');
     expect(output).toContain('lines 1–1');
@@ -201,7 +197,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_query',
       'query',
-      '{"results":[{"name":"foo","count":3},{"name":"bar","count":5}]}',
+      '{"results":[{"name":"foo","count":3},{"name":"bar","count":5}]}'
     );
     expect(output).toContain('Found 2 result');
     expect(output).toContain('| foo | 3 |');
@@ -212,7 +208,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_query',
       'query',
-      '{"columns":["f.name","f.file"],"rows":[["increment","src/lib.ts"],["getByCategory","src/api.ts"]],"total":2}',
+      '{"columns":["f.name","f.file"],"rows":[["increment","src/lib.ts"],["getByCategory","src/api.ts"]],"total":2}'
     );
     expect(output).toContain('Found 2 result');
     expect(output).toContain('| f.name | f.file |');
@@ -224,7 +220,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_query',
       'query',
-      '{"columns":["f.name"],"rows":[],"total":0}',
+      '{"columns":["f.name"],"rows":[],"total":0}'
     );
     expect(output).toContain('No results');
   });
@@ -235,7 +231,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_trace',
       'trace',
-      '{"callers":[{"name":"bar","file":"src/bar.rs","line":5}],"callees":[{"name":"baz","file":"src/baz.rs","line":10}]}',
+      '{"callers":[{"name":"bar","file":"src/bar.rs","line":5}],"callees":[{"name":"baz","file":"src/baz.rs","line":10}]}'
     );
     expect(output).toContain('Inbound (callers)');
     expect(output).toContain('`bar`');
@@ -248,7 +244,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_trace',
       'trace',
-      '{"function":"increment","callers":[],"callees":[]}',
+      '{"function":"increment","callers":[],"callees":[]}'
     );
     expect(output).toContain('No CALLS edges');
     expect(output).toContain('graph_query');
@@ -278,7 +274,7 @@ expect(output).not.toContain('.src.stores');
           { name: 'formatPrice', qualified_name: 'mod.formatPrice', file: 'src/lib.ts' },
         ],
         layers: [{ name: 'data', layer: 'internal', reason: 'fan-in=0, fan-out=0' }],
-      }),
+      })
     );
     expect(output).toContain('**Nodes**: 229');
     expect(output).toContain('**Edges**: 247');
@@ -296,7 +292,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_trace',
       'changes',
-      '{"changed_files":["src/lib.ts","src/api.ts","src/utils.ts"]}',
+      '{"changed_files":["src/lib.ts","src/api.ts","src/utils.ts"]}'
     );
     expect(output).toContain('Detected 3 changed file');
     expect(output).toContain('`src/lib.ts`');
@@ -308,7 +304,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_trace',
       'changes',
-      '{"changes":[{"file":"src/lib.rs","type":"modified","impacted_functions":["foo","bar"]}]}',
+      '{"changes":[{"file":"src/lib.rs","type":"modified","impacted_functions":["foo","bar"]}]}'
     );
     expect(output).toContain('Detected 1 change');
     expect(output).toContain('src/lib.rs');
@@ -324,11 +320,7 @@ expect(output).not.toContain('.src.stores');
   // ── fallback ──
 
   it('falls back to json block for unrecognized shape', () => {
-    const output = formatGraphOutput(
-      'graph_index',
-      'status',
-      '{"unknown_field":"value"}',
-    );
+    const output = formatGraphOutput('graph_index', 'status', '{"unknown_field":"value"}');
     expect(output).toContain('```json');
   });
 
@@ -344,16 +336,20 @@ expect(output).not.toContain('.src.stores');
       .mockResolvedValueOnce(
         JSON.stringify({
           results: [{ qualified_name: 'mod::MyClass', name: 'MyClass' }],
-        }),
+        })
       )
       .mockResolvedValueOnce(
-        JSON.stringify({ code: 'class MyClass {}', file: 'src/lib.ts', qualified_name: 'mod::MyClass' }),
+        JSON.stringify({
+          code: 'class MyClass {}',
+          file: 'src/lib.ts',
+          qualified_name: 'mod::MyClass',
+        })
       );
 
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
       { action: 'snippet', name_pattern: 'MyClass', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
 
     expect(invoke).toHaveBeenCalledTimes(2);
@@ -386,7 +382,7 @@ expect(output).not.toContain('.src.stores');
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
       { action: 'query', query: 'Function', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.error).toBeTruthy();
     expect(result.error).toContain('MATCH');
@@ -400,19 +396,23 @@ expect(output).not.toContain('.src.stores');
     // 3rd call: fallback outgoing query (no results)
     vi.mocked(invoke)
       .mockResolvedValueOnce(
-        JSON.stringify({ function: 'increment', direction: 'both', callees: [], callers: [] }),
+        JSON.stringify({ function: 'increment', direction: 'both', callees: [], callers: [] })
       )
       .mockResolvedValueOnce(
-        JSON.stringify({ columns: ['rel_type', 'from_name'], rows: [['DEFINES', 'counter.ts']], total: 1 }),
+        JSON.stringify({
+          columns: ['rel_type', 'from_name'],
+          rows: [['DEFINES', 'counter.ts']],
+          total: 1,
+        })
       )
       .mockResolvedValueOnce(
-        JSON.stringify({ columns: ['rel_type', 'to_name'], rows: [], total: 0 }),
+        JSON.stringify({ columns: ['rel_type', 'to_name'], rows: [], total: 0 })
       );
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
       { action: 'trace', function_name: 'increment', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
 
     // 3 calls: trace + 2 fallback queries
@@ -431,22 +431,24 @@ expect(output).not.toContain('.src.stores');
         payload: expect.objectContaining({
           query: expect.stringContaining('type(r) AS rel_type'),
         }),
-      }),
+      })
     );
   });
 
   it('trace fallback reports when no relationships exist', async () => {
     vi.mocked(invoke)
+      .mockResolvedValueOnce(JSON.stringify({ function: 'missing', callers: [], callees: [] }))
       .mockResolvedValueOnce(
-        JSON.stringify({ function: 'missing', callers: [], callees: [] }),
+        JSON.stringify({ columns: ['rel_type', 'from_name'], rows: [], total: 0 })
       )
-      .mockResolvedValueOnce(JSON.stringify({ columns: ['rel_type', 'from_name'], rows: [], total: 0 }))
-      .mockResolvedValueOnce(JSON.stringify({ columns: ['rel_type', 'to_name'], rows: [], total: 0 }));
+      .mockResolvedValueOnce(
+        JSON.stringify({ columns: ['rel_type', 'to_name'], rows: [], total: 0 })
+      );
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
       { action: 'trace', function_name: 'missing', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
 
     expect(result.output).toContain('No relationships found');
@@ -460,13 +462,13 @@ expect(output).not.toContain('.src.stores');
         direction: 'both',
         callees: [{ name: 'bar', file: 'src/bar.ts', line: 5 }],
         callers: [],
-      }),
+      })
     );
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
       { action: 'trace', function_name: 'foo', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
 
     // Only 1 call — no fallback
@@ -479,7 +481,8 @@ expect(output).not.toContain('.src.stores');
 
   it('formats schema with node_labels and edge_types', () => {
     const output = formatGraphOutput(
-      'graph_query', 'schema',
+      'graph_query',
+      'schema',
       JSON.stringify({
         node_labels: [
           { label: 'Function', count: 19, properties: ['name', 'file_path', 'complexity'] },
@@ -489,7 +492,7 @@ expect(output).not.toContain('.src.stores');
           { type: 'DEFINES', count: 163 },
           { type: 'IMPORTS', count: 18 },
         ],
-      }),
+      })
     );
     expect(output).toContain('**Node labels** (2)');
     expect(output).toContain('**Function** (19)');
@@ -503,30 +506,36 @@ expect(output).not.toContain('.src.stores');
 
   it('formats code search results with match_lines', () => {
     const output = formatGraphOutput(
-      'graph_query', 'code',
+      'graph_query',
+      'code',
       JSON.stringify({
-        results: [{
-          node: 'increment', label: 'Function',
-          file: 'src/stores/counter.ts',
-          start_line: 7, end_line: 9,
-          match_lines: [7],
-        }],
+        results: [
+          {
+            node: 'increment',
+            label: 'Function',
+            file: 'src/stores/counter.ts',
+            start_line: 7,
+            end_line: 9,
+            match_lines: [7],
+          },
+        ],
         total_grep_matches: 1,
         dedup_ratio: '1.0x',
-      }),
+      })
     );
     expect(output).toContain('Found 1 symbol');
     expect(output).toContain('1 grep matches');
     expect(output).toContain('increment');
     expect(output).toContain('src/stores/counter.ts');
     expect(output).toContain('7-9');
-    expect(output).toContain('7');  // match_lines
+    expect(output).toContain('7'); // match_lines
   });
 
   it('formats empty code search results', () => {
     const output = formatGraphOutput(
-      'graph_query', 'code',
-      '{"results":[],"total_grep_matches":0}',
+      'graph_query',
+      'code',
+      '{"results":[],"total_grep_matches":0}'
     );
     expect(output).toContain('No code matches');
   });
@@ -544,7 +553,7 @@ expect(output).not.toContain('.src.stores');
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     await handler!.execute(
       { action: 'code', code: 'TODO', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
@@ -561,16 +570,28 @@ expect(output).not.toContain('.src.stores');
       .mockResolvedValueOnce(
         JSON.stringify({
           results: [{ name: 'useImageLoader', qualified_name: 'useImageLoader' }],
-        }),
+        })
       )
       .mockResolvedValueOnce(
         JSON.stringify({
           results: [
-            { node: 'useImageLoader', label: 'Function', file: 'src/hooks.ts', start_line: 1, end_line: 5 },
-            { node: 'component', label: 'Function', file: 'src/router/index.ts', start_line: 1, end_line: 5 },
+            {
+              node: 'useImageLoader',
+              label: 'Function',
+              file: 'src/hooks.ts',
+              start_line: 1,
+              end_line: 5,
+            },
+            {
+              node: 'component',
+              label: 'Function',
+              file: 'src/router/index.ts',
+              start_line: 1,
+              end_line: 5,
+            },
           ],
           total_grep_matches: 2,
-        }),
+        })
       );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
@@ -580,19 +601,27 @@ expect(output).not.toContain('.src.stores');
         pattern: 'import',
         repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.output).toContain('useImageLoader');
     expect(result.output).not.toContain('component');
-    expect(invoke).toHaveBeenNthCalledWith(1, 'cbm_graph', expect.objectContaining({
-      tool: 'graph_query',
-      action: 'search',
-    }));
-    expect(invoke).toHaveBeenNthCalledWith(2, 'cbm_graph', expect.objectContaining({
-      tool: 'graph_query',
-      action: 'code',
-      payload: expect.not.objectContaining({ name_pattern: 'useImageLoader' }),
-    }));
+    expect(invoke).toHaveBeenNthCalledWith(
+      1,
+      'cbm_graph',
+      expect.objectContaining({
+        tool: 'graph_query',
+        action: 'search',
+      })
+    );
+    expect(invoke).toHaveBeenNthCalledWith(
+      2,
+      'cbm_graph',
+      expect.objectContaining({
+        tool: 'graph_query',
+        action: 'code',
+        payload: expect.not.objectContaining({ name_pattern: 'useImageLoader' }),
+      })
+    );
   });
 
   it('filterCodeSearchRawByNamePattern keeps only matching symbols', () => {
@@ -611,7 +640,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_query',
       'query',
-      '{"columns":["name","labels(n)"],"rows":[["foo","[\\"Function\\"]"]],"total":1}',
+      '{"columns":["name","labels(n)"],"rows":[["foo","[\\"Function\\"]"]],"total":1}'
     );
     expect(output).toContain('| foo | Function |');
     expect(output).not.toContain('["Function"]');
@@ -622,7 +651,7 @@ expect(output).not.toContain('.src.stores');
       JSON.stringify({
         node_labels: [{ label: 'Function', count: 19, properties: ['name'] }],
         edge_types: [{ type: 'CALLS', count: 10 }],
-      }),
+      })
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
@@ -631,7 +660,7 @@ expect(output).not.toContain('.src.stores');
         query: 'MATCH (n) RETURN DISTINCT labels(n)',
         repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
@@ -648,12 +677,12 @@ expect(output).not.toContain('.src.stores');
         columns: ['edge_type', 'from_name', 'to_name'],
         rows: [['HTTP_CALLS', 'api', 'handler']],
         total: 1,
-      }),
+      })
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     await handler!.execute(
       { action: 'search', relationship: 'HTTP_CALLS', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(invoke).toHaveBeenCalledWith('cbm_graph', {
       tool: 'graph_query',
@@ -668,7 +697,7 @@ expect(output).not.toContain('.src.stores');
     const output = formatGraphOutput(
       'graph_index',
       'list',
-      '{"projects":[{"name":"D-foo","root_path":"D:/foo","nodes":1,"edges":2,"indexed_at":"2026-03-15T10:20:30Z"}]}',
+      '{"projects":[{"name":"D-foo","root_path":"D:/foo","nodes":1,"edges":2,"indexed_at":"2026-03-15T10:20:30Z"}]}'
     );
     expect(output).toContain('2026-03-15 10:20:30');
     expect(output).not.toMatch(/\| — \|$/m);
@@ -676,7 +705,7 @@ expect(output).not.toContain('.src.stores');
 
   it('graph_query list delegates to graph_index list', async () => {
     vi.mocked(invoke).mockResolvedValueOnce(
-      '{"projects":[{"name":"D-foo","root_path":"D:/foo","nodes":1,"edges":2}]}',
+      '{"projects":[{"name":"D-foo","root_path":"D:/foo","nodes":1,"edges":2}]}'
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute({ action: 'list' }, { baseDir: 'D:\\proj' });
@@ -694,16 +723,16 @@ expect(output).not.toContain('.src.stores');
       .mockResolvedValueOnce(
         JSON.stringify({
           results: [{ qualified_name: 'mod::useFoo', name: 'useFoo' }],
-        }),
+        })
       )
       .mockResolvedValueOnce(
-        JSON.stringify({ code: 'function useFoo() {}', file: 'src/hooks.ts' }),
+        JSON.stringify({ code: 'function useFoo() {}', file: 'src/hooks.ts' })
       );
 
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     await handler!.execute(
       { action: 'snippet', name_pattern: 'use*', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
 
     expect(invoke).toHaveBeenNthCalledWith(1, 'cbm_graph', {
@@ -713,35 +742,31 @@ expect(output).not.toContain('.src.stores');
     });
   });
 
-it('routes aggregation RETURN with type(r)+count() to schema (Bug #1)', async () => {
-vi.mocked(invoke).mockResolvedValueOnce(
-JSON.stringify({
-node_labels: [{ label: 'Function', count: 19, properties: ['name'] }],
-edge_types: [{ type: 'IMPORTS', count: 36 }],
-}),
-);
-const handler = graphHandlers.find((item) => item.name === 'graph_query');
-const result = await handler!.execute(
-{
-action: 'query',
-query: 'MATCH ()-[r:IMPORTS]-() RETURN type(r), count(r) AS cnt',
-repo_path: 'D:\\proj',
-},
-{ baseDir: 'D:\\proj' },
-);
-expect(result.output).toContain('Node labels');
-expect(result.output).toContain('Edge types');
-expect(result.output).toContain('IMPORTS');
-expect(result.output).toContain('incorrect values');
-});
+  it('routes aggregation RETURN with type(r)+count() to schema (Bug #1)', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce(
+      JSON.stringify({
+        node_labels: [{ label: 'Function', count: 19, properties: ['name'] }],
+        edge_types: [{ type: 'IMPORTS', count: 36 }],
+      })
+    );
+    const handler = graphHandlers.find((item) => item.name === 'graph_query');
+    const result = await handler!.execute(
+      {
+        action: 'query',
+        query: 'MATCH ()-[r:IMPORTS]-() RETURN type(r), count(r) AS cnt',
+        repo_path: 'D:\\proj',
+      },
+      { baseDir: 'D:\\proj' }
+    );
+    expect(result.output).toContain('Node labels');
+    expect(result.output).toContain('Edge types');
+    expect(result.output).toContain('IMPORTS');
+    expect(result.output).toContain('incorrect values');
+  });
 
   it('filterDetectChangesRaw filters by file hint and drops vendor paths', () => {
     const raw = JSON.stringify({
-      changed_files: [
-        'src/products.ts',
-        'node_modules/foo/index.js',
-        'src/other.ts',
-      ],
+      changed_files: ['src/products.ts', 'node_modules/foo/index.js', 'src/other.ts'],
     });
     const filtered = JSON.parse(filterDetectChangesRaw(raw, 'products.ts'));
     expect(filtered.changed_files).toEqual(['src/products.ts']);
@@ -750,17 +775,13 @@ expect(result.output).toContain('incorrect values');
   it('graph_trace changes filters changed_files when function_name set', async () => {
     vi.mocked(invoke).mockResolvedValueOnce(
       JSON.stringify({
-        changed_files: [
-          'src/products.ts',
-          'node_modules/pkg/index.js',
-          'src/utils.ts',
-        ],
-      }),
+        changed_files: ['src/products.ts', 'node_modules/pkg/index.js', 'src/utils.ts'],
+      })
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
       { action: 'changes', function_name: 'products.ts', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.output).toContain('products.ts');
     expect(result.output).not.toContain('node_modules');
@@ -774,7 +795,7 @@ expect(result.output).toContain('incorrect values');
       JSON.stringify({
         node_labels: [{ label: 'Function', count: 19, properties: ['name'] }],
         edge_types: [{ type: 'DEFINES', count: 163 }],
-      }),
+      })
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
@@ -783,7 +804,7 @@ expect(result.output).toContain('incorrect values');
         query: 'MATCH (n)-[r]->(m) RETURN type(r), count(*)',
         repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.output).toContain('Node labels');
     expect(result.output).toContain('Edge types');
@@ -795,7 +816,7 @@ expect(result.output).toContain('incorrect values');
       JSON.stringify({
         node_labels: [{ label: 'Module', count: 50, properties: ['name'] }],
         edge_types: [],
-      }),
+      })
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
@@ -804,7 +825,7 @@ expect(result.output).toContain('incorrect values');
         query: 'MATCH (n) RETURN labels(n), count(n)',
         repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.output).toContain('Node labels');
     expect(result.output).toContain('Module');
@@ -816,16 +837,16 @@ expect(result.output).toContain('incorrect values');
         columns: ['rel_type', 'from_name'],
         rows: [['DEFINES', 'counter.ts']],
         total: 1,
-      }),
+      })
     );
     const handler = graphHandlers.find((item) => item.name === 'graph_query');
     const result = await handler!.execute(
       {
         action: 'query',
-        query: "MATCH (a)-[r]->(b) RETURN type(r) AS rel, a.name",
+        query: 'MATCH (a)-[r]->(b) RETURN type(r) AS rel, a.name',
         repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.output).toContain('Found 1 result');
     expect(result.output).not.toContain('incorrect values');
@@ -841,7 +862,7 @@ expect(result.output).toContain('incorrect values');
         query: 'MATCH path = (n)-[r]->(m) RETURN path LIMIT 5',
         repo_path: 'D:\\proj',
       },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
     expect(result.output).toContain('path variables');
     expect(result.output).toContain('graph_trace');
@@ -856,23 +877,23 @@ expect(result.output).toContain('incorrect values');
     // 3rd: fallback outgoing (no results)
     vi.mocked(invoke)
       .mockResolvedValueOnce(
-        JSON.stringify({ function: 'TheWelcome', direction: 'both', callees: [], callers: [] }),
+        JSON.stringify({ function: 'TheWelcome', direction: 'both', callees: [], callers: [] })
       )
       .mockResolvedValueOnce(
         JSON.stringify({
           columns: ['rel_type', 'from_name'],
           rows: [['IMPORTS', 'App.vue']],
           total: 1,
-        }),
+        })
       )
       .mockResolvedValueOnce(
-        JSON.stringify({ columns: ['rel_type', 'to_name'], rows: [], total: 0 }),
+        JSON.stringify({ columns: ['rel_type', 'to_name'], rows: [], total: 0 })
       );
 
     const handler = graphHandlers.find((item) => item.name === 'graph_trace');
     const result = await handler!.execute(
       { action: 'trace', function_name: 'TheWelcome', repo_path: 'D:\\proj' },
-      { baseDir: 'D:\\proj' },
+      { baseDir: 'D:\\proj' }
     );
 
     expect(invoke).toHaveBeenCalledTimes(3);
@@ -890,8 +911,9 @@ expect(result.output).toContain('incorrect values');
 
   it('code search empty hint mentions symbol bodies not import/export (Bug #6)', () => {
     const output = formatGraphOutput(
-      'graph_query', 'code',
-      '{"results":[],"total_grep_matches":0}',
+      'graph_query',
+      'code',
+      '{"results":[],"total_grep_matches":0}'
     );
     expect(output).toContain('symbol bodies');
     expect(output).toContain('import');

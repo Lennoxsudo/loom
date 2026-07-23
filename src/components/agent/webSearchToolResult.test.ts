@@ -31,7 +31,7 @@ describe('parseWebSearchToolResult', () => {
 
   it('parses empty results with message', () => {
     const view = parseWebSearchToolResult(
-      '搜索: "xyz"\n结果: 0\n\n未找到相关结果。可改用更具体的关键词。',
+      '搜索: "xyz"\n结果: 0\n\n未找到相关结果。可改用更具体的关键词。'
     );
 
     expect(view.isError).toBe(false);
@@ -58,7 +58,7 @@ describe('parseWebSearchToolResult', () => {
   it('decodes HTML entities in titles and snippets', () => {
     const view = parseWebSearchToolResult(
       '搜索: "t"\n结果: 1（来源: bing）\n\n' +
-      '1. Title&ensp;here\n   URL: https://example.com/\n   摘要: Snip&ensp;pet&#0183;',
+        '1. Title&ensp;here\n   URL: https://example.com/\n   摘要: Snip&ensp;pet&#0183;'
     );
 
     expect(view.results[0]?.title).toBe('Title here');

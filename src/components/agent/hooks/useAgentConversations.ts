@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { getProjectState, saveProjectState, projectStorageKey } from '../../../utils/agentPersistence';
+import {
+  getProjectState,
+  saveProjectState,
+  projectStorageKey,
+} from '../../../utils/agentPersistence';
 import {
   sanitizeConversationStateForPersistence,
   toProjectConversationStateForPersistence,
@@ -10,7 +14,10 @@ import {
   projectStateToAgentConversationState,
   type AgentThreadListItem,
 } from '../utils';
-import { seedProjectPersistenceSnapshot, removeProjectStateBackupFromLocalStorage } from './useAgentInit';
+import {
+  seedProjectPersistenceSnapshot,
+  removeProjectStateBackupFromLocalStorage,
+} from './useAgentInit';
 import { type Agent } from '../../../utils/agentPersistence';
 import type { AgentConversationState } from '../../../types/chat';
 import type { PendingFileChange } from '../utils';
@@ -30,7 +37,9 @@ export interface UseAgentConversationsOptions {
   renamingConversationTitle: string;
   lastSavedSnapshotByProjectRef: React.MutableRefObject<Record<string, string>>;
   draftTextareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  onSetPendingChangesBySession: React.Dispatch<React.SetStateAction<Record<string, PendingFileChange[]>>>;
+  onSetPendingChangesBySession: React.Dispatch<
+    React.SetStateAction<Record<string, PendingFileChange[]>>
+  >;
   onClearSessionExtras?: (sessionKey: string) => void;
   onRefreshThreadSummaries?: () => Promise<void>;
   onInvalidatePendingProjectPersist?: (projectKey: string) => void;
@@ -127,7 +136,9 @@ export function useAgentConversations(
       if (!agent) return;
       onSetRenamingConversationId(null);
       onSetRenamingConversationTitle('');
-      onSetConversationState((prev) => patchProjectSelection(prev, conversationId, targetProjectPath));
+      onSetConversationState((prev) =>
+        patchProjectSelection(prev, conversationId, targetProjectPath)
+      );
       onSetError(null);
     },
     [
@@ -274,7 +285,10 @@ export function useAgentConversations(
       try {
         const persistable = sanitizeConversationStateForPersistence(nextState);
         const snapshot = JSON.stringify(toProjectConversationStateForPersistence(persistable));
-        await saveProjectState(storageProjectKey, toProjectConversationStateForPersistence(persistable));
+        await saveProjectState(
+          storageProjectKey,
+          toProjectConversationStateForPersistence(persistable)
+        );
         lastSavedSnapshotByProjectRef.current[storageProjectKey] = snapshot;
         seedProjectPersistenceSnapshot(storageProjectKey, nextState);
         removeProjectStateBackupFromLocalStorage(storageProjectKey);

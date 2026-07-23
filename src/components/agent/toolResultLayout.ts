@@ -18,10 +18,7 @@ export function formatToolDisplayName(toolName: string | undefined, fallback = '
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-export function toolCompactShell(
-  marginBottom: string,
-  extra?: CSSProperties
-): CSSProperties {
+export function toolCompactShell(marginBottom: string, extra?: CSSProperties): CSSProperties {
   return {
     ...TOOL_RESULT_WIDTH,
     display: 'flex',
@@ -33,10 +30,7 @@ export function toolCompactShell(
   };
 }
 
-export function toolCardShell(
-  marginBottom: string,
-  extra?: CSSProperties
-): CSSProperties {
+export function toolCardShell(marginBottom: string, extra?: CSSProperties): CSSProperties {
   return {
     ...TOOL_RESULT_WIDTH,
     marginBottom,

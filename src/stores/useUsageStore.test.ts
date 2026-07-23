@@ -31,8 +31,20 @@ describe('useUsageStore', () => {
 
   it('tracks per-session and per-model breakdown', () => {
     const store = useUsageStore.getState();
-    store.addUsage({ sessionKey: 'a', provider: 'openai', model: 'gpt-4o', input: 100, output: 100 });
-    store.addUsage({ sessionKey: 'b', provider: 'openai', model: 'gpt-4o', input: 200, output: 200 });
+    store.addUsage({
+      sessionKey: 'a',
+      provider: 'openai',
+      model: 'gpt-4o',
+      input: 100,
+      output: 100,
+    });
+    store.addUsage({
+      sessionKey: 'b',
+      provider: 'openai',
+      model: 'gpt-4o',
+      input: 200,
+      output: 200,
+    });
     const state = useUsageStore.getState();
     expect(state.sessions['a'].inputTokens).toBe(100);
     expect(state.sessions['b'].inputTokens).toBe(200);

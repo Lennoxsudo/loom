@@ -1,6 +1,6 @@
 /**
  * 国际化入口
- * 
+ *
  * 提供多语言支持的核心功能
  */
 
@@ -25,7 +25,13 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-export function I18nProvider({ children, defaultLocale = 'zh-CN' }: { children: ReactNode; defaultLocale?: LocaleCode }) {
+export function I18nProvider({
+  children,
+  defaultLocale = 'zh-CN',
+}: {
+  children: ReactNode;
+  defaultLocale?: LocaleCode;
+}) {
   const [locale, setLocaleState] = useState<LocaleCode>(defaultLocale);
 
   const setLocale = useCallback((newLocale: LocaleCode) => {

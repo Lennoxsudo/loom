@@ -39,8 +39,7 @@ export function DragOverlayContent({
   }
 
   if (activeTab) {
-    const fileName =
-      openFilesByPath[activeTab.filePath]?.name || getBasename(activeTab.filePath);
+    const fileName = openFilesByPath[activeTab.filePath]?.name || getBasename(activeTab.filePath);
     return (
       <div style={dragStyle}>
         <span style={{ marginRight: '5px', display: 'inline-flex' }}>

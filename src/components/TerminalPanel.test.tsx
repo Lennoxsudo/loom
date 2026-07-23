@@ -96,12 +96,22 @@ test('TerminalPanel creates initial terminal and renders tab', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   expect(await screen.findByRole('button', { name: '终端 1' })).toBeInTheDocument();
   await waitFor(() => {
-    expect(invokeMock).toHaveBeenCalledWith('ensure_terminal', expect.objectContaining({ workingDir: undefined }));
+    expect(invokeMock).toHaveBeenCalledWith(
+      'ensure_terminal',
+      expect.objectContaining({ workingDir: undefined })
+    );
   });
 });
 
@@ -113,7 +123,10 @@ test('TerminalPanel switches tabs and requests output', async () => {
     }
     if (command === 'create_terminal') {
       createCount += 1;
-      return Promise.resolve({ terminal_id: `term-${createCount + 1}`, title: `终端 ${createCount + 1}` });
+      return Promise.resolve({
+        terminal_id: `term-${createCount + 1}`,
+        title: `终端 ${createCount + 1}`,
+      });
     }
     if (command === 'get_terminal_output') {
       return Promise.resolve({ data: 'history', next_seq: 7, truncated: false, ...payload });
@@ -122,7 +135,14 @@ test('TerminalPanel switches tabs and requests output', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   const addButton = await screen.findByRole('button', { name: '新建终端' });
@@ -130,7 +150,10 @@ test('TerminalPanel switches tabs and requests output', async () => {
   const firstTab = await screen.findByRole('button', { name: '终端 1' });
   await userEvent.click(firstTab);
   await waitFor(() => {
-    expect(invokeMock).toHaveBeenCalledWith('get_terminal_output', expect.objectContaining({ terminalId: 'term-1' }));
+    expect(invokeMock).toHaveBeenCalledWith(
+      'get_terminal_output',
+      expect.objectContaining({ terminalId: 'term-1' })
+    );
   });
 });
 
@@ -146,7 +169,14 @@ test('TerminalPanel uses an inner viewport without padding', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   await screen.findByRole('button', { name: '终端 1' });
@@ -168,7 +198,14 @@ test('TerminalPanel shows PID tooltip on tab', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   const tabButton = await screen.findByRole('button', { name: '终端 1' });
@@ -187,7 +224,14 @@ test('TerminalPanel adds tab on terminal-created event', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   await screen.findByRole('button', { name: '终端 1' });
@@ -209,7 +253,14 @@ test('TerminalPanel refits after first terminal output', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   await screen.findByRole('button', { name: '终端 1' });
@@ -233,7 +284,14 @@ test('TerminalPanel fits before first write', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   await screen.findByRole('button', { name: '终端 1' });
@@ -260,14 +318,28 @@ test('TerminalPanel does not write output when hidden', async () => {
   });
 
   const { rerender } = renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   await screen.findByRole('button', { name: '终端 1' });
 
   rerender(
     <I18nProvider>
-      <TerminalPanel height={240} visible={false} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+      <TerminalPanel
+        height={240}
+        visible={false}
+        onCloseAll={vi.fn()}
+        onHide={vi.fn()}
+        onHasTerminalsChange={vi.fn()}
+        projectPath=""
+      />
     </I18nProvider>
   );
 
@@ -288,14 +360,28 @@ test('TerminalPanel opens terminal only when visible', async () => {
   });
 
   const { rerender } = renderWithI18n(
-    <TerminalPanel height={240} visible={false} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={false}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   expect(latestTerminal?.openedIn ?? null).toBeNull();
 
   rerender(
     <I18nProvider>
-      <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+      <TerminalPanel
+        height={240}
+        visible={true}
+        onCloseAll={vi.fn()}
+        onHide={vi.fn()}
+        onHasTerminalsChange={vi.fn()}
+        projectPath=""
+      />
     </I18nProvider>
   );
 
@@ -311,7 +397,10 @@ test('TerminalPanel plus button adds a new tab', async () => {
     }
     if (command === 'create_terminal') {
       createCount += 1;
-      return Promise.resolve({ terminal_id: `term-${createCount + 1}`, title: `终端 ${createCount + 1}` });
+      return Promise.resolve({
+        terminal_id: `term-${createCount + 1}`,
+        title: `终端 ${createCount + 1}`,
+      });
     }
     if (command === 'get_terminal_output') {
       return Promise.resolve({ data: '', next_seq: 0, truncated: false });
@@ -320,7 +409,14 @@ test('TerminalPanel plus button adds a new tab', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   const addButton = await screen.findByRole('button', { name: '新建终端' });
@@ -336,7 +432,10 @@ test('TerminalPanel only writes output for active tab', async () => {
     }
     if (command === 'create_terminal') {
       createCount += 1;
-      return Promise.resolve({ terminal_id: `term-${createCount + 1}`, title: `终端 ${createCount + 1}` });
+      return Promise.resolve({
+        terminal_id: `term-${createCount + 1}`,
+        title: `终端 ${createCount + 1}`,
+      });
     }
     if (command === 'get_terminal_output') {
       return Promise.resolve({ data: '', next_seq: 0, truncated: false });
@@ -345,7 +444,14 @@ test('TerminalPanel only writes output for active tab', async () => {
   });
 
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   const addButton = await screen.findByRole('button', { name: '新建终端' });
@@ -377,7 +483,14 @@ test('TerminalPanel close button closes last tab and hides panel', async () => {
 
   const onCloseAll = vi.fn();
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={onCloseAll} onHide={vi.fn()} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={onCloseAll}
+      onHide={vi.fn()}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   const closeButton = await screen.findByRole('button', { name: '关闭终端 1' });
@@ -399,7 +512,14 @@ test('TerminalPanel hide button triggers onHide', async () => {
 
   const onHide = vi.fn();
   renderWithI18n(
-    <TerminalPanel height={240} visible={true} onCloseAll={vi.fn()} onHide={onHide} onHasTerminalsChange={vi.fn()} projectPath="" />
+    <TerminalPanel
+      height={240}
+      visible={true}
+      onCloseAll={vi.fn()}
+      onHide={onHide}
+      onHasTerminalsChange={vi.fn()}
+      projectPath=""
+    />
   );
 
   const hideButton = await screen.findByRole('button', { name: '隐藏终端' });

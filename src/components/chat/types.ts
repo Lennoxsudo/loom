@@ -1,4 +1,10 @@
-import type { ChatMessage as AgentChatMessage, ProviderRequestMessage, ChatUiNotice, CompactMetadata, CompactState } from '../../types/chat';
+import type {
+  ChatMessage as AgentChatMessage,
+  ProviderRequestMessage,
+  ChatUiNotice,
+  CompactMetadata,
+  CompactState,
+} from '../../types/chat';
 import { toProviderRequestMessages, appendToolMessages } from '../agent/utils';
 
 export type ChatPanelProvider = 'openai' | 'anthropic' | 'ollama' | 'builtin';

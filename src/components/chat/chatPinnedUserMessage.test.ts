@@ -1,8 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import {
-  findPinnedChatUserMessage,
-  shouldShowChatStickyOverlay,
-} from './chatPinnedUserMessage';
+import { findPinnedChatUserMessage, shouldShowChatStickyOverlay } from './chatPinnedUserMessage';
 import type { Message } from './types';
 
 function createUserMessage(id: string, content: string): Message {

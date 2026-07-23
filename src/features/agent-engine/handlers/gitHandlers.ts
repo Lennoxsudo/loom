@@ -1,11 +1,11 @@
 /**
  * Git 处理器模块
- * 
+ *
  * 本模块提供 Git 相关工具的处理器实现：
  * - GetGitDiffHandler: 获取 Git Diff
  * - UndoChangesHandler: 撤销变更
  * - GetSymbolDefinitionHandler: 获取符号定义
- * 
+ *
  * @module aiTools/handlers/gitHandlers
  */
 
@@ -53,7 +53,10 @@ class GetGitDiffHandler implements ToolHandler<'get_git_diff'> {
         const result = await invoke<GitDiffResult>('get_git_diff', { options });
 
         if (result.files.length === 0) {
-          return { tool_call_id: '', output: options.cached ? '暂存区没有变更' : '工作区没有未暂存的变更' };
+          return {
+            tool_call_id: '',
+            output: options.cached ? '暂存区没有变更' : '工作区没有未暂存的变更',
+          };
         }
 
         let output = `## Git Diff 摘要\n\n`;
@@ -105,7 +108,9 @@ class GetGitDiffHandler implements ToolHandler<'get_git_diff'> {
 
         return { tool_call_id: '', output };
       } catch (error) {
-        throw new Error(`无法获取 Git Diff: ${error}`, { cause: error instanceof Error ? error : undefined });
+        throw new Error(`无法获取 Git Diff: ${error}`, {
+          cause: error,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {
@@ -136,9 +141,7 @@ class UndoChangesHandler implements ToolHandler<'undo_changes'> {
 
       const options = {
         repo_path: repoPath,
-        file_paths: args.file_paths.map((p) =>
-          resolvePathWithBaseDir(p, context?.baseDir)
-        ),
+        file_paths: args.file_paths.map((p) => resolvePathWithBaseDir(p, context?.baseDir)),
       };
 
       try {
@@ -189,15 +192,21 @@ class UndoChangesHandler implements ToolHandler<'undo_changes'> {
       } catch (invokeError) {
         const errorMsg = String(invokeError);
         if (errorMsg.includes('Not a git repository')) {
-          throw new Error(`当前目录不是 Git 仓库: ${options.repo_path}`, { cause: invokeError instanceof Error ? invokeError : undefined });
+          throw new Error(`当前目录不是 Git 仓库: ${options.repo_path}`, {
+            cause: invokeError,
+          });
         }
         if (
           errorMsg.includes('file_paths cannot be empty') ||
           errorMsg.includes('file_paths is empty')
         ) {
-          throw new Error(`安全限制: 必须明确指定要恢复的文件路径，不能为空`, { cause: invokeError instanceof Error ? invokeError : undefined });
+          throw new Error(`安全限制: 必须明确指定要恢复的文件路径，不能为空`, {
+            cause: invokeError,
+          });
         }
-        throw new Error(`撤销变更失败: ${invokeError}`, { cause: invokeError instanceof Error ? invokeError : undefined });
+        throw new Error(`撤销变更失败: ${invokeError}`, {
+          cause: invokeError,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {
@@ -260,11 +269,15 @@ class GetSymbolDefinitionHandler implements ToolHandler<'sym'> {
         const errorMsg = String(error);
 
         if (errorMsg.includes('Symbol not found in imports')) {
-          throw new Error(`未找到符号 "${options.symbol_name}" 的导入语句。`, { cause: error instanceof Error ? error : undefined });
+          throw new Error(`未找到符号 "${options.symbol_name}" 的导入语句。`, {
+            cause: error,
+          });
         }
 
         if (errorMsg.includes('File not found') || errorMsg.includes('No such file')) {
-          throw new Error(`文件不存在: ${options.file_path}`, { cause: error instanceof Error ? error : undefined });
+          throw new Error(`文件不存在: ${options.file_path}`, {
+            cause: error,
+          });
         }
 
         if (
@@ -275,11 +288,13 @@ class GetSymbolDefinitionHandler implements ToolHandler<'sym'> {
         ) {
           throw new Error(
             `无法读取文件（权限不足）: ${options.file_path}。请确认该文件在已打开的工作区内且当前用户有读取权限。`,
-            { cause: error instanceof Error ? error : undefined }
+            { cause: error }
           );
         }
 
-        throw new Error(`查找符号定义失败: ${error}`, { cause: error instanceof Error ? error : undefined });
+        throw new Error(`查找符号定义失败: ${error}`, {
+          cause: error,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {

@@ -1,16 +1,8 @@
 import type { ChatMessage } from '../../types/chat';
-import {
-  toPersistedSubagentRun,
-  type PersistedSubagentRun,
-} from '../../types/subagent';
+import { toPersistedSubagentRun, type PersistedSubagentRun } from '../../types/subagent';
 import { useSubagentStore } from '../../stores/useSubagentStore';
 
-const SUBAGENT_SNAPSHOT_TOOL_NAMES = new Set([
-  'run_subagent',
-  'run_subagents',
-  'Agent',
-  'Task',
-]);
+const SUBAGENT_SNAPSHOT_TOOL_NAMES = new Set(['run_subagent', 'run_subagents', 'Agent', 'Task']);
 
 export function isSubagentSnapshotToolName(toolName: string | undefined): boolean {
   return !!toolName && SUBAGENT_SNAPSHOT_TOOL_NAMES.has(toolName);

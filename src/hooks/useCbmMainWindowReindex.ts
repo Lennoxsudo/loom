@@ -1,10 +1,6 @@
 import { useEffect } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import {
-  useEnableCodeGraph,
-  useGraphAutoIndexMaxFiles,
-  useGraphAutoIndexOnOpen,
-} from '../stores';
+import { useEnableCodeGraph, useGraphAutoIndexMaxFiles, useGraphAutoIndexOnOpen } from '../stores';
 import { useCbmGraphReady } from '../stores/useCbmStore';
 import { isCbmSkippedTooLarge, scheduleCbmWorkspaceIndex } from '../utils/cbmRuntime';
 

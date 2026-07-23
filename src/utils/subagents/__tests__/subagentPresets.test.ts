@@ -7,14 +7,7 @@ describe('Explore subagent graph preset', () => {
     const explore = BUILTIN_SUBAGENTS.find((agent) => agent.name === 'Explore');
     expect(explore).toBeDefined();
 
-    const parentTools = [
-      'read',
-      'write',
-      'graph_index',
-      'graph_query',
-      'graph_trace',
-      'search',
-    ];
+    const parentTools = ['read', 'write', 'graph_index', 'graph_query', 'graph_trace', 'search'];
     const allowed = resolveSubagentToolNames(explore!, parentTools);
 
     expect(allowed).toContain('graph_query');

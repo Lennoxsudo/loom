@@ -28,8 +28,12 @@ interface EditorState {
 }
 
 interface EditorActions {
-  setOpenFilesByPath: (files: Record<string, OpenFile> | ((prev: Record<string, OpenFile>) => Record<string, OpenFile>)) => void;
-  setEditorGroups: (groups: EditorGroupState[] | ((prev: EditorGroupState[]) => EditorGroupState[])) => void;
+  setOpenFilesByPath: (
+    files: Record<string, OpenFile> | ((prev: Record<string, OpenFile>) => Record<string, OpenFile>)
+  ) => void;
+  setEditorGroups: (
+    groups: EditorGroupState[] | ((prev: EditorGroupState[]) => EditorGroupState[])
+  ) => void;
   setActiveGroupId: (id: EditorGroupId) => void;
   setHoveredTabId: (id: string | null) => void;
   setSplitDirection: (direction: SplitDirection) => void;
@@ -102,7 +106,8 @@ export const useEditorHoveredTabId = () => useEditorStore((state) => state.hover
 export const useEditorSplitDirection = () => useEditorStore((state) => state.splitDirection);
 export const useEditorSplitRatioRow = () => useEditorStore((state) => state.splitRatioRow);
 export const useEditorSplitRatioColumn = () => useEditorStore((state) => state.splitRatioColumn);
-export const useEditorIsSplitResizing = () => useEditorStore((state) => state.isEditorSplitResizing);
+export const useEditorIsSplitResizing = () =>
+  useEditorStore((state) => state.isEditorSplitResizing);
 export const useEditorModalOpen = () => useEditorStore((state) => state.modalOpen);
 export const useEditorTabToClose = () => useEditorStore((state) => state.tabToClose);
 export const useEditorContextMenu = () => useEditorStore((state) => state.editorContextMenu);

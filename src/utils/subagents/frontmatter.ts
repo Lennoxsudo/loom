@@ -58,7 +58,11 @@ export function frontmatterToDefinition(
   const description =
     typeof frontmatter.description === 'string'
       ? frontmatter.description.trim()
-      : body.split('\n')[0]?.replace(/^#+\s*/, '').trim().slice(0, 200) || name;
+      : body
+          .split('\n')[0]
+          ?.replace(/^#+\s*/, '')
+          .trim()
+          .slice(0, 200) || name;
 
   const toStringList = (v: unknown): string[] | undefined => {
     if (Array.isArray(v)) return v.map(String);
@@ -89,8 +93,7 @@ export function frontmatterToDefinition(
     background: frontmatter.background === true,
     color: typeof frontmatter.color === 'string' ? frontmatter.color : undefined,
     skills: toStringList(frontmatter.skills),
-    isolation:
-      frontmatter.isolation === 'worktree' ? 'worktree' : undefined,
+    isolation: frontmatter.isolation === 'worktree' ? 'worktree' : undefined,
     source,
     filePath,
     canNest: toStringList(frontmatter.tools)?.some(

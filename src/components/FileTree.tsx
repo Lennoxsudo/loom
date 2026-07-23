@@ -1,4 +1,12 @@
-import React, { useState, useDeferredValue, memo, useCallback, useMemo, Profiler, ProfilerOnRenderCallback } from 'react';
+import React, {
+  useState,
+  useDeferredValue,
+  memo,
+  useCallback,
+  useMemo,
+  Profiler,
+  ProfilerOnRenderCallback,
+} from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { logDebug } from '../utils/errorHandling';
 import styles from './FileTree.module.css';
@@ -12,7 +20,7 @@ function throttle<T extends (...args: any[]) => any>(
   limit: number
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
-  return function(this: any, ...args: Parameters<T>) {
+  return function (this: any, ...args: Parameters<T>) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
@@ -197,7 +205,10 @@ const handleFileTreeProfiler: ProfilerOnRenderCallback = (
   renderMetrics.averageRenderTime = renderMetrics.totalRenderTime / renderMetrics.renderCount;
 
   if (import.meta.env.DEV && actualDuration > 16) {
-    logDebug(`Slow ${phase} render: ${actualDuration.toFixed(2)}ms (avg: ${renderMetrics.averageRenderTime.toFixed(2)}ms)`, 'FileTree');
+    logDebug(
+      `Slow ${phase} render: ${actualDuration.toFixed(2)}ms (avg: ${renderMetrics.averageRenderTime.toFixed(2)}ms)`,
+      'FileTree'
+    );
   }
 };
 
@@ -233,146 +244,153 @@ interface FileTreeRowProps {
  * Memoized file tree row component for optimal re-render performance.
  * Only re-renders when its specific props change.
  */
-const FileTreeRow = memo<FileTreeRowProps>(({
-  node,
-  level,
-  displayName,
-  isExpanded,
-  isActive,
-  isSelected,
-  isClipboardNode,
-  isCutNode,
-  clipboardMode,
-  onToggleDir,
-  onSelectFile,
-  onActivateNode,
-  onContextMenuNode,
-}) => {
-  const t = useTranslation();
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setDragRef,
-    isDragging,
-  } = useDraggable({
-    id: node.path,
-  });
+const FileTreeRow = memo<FileTreeRowProps>(
+  ({
+    node,
+    level,
+    displayName,
+    isExpanded,
+    isActive,
+    isSelected,
+    isClipboardNode,
+    isCutNode,
+    clipboardMode,
+    onToggleDir,
+    onSelectFile,
+    onActivateNode,
+    onContextMenuNode,
+  }) => {
+    const t = useTranslation();
+    const {
+      attributes,
+      listeners,
+      setNodeRef: setDragRef,
+      isDragging,
+    } = useDraggable({
+      id: node.path,
+    });
 
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: node.path,
-    disabled: !node.is_dir,
-  });
+    const { setNodeRef: setDropRef, isOver } = useDroppable({
+      id: node.path,
+      disabled: !node.is_dir,
+    });
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    const selectionOptions = {
-      ctrlKey: e.ctrlKey,
-      metaKey: e.metaKey,
-      shiftKey: e.shiftKey,
-    };
-    onActivateNode?.(node, selectionOptions);
-    if (e.ctrlKey || e.metaKey || e.shiftKey) {
-      return;
-    }
-    if (node.is_dir) {
-      onToggleDir(node.path);
-    } else {
-      onSelectFile(node.path);
-    }
-  }, [node, onActivateNode, onToggleDir, onSelectFile]);
+    const handleClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const selectionOptions = {
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+          shiftKey: e.shiftKey,
+        };
+        onActivateNode?.(node, selectionOptions);
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          return;
+        }
+        if (node.is_dir) {
+          onToggleDir(node.path);
+        } else {
+          onSelectFile(node.path);
+        }
+      },
+      [node, onActivateNode, onToggleDir, onSelectFile]
+    );
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    if (!onContextMenuNode) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const selectionOptions = {
-      ctrlKey: e.ctrlKey,
-      metaKey: e.metaKey,
-      shiftKey: e.shiftKey,
-    };
-    onActivateNode?.(node, { ...selectionOptions, contextMenu: true });
-    onContextMenuNode(node, e.clientX, e.clientY, selectionOptions);
-  }, [node, onActivateNode, onContextMenuNode]);
+    const handleContextMenu = useCallback(
+      (e: React.MouseEvent) => {
+        if (!onContextMenuNode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const selectionOptions = {
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+          shiftKey: e.shiftKey,
+        };
+        onActivateNode?.(node, { ...selectionOptions, contextMenu: true });
+        onContextMenuNode(node, e.clientX, e.clientY, selectionOptions);
+      },
+      [node, onActivateNode, onContextMenuNode]
+    );
 
-  const handleNativeDragStart = useCallback((e: React.DragEvent) => {
-    if (node.is_dir) {
-      e.preventDefault();
-      return;
-    }
+    const handleNativeDragStart = useCallback(
+      (e: React.DragEvent) => {
+        if (node.is_dir) {
+          e.preventDefault();
+          return;
+        }
 
-    e.dataTransfer.setData('application/file-path', node.path);
-    e.dataTransfer.setData('application/file-name', node.name);
-    e.dataTransfer.effectAllowed = 'copy';
-  }, [node.path, node.name, node.is_dir]);
+        e.dataTransfer.setData('application/file-path', node.path);
+        e.dataTransfer.setData('application/file-name', node.name);
+        e.dataTransfer.effectAllowed = 'copy';
+      },
+      [node.path, node.name, node.is_dir]
+    );
 
-  const rowClasses = [
-    styles.treeRow,
-    !node.is_dir && styles.treeRowFile,
-    isSelected && styles.treeRowSelected,
-    isActive && styles.treeRowActive,
-    isClipboardNode && styles.treeRowClipboard,
-    isCutNode && styles.treeRowCut,
-    isOver && styles.treeRowDropTarget,
-    isDragging && styles.treeRowDragging,
-  ].filter(Boolean).join(' ');
+    const rowClasses = [
+      styles.treeRow,
+      !node.is_dir && styles.treeRowFile,
+      isSelected && styles.treeRowSelected,
+      isActive && styles.treeRowActive,
+      isClipboardNode && styles.treeRowClipboard,
+      isCutNode && styles.treeRowCut,
+      isOver && styles.treeRowDropTarget,
+      isDragging && styles.treeRowDragging,
+    ]
+      .filter(Boolean)
+      .join(' ');
 
-  const paddingLeft = `${level * 10 + 5}px`;
+    const paddingLeft = `${level * 10 + 5}px`;
 
-  return (
-    <div
-      ref={(el) => {
-        setDragRef(el);
-        setDropRef(el);
-      }}
-      {...listeners}
-      {...attributes}
-      onClick={handleClick}
-      onContextMenu={handleContextMenu}
-      title={node.path}
-      className={rowClasses}
-      style={{ paddingLeft }}
-    >
-      <span className={styles.iconSpacer}>
-        {node.is_dir ? (
-          <span className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : ''}`}>
-            ▶
-          </span>
-        ) : (
-          <span className={styles.iconSpacerSmall} />
-        )}
-      </span>
-      <span
-        className={`${styles.fileIcon} ${!node.is_dir ? styles.fileIconDraggable : ''}`}
-        {...(!node.is_dir
-          ? {
-              draggable: true,
-              onDragStart: handleNativeDragStart,
-              onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
-              onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
-              title: t.fileTree.dragToChatHint,
-            }
-          : {})}
+    return (
+      <div
+        ref={(el) => {
+          setDragRef(el);
+          setDropRef(el);
+        }}
+        {...listeners}
+        {...attributes}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        title={node.path}
+        className={rowClasses}
+        style={{ paddingLeft }}
       >
-        <FileTypeIcon
-          name={node.name}
-          isDir={node.is_dir}
-          isExpanded={isExpanded}
-        />
-      </span>
-      <span className={styles.fileName}>
-        {displayName ?? node.name}
-      </span>
-      {isClipboardNode && clipboardMode && (!node.is_dir || clipboardMode === 'cut') ? (
+        <span className={styles.iconSpacer}>
+          {node.is_dir ? (
+            <span className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : ''}`}>
+              ▶
+            </span>
+          ) : (
+            <span className={styles.iconSpacerSmall} />
+          )}
+        </span>
         <span
-          className={`${styles.clipboardBadge} ${
-            clipboardMode === 'cut' ? styles.clipboardBadgeCut : styles.clipboardBadgeCopy
-          }`}
-          title={clipboardMode === 'cut' ? 'Cut selection' : 'Copied selection'}
-        />
-      ) : null}
-    </div>
-  );
-});
+          className={`${styles.fileIcon} ${!node.is_dir ? styles.fileIconDraggable : ''}`}
+          {...(!node.is_dir
+            ? {
+                draggable: true,
+                onDragStart: handleNativeDragStart,
+                onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+                onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+                title: t.fileTree.dragToChatHint,
+              }
+            : {})}
+        >
+          <FileTypeIcon name={node.name} isDir={node.is_dir} isExpanded={isExpanded} />
+        </span>
+        <span className={styles.fileName}>{displayName ?? node.name}</span>
+        {isClipboardNode && clipboardMode && (!node.is_dir || clipboardMode === 'cut') ? (
+          <span
+            className={`${styles.clipboardBadge} ${
+              clipboardMode === 'cut' ? styles.clipboardBadgeCut : styles.clipboardBadgeCopy
+            }`}
+            title={clipboardMode === 'cut' ? 'Cut selection' : 'Copied selection'}
+          />
+        ) : null}
+      </div>
+    );
+  }
+);
 
 FileTreeRow.displayName = 'FileTreeRow';
 
@@ -391,63 +409,71 @@ interface CreateItemInputProps {
   onFocusInput?: (input: HTMLInputElement) => void;
 }
 
-const CreateItemInput = memo<CreateItemInputProps>(({
-  inputRef,
-  inputValue,
-  setInputValue,
-  isFolder,
-  onConfirm,
-  onCancel,
-  isEditingRef,
-  onFocusInput,
-}) => {
-  const iconName = inputValue.trim() || (isFolder ? 'newfolder' : 'newfile');
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onConfirm?.(inputValue);
-      setInputValue('');
-    } else if (e.key === 'Escape') {
-      onCancel?.();
-      setInputValue('');
-    }
-  }, [inputValue, onConfirm, onCancel, setInputValue]);
+const CreateItemInput = memo<CreateItemInputProps>(
+  ({
+    inputRef,
+    inputValue,
+    setInputValue,
+    isFolder,
+    onConfirm,
+    onCancel,
+    isEditingRef,
+    onFocusInput,
+  }) => {
+    const iconName = inputValue.trim() || (isFolder ? 'newfolder' : 'newfile');
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          onConfirm?.(inputValue);
+          setInputValue('');
+        } else if (e.key === 'Escape') {
+          onCancel?.();
+          setInputValue('');
+        }
+      },
+      [inputValue, onConfirm, onCancel, setInputValue]
+    );
 
-  const handleBlur = useCallback((e: React.FocusEvent) => {
-    if (isEditingRef.current) return;
+    const handleBlur = useCallback(
+      (e: React.FocusEvent) => {
+        if (isEditingRef.current) return;
 
-    const relatedTarget = e.relatedTarget as HTMLElement;
-    if (relatedTarget && e.currentTarget.contains(relatedTarget)) return;
+        const relatedTarget = e.relatedTarget as HTMLElement;
+        if (relatedTarget && e.currentTarget.contains(relatedTarget)) return;
 
-    if (inputValue.trim()) {
-      onConfirm?.(inputValue);
-    } else {
-      onCancel?.();
-    }
-    setInputValue('');
-  }, [inputValue, onConfirm, onCancel, setInputValue, isEditingRef]);
+        if (inputValue.trim()) {
+          onConfirm?.(inputValue);
+        } else {
+          onCancel?.();
+        }
+        setInputValue('');
+      },
+      [inputValue, onConfirm, onCancel, setInputValue, isEditingRef]
+    );
 
-  return (
-    <div className={styles.createInputContainer}>
-      <span className={styles.iconSpacer}>
-        <span className={styles.iconSpacerSmall} />
-      </span>
-      <span className={styles.fileIcon}>
-        <FileTypeIcon name={iconName} isDir={isFolder} />
-      </span>
-      <input
-        ref={inputRef}
-        autoFocus
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        onFocus={(e) => onFocusInput?.(e.currentTarget)}
-        className={styles.createInput}
-      />
-    </div>
-  );
-});
+    return (
+      <div className={styles.createInputContainer}>
+        <span className={styles.iconSpacer}>
+          <span className={styles.iconSpacerSmall} />
+        </span>
+        <span className={styles.fileIcon}>
+          <FileTypeIcon name={iconName} isDir={isFolder} />
+        </span>
+        <input
+          ref={inputRef}
+          autoFocus
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          onFocus={(e) => onFocusInput?.(e.currentTarget)}
+          className={styles.createInput}
+        />
+      </div>
+    );
+  }
+);
 
 CreateItemInput.displayName = 'CreateItemInput';
 
@@ -460,10 +486,7 @@ interface LoadingRowProps {
 }
 
 const LoadingRow = memo<LoadingRowProps>(({ level }) => (
-  <div
-    className={styles.loadingRow}
-    style={{ paddingLeft: `${level * 10 + 34}px` }}
-  >
+  <div className={styles.loadingRow} style={{ paddingLeft: `${level * 10 + 34}px` }}>
     Loading...
   </div>
 ));
@@ -510,16 +533,13 @@ const FileTree: React.FC<FileTreeProps> = ({
   const pendingRevealActiveFilePathRef = React.useRef<string | null>(activeFilePath ?? null);
 
   // Memoize normalized paths to avoid unnecessary recalculations
-  const normalizedRoot = useMemo(() => 
-    parentPath ? normalizePath(parentPath) : '', 
-    [parentPath]
-  );
-  const normalizedCreating = useMemo(() => 
-    creatingItem ? normalizePath(creatingItem.parentPath) : '', 
+  const normalizedRoot = useMemo(() => (parentPath ? normalizePath(parentPath) : ''), [parentPath]);
+  const normalizedCreating = useMemo(
+    () => (creatingItem ? normalizePath(creatingItem.parentPath) : ''),
     [creatingItem]
   );
-  const normalizedRenaming = useMemo(() =>
-    renamingItem ? normalizePath(renamingItem.path) : '',
+  const normalizedRenaming = useMemo(
+    () => (renamingItem ? normalizePath(renamingItem.path) : ''),
     [renamingItem]
   );
   const visibleTreeSignature = useMemo(
@@ -531,26 +551,26 @@ const FileTree: React.FC<FileTreeProps> = ({
   // Using cache to avoid redundant computations for the same node structure
   const nodeCount = useMemo(() => {
     const cacheKey = visibleTreeSignature;
-    
+
     // Check cache first
     if (nodeCountCache.has(cacheKey)) {
       return nodeCountCache.get(cacheKey)!;
     }
-    
-    const count = (list: FileNode[]): number => 
+
+    const count = (list: FileNode[]): number =>
       list.reduce((acc, node) => {
         if (node.is_dir && expandedDirs.has(node.path) && node.children) {
           return acc + 1 + count(node.children);
         }
         return acc + 1;
       }, 0);
-    
+
     const result = count(nodes);
-    
+
     // Cache the result
     nodeCountCache.set(cacheKey, result);
     clearOldCacheEntries();
-    
+
     return result;
   }, [nodes, expandedDirs, visibleTreeSignature]);
 
@@ -735,7 +755,10 @@ const FileTree: React.FC<FileTreeProps> = ({
       return;
     }
 
-    const centeredTop = Math.max(0, top - Math.max(0, Math.floor((el.clientHeight - ROW_HEIGHT) / 2)));
+    const centeredTop = Math.max(
+      0,
+      top - Math.max(0, Math.floor((el.clientHeight - ROW_HEIGHT) / 2))
+    );
     el.scrollTop = centeredTop;
     pendingRevealActiveFilePathRef.current = null;
   }, [activeFilePath, autoRevealActiveFile, rows]);
@@ -749,26 +772,41 @@ const FileTree: React.FC<FileTreeProps> = ({
   }, [renamingItem]);
 
   // Stable callback references for memoized children
-  const handleSelectFile = useCallback((path: string) => {
-    onSelectFile(path);
-  }, [onSelectFile]);
+  const handleSelectFile = useCallback(
+    (path: string) => {
+      onSelectFile(path);
+    },
+    [onSelectFile]
+  );
 
-  const handleToggleDir = useCallback((dirPath: string) => {
-    onToggleDir(dirPath);
-  }, [onToggleDir]);
+  const handleToggleDir = useCallback(
+    (dirPath: string) => {
+      onToggleDir(dirPath);
+    },
+    [onToggleDir]
+  );
 
-  const handleActivateNode = useCallback((node: FileNode, options?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; contextMenu?: boolean }) => {
-    onActivateNode?.(node, options);
-  }, [onActivateNode]);
+  const handleActivateNode = useCallback(
+    (
+      node: FileNode,
+      options?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; contextMenu?: boolean }
+    ) => {
+      onActivateNode?.(node, options);
+    },
+    [onActivateNode]
+  );
 
-  const handleContextMenuNode = useCallback((
-    node: FileNode,
-    x: number,
-    y: number,
-    options?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }
-  ) => {
-    onContextMenuNode?.(node, x, y, options);
-  }, [onContextMenuNode]);
+  const handleContextMenuNode = useCallback(
+    (
+      node: FileNode,
+      x: number,
+      y: number,
+      options?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }
+    ) => {
+      onContextMenuNode?.(node, x, y, options);
+    },
+    [onContextMenuNode]
+  );
 
   // Throttle scroll events to improve performance during rapid scrolling
   const handleScroll = useCallback(
@@ -798,11 +836,7 @@ const FileTree: React.FC<FileTreeProps> = ({
             const top = index * ROW_HEIGHT;
 
             return (
-              <div
-                key={row.key}
-                className={styles.row}
-                style={{ top }}
-              >
+              <div key={row.key} className={styles.row} style={{ top }}>
                 {row.kind === 'create' ? (
                   <div style={{ paddingLeft: `${row.level * 10}px` }}>
                     <CreateItemInput
@@ -843,7 +877,9 @@ const FileTree: React.FC<FileTreeProps> = ({
                     isActive={!row.node.is_dir && row.node.path === activeFilePath}
                     isSelected={selectedNodePaths?.has(row.node.path) ?? false}
                     isClipboardNode={clipboardPaths?.has(row.node.path) ?? false}
-                    isCutNode={clipboardMode === 'cut' && (clipboardPaths?.has(row.node.path) ?? false)}
+                    isCutNode={
+                      clipboardMode === 'cut' && (clipboardPaths?.has(row.node.path) ?? false)
+                    }
                     clipboardMode={clipboardMode}
                     onToggleDir={handleToggleDir}
                     onSelectFile={handleSelectFile}

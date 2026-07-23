@@ -12,7 +12,7 @@ function planIsVisible(plan: PlanDocument): boolean {
  */
 export function usePlanDocumentVisible(conversationId: string | null | undefined): boolean {
   const [visible, setVisible] = useState(() =>
-    conversationId ? planIsVisible(peekPlan(conversationId)) : false,
+    conversationId ? planIsVisible(peekPlan(conversationId)) : false
   );
 
   useEffect(() => {

@@ -107,10 +107,7 @@ export interface UseToolCallsOptions {
   onPendingFileChangesDetected?: (changes: PendingFileChange[]) => void;
   getAppDataPath: () => Promise<string | null>;
   agentAccessMode: AgentAccessMode;
-  onAskUserQuestion?: (
-    conversationId: string,
-    questions: QuestionInput[]
-  ) => Promise<UserAnswer[]>;
+  onAskUserQuestion?: (conversationId: string, questions: QuestionInput[]) => Promise<UserAnswer[]>;
   onExitPlanMode?: (req: {
     conversationId: string;
     agentId?: string;
@@ -198,8 +195,7 @@ function getApprovalType(
   if (EXECUTE_TOOLS.has(toolName) || EXECUTE_TOOLS.has(underlyingToolName)) {
     return 'command';
   }
-  const graphAction =
-    typeof args.action === 'string' ? args.action.toLowerCase() : '';
+  const graphAction = typeof args.action === 'string' ? args.action.toLowerCase() : '';
   if (
     (toolName === 'graph_index' || underlyingToolName === 'graph_index') &&
     (graphAction === 'index' || graphAction === '')
@@ -237,7 +233,7 @@ function buildApprovalSummary(
   const detail =
     type === 'command'
       ? underlyingToolName === 'graph_index'
-        ? getStringArg(normalizedArgs, ['action', 'repo_path']) ?? 'index'
+        ? (getStringArg(normalizedArgs, ['action', 'repo_path']) ?? 'index')
         : getStringArg(normalizedArgs, ['command'])
       : type === 'file'
         ? getStringArg(normalizedArgs, [
@@ -268,12 +264,14 @@ function buildApprovalSummary(
             : (t.settingsAgent.chatToolApproval.deleteFileType ?? '删除文件')
           : underlyingToolName === 'move_file' || normalizedAction === 'move'
             ? (t.settingsAgent.chatToolApproval.moveFileType ?? '移动文件')
-            : underlyingToolName === 'create_folder' || normalizedAction === 'create_folder' || normalizedAction === 'mkdir'
+            : underlyingToolName === 'create_folder' ||
+                normalizedAction === 'create_folder' ||
+                normalizedAction === 'mkdir'
               ? (t.settingsAgent.chatToolApproval.createFolderType ?? '创建文件夹')
               : (underlyingToolName === 'write_file' ||
-                  underlyingToolName === 'write' ||
-                  normalizedAction === 'create') &&
-                existedBefore !== true
+                    underlyingToolName === 'write' ||
+                    normalizedAction === 'create') &&
+                  existedBefore !== true
                 ? (t.settingsAgent.chatToolApproval.createFileType ?? '创建文件')
                 : t.settingsAgent.chatToolApproval.fileType
         : type === 'git'
@@ -531,7 +529,7 @@ export function useToolCalls({
           const updatedConv = buildConversationPayload(
             currentConversationRef.current,
             compactedMessages,
-            compactState,
+            compactState
           );
           currentConversationRef.current = updatedConv;
           await invoke('save_conversation', { conversation: updatedConv });
@@ -682,7 +680,7 @@ export function useToolCalls({
     originalToolCalls: ToolCall[],
     sourceAssistantMessageId?: string,
     removedMessageIds: string[] = [],
-    options?: { endTurn?: boolean },
+    options?: { endTurn?: boolean }
   ) => {
     setMessages((prev) => {
       const merged = mergeToolMessages(prev, toolMessages);
@@ -940,7 +938,7 @@ export function useToolCalls({
             const updatedConv = buildConversationPayload(
               currentConversationRef.current,
               messagesRef.current,
-              currentConversationRef.current.compactState,
+              currentConversationRef.current.compactState
             );
             currentConversationRef.current = updatedConv;
             await invoke('save_conversation', { conversation: updatedConv });
@@ -1053,7 +1051,7 @@ export function useToolCalls({
           const updatedConv = buildConversationPayload(
             currentConversationRef.current,
             snapshot,
-            currentConversationRef.current.compactState,
+            currentConversationRef.current.compactState
           );
           currentConversationRef.current = updatedConv;
           await invoke('save_conversation', { conversation: updatedConv });
@@ -1067,7 +1065,7 @@ export function useToolCalls({
         originalToolCalls,
         sourceAssistantMessageId,
         removedMessageIds,
-        { endTurn: endTurnAfterPlan },
+        { endTurn: endTurnAfterPlan }
       );
     } catch (error) {
       if (!abortController.signal.aborted) {
@@ -1142,11 +1140,9 @@ export function useToolCalls({
       });
     });
 
-  const executeToolRound = async (
-    toolCalls: ToolCall[],
-    options: UseToolRoundOptions = {}
-  ) => {
-    const sourceAssistantMessageId = options.sourceAssistantMessageId ?? currentAssistantMessageId ?? undefined;
+  const executeToolRound = async (toolCalls: ToolCall[], options: UseToolRoundOptions = {}) => {
+    const sourceAssistantMessageId =
+      options.sourceAssistantMessageId ?? currentAssistantMessageId ?? undefined;
     logDebug(`Chat tool round: ${JSON.stringify(toolCalls)}`, 'ChatPanel');
     isExecutingToolsRef.current = true;
 
@@ -1279,12 +1275,9 @@ export function useToolCalls({
     pendingApprovalRef.current = null;
     removeApprovalMessage(requestId);
     const deniedMessages = createDeniedMessages(request.toolCalls);
-    await finalizeToolRound(
-      deniedMessages,
-      request.toolCalls,
-      request.sourceAssistantMessageId,
-      [requestId]
-    );
+    await finalizeToolRound(deniedMessages, request.toolCalls, request.sourceAssistantMessageId, [
+      requestId,
+    ]);
   };
 
   const handleToolCalls = async (toolCalls: ToolCall[]) => {

@@ -47,7 +47,9 @@ describe('ComposerQuestionAnchor', () => {
     expect(overlay).toBeInTheDocument();
     expect(composer).toBeInTheDocument();
     expect(screen.getByTestId('inline-question-panel')).toBeInTheDocument();
-    expect(overlay.compareDocumentPosition(composer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      overlay.compareDocumentPosition(composer) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
   it('hides panel when there are no questions', () => {

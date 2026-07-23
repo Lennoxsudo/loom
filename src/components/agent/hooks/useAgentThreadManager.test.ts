@@ -82,27 +82,27 @@ function createConversationState(): AgentConversationState {
   };
 }
 
-function createHookOptions(overrides: {
-  conversationState?: AgentConversationState;
-  draftMessage?: string;
-  onSaveDraftForSession?: (sessionKey: string, draft: string) => void;
-  onLoadDraftForSession?: (sessionKey: string) => string;
-  onHydrateThreadSettings?: (settings: unknown) => void;
-  onSetDraftMessage?: (draft: string) => void;
-} = {}) {
+function createHookOptions(
+  overrides: {
+    conversationState?: AgentConversationState;
+    draftMessage?: string;
+    onSaveDraftForSession?: (sessionKey: string, draft: string) => void;
+    onLoadDraftForSession?: (sessionKey: string) => string;
+    onHydrateThreadSettings?: (settings: unknown) => void;
+    onSetDraftMessage?: (draft: string) => void;
+  } = {}
+) {
   const conversationStateRef = {
     current: overrides.conversationState ?? createConversationState(),
   };
   let conversationState = overrides.conversationState ?? createConversationState();
   const onSetConversationState = vi.fn((updater: SetStateAction<AgentConversationState>) => {
-    conversationState =
-      typeof updater === 'function' ? updater(conversationState) : updater;
+    conversationState = typeof updater === 'function' ? updater(conversationState) : updater;
     conversationStateRef.current = conversationState;
   });
   const onSetDraftMessage = overrides.onSetDraftMessage ?? vi.fn();
   const onSaveDraftForSession = overrides.onSaveDraftForSession ?? vi.fn();
-  const onLoadDraftForSession =
-    overrides.onLoadDraftForSession ?? vi.fn(() => 'loaded draft');
+  const onLoadDraftForSession = overrides.onLoadDraftForSession ?? vi.fn(() => 'loaded draft');
   const onHydrateThreadSettings = overrides.onHydrateThreadSettings ?? vi.fn();
 
   return {
@@ -164,7 +164,9 @@ describe('useAgentThreadManager', () => {
 
     expect(result.current.threadsByProject[PROJECT_KEY]).toHaveLength(1);
     expect(result.current.threadsByProject[PROJECT_KEY]?.[0]?.id).toBe('thread-a');
-    expect(result.current.threadsByProject[normalizeProjectPath('D:\\other\\project')]).toHaveLength(1);
+    expect(
+      result.current.threadsByProject[normalizeProjectPath('D:\\other\\project')]
+    ).toHaveLength(1);
     expect(
       result.current.threadsByProject[normalizeProjectPath('D:\\other\\project')]?.[0]?.id
     ).toBe('thread-b');
@@ -425,7 +427,7 @@ describe('useAgentThreadManager', () => {
   it('ignores non-string new-thread targets such as click events', () => {
     const { options, getConversationState } = createHookOptions();
     const { result, rerender } = renderHook(
-      (props: (typeof options)) => useAgentThreadManager(props),
+      (props: typeof options) => useAgentThreadManager(props),
       { initialProps: options }
     );
 

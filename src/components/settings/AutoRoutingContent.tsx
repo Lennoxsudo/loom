@@ -28,7 +28,7 @@ function firstModel(profile: AIProfileItem | undefined): string {
 /** Fill missing profile/model from available profiles so UI display matches saved state. */
 function resolveEntryDefaults(
   entry: AutoRoutingEntry,
-  profiles: AIProfiles | null,
+  profiles: AIProfiles | null
 ): AutoRoutingEntry {
   const providerProfiles = profiles?.[entry.provider]?.items ?? [];
   let profileId = entry.profileId.trim();
@@ -173,19 +173,26 @@ export function AutoRoutingContent() {
 
   const setEnabledSync = useCallback((updater: boolean | ((prev: boolean) => boolean)) => {
     setEnabled((prev) => {
-      const next = typeof updater === 'function' ? (updater as (prev: boolean) => boolean)(prev) : updater;
+      const next =
+        typeof updater === 'function' ? (updater as (prev: boolean) => boolean)(prev) : updater;
       enabledRef.current = next;
       return next;
     });
   }, []);
 
-  const setEntriesSync = useCallback((updater: AutoRoutingEntry[] | ((prev: AutoRoutingEntry[]) => AutoRoutingEntry[])) => {
-    setEntries((prev) => {
-      const next = typeof updater === 'function' ? (updater as (prev: AutoRoutingEntry[]) => AutoRoutingEntry[])(prev) : updater;
-      entriesRef.current = next;
-      return next;
-    });
-  }, []);
+  const setEntriesSync = useCallback(
+    (updater: AutoRoutingEntry[] | ((prev: AutoRoutingEntry[]) => AutoRoutingEntry[])) => {
+      setEntries((prev) => {
+        const next =
+          typeof updater === 'function'
+            ? (updater as (prev: AutoRoutingEntry[]) => AutoRoutingEntry[])(prev)
+            : updater;
+        entriesRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -225,85 +232,106 @@ export function AutoRoutingContent() {
     };
 
     loadConfig();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [setEnabledSync, setEntriesSync]);
 
-  const doSave = useCallback(async (saveEnabled: boolean, saveEntries: AutoRoutingEntry[]): Promise<boolean> => {
-    setIsSaving(true);
-    setMessage(null);
+  const doSave = useCallback(
+    async (saveEnabled: boolean, saveEntries: AutoRoutingEntry[]): Promise<boolean> => {
+      setIsSaving(true);
+      setMessage(null);
 
-    try {
-      const configStr = await invoke<string>('load_ai_config');
-      const config: Record<string, unknown> = configStr ? JSON.parse(configStr) : {};
+      try {
+        const configStr = await invoke<string>('load_ai_config');
+        const config: Record<string, unknown> = configStr ? JSON.parse(configStr) : {};
 
-      config.autoRouting = { enabled: saveEnabled, entries: saveEntries };
+        config.autoRouting = { enabled: saveEnabled, entries: saveEntries };
 
-      await invoke('save_ai_config', { config: JSON.stringify(config) });
-      try { await emit('ai-config-updated', null); } catch { /* ignore */ }
+        await invoke('save_ai_config', { config: JSON.stringify(config) });
+        try {
+          await emit('ai-config-updated', null);
+        } catch {
+          /* ignore */
+        }
 
-      setHasUnsavedChanges(false);
-      return true;
-    } catch (error) {
-      setMessage({ type: 'error', text: `保存失败: ${error}` });
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
-  const handleEntryChange = useCallback((index: number, field: keyof AutoRoutingEntry, value: string) => {
-    setEntriesSync((prev) => {
-      const next = [...prev];
-      const currentProfiles = profilesRef.current;
-      if (field === 'provider') {
-        const provider = value as AIProvider;
-        const providerProfiles = currentProfiles?.[provider]?.items ?? [];
-        const firstProfile = providerProfiles[0];
-        next[index] = {
-          provider,
-          profileId: firstProfile?.id ?? '',
-          model: firstModel(firstProfile),
-        };
-      } else if (field === 'profileId') {
-        const providerProfiles = currentProfiles?.[next[index].provider]?.items ?? [];
-        const selectedProfile = providerProfiles.find((p) => p.id === value);
-        next[index] = {
-          ...next[index],
-          profileId: value,
-          model: firstModel(selectedProfile),
-        };
-      } else {
-        next[index] = { ...next[index], [field]: value };
+        setHasUnsavedChanges(false);
+        return true;
+      } catch (error) {
+        setMessage({ type: 'error', text: `保存失败: ${error}` });
+        return false;
+      } finally {
+        setIsSaving(false);
       }
-      return next;
-    });
-    setHasUnsavedChanges(true);
-  }, [setEntriesSync]);
+    },
+    []
+  );
 
-  const handleDeleteEntry = useCallback((index: number) => {
-    setEntriesSync((prev) => prev.filter((_, i) => i !== index));
-    setHasUnsavedChanges(true);
-  }, [setEntriesSync]);
+  const handleEntryChange = useCallback(
+    (index: number, field: keyof AutoRoutingEntry, value: string) => {
+      setEntriesSync((prev) => {
+        const next = [...prev];
+        const currentProfiles = profilesRef.current;
+        if (field === 'provider') {
+          const provider = value as AIProvider;
+          const providerProfiles = currentProfiles?.[provider]?.items ?? [];
+          const firstProfile = providerProfiles[0];
+          next[index] = {
+            provider,
+            profileId: firstProfile?.id ?? '',
+            model: firstModel(firstProfile),
+          };
+        } else if (field === 'profileId') {
+          const providerProfiles = currentProfiles?.[next[index].provider]?.items ?? [];
+          const selectedProfile = providerProfiles.find((p) => p.id === value);
+          next[index] = {
+            ...next[index],
+            profileId: value,
+            model: firstModel(selectedProfile),
+          };
+        } else {
+          next[index] = { ...next[index], [field]: value };
+        }
+        return next;
+      });
+      setHasUnsavedChanges(true);
+    },
+    [setEntriesSync]
+  );
 
-  const handleMoveUp = useCallback((index: number) => {
-    if (index === 0) return;
-    setEntriesSync((prev) => {
-      const next = [...prev];
-      [next[index - 1], next[index]] = [next[index], next[index - 1]];
-      return next;
-    });
-    setHasUnsavedChanges(true);
-  }, [setEntriesSync]);
+  const handleDeleteEntry = useCallback(
+    (index: number) => {
+      setEntriesSync((prev) => prev.filter((_, i) => i !== index));
+      setHasUnsavedChanges(true);
+    },
+    [setEntriesSync]
+  );
 
-  const handleMoveDown = useCallback((index: number) => {
-    setEntriesSync((prev) => {
-      if (index >= prev.length - 1) return prev;
-      const next = [...prev];
-      [next[index], next[index + 1]] = [next[index + 1], next[index]];
-      return next;
-    });
-    setHasUnsavedChanges(true);
-  }, [setEntriesSync]);
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (index === 0) return;
+      setEntriesSync((prev) => {
+        const next = [...prev];
+        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+        return next;
+      });
+      setHasUnsavedChanges(true);
+    },
+    [setEntriesSync]
+  );
+
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      setEntriesSync((prev) => {
+        if (index >= prev.length - 1) return prev;
+        const next = [...prev];
+        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+        return next;
+      });
+      setHasUnsavedChanges(true);
+    },
+    [setEntriesSync]
+  );
 
   const handleAddEntry = useCallback(() => {
     setEntriesSync((prev) => {
@@ -325,11 +353,14 @@ export function AutoRoutingContent() {
   const handleToggle = useCallback(() => {
     const nextEnabled = !enabledRef.current;
     const resolvedEntries = entriesRef.current.map((entry) =>
-      resolveEntryDefaults(entry, profilesRef.current),
+      resolveEntryDefaults(entry, profilesRef.current)
     );
     setEnabledSync(nextEnabled);
     setEntriesSync(resolvedEntries);
-    doSave(nextEnabled, resolvedEntries.filter((e) => e.profileId && e.model)).then((ok) => {
+    doSave(
+      nextEnabled,
+      resolvedEntries.filter((e) => e.profileId && e.model)
+    ).then((ok) => {
       if (ok) globalShowSuccess(nextEnabled ? '自动路由已启用' : '自动路由已禁用');
     });
   }, [setEnabledSync, setEntriesSync, doSave]);

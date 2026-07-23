@@ -1,13 +1,14 @@
-import { DEFAULT_CONTEXT_WINDOW, estimateMessageTokens, estimateToolsTokens } from '../../utils/contextBudget';
+import {
+  DEFAULT_CONTEXT_WINDOW,
+  estimateMessageTokens,
+  estimateToolsTokens,
+} from '../../utils/contextBudget';
 import { shouldInjectRules, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
 import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import { shouldInjectProjectPath as checkShouldInjectProjectPath } from '../../hooks/useContextInjectionState';
 import { loadSkillsContext } from '../../utils/skills';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  type Agent,
-  type AIProvider,
-} from '../../utils/agentPersistence';
+import { type Agent, type AIProvider } from '../../utils/agentPersistence';
 import {
   reconcileRuntimeForAgentRequest,
   resolveAgentRequestRuntime,
@@ -67,7 +68,7 @@ export type AgentRuntimeSnapshotInput = Pick<
 
 export async function resolveAgentContextRuntime(
   agent: Agent,
-  runtime?: AgentRuntimeSnapshotInput | null,
+  runtime?: AgentRuntimeSnapshotInput | null
 ): Promise<{ provider: AIProvider; model: string; profileId?: string }> {
   try {
     const configStr = await invoke<string>('load_ai_config');
@@ -75,7 +76,7 @@ export async function resolveAgentContextRuntime(
       const reconciled = reconcileRuntimeForAgentRequest(
         JSON.parse(configStr),
         agent,
-        runtime ?? undefined,
+        runtime ?? undefined
       );
       if (reconciled) {
         return reconciled;
@@ -98,7 +99,7 @@ export interface AgentRequestContext {
 
 function buildDraftMessage(
   draftMessage: string,
-  attachedImages: PendingImageAttachment[],
+  attachedImages: PendingImageAttachment[]
 ): ChatMessage | null {
   const text = draftMessage.trim();
   if (!text && attachedImages.length === 0) {
@@ -118,7 +119,7 @@ function buildAgentRequestMessages(
   messages: ChatMessage[],
   agent: Agent,
   conversation: AgentConversation | null,
-  agentMode: 'plan' | 'always-allow',
+  agentMode: 'plan' | 'always-allow'
 ): ProviderRequestMessage[] {
   const requestMessages: ProviderRequestMessage[] = toProviderRequestMessages(messages);
 
@@ -130,7 +131,7 @@ function buildAgentRequestMessages(
   const needsRulesInjection = shouldInjectRules(
     agent.rules ?? '',
     !!conversation?.contextInjected?.rules?.injected,
-    conversation?.contextInjected?.rules?.contentHash,
+    conversation?.contextInjected?.rules?.contentHash
   );
   if (needsRulesInjection) {
     prependRulesToFirstUserMessage(requestMessages, agent.rules ?? '');
@@ -140,7 +141,7 @@ function buildAgentRequestMessages(
 }
 
 export async function buildAgentRequestContext(
-  options: BuildAgentRequestContextOptions,
+  options: BuildAgentRequestContextOptions
 ): Promise<AgentRequestContext> {
   const {
     agent,
@@ -172,8 +173,7 @@ export async function buildAgentRequestContext(
   const activeMessages = compactOutcome.messages as unknown as ChatMessage[];
   const requestMessages = buildAgentRequestMessages(activeMessages, agent, conversation, agentMode);
   const needsProjectPathInjection =
-    shouldInjectProjectPath ??
-    checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
+    shouldInjectProjectPath ?? checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
   const skillsContext = await loadSkillsContext(projectPath);
 
   const { messages: preparedMessages, tools: resolvedTools } = buildContextForRequest({
@@ -200,10 +200,18 @@ export async function buildAgentRequestContext(
 }
 
 export async function buildAgentContextUsage(
-  options: BuildAgentContextUsageOptions,
+  options: BuildAgentContextUsageOptions
 ): Promise<AgentContextUsage> {
-  const { agent, conversation, draftMessage, attachedImages, projectPath, agentMode, tools, runtimeSnapshot } =
-    options;
+  const {
+    agent,
+    conversation,
+    draftMessage,
+    attachedImages,
+    projectPath,
+    agentMode,
+    tools,
+    runtimeSnapshot,
+  } = options;
   const maxContextTokens = agent?.maxContextTokens ?? DEFAULT_CONTEXT_WINDOW;
 
   if (!agent) {
@@ -238,13 +246,12 @@ export async function buildAgentContextUsage(
   const normalizedMessages = preparedMessages as Array<{ role: string; content: unknown }>;
   const messageTokens = normalizedMessages.reduce(
     (sum, message) => sum + estimateMessageTokens(message),
-    0,
+    0
   );
   const toolTokens = estimateToolsTokens(tools);
   const availableContextTokens = Math.max(0, maxContextTokens - AGENT_CONTEXT_RESERVE_TOKENS);
   const usedTokens = messageTokens + toolTokens;
-  const usagePercent =
-    availableContextTokens > 0 ? (usedTokens / availableContextTokens) * 100 : 0;
+  const usagePercent = availableContextTokens > 0 ? (usedTokens / availableContextTokens) * 100 : 0;
 
   return {
     maxContextTokens,

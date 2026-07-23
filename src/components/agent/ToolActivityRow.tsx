@@ -136,9 +136,7 @@ const ToolActivityRow = memo(function ToolActivityRow({
           className={`${styles.detail} ${expanded ? styles.detailExpanded : ''}`}
           aria-hidden={!expanded}
         >
-          <div
-            className={`${styles.detailInner} ${expanded ? styles.detailInnerExpanded : ''}`}
-          >
+          <div className={`${styles.detailInner} ${expanded ? styles.detailInnerExpanded : ''}`}>
             {detail}
           </div>
         </div>

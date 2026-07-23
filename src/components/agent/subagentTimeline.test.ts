@@ -20,9 +20,7 @@ describe('resolveSubagentTimeline', () => {
       task: { id: '1', description: 't' },
       status: 'succeeded',
       thinkingText: 'legacy think',
-      toolEvents: [
-        { id: 't1', toolName: 'search', status: 'done', at: Date.now() },
-      ],
+      toolEvents: [{ id: 't1', toolName: 'search', status: 'done', at: Date.now() }],
     };
     const timeline = resolveSubagentTimeline(run);
     expect(timeline[0]).toMatchObject({ kind: 'thinking', text: 'legacy think' });

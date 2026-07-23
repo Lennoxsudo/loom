@@ -1,4 +1,10 @@
-import type { ToolResult, ExecuteCommandResult, ExecuteCommandBgResult, CheckBackgroundCommandResult, BackgroundTaskSummary } from '../../../types/ai';
+import type {
+  ToolResult,
+  ExecuteCommandResult,
+  ExecuteCommandBgResult,
+  CheckBackgroundCommandResult,
+  BackgroundTaskSummary,
+} from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
 import type { RunCommandArgs, ReadTerminalOutputArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
@@ -10,11 +16,11 @@ import { invoke } from '@tauri-apps/api/core';
 // Constants (matching claude-code's BashTool thresholds)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_TIMEOUT_MS = 30_000;   // 前台命令默认 30s 超时，超时后自动转为后台执行
+const DEFAULT_TIMEOUT_MS = 30_000; // 前台命令默认 30s 超时，超时后自动转为后台执行
 const MAX_TIMEOUT_MS = 600_000;
 const FOREGROUND_HARD_TIMEOUT_MS = 35_000; // 前端硬超时兜底（30s Rust 超时 + 5s 缓冲）
 
-const MAX_INLINE_OUTPUT_CHARS = 30_000;  // claude-code: BASH_MAX_OUTPUT_DEFAULT
+const MAX_INLINE_OUTPUT_CHARS = 30_000; // claude-code: BASH_MAX_OUTPUT_DEFAULT
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,7 +53,9 @@ function formatCommandResult(
   // 1. Process stdout
   let processedStdout = normalizeTerminalTextOutput(result.stdout, {
     stripAnsi: options?.stripAnsi,
-  }).replace(/^(\s*\n)+/, '').trimEnd();
+  })
+    .replace(/^(\s*\n)+/, '')
+    .trimEnd();
 
   // 2. If stdout is too large for inline, persist it
   if (processedStdout.length > MAX_INLINE_OUTPUT_CHARS) {
@@ -139,14 +147,12 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
         streamId: context?.toolCallId || undefined,
       });
 
-      type ForegroundResult =
-        | { kind: 'ok'; value: ExecuteCommandResult }
-        | { kind: 'timeout' };
+      type ForegroundResult = { kind: 'ok'; value: ExecuteCommandResult } | { kind: 'timeout' };
 
       const raced = await Promise.race<ForegroundResult>([
         invokePromise.then((value) => ({ kind: 'ok' as const, value })),
         new Promise<ForegroundResult>((resolve) =>
-          setTimeout(() => resolve({ kind: 'timeout' }), FOREGROUND_HARD_TIMEOUT_MS),
+          setTimeout(() => resolve({ kind: 'timeout' }), FOREGROUND_HARD_TIMEOUT_MS)
         ),
       ]);
 
@@ -218,7 +224,8 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
           });
 
           output += '\n' + formatStructuredMeta(cmdResult);
-          output += '\n\nCommand timed out. To run long commands in background, set run_in_background=true and check output with action=read_output.';
+          output +=
+            '\n\nCommand timed out. To run long commands in background, set run_in_background=true and check output with action=read_output.';
 
           return { tool_call_id: '', output };
         }
@@ -269,7 +276,8 @@ class ReadTerminalOutputHandler implements ToolHandler<'read_terminal_output'> {
         return {
           tool_call_id: '',
           output: '',
-          error: 'No terminal_id (tid) specified. Provide the task ID returned by a background command.',
+          error:
+            'No terminal_id (tid) specified. Provide the task ID returned by a background command.',
         };
       }
 
@@ -290,9 +298,11 @@ class ReadTerminalOutputHandler implements ToolHandler<'read_terminal_output'> {
         ? 'Background command completed.\n\n'
         : 'Background command still running.\n\n';
 
-      let output = prefix + formatCommandResult(cmdResult, {
-        projectPath: context?.baseDir,
-      });
+      let output =
+        prefix +
+        formatCommandResult(cmdResult, {
+          projectPath: context?.baseDir,
+        });
 
       output += '\n' + formatStructuredMeta(cmdResult);
 
@@ -317,7 +327,7 @@ class ListBgTasksHandler implements ToolHandler<'list_bg_tasks'> {
         return { tool_call_id: '', output: 'No background tasks.' };
       }
 
-      const lines = tasks.map(t => {
+      const lines = tasks.map((t) => {
         const status = t.completed ? 'completed' : 'running';
         const exitCode = t.exit_code != null ? ` exit=${t.exit_code}` : '';
         const duration = t.duration_ms != null ? ` ${t.duration_ms}ms` : '';
@@ -342,7 +352,8 @@ class KillBgTaskHandler implements ToolHandler<'kill_bg_task'> {
         return {
           tool_call_id: '',
           output: '',
-          error: 'No terminal_id (tid) specified. Provide the task ID of the background task to kill.',
+          error:
+            'No terminal_id (tid) specified. Provide the task ID of the background task to kill.',
         };
       }
 

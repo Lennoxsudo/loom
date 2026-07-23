@@ -12,9 +12,7 @@ const userMessage: ChatMessage = {
   createdAt: 1,
 };
 
-function renderBubble(
-  overrides: Partial<React.ComponentProps<typeof UserMessageBubble>> = {}
-) {
+function renderBubble(overrides: Partial<React.ComponentProps<typeof UserMessageBubble>> = {}) {
   return render(
     <I18nProvider defaultLocale="en-US">
       <UserMessageBubble message={userMessage} {...overrides} />

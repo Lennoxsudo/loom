@@ -53,9 +53,7 @@ function systemText(result: { messages: unknown[] }): string {
     return system.content;
   }
   if (Array.isArray(system.content)) {
-    return (system.content as { text?: string }[])
-      .map((block) => block.text ?? '')
-      .join('');
+    return (system.content as { text?: string }[]).map((block) => block.text ?? '').join('');
   }
   return '';
 }
@@ -89,12 +87,18 @@ describe('Context Assembly Unity (Regression Tests)', () => {
   it('Task 4 Regression: should format identical configurations equally', () => {
     const rawMessages: ProviderRequestMessage[] = [
       { role: 'user', content: 'Show me the files' },
-      { 
-        role: 'assistant', 
-        content: '', 
-        tool_calls: [{ id: 'tc_1', type: 'function', function: { name: 'list_dir', arguments: '{"path":"/"}' } }]
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'tc_1',
+            type: 'function',
+            function: { name: 'list_dir', arguments: '{"path":"/"}' },
+          },
+        ],
       },
-      { role: 'tool', content: 'file1.ts, file2.ts', tool_call_id: 'tc_1' }
+      { role: 'tool', content: 'file1.ts, file2.ts', tool_call_id: 'tc_1' },
     ];
 
     // Simulate AgentPanel/ChatPanel utilizing the unified pipeline
@@ -105,7 +109,7 @@ describe('Context Assembly Unity (Regression Tests)', () => {
       requestMessages: rawMessages,
       provider: 'anthropic',
       model: 'claude-3-5-sonnet',
-      tools: undefined
+      tools: undefined,
     });
 
     // 1. First msg is the merged system prompt containing both instructions and project path
@@ -119,7 +123,7 @@ describe('Context Assembly Unity (Regression Tests)', () => {
 
     // 2. User message
     expect(msg(result, 1).role).toBe('user');
-    
+
     // 3. Assistant tool call (Anthropic format: array of block objects)
     const assistantMsg = msg(result, 2);
     expect(assistantMsg.role).toBe('assistant');
@@ -195,9 +199,7 @@ describe('isNativeReasoningModel', () => {
 
 // ── Thinking prompt injection inside buildContextForRequest ─────────
 describe('buildContextForRequest — thinking prompt injection', () => {
-  const baseMessages: ProviderRequestMessage[] = [
-    { role: 'user', content: 'Hello' },
-  ];
+  const baseMessages: ProviderRequestMessage[] = [{ role: 'user', content: 'Hello' }];
 
   it('should inject thinking marker for OpenAI gpt-4o', () => {
     const result = buildContextForRequest({
@@ -264,7 +266,9 @@ describe('buildContextForRequest — thinking prompt injection', () => {
     });
     const system = msg(result, 0);
     const content = system.content as string;
-    const count = (content.match(new RegExp(THINKING_PROMPT_MARKER.replace(/[[\]]/g, '\\$&'), 'g')) || []).length;
+    const count = (
+      content.match(new RegExp(THINKING_PROMPT_MARKER.replace(/[[\]]/g, '\\$&'), 'g')) || []
+    ).length;
     expect(count).toBe(1);
   });
 
@@ -412,9 +416,7 @@ import {
 } from '../../hooks/useContextInjectionState';
 import type { AgentConversation } from '../../types/chat';
 
-function makeConversation(
-  overrides?: Partial<AgentConversation>,
-): AgentConversation {
+function makeConversation(overrides?: Partial<AgentConversation>): AgentConversation {
   return {
     id: 'conv_test',
     title: 'Test',
@@ -554,9 +556,7 @@ describe('E2E Provider Payload Snapshots (canonicalized)', () => {
     expect(all[0].role).toBe('system');
     expect(Array.isArray(all[0].content)).toBe(true);
     // Structural: assistant tool_use block
-    const assistant = all.find(
-      (m) => m.role === 'assistant' && Array.isArray(m.content),
-    );
+    const assistant = all.find((m) => m.role === 'assistant' && Array.isArray(m.content));
     expect(assistant).toBeDefined();
     const assistantBlocks = assistant!.content as { type: string; name?: string }[];
     const toolUse = assistantBlocks.find((b) => b.type === 'tool_use');
@@ -564,8 +564,10 @@ describe('E2E Provider Payload Snapshots (canonicalized)', () => {
     expect(toolUse!.name).toBe('list_dir');
     // Structural: tool_result block in user role
     const toolResultMsg = all.find(
-      (m) => m.role === 'user' && Array.isArray(m.content) &&
-             (m.content as { type?: string }[]).some((b) => b.type === 'tool_result'),
+      (m) =>
+        m.role === 'user' &&
+        Array.isArray(m.content) &&
+        (m.content as { type?: string }[]).some((b) => b.type === 'tool_result')
     );
     expect(toolResultMsg).toBeDefined();
     // Canonicalized snapshot
@@ -1026,7 +1028,10 @@ describe('agent conversation history retention', () => {
       ],
     });
 
-    const diskMessage = persistable.conversations[0].messages[0] as unknown as Record<string, unknown>;
+    const diskMessage = persistable.conversations[0].messages[0] as unknown as Record<
+      string,
+      unknown
+    >;
     expect(diskMessage.toolName).toBe('get_file_tree');
     expect(diskMessage.toolCallId).toBe('call-1');
 

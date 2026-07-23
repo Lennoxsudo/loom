@@ -42,7 +42,7 @@ export function getItemOffset(
     }
 
     if (index <= range.endIndex) {
-      return offset + (index - range.startIndex) * range.size;
+      return offset + (index - nextIndex) * range.size;
     }
 
     offset += (range.endIndex - range.startIndex + 1) * range.size;

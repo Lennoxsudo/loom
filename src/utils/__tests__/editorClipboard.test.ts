@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getEditorCopyText, copyEditorContent, pasteEditorContent, cutEditorContent } from '../editorClipboard';
+import {
+  getEditorCopyText,
+  copyEditorContent,
+  pasteEditorContent,
+  cutEditorContent,
+} from '../editorClipboard';
 import type { MonacoEditor, MonacoModel, MonacoSelection } from '../../types/monaco';
 
 function createSelection(
@@ -66,10 +71,7 @@ describe('editorClipboard', () => {
     });
 
     it('merges multiple non-empty selections', () => {
-      const selections = [
-        createSelection(1, 1, 1, 3),
-        createSelection(2, 1, 2, 4),
-      ];
+      const selections = [createSelection(1, 1, 1, 3), createSelection(2, 1, 2, 4)];
       const editor = createMockEditor({
         modelValue: 'alpha\nbeta\ngamma',
         selections,

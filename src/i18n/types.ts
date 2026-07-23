@@ -928,14 +928,14 @@ export interface I18nMessages {
     kill: string;
     killing: string;
     killSuccess: string;
-  killFailed: string;
-  killPermissionDeniedTitle: string;
-  killPermissionDeniedDescription: string;
-  killPermissionDeniedTipAdmin: string;
-  killPermissionDeniedTipTaskManager: string;
-  killPermissionDeniedTipService: string;
-  killPermissionDeniedOk: string;
-  killConfirmTitle: string;
+    killFailed: string;
+    killPermissionDeniedTitle: string;
+    killPermissionDeniedDescription: string;
+    killPermissionDeniedTipAdmin: string;
+    killPermissionDeniedTipTaskManager: string;
+    killPermissionDeniedTipService: string;
+    killPermissionDeniedOk: string;
+    killConfirmTitle: string;
     killConfirmBody: string;
     killConfirmPort: string;
     killConfirmPid: string;
@@ -1085,37 +1085,37 @@ export interface I18nMessages {
       seconds5: string;
       seconds10: string;
     };
-      fontSize: {
-        title: string;
-        current: string;
-      };
-      themeMode: {
-        title: string;
-        system: string;
-        dark: string;
-        light: string;
-      };
-      wordWrap: {
-        title: string;
-      };
-      lineNumbers: {
-        title: string;
-      };
-      minimap: {
-        title: string;
-      };
-      renderWhitespace: {
-        title: string;
-        none: string;
-        boundary: string;
-        selection: string;
-        all: string;
-      };
-      cursorStyle: {
-        title: string;
-        line: string;
-        block: string;
-        underline: string;
+    fontSize: {
+      title: string;
+      current: string;
+    };
+    themeMode: {
+      title: string;
+      system: string;
+      dark: string;
+      light: string;
+    };
+    wordWrap: {
+      title: string;
+    };
+    lineNumbers: {
+      title: string;
+    };
+    minimap: {
+      title: string;
+    };
+    renderWhitespace: {
+      title: string;
+      none: string;
+      boundary: string;
+      selection: string;
+      all: string;
+    };
+    cursorStyle: {
+      title: string;
+      line: string;
+      block: string;
+      underline: string;
     };
     cursorBlinking: {
       title: string;
@@ -1124,22 +1124,22 @@ export interface I18nMessages {
       phase: string;
       off: string;
     };
-      formatOnSave: {
-        title: string;
-      };
-      currentLineHighlight: {
-        title: string;
-        resetDefault: string;
-      };
-      bracketPairColorization: {
-        title: string;
-        description: string;
-      };
-      startup: {
-        title: string;
-        lastProject: string;
-        welcome: string;
-        empty: string;
+    formatOnSave: {
+      title: string;
+    };
+    currentLineHighlight: {
+      title: string;
+      resetDefault: string;
+    };
+    bracketPairColorization: {
+      title: string;
+      description: string;
+    };
+    startup: {
+      title: string;
+      lastProject: string;
+      welcome: string;
+      empty: string;
     };
     excludePatterns: {
       title: string;
@@ -1156,20 +1156,20 @@ export interface I18nMessages {
       byModified: string;
       name: string;
       type: string;
-        modified: string;
-        foldersFirst: string;
-      };
-      compactFolders: {
-        title: string;
-        enabled: string;
-        disabled: string;
-      };
-      autoRevealCurrentFile: {
-        title: string;
-        enabled: string;
-        disabled: string;
-      };
+      modified: string;
+      foldersFirst: string;
     };
+    compactFolders: {
+      title: string;
+      enabled: string;
+      disabled: string;
+    };
+    autoRevealCurrentFile: {
+      title: string;
+      enabled: string;
+      disabled: string;
+    };
+  };
   settingsSkills: {
     title: string;
     globalSkills: string;

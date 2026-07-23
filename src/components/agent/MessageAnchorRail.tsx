@@ -33,7 +33,7 @@ const MessageAnchorRail = memo(function MessageAnchorRail({
 
   const userMessages = useMemo(
     () => messages.filter((m) => m.role === 'user' && m.text.trim().length > 0),
-    [messages],
+    [messages]
   );
 
   const handleClick = useCallback(
@@ -42,7 +42,7 @@ const MessageAnchorRail = memo(function MessageAnchorRail({
       if (!container) return;
       scrollToMessage(container, messageId, 'smooth', getLayoutCache());
     },
-    [scrollContainerRef, getLayoutCache],
+    [scrollContainerRef, getLayoutCache]
   );
 
   if (userMessages.length === 0) return null;
@@ -68,10 +68,7 @@ const MessageAnchorRail = memo(function MessageAnchorRail({
         ))}
       </div>
       {hovered && (
-        <div
-          className={styles.previewWindow}
-          style={{ top: hovered.top, left: hovered.left }}
-        >
+        <div className={styles.previewWindow} style={{ top: hovered.top, left: hovered.left }}>
           {getMessagePreview(hovered.text)}
         </div>
       )}

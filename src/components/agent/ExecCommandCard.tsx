@@ -149,7 +149,16 @@ const ExecCommandCard = memo(function ExecCommandCard({
             className={`${styles.chevron} ${showBody ? styles.chevronOpen : ''}`}
             aria-hidden="true"
           >
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="8"
+              height="8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="9 6 15 12 9 18" />
             </svg>
           </span>
@@ -234,7 +243,9 @@ const ExecCommandCard = memo(function ExecCommandCard({
               <div className={styles.railLeft}>
                 <span>
                   {t.agent.execCommand.exitCode}
-                  <span className={styles.metaValue}>{parsed.exitCode === null ? '—' : String(parsed.exitCode)}</span>
+                  <span className={styles.metaValue}>
+                    {parsed.exitCode === null ? '—' : String(parsed.exitCode)}
+                  </span>
                 </span>
                 <span>
                   {t.agent.execCommand.duration}

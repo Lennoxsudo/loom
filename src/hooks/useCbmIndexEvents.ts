@@ -13,10 +13,7 @@ export function useCbmIndexEvents(enabled: boolean) {
     let cancelled = false;
     const unsubs: Array<() => void> = [];
 
-    const addListener = async (
-      event: string,
-      handler: (payload: unknown) => void,
-    ) => {
+    const addListener = async (event: string, handler: (payload: unknown) => void) => {
       const unlisten = await listen(event, handler);
       if (cancelled) {
         unlisten();
@@ -55,5 +52,12 @@ export function useCbmIndexEvents(enabled: boolean) {
       cancelled = true;
       for (const unsub of unsubs) unsub();
     };
-  }, [enabled, showInfo, showWarning, t.graph.indexComplete, t.graph.indexFailed, t.graph.indexStarted]);
+  }, [
+    enabled,
+    showInfo,
+    showWarning,
+    t.graph.indexComplete,
+    t.graph.indexFailed,
+    t.graph.indexStarted,
+  ]);
 }

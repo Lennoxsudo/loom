@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgentConversationState } from '../../types/chat';
-import {
-  normalizeProjectPath,
-  resolveActiveProjectPath,
-  resolveSelectedThreadId,
-} from './utils';
+import { normalizeProjectPath, resolveActiveProjectPath, resolveSelectedThreadId } from './utils';
 
 const CUKTECH_PATH = 'D:\\projects\\酷态科';
 const LOOM_PATH = 'D:\\projects\\Loom';

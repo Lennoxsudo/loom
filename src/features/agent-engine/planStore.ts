@@ -42,7 +42,7 @@ function emitPlanUpdated(conversationId: string, plan: PlanDocument): void {
   window.dispatchEvent(
     new CustomEvent(PLAN_UPDATED_EVENT, {
       detail: { conversationId, plan },
-    }),
+    })
   );
 }
 
@@ -134,7 +134,7 @@ export function exportPlanForSave(conversationId: string): PlanDocument | undefi
 
 export function setPlan(
   conversationId: string,
-  patch: Partial<Pick<PlanDocument, 'content' | 'title' | 'status'>>,
+  patch: Partial<Pick<PlanDocument, 'content' | 'title' | 'status'>>
 ): PlanDocument {
   ensureLegacyPurged();
   if (!conversationId) return emptyPlan();
@@ -175,7 +175,8 @@ export function inferPlanTitle(content: string, explicit?: string | null): strin
     const heading = /^#{1,6}\s+(.+?)\s*$/.exec(line);
     if (heading) {
       let title = heading[1].trim();
-      title = title.replace(/\s*[-–—|]\s*(实现计划|Implementation\s*plan)\s*$/i, '').trim() || title;
+      title =
+        title.replace(/\s*[-–—|]\s*(实现计划|Implementation\s*plan)\s*$/i, '').trim() || title;
       return title.length > 80 ? `${title.slice(0, 77)}…` : title;
     }
 
@@ -188,10 +189,11 @@ export function inferPlanTitle(content: string, explicit?: string | null): strin
 }
 
 /** Format plan for tool output / structured injection. */
-export function formatPlanDocumentBlock(plan: PlanDocument | { content: string; title?: string }): string {
+export function formatPlanDocumentBlock(
+  plan: PlanDocument | { content: string; title?: string }
+): string {
   const content = plan.content?.trim() ?? '';
-  const title =
-    ('title' in plan && plan.title?.trim()) || inferPlanTitle(content) || '';
+  const title = ('title' in plan && plan.title?.trim()) || inferPlanTitle(content) || '';
   const lines = ['[PLAN]'];
   if (title) {
     lines.push(`# ${title}`, '');

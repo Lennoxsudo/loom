@@ -25,7 +25,7 @@ function ownershipLabel(
     knownExternal: string;
     external: string;
     protected: string;
-  },
+  }
 ): string {
   switch (ownership) {
     case 'loomManaged':
@@ -39,10 +39,7 @@ function ownershipLabel(
   }
 }
 
-function resolveHintText(
-  entry: ListeningPortEntry,
-  hints: Record<string, string>,
-): string {
+function resolveHintText(entry: ListeningPortEntry, hints: Record<string, string>): string {
   if (entry.hint.labelKey && hints[entry.hint.labelKey]) {
     return hints[entry.hint.labelKey];
   }
@@ -55,7 +52,7 @@ function killDisabledReason(
     protected: string;
     loomManaged: string;
     cannotKill: string;
-  },
+  }
 ): string {
   if (entry.ownership === 'protected') return reasons.protected;
   if (entry.ownership === 'loomManaged') return reasons.loomManaged;
@@ -116,13 +113,13 @@ export function PortsContent() {
         setEntries(result);
       } catch (error) {
         showError(
-          error instanceof Error ? error.message : String(error) || t.settingsPorts.scanFailed,
+          error instanceof Error ? error.message : String(error) || t.settingsPorts.scanFailed
         );
       } finally {
         setLoading(false);
       }
     },
-    [showError, t.settingsPorts.scanFailed],
+    [showError, t.settingsPorts.scanFailed]
   );
 
   useEffect(() => {
@@ -139,7 +136,7 @@ export function PortsContent() {
           } catch {
             return { pid, path: null };
           }
-        }),
+        })
       );
       if (cancelled) return;
       setProcessPaths((prev) => {
@@ -289,9 +286,7 @@ export function PortsContent() {
                       ) : null}
                     </td>
                     <td>
-                      <span
-                        className={`${styles.badge} ${styles[`badge_${entry.ownership}`]}`}
-                      >
+                      <span className={`${styles.badge} ${styles[`badge_${entry.ownership}`]}`}>
                         {ownershipLabel(entry.ownership, t.settingsPorts.ownership)}
                       </span>
                     </td>

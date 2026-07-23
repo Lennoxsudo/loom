@@ -1,9 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import {
-  DEFAULT_PREVIEW_WIDTH,
-  PREVIEW_MIN_WIDTH,
-  PREVIEW_MAX_WIDTH,
-} from '../../../types/chat';
+import { DEFAULT_PREVIEW_WIDTH, PREVIEW_MIN_WIDTH, PREVIEW_MAX_WIDTH } from '../../../types/chat';
 import type { PreviewMode } from '../../FilePreviewPanel';
 
 export interface UseAgentPreviewPanelOptions {
@@ -24,7 +20,9 @@ export interface UseAgentPreviewPanelResult {
   handlePreviewResizeStart: () => void;
 }
 
-export function useAgentPreviewPanel(options: UseAgentPreviewPanelOptions): UseAgentPreviewPanelResult {
+export function useAgentPreviewPanel(
+  options: UseAgentPreviewPanelOptions
+): UseAgentPreviewPanelResult {
   const { selectedAgentId, panelContentRef } = options;
 
   const [previewOpenByAgent, setPreviewOpenByAgent] = useState<Record<string, boolean>>({});
@@ -37,15 +35,18 @@ export function useAgentPreviewPanel(options: UseAgentPreviewPanelOptions): UseA
     ? (previewModeByAgent[selectedAgentId] ?? 'preview')
     : 'preview';
 
-  const handlePreviewResizeMove = useCallback((event: MouseEvent) => {
-    if (!isPreviewResizingRef.current) return;
-    const container = panelContentRef.current;
-    if (!container) return;
-    const containerRect = container.getBoundingClientRect();
-    const rawWidth = containerRect.right - event.clientX;
-    const nextWidth = Math.min(PREVIEW_MAX_WIDTH, Math.max(PREVIEW_MIN_WIDTH, rawWidth));
-    setPreviewWidth(nextWidth);
-  }, [panelContentRef]);
+  const handlePreviewResizeMove = useCallback(
+    (event: MouseEvent) => {
+      if (!isPreviewResizingRef.current) return;
+      const container = panelContentRef.current;
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      const rawWidth = containerRect.right - event.clientX;
+      const nextWidth = Math.min(PREVIEW_MAX_WIDTH, Math.max(PREVIEW_MIN_WIDTH, rawWidth));
+      setPreviewWidth(nextWidth);
+    },
+    [panelContentRef]
+  );
 
   const handlePreviewResizeEnd = useCallback(() => {
     isPreviewResizingRef.current = false;

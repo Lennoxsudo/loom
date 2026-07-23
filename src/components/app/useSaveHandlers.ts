@@ -147,5 +147,11 @@ export function useSaveHandlers({
     }
   }, [focusedActiveFile, saveFileInternal, showError, clearAutoSaveTimer]);
 
-  return { saveFileInternal, handleConfirmSave, handleConfirmDontSave, handleCancelClose, handleSaveFile };
+  return {
+    saveFileInternal,
+    handleConfirmSave,
+    handleConfirmDontSave,
+    handleCancelClose,
+    handleSaveFile,
+  };
 }

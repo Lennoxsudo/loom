@@ -351,8 +351,7 @@ export const zhCN: I18nMessages = {
     deleteBranch: '删除分支',
     branchNamePlaceholder: '分支名',
     confirmDeleteBranch: '确定删除此本地分支？仅会删除已完全合并的分支。',
-    confirmForceDeleteBranch:
-      '该分支尚未完全合并。强制删除将丢失未合并的提交，确定继续？',
+    confirmForceDeleteBranch: '该分支尚未完全合并。强制删除将丢失未合并的提交，确定继续？',
     createBranchSucceeded: '分支已创建。',
     renameBranchSucceeded: '分支已重命名。',
     deleteBranchSucceeded: '分支已删除。',
@@ -483,7 +482,8 @@ export const zhCN: I18nMessages = {
     acceptAllPendingChanges: '全部接受',
     rollbackAllPendingChanges: '全部回滚',
     rollbackMissingBeforeContent: '无法回滚 {path}，缺少修改前内容',
-    rollbackDeleteSkipped: '已跳过回滚 {path}：这是 AI 新建的文件，为避免误删或清空内容，已保留原文件不做修改',
+    rollbackDeleteSkipped:
+      '已跳过回滚 {path}：这是 AI 新建的文件，为避免误删或清空内容，已保留原文件不做修改',
     rollbackFileMissingSkipped: '文件已不存在，已跳过回滚并从待确认改动中移除：{path}',
     rollbackFileFailed: '回滚文件失败: {error}',
   },
@@ -628,7 +628,8 @@ export const zhCN: I18nMessages = {
       deleteProjectTitle: '删除项目',
       deleteProjectConfirm: '确定从工作区删除「{name}」吗？',
       deleteProjectThreadCount: '将删除 {count} 个会话及其历史记录。',
-      deleteProjectHint: '这会清除该项目的 Agent 会话、草稿与待审查变更，但不会删除磁盘上的项目文件夹。',
+      deleteProjectHint:
+        '这会清除该项目的 Agent 会话、草稿与待审查变更，但不会删除磁盘上的项目文件夹。',
       deleteProjectStreamingBlocked: '有会话正在生成，请稍后再删除项目',
       deleteProjectFailed: '删除项目失败',
     },
@@ -686,7 +687,8 @@ export const zhCN: I18nMessages = {
       filesTab: '文件',
       timelineTab: '检查点',
       noCheckpoints: '暂无检查点。Agent 修改文件前会自动记录快照。',
-      checkpointHint: '每个检查点对应一次工具调用前的工作区状态。还原会撤销该动作及之后的全部改动。',
+      checkpointHint:
+        '每个检查点对应一次工具调用前的工作区状态。还原会撤销该动作及之后的全部改动。',
       restoreCheckpoint: '还原到此',
       confirmRestore: '确认还原',
       restoring: '还原中…',
@@ -979,7 +981,8 @@ export const zhCN: I18nMessages = {
     killConfirmProcess: '进程',
     killConfirmCommand: '命令',
     killDisabledProtected: 'Loom 自身受保护，无法在此终止。',
-    killDisabledLoomManaged: '该端口由 Loom 内部服务占用，请通过对应功能（如 Live Server、代码图谱）停止。',
+    killDisabledLoomManaged:
+      '该端口由 Loom 内部服务占用，请通过对应功能（如 Live Server、代码图谱）停止。',
     killDisabledGeneric: '该进程不允许终止。',
     pathLoading: '正在加载可执行文件路径...',
     pathUnavailable: '无法获取可执行文件路径',
@@ -1008,7 +1011,8 @@ export const zhCN: I18nMessages = {
   },
   settingsAutoRouting: {
     title: '自动路由',
-    description: '配置供应商自动切换策略。当当前供应商额度用尽时，按顺序自动切换至下一个可用供应商。',
+    description:
+      '配置供应商自动切换策略。当当前供应商额度用尽时，按顺序自动切换至下一个可用供应商。',
     enableAutoRouting: '启用自动路由',
     addEntry: '添加供应商',
     deleteEntry: '删除',
@@ -1094,35 +1098,35 @@ export const zhCN: I18nMessages = {
       seconds5: '5秒',
       seconds10: '10秒',
     },
-      fontSize: {
-        title: '字体大小',
-        current: '当前 {size}px',
-      },
-      themeMode: {
-        title: '主题模式',
-        system: '跟随系统',
-        dark: '深色',
-        light: '浅色',
-      },
-      wordWrap: {
-        title: '自动换行',
-      },
+    fontSize: {
+      title: '字体大小',
+      current: '当前 {size}px',
+    },
+    themeMode: {
+      title: '主题模式',
+      system: '跟随系统',
+      dark: '深色',
+      light: '浅色',
+    },
+    wordWrap: {
+      title: '自动换行',
+    },
     lineNumbers: {
       title: '行号显示',
     },
-      minimap: {
-        title: '代码缩略图',
-      },
-      renderWhitespace: {
-        title: '空白字符显示',
-        none: '不显示',
-        boundary: '边界',
-        selection: '选中时',
-        all: '全部',
-      },
-      cursorStyle: {
-        title: '光标样式',
-        line: '线条',
+    minimap: {
+      title: '代码缩略图',
+    },
+    renderWhitespace: {
+      title: '空白字符显示',
+      none: '不显示',
+      boundary: '边界',
+      selection: '选中时',
+      all: '全部',
+    },
+    cursorStyle: {
+      title: '光标样式',
+      line: '线条',
       block: '方块',
       underline: '下划线',
     },
@@ -1133,20 +1137,20 @@ export const zhCN: I18nMessages = {
       phase: '相位',
       off: '关闭',
     },
-      formatOnSave: {
-        title: '保存时格式化',
-      },
-      currentLineHighlight: {
-        title: '高亮当前行',
-        resetDefault: '恢复默认',
-      },
-      bracketPairColorization: {
-        title: '括号配对高亮',
-        description: '包含多级括号着色与光标处配对括号的块状高亮；关闭后两者均不显示。',
-      },
-      startup: {
-        title: '启动时',
-        lastProject: '打开上次的项目',
+    formatOnSave: {
+      title: '保存时格式化',
+    },
+    currentLineHighlight: {
+      title: '高亮当前行',
+      resetDefault: '恢复默认',
+    },
+    bracketPairColorization: {
+      title: '括号配对高亮',
+      description: '包含多级括号着色与光标处配对括号的块状高亮；关闭后两者均不显示。',
+    },
+    startup: {
+      title: '启动时',
+      lastProject: '打开上次的项目',
       welcome: '显示欢迎页',
       empty: '空白窗口',
     },
@@ -1164,21 +1168,21 @@ export const zhCN: I18nMessages = {
       byType: '按类型排序',
       byModified: '按修改时间排序',
       name: '名称',
-        type: '类型',
-        modified: '修改时间',
-        foldersFirst: '文件夹始终在前',
-      },
-      compactFolders: {
-        title: '紧凑目录显示',
-        enabled: '压缩单链目录',
-        disabled: '逐级显示目录',
-      },
-      autoRevealCurrentFile: {
-        title: '自动定位当前文件',
-        enabled: '切换编辑器文件时自动展开并定位',
-        disabled: '不自动展开和滚动文件树',
-      },
+      type: '类型',
+      modified: '修改时间',
+      foldersFirst: '文件夹始终在前',
     },
+    compactFolders: {
+      title: '紧凑目录显示',
+      enabled: '压缩单链目录',
+      disabled: '逐级显示目录',
+    },
+    autoRevealCurrentFile: {
+      title: '自动定位当前文件',
+      enabled: '切换编辑器文件时自动展开并定位',
+      disabled: '不自动展开和滚动文件树',
+    },
+  },
   settingsSkills: {
     title: 'Skills 配置',
     globalSkills: '全局 Skills',
@@ -1338,7 +1342,8 @@ export const zhCN: I18nMessages = {
     },
     accessMode: {
       title: '访问档位',
-      description: '控制 Agent 与 Chat 的工具访问范围：只读、操作前需审批，或完全访问（受沙箱约束）。',
+      description:
+        '控制 Agent 与 Chat 的工具访问范围：只读、操作前需审批，或完全访问（受沙箱约束）。',
       readOnly: '只读',
       auto: '自动',
       fullAccess: '完全访问',
@@ -1404,7 +1409,8 @@ export const zhCN: I18nMessages = {
     },
     enableSubagents: {
       title: '启用子代理（实验性）',
-      description: '关闭后主 Agent 串行完成任务。开启后支持子代理委派；并发、上下文、轮次等由 AI 在工具调用时自行决定。',
+      description:
+        '关闭后主 Agent 串行完成任务。开启后支持子代理委派；并发、上下文、轮次等由 AI 在工具调用时自行决定。',
     },
     subagent: {
       title: '子代理',
@@ -1584,7 +1590,8 @@ export const zhCN: I18nMessages = {
       noTemplate: '无',
       maxContextTokens: '最大上下文（可选）',
       maxContextTokensPlaceholder: '200000',
-      maxContextTokensHint: '上下文窗口大小（token 数），默认 200000。达到 90% 时自动压缩历史消息。',
+      maxContextTokensHint:
+        '上下文窗口大小（token 数），默认 200000。达到 90% 时自动压缩历史消息。',
     },
     step2: {
       title: '配置 Agent 能力',
@@ -1742,7 +1749,8 @@ export const zhCN: I18nMessages = {
     graphAutoIndexOnOpenDesc: '切换项目后在后台建立 CBM 图谱索引',
     sidecarReady: 'Sidecar 已就绪',
     sidecarMissing: 'Sidecar 未安装（运行 npm run fetch:cbm）',
-    versionMismatch: 'Sidecar 版本不兼容（打包 {pinned}，运行 {runtime}），请重新运行 npm run fetch:cbm',
+    versionMismatch:
+      'Sidecar 版本不兼容（打包 {pinned}，运行 {runtime}），请重新运行 npm run fetch:cbm',
     sidecarVersion: '打包版本 {pinned} · 运行版本 {runtime}',
     sidecarVersionUnknown: '未知',
     storageTitle: '索引存储',

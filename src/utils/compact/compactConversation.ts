@@ -3,16 +3,10 @@
  * @module compact/compactConversation
  */
 
-import {
-  splitByMessageCountRetention,
-  splitByRoundRetention,
-} from './grouping';
+import { splitByMessageCountRetention, splitByRoundRetention } from './grouping';
 import { microCompactMessages, estimateMessagesTokens } from './microCompact';
 import { generateCompactSummary } from './sessionMemoryCompact';
-import {
-  buildPostCompactMessages,
-  evaluateCompactResult,
-} from './compact';
+import { buildPostCompactMessages, evaluateCompactResult } from './compact';
 import {
   DEFAULT_KEEP_ROUNDS,
   REACTIVE_KEEP_MESSAGE_COUNT,
@@ -24,7 +18,7 @@ import {
 
 async function tryCompactPath<T extends CompactableMessage>(
   path: CompactPath,
-  opts: CompactConversationOptions & { messages: T[] },
+  opts: CompactConversationOptions & { messages: T[] }
 ): Promise<CompactResult<T> | null> {
   const {
     messages,
@@ -98,7 +92,7 @@ async function tryCompactPath<T extends CompactableMessage>(
  * Try three compaction paths in priority order.
  */
 export async function compactConversation<T extends CompactableMessage>(
-  opts: CompactConversationOptions & { messages: T[] },
+  opts: CompactConversationOptions & { messages: T[] }
 ): Promise<CompactResult<T>> {
   const originalTokens = estimateMessagesTokens(opts.messages);
 

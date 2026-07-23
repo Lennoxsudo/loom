@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ToolGuard, DEFAULT_GUARD_POLICY, SlidingWindowRateLimiter, requiresConfirmation } from '../toolGuard';
+import {
+  ToolGuard,
+  DEFAULT_GUARD_POLICY,
+  SlidingWindowRateLimiter,
+  requiresConfirmation,
+} from '../toolGuard';
 import type { ToolCall, ToolResult } from '../../features/agent-engine';
 
 function createToolCall(name: string, args: Record<string, unknown> = {}): ToolCall {
@@ -55,12 +60,16 @@ describe('ToolGuard', () => {
 
       for (let i = 0; i < 2; i++) {
         const toolCall = createToolCall('read_file', { path: `/test/file${i}.txt` });
-        const outcome = await strictGuard.runToolGuarded(createExecution(toolCall, makeResult(toolCall.id)));
+        const outcome = await strictGuard.runToolGuarded(
+          createExecution(toolCall, makeResult(toolCall.id))
+        );
         expect(outcome.blocked).toBe(false);
       }
 
       const toolCall = createToolCall('read_file', { path: '/test/file2.txt' });
-      const outcome = await strictGuard.runToolGuarded(createExecution(toolCall, makeResult(toolCall.id)));
+      const outcome = await strictGuard.runToolGuarded(
+        createExecution(toolCall, makeResult(toolCall.id))
+      );
       expect(outcome.blocked).toBe(true);
       if (outcome.blocked) {
         expect(outcome.reason).toContain('RATE_LIMITED');
@@ -189,10 +198,16 @@ describe('ToolGuard', () => {
 
       const result: ToolResult = { tool_call_id: 'test', output: 'content' };
 
-      await strictGuard.runToolGuarded(createExecution(createToolCall('read_file', { path: '/test/file1.txt' }), result));
-      await strictGuard.runToolGuarded(createExecution(createToolCall('read_file', { path: '/test/file2.txt' }), result));
+      await strictGuard.runToolGuarded(
+        createExecution(createToolCall('read_file', { path: '/test/file1.txt' }), result)
+      );
+      await strictGuard.runToolGuarded(
+        createExecution(createToolCall('read_file', { path: '/test/file2.txt' }), result)
+      );
 
-      const outcome = await strictGuard.runToolGuarded(createExecution(createToolCall('read_file', { path: '/test/file3.txt' }), result));
+      const outcome = await strictGuard.runToolGuarded(
+        createExecution(createToolCall('read_file', { path: '/test/file3.txt' }), result)
+      );
       expect(outcome.blocked).toBe(true);
       if (outcome.blocked) {
         expect(outcome.reason).toContain('RESOURCE_EXHAUSTED');
@@ -337,10 +352,14 @@ describe('ToolGuard', () => {
       const toolCall = createToolCall('read_file', { path: '/test/file.txt' });
 
       // 两次相同结果 → noProgressCount=1
-      await isolatedGuard.runToolGuarded(createExecution(toolCall, { tool_call_id: toolCall.id, output: 'a' }));
-      await isolatedGuard.runToolGuarded(createExecution(toolCall, { tool_call_id: toolCall.id, output: 'a' }));
+      await isolatedGuard.runToolGuarded(
+        createExecution(toolCall, { tool_call_id: toolCall.id, output: 'a' })
+      );
+      await isolatedGuard.runToolGuarded(
+        createExecution(toolCall, { tool_call_id: toolCall.id, output: 'a' })
+      );
       // 一次不同结果 → 计数归零
-      let outcome = await isolatedGuard.runToolGuarded(
+      const outcome = await isolatedGuard.runToolGuarded(
         createExecution(toolCall, { tool_call_id: toolCall.id, output: 'b' })
       );
       expect(outcome.blocked).toBe(false);
@@ -431,15 +450,13 @@ describe('ToolGuard', () => {
 
 describe('requiresConfirmation', () => {
   it('confirms dangerous command patterns in auto mode', () => {
-    expect(
-      requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'auto')
-    ).toBe(true);
+    expect(requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'auto')).toBe(true);
   });
 
   it('skips dangerous command patterns in full_access mode', () => {
-    expect(
-      requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'full_access')
-    ).toBe(false);
+    expect(requiresConfirmation('run_command', { command: 'rm -rf /tmp' }, 'full_access')).toBe(
+      false
+    );
   });
 
   it('skips normal commands in auto mode', () => {

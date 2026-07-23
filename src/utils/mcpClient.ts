@@ -56,7 +56,8 @@ function mapPropToJsonSchema(prop: McpPropSchema): Record<string, unknown> {
   if (prop.format) out.format = prop.format;
   if (prop.minimum !== null && prop.minimum !== undefined) out.minimum = prop.minimum;
   if (prop.maximum !== null && prop.maximum !== undefined) out.maximum = prop.maximum;
-  if (prop.additionalProperties !== null && prop.additionalProperties !== undefined) out.additionalProperties = prop.additionalProperties;
+  if (prop.additionalProperties !== null && prop.additionalProperties !== undefined)
+    out.additionalProperties = prop.additionalProperties;
   return out;
 }
 
@@ -335,13 +336,25 @@ class McpClient {
   private getTimeoutMs(toolName: string): number {
     const name = toolName.toLowerCase();
     // 截图/图片类工具 — 90 秒
-    if (name.includes('screenshot') || name.includes('snapshot') || name.includes('image') || name.includes('capture')) {
+    if (
+      name.includes('screenshot') ||
+      name.includes('snapshot') ||
+      name.includes('image') ||
+      name.includes('capture')
+    ) {
       return 90_000;
     }
     // 长时间运行工具（执行、生成、分析、搜索等）— 120 秒
-    if (name.includes('execute') || name.includes('run') || name.includes('eval') ||
-        name.includes('generate') || name.includes('analyze') || name.includes('search') ||
-        name.includes('think') || name.includes('reason')) {
+    if (
+      name.includes('execute') ||
+      name.includes('run') ||
+      name.includes('eval') ||
+      name.includes('generate') ||
+      name.includes('analyze') ||
+      name.includes('search') ||
+      name.includes('think') ||
+      name.includes('reason')
+    ) {
       return 120_000;
     }
     // 默认 — 60 秒

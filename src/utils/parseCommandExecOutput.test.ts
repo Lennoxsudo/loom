@@ -41,7 +41,11 @@ describe('parseCommandExecOutput', () => {
   });
 
   it('returns null exit/duration while running', () => {
-    const result = parseCommandExecOutput('partial\noutput', { command: 'sleep 1' }, { isRunning: true });
+    const result = parseCommandExecOutput(
+      'partial\noutput',
+      { command: 'sleep 1' },
+      { isRunning: true }
+    );
     expect(result.exitCode).toBeNull();
     expect(result.durationMs).toBeNull();
   });

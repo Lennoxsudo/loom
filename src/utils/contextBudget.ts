@@ -73,15 +73,22 @@ export function calibrateTokenEstimation(estimated: number, actual: number): voi
     calibrationState.nonCjkDivisor = newNonCjkDivisor;
   } else {
     calibrationState.cjkFactor =
-      calibrationState.cjkFactor * (1 - CALIBRATION_EMA_ALPHA) + newCjkFactor * CALIBRATION_EMA_ALPHA;
+      calibrationState.cjkFactor * (1 - CALIBRATION_EMA_ALPHA) +
+      newCjkFactor * CALIBRATION_EMA_ALPHA;
     calibrationState.nonCjkDivisor =
       calibrationState.nonCjkDivisor * (1 - CALIBRATION_EMA_ALPHA) +
       newNonCjkDivisor * CALIBRATION_EMA_ALPHA;
   }
 
   // 钳制到安全范围
-  calibrationState.cjkFactor = Math.max(MIN_CJK_FACTOR, Math.min(MAX_CJK_FACTOR, calibrationState.cjkFactor));
-  calibrationState.nonCjkDivisor = Math.max(MIN_NON_CJK_DIVISOR, Math.min(MAX_NON_CJK_DIVISOR, calibrationState.nonCjkDivisor));
+  calibrationState.cjkFactor = Math.max(
+    MIN_CJK_FACTOR,
+    Math.min(MAX_CJK_FACTOR, calibrationState.cjkFactor)
+  );
+  calibrationState.nonCjkDivisor = Math.max(
+    MIN_NON_CJK_DIVISOR,
+    Math.min(MAX_NON_CJK_DIVISOR, calibrationState.nonCjkDivisor)
+  );
 
   calibrationState.sampleCount++;
 }
@@ -138,7 +145,9 @@ export function estimateMessageTokens(message: { role: string; content: unknown 
         } else if (b.type === 'tool_use') {
           contentTokens += estimateTokens(JSON.stringify(b.input ?? {})) + 20;
         } else if (b.type === 'tool_result') {
-          contentTokens += estimateTokens(typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? ''));
+          contentTokens += estimateTokens(
+            typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '')
+          );
         } else if (b.type === 'image' || b.type === 'image_url') {
           // 方法 15：使用通用估算（300），provider 特定估算见 estimateMessageTokensWithProvider
           contentTokens += DEFAULT_IMAGE_TOKENS;
@@ -168,7 +177,7 @@ export const DEFAULT_IMAGE_TOKENS = 300;
  * - Ollama: ~300（本地模型，取决于实现）
  */
 const IMAGE_TOKEN_BY_PROVIDER: Record<string, number> = {
-  openai: 85,    // GPT-4o 低分辨率保守值
+  openai: 85, // GPT-4o 低分辨率保守值
   anthropic: 1600,
   ollama: 300,
 };
@@ -195,7 +204,7 @@ export function getImageTokenEstimate(provider?: string): number {
  */
 export function estimateMessageTokensWithProvider(
   message: { role: string; content: unknown },
-  provider?: string,
+  provider?: string
 ): number {
   const overhead = 4;
   let contentTokens = 0;
@@ -212,7 +221,9 @@ export function estimateMessageTokensWithProvider(
         } else if (b.type === 'tool_use') {
           contentTokens += estimateTokens(JSON.stringify(b.input ?? {})) + 20;
         } else if (b.type === 'tool_result') {
-          contentTokens += estimateTokens(typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? ''));
+          contentTokens += estimateTokens(
+            typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '')
+          );
         } else if (b.type === 'image' || b.type === 'image_url') {
           contentTokens += imageTokens;
         } else {
@@ -241,7 +252,7 @@ const IMAGE_AGING_KEEP_COUNT = 3;
  */
 export function ageOldImageAttachments<T extends { role: string; content: unknown }>(
   messages: T[],
-  keepCount = IMAGE_AGING_KEEP_COUNT,
+  keepCount = IMAGE_AGING_KEEP_COUNT
 ): T[] {
   if (messages.length === 0) return messages;
 
@@ -255,7 +266,7 @@ export function ageOldImageAttachments<T extends { role: string; content: unknow
           typeof block === 'object' &&
           block !== null &&
           ((block as Record<string, unknown>).type === 'image' ||
-            (block as Record<string, unknown>).type === 'image_url'),
+            (block as Record<string, unknown>).type === 'image_url')
       );
       if (hasImage) {
         imageMessageIndices.push(i);
@@ -272,7 +283,8 @@ export function ageOldImageAttachments<T extends { role: string; content: unknow
   const agedCount = imageMessageIndices.length - keepCount;
   const agedIndices = new Set(imageMessageIndices.slice(0, agedCount));
 
-  const IMAGE_PLACEHOLDER = '[Image removed to save context — was attached earlier in conversation]';
+  const IMAGE_PLACEHOLDER =
+    '[Image removed to save context — was attached earlier in conversation]';
 
   const result = messages.map((msg, i) => {
     if (!agedIndices.has(i)) return msg;
@@ -303,11 +315,7 @@ export function ageOldImageAttachments<T extends { role: string; content: unknow
  * 将文本截断到不超过 maxTokens（含 suffix），与 estimateTokens 使用同一套估算。
  * 通过二分查找保证 CJK / ASCII / 混合文本均与预算估算自洽。
  */
-export function truncateTextToTokenBudget(
-  text: string,
-  maxTokens: number,
-  suffix = '',
-): string {
+export function truncateTextToTokenBudget(text: string, maxTokens: number, suffix = ''): string {
   const suffixTokens = estimateTokens(suffix);
   const bodyBudget = maxTokens - suffixTokens;
 
@@ -427,7 +435,7 @@ function extractToolResultIds(msg: Record<string, unknown>): string[] {
 /** 收集 messages[0..upToIndex] 内声明的全部 tool_use id */
 function collectToolUseIdsUpTo<T extends { role: string; content: unknown }>(
   messages: T[],
-  upToIndex: number,
+  upToIndex: number
 ): Set<string> {
   const ids = new Set<string>();
   const end = Math.min(upToIndex, messages.length - 1);
@@ -440,7 +448,10 @@ function collectToolUseIdsUpTo<T extends { role: string; content: unknown }>(
 }
 
 /** 消息是否仅含无前驱的 tool_result（裁剪后常见的非法尾部） */
-function isOrphanToolResultOnly(msg: Record<string, unknown>, knownToolUseIds: Set<string>): boolean {
+function isOrphanToolResultOnly(
+  msg: Record<string, unknown>,
+  knownToolUseIds: Set<string>
+): boolean {
   const resultIds = extractToolResultIds(msg);
   if (resultIds.length === 0) return false;
   return resultIds.every((id) => !knownToolUseIds.has(id));
@@ -460,10 +471,7 @@ function findSafeLastIndex<T extends { role: string; content: unknown }>(message
   return -1;
 }
 
-function buildMissingToolResultPlaceholder<T>(
-  missingIds: string[],
-  anthropicStyle: boolean,
-): T {
+function buildMissingToolResultPlaceholder<T>(missingIds: string[], anthropicStyle: boolean): T {
   if (anthropicStyle) {
     return {
       role: 'user',
@@ -490,7 +498,7 @@ function buildMissingToolResultPlaceholder<T>(
  * - 确保序列末尾不是孤立 tool_result
  */
 export function repairTrimmedToolChain<T extends { role: string; content: unknown }>(
-  messages: T[],
+  messages: T[]
 ): T[] {
   if (messages.length === 0) return messages;
 
@@ -510,8 +518,7 @@ export function repairTrimmedToolChain<T extends { role: string; content: unknow
     }
 
     if (msgRec.role === 'tool') {
-      const tcId =
-        typeof msgRec.tool_call_id === 'string' ? msgRec.tool_call_id.trim() : '';
+      const tcId = typeof msgRec.tool_call_id === 'string' ? msgRec.tool_call_id.trim() : '';
       if (!tcId || !knownToolUseIds.has(tcId) || seenToolResultIds.has(tcId)) {
         continue;
       }
@@ -535,9 +542,7 @@ export function repairTrimmedToolChain<T extends { role: string; content: unknow
         });
         if (keptBlocks.length === 0) continue;
         filtered.push(
-          keptBlocks.length === blocks.length
-            ? msg
-            : ({ ...msg, content: keptBlocks } as T),
+          keptBlocks.length === blocks.length ? msg : ({ ...msg, content: keptBlocks } as T)
         );
         continue;
       }
@@ -608,9 +613,10 @@ export function repairTrimmedToolChain<T extends { role: string; content: unknow
  */
 function isToolRelatedMessage(msg: Record<string, unknown>): boolean {
   if (msg.role === 'tool') return true;
-  if ('tool_calls' in msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) return true;
+  if ('tool_calls' in msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0)
+    return true;
   if ('tool_call_id' in msg && !!msg.tool_call_id) return true;
-  
+
   if (Array.isArray(msg.content)) {
     for (const block of msg.content) {
       if (typeof block === 'object' && block !== null) {
@@ -631,9 +637,7 @@ function computeKeepLastRounds(messages: { role: string }[], baseRounds: number)
   if (messages.length <= 8) return baseRounds;
   // 统计最后 10 条消息中 tool 相关消息的占比
   const tail = messages.slice(-10);
-  const toolCount = tail.filter(
-    (m) => m.role === 'tool' || m.role === 'function'
-  ).length;
+  const toolCount = tail.filter((m) => m.role === 'tool' || m.role === 'function').length;
   // tool 消息超过 30% → 多保留 1 轮
   if (toolCount >= 3) return baseRounds + 1;
   return baseRounds;
@@ -656,7 +660,7 @@ function computeKeepLastRounds(messages: { role: string }[], baseRounds: number)
 export function trimMessagesToFit<T extends { role: string; content: unknown }>(
   messages: T[],
   budgetTokens: number,
-  keepLastRounds = 2,
+  keepLastRounds = 2
 ): T[] {
   if (messages.length === 0) return messages;
 
@@ -695,11 +699,11 @@ export function trimMessagesToFit<T extends { role: string; content: unknown }>(
 
     const msg = messages[i] as Record<string, unknown>;
     const isTool = isToolRelatedMessage(msg);
-    
+
     if (chunks.length > 0) {
       const prevChunk = chunks[chunks.length - 1];
       const prevLastIdx = prevChunk.indices[prevChunk.indices.length - 1];
-      
+
       // 如果当前是 tool，且上一个也是 tool，合并为一个原子块
       if (isTool && isToolRelatedMessage(messages[prevLastIdx] as Record<string, unknown>)) {
         prevChunk.indices.push(i);
@@ -707,14 +711,14 @@ export function trimMessagesToFit<T extends { role: string; content: unknown }>(
         continue;
       }
     }
-    
+
     chunks.push({ indices: [i], tokens: tokensByMsg[i] });
   }
 
   // 从旧到新移除块，直到满足预算，或碰到受保护的尾部
   for (const chunk of chunks) {
     if (currentTotal <= budgetTokens) break;
-    
+
     // 如果该块包含任何受保护范围的消息，则停止移除
     const isProtected = chunk.indices.some((idx) => idx >= protectedTailThreshold);
     if (isProtected) break;
@@ -742,13 +746,13 @@ export function trimMessagesToFit<T extends { role: string; content: unknown }>(
     const safeLastIdx = findSafeLastIndex(messages);
     if (safeLastIdx < 0) {
       console.warn(
-        `[contextBudget] Aggressive trim: kept first + placeholder only (${messages.length} -> 2); skipped orphan tool tail`,
+        `[contextBudget] Aggressive trim: kept first + placeholder only (${messages.length} -> 2); skipped orphan tool tail`
       );
       result = [first, placeholder];
     } else {
       const last = messages[safeLastIdx];
       console.warn(
-        `[contextBudget] Aggressive trim: kept first + last (${messages.length} -> 3${safeLastIdx < messages.length - 1 ? ', skipped orphan tool tail' : ''})`,
+        `[contextBudget] Aggressive trim: kept first + last (${messages.length} -> 3${safeLastIdx < messages.length - 1 ? ', skipped orphan tool tail' : ''})`
       );
       result = [first, placeholder, last];
     }
@@ -758,9 +762,9 @@ export function trimMessagesToFit<T extends { role: string; content: unknown }>(
     for (let i = 0; i < messages.length; i++) {
       if (removedIndices.has(i)) {
         if (!placeholderInserted) {
-          const placeholder = { 
-              role: 'user', 
-              content: TRIM_PLACEHOLDER 
+          const placeholder = {
+            role: 'user',
+            content: TRIM_PLACEHOLDER,
           } as unknown as T;
           result.push(placeholder);
           placeholderInserted = true;
@@ -776,11 +780,11 @@ export function trimMessagesToFit<T extends { role: string; content: unknown }>(
   // 二次安全校验：极端情况下，即使只保留首尾，首部（如含巨型 system prompt）
   // 或尾部（含长文本）相加依然超标。此时须截断字符串内容本身作为最后兜底。
   let finalTokens = 0;
-  result.forEach(m => finalTokens += estimateMessageTokens(m));
-  
+  result.forEach((m) => (finalTokens += estimateMessageTokens(m)));
+
   if (finalTokens > budgetTokens && result.length > 0) {
     console.warn(
-      `[contextBudget] Final result still exceeds budget (${finalTokens} > ${budgetTokens}). Forcing string truncation on the largest message.`,
+      `[contextBudget] Final result still exceeds budget (${finalTokens} > ${budgetTokens}). Forcing string truncation on the largest message.`
     );
 
     for (let pass = 0; pass < MAX_HARD_TRUNC_PASSES; pass++) {
@@ -803,11 +807,7 @@ export function trimMessagesToFit<T extends { role: string; content: unknown }>(
       const originalStr = targetMsg.content as string;
       const otherTokens = finalTokens - estimateMessageTokens(targetMsg);
       const contentBudget = budgetTokens - otherTokens - MESSAGE_TOKEN_OVERHEAD;
-      const truncated = truncateTextToTokenBudget(
-        originalStr,
-        contentBudget,
-        HARD_TRUNC_SUFFIX,
-      );
+      const truncated = truncateTextToTokenBudget(originalStr, contentBudget, HARD_TRUNC_SUFFIX);
 
       if (truncated === originalStr) break;
 
@@ -849,28 +849,23 @@ export function applyContextBudget<T extends { role: string; content: unknown }>
   reserveTokens = 8192,
   maxContextTokens?: number,
   _existingSummary?: CompressedSummary | null,
-  provider?: string,
+  provider?: string
 ): ApplyBudgetResult<T> {
   const budget = maxContextTokens ?? DEFAULT_CONTEXT_WINDOW;
   const toolTokens = estimateToolsTokens(tools);
   const messageBudget = budget - toolTokens - reserveTokens;
   const compressionThreshold = Math.floor(messageBudget * AUTO_COMPRESS_THRESHOLD);
 
-  const agedMessagesFinal = provider
-    ? ageOldImageAttachments(messages)
-    : messages;
+  const agedMessagesFinal = provider ? ageOldImageAttachments(messages) : messages;
 
-  const totalTokens = agedMessagesFinal.reduce(
-    (sum, m) => sum + estimateMessageTokens(m),
-    0,
-  );
+  const totalTokens = agedMessagesFinal.reduce((sum, m) => sum + estimateMessageTokens(m), 0);
 
   let result: T[];
   if (totalTokens <= compressionThreshold) {
     result = agedMessagesFinal as T[];
   } else {
     result = repairTrimmedToolChain(
-      trimMessagesToFit(agedMessagesFinal as T[], compressionThreshold),
+      trimMessagesToFit(agedMessagesFinal as T[], compressionThreshold)
     );
   }
 

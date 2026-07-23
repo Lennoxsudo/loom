@@ -1,6 +1,6 @@
 /**
  * useLayoutResize Hook
- * 
+ *
  * 处理布局 resize 相关的鼠标事件
  * 使用 requestAnimationFrame 节流，确保每帧最多更新一次
  */
@@ -14,7 +14,7 @@ export function useLayoutResize(editorAreaRef: React.RefObject<HTMLDivElement | 
   const isResizing = useLayoutStore((state) => state.isResizing);
   const isChatPanelResizing = useLayoutStore((state) => state.isChatPanelResizing);
   const isTerminalResizing = useLayoutStore((state) => state.isTerminalResizing);
-  
+
   const setSidebarWidth = useLayoutStore((state) => state.setSidebarWidth);
   const setIsResizing = useLayoutStore((state) => state.setIsResizing);
   const setChatPanelWidth = useLayoutStore((state) => state.setChatPanelWidth);
@@ -34,7 +34,7 @@ export function useLayoutResize(editorAreaRef: React.RefObject<HTMLDivElement | 
   const scheduleUpdate = useCallback((updateFn: (value: number) => void) => {
     return (value: number) => {
       pendingValueRef.current = value;
-      
+
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           if (pendingValueRef.current !== null) {

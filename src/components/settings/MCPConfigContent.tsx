@@ -44,11 +44,16 @@ export function MCPConfigContent() {
           for (const s of statuses) map[s.server_id] = s;
           setRuntimeStatus(map);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     poll();
     const timer = setInterval(poll, 3000);
-    return () => { mounted = false; clearInterval(timer); };
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
   }, []);
 
   const handleToggleTools = async (serverId: string) => {
@@ -77,14 +82,20 @@ export function MCPConfigContent() {
         const configStr = await invoke<string>('load_mcp_config');
         if (configStr) {
           const config = JSON.parse(configStr);
-          if (config.mcpServers && typeof config.mcpServers === 'object' && !Array.isArray(config.mcpServers)) {
-            const list: McpServerConfig[] = Object.entries(config.mcpServers).map(([key, val]: [string, any]) => ({
-              id: key,
-              name: key,
-              command: val.command || '',
-              args: Array.isArray(val.args) ? val.args.join(' ') : (val.args || ''),
-              enabled: val.disabled === true ? false : true,
-            }));
+          if (
+            config.mcpServers &&
+            typeof config.mcpServers === 'object' &&
+            !Array.isArray(config.mcpServers)
+          ) {
+            const list: McpServerConfig[] = Object.entries(config.mcpServers).map(
+              ([key, val]: [string, any]) => ({
+                id: key,
+                name: key,
+                command: val.command || '',
+                args: Array.isArray(val.args) ? val.args.join(' ') : val.args || '',
+                enabled: val.disabled === true ? false : true,
+              })
+            );
             setServers(list);
           } else if (Array.isArray(config.servers)) {
             setServers(config.servers);
@@ -100,7 +111,9 @@ export function MCPConfigContent() {
       try {
         const path = await invoke<string>('get_mcp_config_path');
         setConfigPath(path);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     loadConfig();
   }, []);
@@ -152,14 +165,12 @@ export function MCPConfigContent() {
     if (togglingServer === id) return;
     const server = servers.find((s) => s.id === id);
     if (!server) return;
-    
+
     const rs = runtimeStatus[id];
     const isRunning = !!(rs?.is_running && rs?.is_initialized);
     const newEnabled = !isRunning;
-    
-    const updated = servers.map((s) =>
-      s.id === id ? { ...s, enabled: newEnabled } : s
-    );
+
+    const updated = servers.map((s) => (s.id === id ? { ...s, enabled: newEnabled } : s));
     setServers(updated);
     await saveConfig(updated);
 
@@ -182,9 +193,7 @@ export function MCPConfigContent() {
       await useToolStore.getState().fetchMcpTools();
     } catch (e) {
       console.error(`Failed to ${newEnabled ? 'start' : 'stop'} server ${id}:`, e);
-      const reverted = servers.map((s) =>
-        s.id === id ? { ...s, enabled: !newEnabled } : s
-      );
+      const reverted = servers.map((s) => (s.id === id ? { ...s, enabled: !newEnabled } : s));
       setServers(reverted);
       await saveConfig(reverted);
       showError(`MCP 服务器 "${server.name}" ${newEnabled ? '启动' : '停止'}失败: ${e}`);
@@ -197,9 +206,7 @@ export function MCPConfigContent() {
     try {
       await invoke('open_mcp_config_file');
       const path = await invoke<string>('get_mcp_config_path');
-      window.dispatchEvent(
-        new CustomEvent('open-file-in-editor', { detail: { filePath: path } })
-      );
+      window.dispatchEvent(new CustomEvent('open-file-in-editor', { detail: { filePath: path } }));
     } catch (e) {
       showError(`无法打开配置文件: ${e}`);
     }
@@ -226,212 +233,297 @@ export function MCPConfigContent() {
       <h3 className={styles.sectionHeading}>{t.settingsMcp.servers.title}</h3>
 
       <div className={styles.serverList}>
-      {servers.map((server) => {
-        const isExpanded = expandedServerId === server.id;
-        const tools = toolsByServer[server.id];
-        const isLoadingThis = loadingTools === server.id;
+        {servers.map((server) => {
+          const isExpanded = expandedServerId === server.id;
+          const tools = toolsByServer[server.id];
+          const isLoadingThis = loadingTools === server.id;
 
-        return (
-          <div
-            key={server.id}
-            className={`${styles.serverCard} ${server.enabled ? '' : styles.serverCardDisabled}`}
-          >
+          return (
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '14px 16px',
-                gap: '12px',
-              }}
+              key={server.id}
+              className={`${styles.serverCard} ${server.enabled ? '' : styles.serverCardDisabled}`}
             >
-              {(() => {
-                const rs = runtimeStatus[server.id];
-                const isRunning = rs?.is_running && rs?.is_initialized;
-                const isStarting = togglingServer === server.id;
-                const dotColor = isStarting ? '#ff9800' : isRunning ? '#4caf50' : '#555';
-                const dotShadow = isStarting ? '0 0 6px rgba(255, 152, 0, 0.5)' : isRunning ? '0 0 6px rgba(76, 175, 80, 0.5)' : 'none';
-                const statusText = isStarting ? t.status.starting : isRunning ? t.settingsMcp.servers.running : t.settingsMcp.servers.stopped;
-                return (
-                  <span
-                    style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      flexShrink: 0,
-                      backgroundColor: dotColor,
-                      boxShadow: dotShadow,
-                      transition: 'all 0.2s',
-                      animation: isStarting ? 'pulse 1.2s infinite' : 'none',
-                    }}
-                    title={statusText}
-                  />
-                );
-              })()}
-
-              <div
-                style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                onClick={() => handleToggleTools(server.id)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500', marginBottom: '3px' }}>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      fontSize: '10px',
-                      transition: 'transform 0.2s',
-                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    ▶
-                  </span>
-                  {server.name}
-                </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingLeft: '16px' }}>
-                  {server.command} {server.args}
-                </div>
-              </div>
-
-              {(() => {
-                const rs = runtimeStatus[server.id];
-                const isRunning = rs?.is_running && rs?.is_initialized;
-                const isStarting = togglingServer === server.id;
-                let label: string;
-                let bgColor: string;
-                let fgColor: string;
-                let bdColor: string;
-                if (isStarting) {
-                  label = t.status.starting;
-                  bgColor = 'rgba(255, 152, 0, 0.15)';
-                  fgColor = '#ff9800';
-                  bdColor = 'rgba(255, 152, 0, 0.3)';
-                } else if (isRunning) {
-                  label = t.settingsMcp.servers.running;
-                  bgColor = 'rgba(76, 175, 80, 0.15)';
-                  fgColor = '#4caf50';
-                  bdColor = 'rgba(76, 175, 80, 0.3)';
-                } else if (server.enabled) {
-                      label = t.status.notRunning;                  bgColor = 'rgba(244, 67, 54, 0.15)';
-                  fgColor = '#f44336';
-                  bdColor = 'rgba(244, 67, 54, 0.3)';
-                } else {
-                  label = t.settingsMcp.servers.disabled;
-                  bgColor = 'rgba(150, 150, 150, 0.15)';
-                  fgColor = '#888';
-                  bdColor = 'rgba(150, 150, 150, 0.3)';
-                }
-                return (
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                      fontWeight: '500',
-                      backgroundColor: bgColor,
-                      color: fgColor,
-                      border: `1px solid ${bdColor}`,
-                    }}
-                  >
-                    {label}
-                  </span>
-                );
-              })()}
-
-              <button
-                onClick={() => handleToggleEnabled(server.id)}
-                style={{
-                  all: 'unset',
-                  cursor: togglingServer === server.id ? 'not-allowed' : 'pointer',
-                  width: '36px',
-                  height: '20px',
-                  borderRadius: '10px',
-                  backgroundColor: (runtimeStatus[server.id]?.is_running && runtimeStatus[server.id]?.is_initialized) ? 'var(--bg-button)' : 'var(--border-strong)',
-                  position: 'relative',
-                  transition: 'background-color 0.2s',
-                  flexShrink: 0,
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '2px',
-                    left: (runtimeStatus[server.id]?.is_running && runtimeStatus[server.id]?.is_initialized) ? '18px' : '2px',
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--text-inverse)',
-                    transition: 'left 0.2s',
-                  }}
-                />
-              </button>
-
-              <button
-                onClick={() => setDeleteId(server.id)}
-                style={{
-                  all: 'unset',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
-                  fontSize: '16px',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  transition: 'color 0.15s',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#f48771'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                title={t.settingsMcp.servers.delete}
-              >
-                ×
-              </button>
-            </div>
-
-            {isExpanded && (
               <div
                 style={{
-                  borderTop: '1px solid var(--border-primary)',
-                  padding: '8px 0',
-                  maxHeight: '300px',
-                  overflowY: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '14px 16px',
+                  gap: '12px',
                 }}
               >
-                {isLoadingThis && (
-                  <div style={{ padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                    加载工具列表中...
-                  </div>
-                )}
-                {!isLoadingThis && tools && tools.length === 0 && (
-                  <div style={{ padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                    暂无可用工具（请确保 MCP 服务器已启动）
-                  </div>
-                )}
-                {!isLoadingThis && tools && tools.length > 0 && tools.map((tool) => (
+                {(() => {
+                  const rs = runtimeStatus[server.id];
+                  const isRunning = rs?.is_running && rs?.is_initialized;
+                  const isStarting = togglingServer === server.id;
+                  const dotColor = isStarting ? '#ff9800' : isRunning ? '#4caf50' : '#555';
+                  const dotShadow = isStarting
+                    ? '0 0 6px rgba(255, 152, 0, 0.5)'
+                    : isRunning
+                      ? '0 0 6px rgba(76, 175, 80, 0.5)'
+                      : 'none';
+                  const statusText = isStarting
+                    ? t.status.starting
+                    : isRunning
+                      ? t.settingsMcp.servers.running
+                      : t.settingsMcp.servers.stopped;
+                  return (
+                    <span
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        backgroundColor: dotColor,
+                        boxShadow: dotShadow,
+                        transition: 'all 0.2s',
+                        animation: isStarting ? 'pulse 1.2s infinite' : 'none',
+                      }}
+                      title={statusText}
+                    />
+                  );
+                })()}
+
+                <div
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                  onClick={() => handleToggleTools(server.id)}
+                >
                   <div
-                    key={tool.name}
                     style={{
                       display: 'flex',
-                      alignItems: 'flex-start',
-                      padding: '6px 20px',
-                      gap: '8px',
-                      fontSize: '12px',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      marginBottom: '3px',
                     }}
                   >
-                    <span style={{ color: '#4caf50', fontSize: '11px', marginTop: '2px', flexShrink: 0 }}>✓</span>
-                    <span style={{ color: '#c792ea', fontFamily: 'monospace', fontWeight: 500, flexShrink: 0, minWidth: '140px' }}>
-                      {tool.name}
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        fontSize: '10px',
+                        transition: 'transform 0.2s',
+                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      ▶
                     </span>
-                    <span style={{ color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {tool.description || ''}
-                    </span>
+                    {server.name}
                   </div>
-                ))}
+                  <div
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      paddingLeft: '16px',
+                    }}
+                  >
+                    {server.command} {server.args}
+                  </div>
+                </div>
+
+                {(() => {
+                  const rs = runtimeStatus[server.id];
+                  const isRunning = rs?.is_running && rs?.is_initialized;
+                  const isStarting = togglingServer === server.id;
+                  let label: string;
+                  let bgColor: string;
+                  let fgColor: string;
+                  let bdColor: string;
+                  if (isStarting) {
+                    label = t.status.starting;
+                    bgColor = 'rgba(255, 152, 0, 0.15)';
+                    fgColor = '#ff9800';
+                    bdColor = 'rgba(255, 152, 0, 0.3)';
+                  } else if (isRunning) {
+                    label = t.settingsMcp.servers.running;
+                    bgColor = 'rgba(76, 175, 80, 0.15)';
+                    fgColor = '#4caf50';
+                    bdColor = 'rgba(76, 175, 80, 0.3)';
+                  } else if (server.enabled) {
+                    label = t.status.notRunning;
+                    bgColor = 'rgba(244, 67, 54, 0.15)';
+                    fgColor = '#f44336';
+                    bdColor = 'rgba(244, 67, 54, 0.3)';
+                  } else {
+                    label = t.settingsMcp.servers.disabled;
+                    bgColor = 'rgba(150, 150, 150, 0.15)';
+                    fgColor = '#888';
+                    bdColor = 'rgba(150, 150, 150, 0.3)';
+                  }
+                  return (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        fontWeight: '500',
+                        backgroundColor: bgColor,
+                        color: fgColor,
+                        border: `1px solid ${bdColor}`,
+                      }}
+                    >
+                      {label}
+                    </span>
+                  );
+                })()}
+
+                <button
+                  onClick={() => handleToggleEnabled(server.id)}
+                  style={{
+                    all: 'unset',
+                    cursor: togglingServer === server.id ? 'not-allowed' : 'pointer',
+                    width: '36px',
+                    height: '20px',
+                    borderRadius: '10px',
+                    backgroundColor:
+                      runtimeStatus[server.id]?.is_running &&
+                      runtimeStatus[server.id]?.is_initialized
+                        ? 'var(--bg-button)'
+                        : 'var(--border-strong)',
+                    position: 'relative',
+                    transition: 'background-color 0.2s',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '2px',
+                      left:
+                        runtimeStatus[server.id]?.is_running &&
+                        runtimeStatus[server.id]?.is_initialized
+                          ? '18px'
+                          : '2px',
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--text-inverse)',
+                      transition: 'left 0.2s',
+                    }}
+                  />
+                </button>
+
+                <button
+                  onClick={() => setDeleteId(server.id)}
+                  style={{
+                    all: 'unset',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    fontSize: '16px',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    transition: 'color 0.15s',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#f48771';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
+                  title={t.settingsMcp.servers.delete}
+                >
+                  ×
+                </button>
               </div>
-            )}
-          </div>
-        );
-      })}
+
+              {isExpanded && (
+                <div
+                  style={{
+                    borderTop: '1px solid var(--border-primary)',
+                    padding: '8px 0',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {isLoadingThis && (
+                    <div
+                      style={{
+                        padding: '12px 20px',
+                        color: 'var(--text-secondary)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      加载工具列表中...
+                    </div>
+                  )}
+                  {!isLoadingThis && tools && tools.length === 0 && (
+                    <div
+                      style={{
+                        padding: '12px 20px',
+                        color: 'var(--text-secondary)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      暂无可用工具（请确保 MCP 服务器已启动）
+                    </div>
+                  )}
+                  {!isLoadingThis &&
+                    tools &&
+                    tools.length > 0 &&
+                    tools.map((tool) => (
+                      <div
+                        key={tool.name}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          padding: '6px 20px',
+                          gap: '8px',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: '#4caf50',
+                            fontSize: '11px',
+                            marginTop: '2px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          ✓
+                        </span>
+                        <span
+                          style={{
+                            color: '#c792ea',
+                            fontFamily: 'monospace',
+                            fontWeight: 500,
+                            flexShrink: 0,
+                            minWidth: '140px',
+                          }}
+                        >
+                          {tool.name}
+                        </span>
+                        <span
+                          style={{
+                            color: 'var(--text-secondary)',
+                            flex: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {tool.description || ''}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {!showAddForm ? (
-        <button type="button" onClick={() => setShowAddForm(true)} className={pageStyles.ghostAddButton}>
+        <button
+          type="button"
+          onClick={() => setShowAddForm(true)}
+          className={pageStyles.ghostAddButton}
+        >
           {t.settingsMcp.servers.add}
         </button>
       ) : (

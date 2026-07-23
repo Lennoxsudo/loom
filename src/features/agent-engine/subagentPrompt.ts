@@ -1,6 +1,6 @@
 /**
  * System prompt definition for Subagents.
- * 
+ *
  * Instructs the AI to work independently without user interaction,
  * stay focused within limits, and return a structured summary.
  */
@@ -34,4 +34,3 @@ export function getSubagentSystemPrompt(presetPrompt?: string): string {
   }
   return `${SUBAGENT_SYSTEM_PROMPT}\n\n### 预设工作模式（Preset Mode）：\n${presetPrompt}`;
 }
-

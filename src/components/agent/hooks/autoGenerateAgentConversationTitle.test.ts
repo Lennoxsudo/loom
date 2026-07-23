@@ -15,7 +15,9 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 const invokeMock = vi.mocked(invoke);
 
-function createState(conversation: AgentConversationState['conversations'][number]): AgentConversationState {
+function createState(
+  conversation: AgentConversationState['conversations'][number]
+): AgentConversationState {
   return {
     selectedConversationId: conversation.id,
     conversations: [conversation],
@@ -24,7 +26,9 @@ function createState(conversation: AgentConversationState['conversations'][numbe
 
 describe('buildInstantAgentConversationTitle', () => {
   it('truncates long user text', () => {
-    expect(buildInstantAgentConversationTitle('fix title issue quickly')).toBe('fix title issue...');
+    expect(buildInstantAgentConversationTitle('fix title issue quickly')).toBe(
+      'fix title issue...'
+    );
   });
 
   it('uses first file name when text is empty', () => {
@@ -99,10 +103,12 @@ describe('autoGenerateAgentConversationTitle', () => {
     const conversationStateRef = {
       current: state,
     };
-    const setConversationState = vi.fn((updater: typeof state | ((prev: typeof state) => typeof state)) => {
-      state = typeof updater === 'function' ? updater(state) : updater;
-      conversationStateRef.current = state;
-    });
+    const setConversationState = vi.fn(
+      (updater: typeof state | ((prev: typeof state) => typeof state)) => {
+        state = typeof updater === 'function' ? updater(state) : updater;
+        conversationStateRef.current = state;
+      }
+    );
 
     const options = {
       conversationId: 'conv-1',
@@ -140,10 +146,12 @@ describe('autoGenerateAgentConversationTitle', () => {
       titleGenerated: false,
     });
     const conversationStateRef = { current: state };
-    const setConversationState = vi.fn((updater: typeof state | ((prev: typeof state) => typeof state)) => {
-      state = typeof updater === 'function' ? updater(state) : updater;
-      conversationStateRef.current = state;
-    });
+    const setConversationState = vi.fn(
+      (updater: typeof state | ((prev: typeof state) => typeof state)) => {
+        state = typeof updater === 'function' ? updater(state) : updater;
+        conversationStateRef.current = state;
+      }
+    );
 
     await autoGenerateAgentConversationTitle({
       conversationId: 'conv-1',
@@ -180,10 +188,12 @@ describe('autoGenerateAgentConversationTitle', () => {
       titleGenerated: false,
     });
     const conversationStateRef = { current: state };
-    const setConversationState = vi.fn((updater: typeof state | ((prev: typeof state) => typeof state)) => {
-      state = typeof updater === 'function' ? updater(state) : updater;
-      conversationStateRef.current = state;
-    });
+    const setConversationState = vi.fn(
+      (updater: typeof state | ((prev: typeof state) => typeof state)) => {
+        state = typeof updater === 'function' ? updater(state) : updater;
+        conversationStateRef.current = state;
+      }
+    );
 
     await autoGenerateAgentConversationTitle({
       conversationId: 'conv-1',

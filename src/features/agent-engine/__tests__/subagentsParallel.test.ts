@@ -16,7 +16,7 @@ const runAgentLoopMock = vi.fn();
 vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
   buildForkMessages: (messages: any) => messages ?? [],
-  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
+  filterToolsForSubagentType: <T>(tools: T[]) => tools,
 }));
 
 describe('RunSubagentsHandler Registry', () => {
@@ -69,17 +69,9 @@ describe('RunSubagentsHandler Execution', () => {
       return { finalText: `Done ${taskIndex}`, steps: 1 };
     });
 
-    const tasks = [
-      { task: 'Task 1' },
-      { task: 'Task 2' },
-      { task: 'Task 3' },
-      { task: 'Task 4' },
-    ];
+    const tasks = [{ task: 'Task 1' }, { task: 'Task 2' }, { task: 'Task 3' }, { task: 'Task 4' }];
 
-    await handler.execute(
-      { tasks },
-      { agentId: 'parent-id', toolCallId: 'test-parent-call-id' }
-    );
+    await handler.execute({ tasks }, { agentId: 'parent-id', toolCallId: 'test-parent-call-id' });
 
     expect(startOrder.length).toBe(4);
     expect(peakActiveCount).toBe(4);
@@ -100,10 +92,7 @@ describe('RunSubagentsHandler Execution', () => {
       .mockResolvedValueOnce({ finalText: 'Task 1 Done', steps: 2 })
       .mockRejectedValueOnce(new Error('Network Timeout'));
 
-    const tasks = [
-      { task: 'Perform compile' },
-      { task: 'Run lint check' }
-    ];
+    const tasks = [{ task: 'Perform compile' }, { task: 'Run lint check' }];
 
     const result = await handler.execute(
       { tasks },
@@ -126,7 +115,7 @@ describe('RunSubagentsHandler Execution', () => {
 
     expect(task1.status).toBe('succeeded');
     expect(task1.result?.summary).toBe('Task 1 Done');
-    
+
     expect(task2.status).toBe('failed');
     expect(task2.result?.error).toBe('Network Timeout');
   });
@@ -141,13 +130,14 @@ describe('RunSubagentsHandler Execution', () => {
     runAgentLoopMock.mockResolvedValue({ finalText: 'Done', steps: 1 });
 
     const tasks = [
-      { task: 'Subtask', preset: 'research', allowed_tools: ['read', 'write', 'run_subagent', 'run_subagents'] }
+      {
+        task: 'Subtask',
+        preset: 'research',
+        allowed_tools: ['read', 'write', 'run_subagent', 'run_subagents'],
+      },
     ];
 
-    await handler.execute(
-      { tasks },
-      { agentId: 'parent-id', toolCallId: 'test-parent-call-id' }
-    );
+    await handler.execute({ tasks }, { agentId: 'parent-id', toolCallId: 'test-parent-call-id' });
 
     const callArgs = runAgentLoopMock.mock.calls[0][0];
     expect(callArgs.tools.some((t: any) => t.name === 'run_subagent')).toBe(false);
@@ -198,16 +188,13 @@ describe('RunSubagentsHandler Execution', () => {
       function: {
         name: 'run_subagents',
         arguments: JSON.stringify({
-          tasks: [
-            { task: 'Subtask A' },
-            { task: 'Subtask B' }
-          ]
+          tasks: [{ task: 'Subtask A' }, { task: 'Subtask B' }],
         }),
       },
     };
 
     const result = await executeToolCall(toolCall, { agentId: 'parent-id' });
-    
+
     expect(result.tool_call_id).toBe('tool-call-99999');
     expect(result.error).toBeUndefined();
     expect(result.output).toContain('并行子代理结果（共 2 个，成功 2 / 失败 0 / 取消 0）');

@@ -26,9 +26,7 @@ describe('chatUserMessageEdit', () => {
   });
 
   it('builds stable session keys', () => {
-    expect(buildChatCheckpointSessionKey('D:\\proj\\App', 'conv-1')).toBe(
-      'd:/proj/app::conv-1'
-    );
+    expect(buildChatCheckpointSessionKey('D:\\proj\\App', 'conv-1')).toBe('d:/proj/app::conv-1');
     expect(buildChatCheckpointSessionKey('', 'conv-2')).toBe('no-project::conv-2');
   });
 });

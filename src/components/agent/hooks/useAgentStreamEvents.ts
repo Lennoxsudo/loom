@@ -4,7 +4,10 @@ import { logDebug } from '../../../utils/errorHandling';
 import { isManualCancelError, finalizeThinkingMessage } from '../utils';
 import { finalizeStreamMessage } from '../../../utils/streamChunkSeparation';
 import { resolveStreamCompletionToolCalls } from '../../../features/agent-engine/streamCompletionToolCalls';
-import { appendExecutedToolToMessage, flushQueuedChunksForMessageIfNeeded } from './agentStreamEventHelpers';
+import {
+  appendExecutedToolToMessage,
+  flushQueuedChunksForMessageIfNeeded,
+} from './agentStreamEventHelpers';
 import { updateAgentConversationById, updateAgentMessageById } from './agentConversationUpdates';
 import { calibrateTokenEstimation } from '../../../utils/contextBudget';
 import { useUsageStore } from '../../../stores/useUsageStore';
@@ -20,10 +23,7 @@ import type {
 import type { ToolCall } from '../../../features/agent-engine';
 import type { AIProvider } from '../../../utils/agentPersistence';
 import type { AgentRuntimeSnapshot } from '../utils';
-import {
-  isBuiltinProtocol,
-  resolveBuiltinStreamError,
-} from '../../../utils/builtinGateway';
+import { isBuiltinProtocol, resolveBuiltinStreamError } from '../../../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../../../stores/useBuiltinGatewayStore';
 
 /** Payload for the ai-provider-switched event emitted by the Rust backend. */
@@ -48,7 +48,13 @@ export interface UseAgentStreamEventsOptions {
   hasQueuedChunksForMessage: (messageId: string) => boolean;
   getKnownToolNames: () => string[];
   handleToolCallsRef: React.MutableRefObject<
-    ((toolCalls: ToolCall[], agentId: string, conversationId: string, messageId: string) => Promise<void>) | null
+    | ((
+        toolCalls: ToolCall[],
+        agentId: string,
+        conversationId: string,
+        messageId: string
+      ) => Promise<void>)
+    | null
   >;
   isStopRequested: (sessionKey: string) => boolean;
   clearTrackedStream: (messageId: string) => void;
@@ -64,8 +70,8 @@ export interface UseAgentStreamEventsOptions {
 function messageHasVisibleContent(message: ChatMessage): boolean {
   return Boolean(
     message.text?.trim() ||
-      message.thinking?.trim() ||
-      (message.tool_calls && message.tool_calls.length > 0)
+    message.thinking?.trim() ||
+    (message.tool_calls && message.tool_calls.length > 0)
   );
 }
 
@@ -176,7 +182,9 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
           const estimatedTotal = conv.messages.reduce((sum, msg) => {
             const text = typeof msg.text === 'string' ? msg.text : '';
             // 简化估算：每条消息的文本 token + 4 开销
-            const cjkChars = (text.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g) || []).length;
+            const cjkChars = (
+              text.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g) || []
+            ).length;
             const nonCjkLen = text.length - cjkChars;
             return sum + 4 + cjkChars * 1.5 + nonCjkLen / 3.5;
           }, 0);
@@ -188,13 +196,14 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
 
       // 方法 12：记录 cached/uncached token 统计（日志输出，供调试和后续 UI 展示）
       if (usage) {
-        const cached = (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+        const cached =
+          (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
         const uncached = (usage.input_tokens ?? 0) - cached;
         if (cached > 0 || usage.cache_creation_input_tokens) {
           logDebug(
             `[stream] Token usage: input=${usage.input_tokens ?? 0}, output=${usage.output_tokens ?? 0}, ` +
               `cache_read=${usage.cache_read_input_tokens ?? 0}, cache_write=${usage.cache_creation_input_tokens ?? 0}, ` +
-              `uncached=${uncached > 0 ? uncached : 0}`,
+              `uncached=${uncached > 0 ? uncached : 0}`
           );
         }
       }
@@ -223,9 +232,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
         const snapshotConversation = snapshot.conversations.find(
           (conv) => conv.id === targetConversationId
         );
-        const snapshotMessage = snapshotConversation?.messages.find(
-          (msg) => msg.id === message_id
-        );
+        const snapshotMessage = snapshotConversation?.messages.find((msg) => msg.id === message_id);
         const snapshotMessageText =
           typeof snapshotMessage?.text === 'string' ? snapshotMessage.text : '';
         const resolution = resolveStreamCompletionToolCalls(
@@ -398,7 +405,11 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       if (!streamMeta) return;
 
       const targetConversationId = streamMeta.conversationId;
-      flushQueuedChunksForMessageIfNeeded(message_id, hasQueuedChunksForMessage, flushAllQueuedChunks);
+      flushQueuedChunksForMessageIfNeeded(
+        message_id,
+        hasQueuedChunksForMessage,
+        flushAllQueuedChunks
+      );
 
       onSetConversationState((prev) =>
         updateAgentMessageById(prev, targetConversationId, message_id, (msg) => {
@@ -424,17 +435,23 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       const streamMeta = streamMetaByMessageIdRef.current[message_id];
       if (!streamMeta) return;
 
-      flushQueuedChunksForMessageIfNeeded(message_id, hasQueuedChunksForMessage, flushAllQueuedChunks);
+      flushQueuedChunksForMessageIfNeeded(
+        message_id,
+        hasQueuedChunksForMessage,
+        flushAllQueuedChunks
+      );
     });
 
-    const unlistenProviderSwitched = listen<ProviderSwitchedPayload>('ai-provider-switched', (event) => {
-      const { message_id, from_provider, from_model, to_provider, to_model } = event.payload;
+    const unlistenProviderSwitched = listen<ProviderSwitchedPayload>(
+      'ai-provider-switched',
+      (event) => {
+        const { message_id, from_provider, from_model, to_provider, to_model } = event.payload;
 
-      const streamMeta = streamMetaByMessageIdRef.current[message_id];
-      if (!streamMeta) return;
-      if (agentRuntimeRef.current.routingMode !== 'auto') return;
+        const streamMeta = streamMetaByMessageIdRef.current[message_id];
+        if (!streamMeta) return;
+        if (agentRuntimeRef.current.routingMode !== 'auto') return;
 
-      onSetConversationState((prev) =>
+        onSetConversationState((prev) =>
           updateAgentConversationById(prev, streamMeta.conversationId, (conversation) => {
             const alreadyNotified = conversation.messages.some(
               (message) =>
@@ -462,7 +479,9 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
               },
             };
 
-            const anchorIndex = conversation.messages.findIndex((message) => message.id === message_id);
+            const anchorIndex = conversation.messages.findIndex(
+              (message) => message.id === message_id
+            );
             const messages =
               anchorIndex >= 0
                 ? [
@@ -479,17 +498,18 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
           })
         );
 
-      logDebug(
-        `[AutoRouting] Provider switched: ${from_provider}/${from_model} -> ${to_provider}/${to_model}`,
-      );
+        logDebug(
+          `[AutoRouting] Provider switched: ${from_provider}/${from_model} -> ${to_provider}/${to_model}`
+        );
 
-      agentRuntimeRef.current = {
-        ...agentRuntimeRef.current,
-        provider: to_provider as AIProvider,
-        model: to_model,
-        routingMode: 'auto',
-      };
-    });
+        agentRuntimeRef.current = {
+          ...agentRuntimeRef.current,
+          provider: to_provider as AIProvider,
+          model: to_model,
+          routingMode: 'auto',
+        };
+      }
+    );
 
     return () => {
       unlisten.then((fn) => fn());

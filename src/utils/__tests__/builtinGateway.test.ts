@@ -90,7 +90,11 @@ describe('builtinGateway helpers', () => {
           quotas: { qps: 1 },
         }),
     }));
-    const result = await activateBuiltinGateway('CODE', 'install-1', fetchImpl as unknown as typeof fetch);
+    const result = await activateBuiltinGateway(
+      'CODE',
+      'install-1',
+      fetchImpl as unknown as typeof fetch
+    );
     expect(result.api_key).toBe('sk-x');
     expect(result.client_secret).toBe('gwsec_x');
     expect(fetchImpl).toHaveBeenCalledWith(
@@ -117,8 +121,7 @@ describe('builtinGateway helpers', () => {
     const fetchImpl = vi.fn(async () => ({
       ok: false,
       status: 401,
-      text: async () =>
-        JSON.stringify({ error: { message: 'Unauthorized', type: 'auth_error' } }),
+      text: async () => JSON.stringify({ error: { message: 'Unauthorized', type: 'auth_error' } }),
     }));
     await expect(
       activateBuiltinGateway('CODE', 'install-1', fetchImpl as unknown as typeof fetch)
@@ -169,8 +172,7 @@ describe('builtinGateway helpers', () => {
   });
 
   it('detects gateway auth_error in stream API error strings', () => {
-    const raw =
-      'API返回错误 401: {"error":{"message":"Unauthorized","type":"auth_error"}}';
+    const raw = 'API返回错误 401: {"error":{"message":"Unauthorized","type":"auth_error"}}';
     expect(isGatewayAuthErrorMessage(raw)).toBe(true);
     expect(
       formatBuiltinGatewayStreamError(raw, '请重新激活内置模型', { treatAsBuiltin: true })
@@ -183,15 +185,18 @@ describe('builtinGateway helpers', () => {
         profiles: {
           openai: {
             activeId: 'user-1',
-            items: [{ id: 'user-1', name: 'Mine', endpoint: 'http://x', apiKey: 'k', models: ['m'] }],
+            items: [
+              { id: 'user-1', name: 'Mine', endpoint: 'http://x', apiKey: 'k', models: ['m'] },
+            ],
           },
         },
       },
       'sk-gw',
       ['model-a', 'model-b']
     );
-    const openai = (merged.profiles as { openai: { activeId: string; items: Array<{ id: string }> } })
-      .openai;
+    const openai = (
+      merged.profiles as { openai: { activeId: string; items: Array<{ id: string }> } }
+    ).openai;
     expect(openai.activeId).toBe('user-1');
     expect(openai.items.some((i) => i.id === 'user-1')).toBe(true);
     expect(openai.items.some((i) => i.id === BUILTIN_PROFILE_ID)).toBe(true);

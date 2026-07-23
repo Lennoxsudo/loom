@@ -12,11 +12,7 @@ export function parseProviderAndModel(modelValue: string): {
   if (modelValue.includes(':')) {
     const parts = modelValue.split(':');
     const providerPart = parts[0];
-    if (
-      providerPart === 'openai' ||
-      providerPart === 'anthropic' ||
-      providerPart === 'ollama'
-    ) {
+    if (providerPart === 'openai' || providerPart === 'anthropic' || providerPart === 'ollama') {
       provider = providerPart;
       // Composite id formats:
       // 1) provider:profileId:modelName:index

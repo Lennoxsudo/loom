@@ -92,10 +92,7 @@ describe('filterSkillsForSlashQuery', () => {
   ];
 
   it('excludes non-invocable skills', () => {
-    expect(filterSkillsForSlashQuery(skills, '').map((s) => s.name)).toEqual([
-      'pr',
-      'explain',
-    ]);
+    expect(filterSkillsForSlashQuery(skills, '').map((s) => s.name)).toEqual(['pr', 'explain']);
   });
 
   it('filters by name or description', () => {

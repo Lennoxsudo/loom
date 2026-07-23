@@ -79,8 +79,7 @@ function createHookHarness(initialProjectPath: string, initialState: AgentConver
   let conversationState = initialState;
   const conversationStateRef = { current: conversationState };
   const onSetConversationState = vi.fn((updater: SetStateAction<AgentConversationState>) => {
-    conversationState =
-      typeof updater === 'function' ? updater(conversationState) : updater;
+    conversationState = typeof updater === 'function' ? updater(conversationState) : updater;
     conversationStateRef.current = conversationState;
   });
 

@@ -1,6 +1,6 @@
 /**
  * Types and task contracts for the Multi-Agent Subagent system.
- * 
+ *
  * Defines the interaction contract between the parent agent and the subagent.
  */
 
@@ -152,4 +152,3 @@ export function toPersistedSubagentRun(run: SubagentRun): PersistedSubagentRun {
 export function persistedSubagentRunToSubagentRun(record: PersistedSubagentRun): SubagentRun {
   return { ...record, pendingApproval: undefined };
 }
-

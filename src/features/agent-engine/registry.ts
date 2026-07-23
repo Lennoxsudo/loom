@@ -1,9 +1,9 @@
 /**
  * 工具处理器注册表
- * 
+ *
  * 本模块提供了工具处理器的注册和查找功能。
  * 所有工具处理器都应该通过此模块进行注册。
- * 
+ *
  * @module aiTools/registry
  */
 
@@ -23,12 +23,11 @@ import { subagentHandlers } from './handlers/subagentHandlers';
 import { agentToolHandlers } from './handlers/agentToolHandler';
 import { graphHandlers } from './handlers/graphHandlers';
 
-
 const toolHandlers = new Map<ToolName, ToolHandler>();
 
 /**
  * 注册单个工具处理器
- * 
+ *
  * @param handler - 要注册的处理器实例
  */
 function registerHandler<T extends ToolName>(handler: ToolHandler<T>): void {
@@ -37,7 +36,7 @@ function registerHandler<T extends ToolName>(handler: ToolHandler<T>): void {
 
 /**
  * 批量注册工具处理器
- * 
+ *
  * @param handlers - 处理器实例数组
  */
 function registerHandlers(handlers: ToolHandler[]): void {
@@ -60,7 +59,6 @@ registerHandlers(imageGenHandlers);
 registerHandlers(subagentHandlers);
 registerHandlers(agentToolHandlers);
 registerHandlers(graphHandlers);
-
 
 // Register legacy name aliases for backward compatibility
 // When the model or stored conversations use old names, route them to the same handler
@@ -85,11 +83,11 @@ for (const { alias, canonical } of LEGACY_ALIASES) {
 
 /**
  * 获取指定工具的处理器
- * 
+ *
  * @typeParam T - 工具名称类型
  * @param name - 工具名称
  * @returns 处理器实例，如果未找到则返回 undefined
- * 
+ *
  * @example
  * ```typescript
  * const handler = getToolHandler('read_file');
@@ -104,7 +102,7 @@ export function getToolHandler<T extends ToolName>(name: T): ToolHandler<T> | un
 
 /**
  * 检查指定工具是否有注册的处理器
- * 
+ *
  * @param name - 工具名称
  * @returns 如果处理器存在返回 true
  */

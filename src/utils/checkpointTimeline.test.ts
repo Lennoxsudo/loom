@@ -11,11 +11,7 @@ import {
   type AgentCheckpoint,
 } from './checkpointTimeline';
 
-function makeCp(
-  id: string,
-  createdAt: number,
-  files: AgentCheckpoint['files']
-): AgentCheckpoint {
+function makeCp(id: string, createdAt: number, files: AgentCheckpoint['files']): AgentCheckpoint {
   return {
     id,
     sessionKey: 's',
@@ -51,15 +47,9 @@ describe('checkpointTimeline', () => {
 
   it('builds restore plan from earliest snapshot per path', () => {
     const cps = [
-      makeCp('c1', 1, [
-        { path: 'A', existed: true, isBinary: false, byteLen: 1, blob: '1' },
-      ]),
-      makeCp('c2', 2, [
-        { path: 'B', existed: false, isBinary: false, byteLen: 0, blob: '' },
-      ]),
-      makeCp('c3', 3, [
-        { path: 'A', existed: true, isBinary: false, byteLen: 2, blob: '2' },
-      ]),
+      makeCp('c1', 1, [{ path: 'A', existed: true, isBinary: false, byteLen: 1, blob: '1' }]),
+      makeCp('c2', 2, [{ path: 'B', existed: false, isBinary: false, byteLen: 0, blob: '' }]),
+      makeCp('c3', 3, [{ path: 'A', existed: true, isBinary: false, byteLen: 2, blob: '2' }]),
     ];
 
     const plan = buildRestorePlan(cps, 'c2');
@@ -69,11 +59,7 @@ describe('checkpointTimeline', () => {
   });
 
   it('truncates from target inclusive', () => {
-    const cps = [
-      makeCp('c1', 1, []),
-      makeCp('c2', 2, []),
-      makeCp('c3', 3, []),
-    ];
+    const cps = [makeCp('c1', 1, []), makeCp('c2', 2, []), makeCp('c3', 3, [])];
     const next = truncateCheckpointsAfterRestore(cps, 'c2');
     expect(next.map((c) => c.id)).toEqual(['c1']);
   });

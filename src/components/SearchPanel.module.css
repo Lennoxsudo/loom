@@ -103,7 +103,7 @@
 
 .resultsContainer {
   flex: 1;
-  minHeight: 0;
+  minheight: 0;
   overflow: auto;
 }
 

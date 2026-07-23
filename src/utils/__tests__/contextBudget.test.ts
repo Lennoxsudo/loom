@@ -294,10 +294,7 @@ describe('applyContextBudget', () => {
   });
 
   it('falls back to default when maxContextTokens is not provided', () => {
-    const result = applyContextBudget(
-      [{ role: 'user', content: 'Hi' }],
-      'any-model',
-    );
+    const result = applyContextBudget([{ role: 'user', content: 'Hi' }], 'any-model');
     expect(result.messages.length).toBe(1);
   });
 });
@@ -489,9 +486,9 @@ describe('trimMessagesToFit prefix protection (方法 10)', () => {
       makeMsg('system', 'System'),
       makeMsg('user', 'first question'),
       makeMsg('assistant', 'first answer'),
-      makeMsg('user', 'x'.repeat(5000)),  // 可移除的中间消息
+      makeMsg('user', 'x'.repeat(5000)), // 可移除的中间消息
       makeMsg('assistant', 'y'.repeat(5000)), // 可移除的中间消息
-      makeMsg('user', 'z'.repeat(5000)),  // 可移除的中间消息
+      makeMsg('user', 'z'.repeat(5000)), // 可移除的中间消息
       makeMsg('user', 'final question'),
       makeMsg('assistant', 'final answer'),
     ];
@@ -549,9 +546,7 @@ describe('方法 15: 图片附件上下文管理', () => {
 
     it('handles non-image content same as estimateMessageTokens', () => {
       const msg = { role: 'user', content: 'Hello world' };
-      expect(estimateMessageTokensWithProvider(msg, 'anthropic')).toBe(
-        estimateMessageTokens(msg),
-      );
+      expect(estimateMessageTokensWithProvider(msg, 'anthropic')).toBe(estimateMessageTokens(msg));
     });
   });
 
@@ -569,7 +564,10 @@ describe('方法 15: 图片附件上下文管理', () => {
       const messages = [
         {
           role: 'user',
-          content: [{ type: 'image', source: {} }, { type: 'text', text: 'look at this' }],
+          content: [
+            { type: 'image', source: {} },
+            { type: 'text', text: 'look at this' },
+          ],
         },
       ];
       const result = ageOldImageAttachments(messages, 3);
@@ -604,7 +602,7 @@ describe('方法 15: 图片附件上下文管理', () => {
       const firstContent = firstMsg.content as Array<Record<string, unknown>>;
       const firstImageBlock = firstContent.find((b) => b.type === 'image');
       const firstPlaceholder = firstContent.find(
-        (b) => b.type === 'text' && typeof b.text === 'string' && b.text.includes('Image removed'),
+        (b) => b.type === 'text' && typeof b.text === 'string' && b.text.includes('Image removed')
       );
       expect(firstImageBlock).toBeUndefined();
       expect(firstPlaceholder).toBeDefined();
@@ -639,9 +637,7 @@ describe('方法 15: 图片附件上下文管理', () => {
       const firstMsg = result[0];
       const firstContent = firstMsg.content as Array<Record<string, unknown>>;
       // Text block should still be there
-      const textBlock = firstContent.find(
-        (b) => b.type === 'text' && b.text === 'important text',
-      );
+      const textBlock = firstContent.find((b) => b.type === 'text' && b.text === 'important text');
       expect(textBlock).toBeDefined();
     });
 

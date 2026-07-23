@@ -59,7 +59,7 @@ function writePersistedToolResultText<T extends PersistedToolMessage>(msg: T, te
  */
 export function agePersistedChatToolMessages<T extends PersistedToolMessage>(
   messages: T[],
-  keepCount = TOOL_RESULT_AGING_KEEP_COUNT,
+  keepCount = TOOL_RESULT_AGING_KEEP_COUNT
 ): { messages: T[]; changed: boolean } {
   if (messages.length === 0) {
     return { messages, changed: false };
@@ -100,7 +100,7 @@ function isProviderToolResultMessage(msg: { role: string; content: unknown }): b
       (block) =>
         typeof block === 'object' &&
         block !== null &&
-        (block as Record<string, unknown>).type === 'tool_result',
+        (block as Record<string, unknown>).type === 'tool_result'
     );
   }
   return false;
@@ -130,7 +130,9 @@ function extractProviderToolResultText(msg: { role: string; content: unknown }):
   return '';
 }
 
-function summarizeProviderToolResultMessage<T extends { role: string; content: unknown }>(msg: T): T {
+function summarizeProviderToolResultMessage<T extends { role: string; content: unknown }>(
+  msg: T
+): T {
   const text = extractProviderToolResultText(msg);
   const summary = agePersistedToolText(text);
   if (summary === text) return msg;
@@ -160,7 +162,7 @@ function summarizeProviderToolResultMessage<T extends { role: string; content: u
  */
 export function agePersistedProviderToolMessages<T extends { role: string; content: unknown }>(
   messages: T[],
-  keepCount = TOOL_RESULT_AGING_KEEP_COUNT,
+  keepCount = TOOL_RESULT_AGING_KEEP_COUNT
 ): T[] {
   if (messages.length === 0) return messages;
 
@@ -176,10 +178,10 @@ export function agePersistedProviderToolMessages<T extends { role: string; conte
   }
 
   const agedIndices = new Set(toolResultIndices.slice(0, toolResultIndices.length - keepCount));
-const result = messages.map((msg, index) => {
-if (!agedIndices.has(index)) return msg;
-return summarizeProviderToolResultMessage(msg);
-});
+  const result = messages.map((msg, index) => {
+    if (!agedIndices.has(index)) return msg;
+    return summarizeProviderToolResultMessage(msg);
+  });
 
   return result;
 }

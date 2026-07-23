@@ -243,7 +243,9 @@ export function useFileTree(): UseFileTreeReturn {
       }
 
       try {
-        const children = await invoke<FileNode[]>('read_folder_children', { folderPath: normalizedFolderPath });
+        const children = await invoke<FileNode[]>('read_folder_children', {
+          folderPath: normalizedFolderPath,
+        });
         updateFolderChildren(normalizedFolderPath, children);
       } finally {
         inFlightLoadsRef.current.delete(normalizedFolderPath);
@@ -283,7 +285,11 @@ export function useFileTree(): UseFileTreeReturn {
   }, [expandedDirs, projectPath]);
 
   useEffect(() => {
-    if (!projectPath || hydratedExpandedDirsProjectRef.current !== projectPath || fileTree.length === 0) {
+    if (
+      !projectPath ||
+      hydratedExpandedDirsProjectRef.current !== projectPath ||
+      fileTree.length === 0
+    ) {
       return;
     }
 

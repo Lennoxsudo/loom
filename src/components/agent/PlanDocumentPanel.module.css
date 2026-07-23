@@ -170,7 +170,9 @@
   flex-shrink: 0;
   opacity: 0.45;
   color: var(--text-secondary);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .headerMain:hover .chevron {
@@ -203,7 +205,9 @@
   visibility: hidden;
   pointer-events: none;
   transform: none;
-  transition: opacity 0.12s ease, visibility 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    visibility 0.12s ease;
 }
 
 .panelOpen {
@@ -291,7 +295,14 @@
   border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
   background: var(--bg-panel, var(--bg-editor, #1e1e1e));
   color: var(--text-primary);
-  font-family: var(--font-mono, ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace);
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    'Cascadia Mono',
+    'Segoe UI Mono',
+    Consolas,
+    monospace
+  );
   font-size: 13px;
   line-height: 1.55;
   font-weight: 400;
@@ -405,7 +416,10 @@
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .btn:disabled {

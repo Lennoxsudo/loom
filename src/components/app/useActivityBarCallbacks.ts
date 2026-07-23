@@ -48,11 +48,7 @@ export function useActivityBarCallbacks({
     }
     layoutActions.setActiveSidebarView('explorer');
     setIsFileTreeCollapsed(false);
-  }, [
-    isFileTreeCollapsed,
-    activeSidebarView,
-    layoutActions,
-  ]);
+  }, [isFileTreeCollapsed, activeSidebarView, layoutActions]);
 
   const handleToggleSearch = useCallback(() => {
     layoutActions.setIsResizing(false);
@@ -62,11 +58,7 @@ export function useActivityBarCallbacks({
     }
     layoutActions.setActiveSidebarView('search');
     setIsFileTreeCollapsed(false);
-  }, [
-    isFileTreeCollapsed,
-    activeSidebarView,
-    layoutActions,
-  ]);
+  }, [isFileTreeCollapsed, activeSidebarView, layoutActions]);
 
   const handleToggleGit = useCallback(() => {
     layoutActions.setIsResizing(false);
@@ -99,9 +91,7 @@ export function useActivityBarCallbacks({
       setEditorGroups((prev) =>
         prev.map((g) => {
           const filtered = g.tabPaths.filter((p) => p !== agentPath);
-          const activePath = g.activePath === agentPath
-            ? (filtered[0] ?? null)
-            : g.activePath;
+          const activePath = g.activePath === agentPath ? (filtered[0] ?? null) : g.activePath;
           return { ...g, tabPaths: filtered, activePath };
         })
       );
@@ -113,12 +103,7 @@ export function useActivityBarCallbacks({
         error: String(error),
       });
     });
-  }, [
-    projectPath,
-    openFilesByPath,
-    setOpenFilesByPath,
-    setEditorGroups,
-  ]);
+  }, [projectPath, openFilesByPath, setOpenFilesByPath, setEditorGroups]);
 
   const handleToggleTerminal = useCallback(() => {
     if (!hasTerminals) {

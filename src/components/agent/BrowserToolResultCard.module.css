@@ -70,7 +70,9 @@
   flex-shrink: 0;
   opacity: 0.32;
   color: var(--text-secondary);
-  transition: transform 0.2s ease, opacity 0.15s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.15s ease;
 }
 
 .header:hover .chevron {

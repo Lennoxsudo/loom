@@ -39,7 +39,10 @@ function formatDuration(ms: number): string {
   return (ms / 1000).toFixed(1);
 }
 
-function formatStatusLabel(status: SubagentRunStatus, t: ReturnType<typeof useTranslation>): string {
+function formatStatusLabel(
+  status: SubagentRunStatus,
+  t: ReturnType<typeof useTranslation>
+): string {
   switch (status) {
     case 'pending':
       return t.subagent.statusPending;
@@ -197,9 +200,7 @@ function ToolTimelineStep({
           )}
         </span>
       </div>
-      {entry.resultPreview && (
-        <pre className={styles.toolPreview}>{entry.resultPreview}</pre>
-      )}
+      {entry.resultPreview && <pre className={styles.toolPreview}>{entry.resultPreview}</pre>}
     </div>
   );
 }
@@ -294,29 +295,20 @@ const SubagentCard = memo(function SubagentCard({
     );
   }
 
-  const {
-    task,
-    status,
-    steps = 0,
-    streamingText = '',
-    result,
-  } = run;
+  const { task, status, steps = 0, streamingText = '', result } = run;
 
   const isTerminal = status === 'succeeded' || status === 'failed' || status === 'cancelled';
   const textContent = result?.summary || streamingText;
   const typeLabel = formatTypeLabel(task.subagentType);
   const showStatusPulse = (status === 'running' || status === 'pending') && !run.pendingApproval;
   const lastTimelineEntry = timeline[timeline.length - 1];
-  const isThinkingLive =
-    status === 'running' && lastTimelineEntry?.kind === 'thinking';
+  const isThinkingLive = status === 'running' && lastTimelineEntry?.kind === 'thinking';
 
   return (
     <div className={styles.root}>
       <div
         className={`${styles.card} ${cardStatusClass(status, !!run.pendingApproval)}`}
-        style={
-          task.color ? ({ '--sa-accent': task.color } as CSSProperties) : undefined
-        }
+        style={task.color ? ({ '--sa-accent': task.color } as CSSProperties) : undefined}
       >
         <div
           className={styles.header}
@@ -337,9 +329,7 @@ const SubagentCard = memo(function SubagentCard({
               <span className={styles.typeName} title={typeLabel}>
                 {typeLabel}
               </span>
-              {task.spawnMode === 'fork' && (
-                <span className={styles.forkBadge}>fork</span>
-              )}
+              {task.spawnMode === 'fork' && <span className={styles.forkBadge}>fork</span>}
             </div>
 
             <div className={styles.headerActions}>
@@ -366,7 +356,14 @@ const SubagentCard = memo(function SubagentCard({
                 className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}
                 aria-hidden
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </span>
@@ -394,7 +391,10 @@ const SubagentCard = memo(function SubagentCard({
               )}
               {isTerminal && metrics && metrics.durationMs > 0 && (
                 <span className={styles.metaItem}>
-                  {t.subagent.durationSeconds.replace('{seconds}', formatDuration(metrics.durationMs))}
+                  {t.subagent.durationSeconds.replace(
+                    '{seconds}',
+                    formatDuration(metrics.durationMs)
+                  )}
                 </span>
               )}
               {isTerminal && metrics && metrics.totalTokens > 0 && (
@@ -411,7 +411,9 @@ const SubagentCard = memo(function SubagentCard({
             <div className={styles.approvalDetail}>
               <div className={styles.approvalToolRow}>
                 <span className={styles.approvalToolLabel}>{t.subagent.toolLabel}</span>
-                <code className={styles.approvalToolName}>{formatToolDisplayName(run.pendingApproval.toolName)}</code>
+                <code className={styles.approvalToolName}>
+                  {formatToolDisplayName(run.pendingApproval.toolName)}
+                </code>
               </div>
               <pre className={styles.approvalCode}>{run.pendingApproval.detailPreview}</pre>
             </div>
@@ -469,9 +471,7 @@ const SubagentCard = memo(function SubagentCard({
                   </ReactMarkdown>
                 ) : (
                   <span className={styles.summaryPlaceholder}>
-                    {status === 'running'
-                      ? t.subagent.waitingResponse
-                      : t.subagent.noSummary}
+                    {status === 'running' ? t.subagent.waitingResponse : t.subagent.noSummary}
                   </span>
                 )}
               </div>

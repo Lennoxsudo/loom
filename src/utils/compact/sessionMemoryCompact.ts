@@ -51,7 +51,7 @@ export async function generateCompactSummary(opts: {
       ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
     })),
     split.prefixStart,
-    split.prefixEnd,
+    split.prefixEnd
   );
 
   return { summaryText: ruleSummary.summary, usedLlm: false };

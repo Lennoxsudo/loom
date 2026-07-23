@@ -3,11 +3,7 @@
  * @module compact/types
  */
 
-export type {
-  CompactMetadata,
-  CompactState,
-  CompactType,
-} from '../../types/chat';
+export type { CompactMetadata, CompactState, CompactType } from '../../types/chat';
 
 export type CompactPath = 'session_memory' | 'reactive' | 'traditional';
 

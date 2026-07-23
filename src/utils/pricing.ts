@@ -42,7 +42,12 @@ const PRICING_RULES: PricingRule[] = [
   // --- Anthropic Claude ---
   {
     test: (p, m) => p.includes('anthropic') && /opus-4|opus4/i.test(m),
-    pricing: { inputPerMtok: 15, outputPerMtok: 75, cacheReadPerMtok: 1.5, cacheWritePerMtok: 18.75 },
+    pricing: {
+      inputPerMtok: 15,
+      outputPerMtok: 75,
+      cacheReadPerMtok: 1.5,
+      cacheWritePerMtok: 18.75,
+    },
   },
   {
     test: (p, m) => p.includes('anthropic') && /sonnet-4|sonnet4|claude-4-sonnet/i.test(m),
@@ -58,11 +63,21 @@ const PRICING_RULES: PricingRule[] = [
   },
   {
     test: (p, m) => p.includes('anthropic') && /3-opus|3\.opus/i.test(m),
-    pricing: { inputPerMtok: 15, outputPerMtok: 75, cacheReadPerMtok: 1.5, cacheWritePerMtok: 18.75 },
+    pricing: {
+      inputPerMtok: 15,
+      outputPerMtok: 75,
+      cacheReadPerMtok: 1.5,
+      cacheWritePerMtok: 18.75,
+    },
   },
   {
     test: (p, m) => p.includes('anthropic') && /3-haiku|3\.haiku/i.test(m),
-    pricing: { inputPerMtok: 0.25, outputPerMtok: 1.25, cacheReadPerMtok: 0.025, cacheWritePerMtok: 0.3 },
+    pricing: {
+      inputPerMtok: 0.25,
+      outputPerMtok: 1.25,
+      cacheReadPerMtok: 0.025,
+      cacheWritePerMtok: 0.3,
+    },
   },
   {
     test: (p, _m) => p.includes('anthropic'),

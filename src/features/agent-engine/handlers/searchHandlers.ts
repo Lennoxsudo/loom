@@ -15,7 +15,12 @@
 
 import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
-import type { SearchFilesArgs, SearchContentArgs, ListDirectoryArgs, GetFileTreeArgs } from '../toolArgs';
+import type {
+  SearchFilesArgs,
+  SearchContentArgs,
+  ListDirectoryArgs,
+  GetFileTreeArgs,
+} from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
 
 import { invoke } from '@tauri-apps/api/core';
@@ -41,7 +46,7 @@ type SearchResultWithPath = {
 function formatMatchesWithContent(
   results: SearchResultWithPath[],
   query: string,
-  showContext: boolean,
+  showContext: boolean
 ): string {
   let output = `找到 ${results.length} 个文件包含 "${query}":\n\n`;
 
@@ -131,7 +136,9 @@ class SearchFilesHandler implements ToolHandler<'search_files'> {
 
         return { tool_call_id: '', output };
       } catch (error) {
-        throw new Error(`搜索文件失败: ${error}`, { cause: error instanceof Error ? error : undefined });
+        throw new Error(`搜索文件失败: ${error}`, {
+          cause: error,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {
@@ -189,7 +196,9 @@ class SearchContentHandler implements ToolHandler<'search_content'> {
         const output = formatMatchesWithContent(results, query, contextLines > 0);
         return { tool_call_id: '', output };
       } catch (error) {
-         throw new Error(`搜索内容失败: ${error}`, { cause: error instanceof Error ? error : undefined });
+        throw new Error(`搜索内容失败: ${error}`, {
+          cause: error,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {
@@ -215,7 +224,7 @@ class SearchBothHandler implements ToolHandler<'search_both'> {
       }
 
       const query = args.query ?? '';
-      const pattern = (args as Record<string, unknown>).pattern as string ?? '';
+      const pattern = ((args as Record<string, unknown>).pattern as string) ?? '';
       const searchQuery = query || pattern;
 
       if (!searchQuery) {
@@ -257,9 +266,12 @@ class SearchBothHandler implements ToolHandler<'search_both'> {
       // File name matches
       if (fileResults.status === 'fulfilled' && fileResults.value.length > 0) {
         const limited = fileResults.value.slice(0, 50);
-        parts.push(`文件名匹配 (${fileResults.value.length} 个):\n${limited.map((p) => `- ${p}`).join('\n')}`);
+        parts.push(
+          `文件名匹配 (${fileResults.value.length} 个):\n${limited.map((p) => `- ${p}`).join('\n')}`
+        );
         if (fileResults.value.length > limited.length) {
-          parts[parts.length - 1] += `\n... 还有 ${fileResults.value.length - limited.length} 个未展示`;
+          parts[parts.length - 1] +=
+            `\n... 还有 ${fileResults.value.length - limited.length} 个未展示`;
         }
       }
 
@@ -301,13 +313,19 @@ class ListDirectoryHandler implements ToolHandler<'list_directory'> {
       const dirsOnly = args.dirs_only === true;
 
       try {
-        const nodes = await invoke<Array<{ name: string; is_dir: boolean }>>('read_folder_children', { folderPath: resolvedPath, source: 'ai' });
+        const nodes = await invoke<Array<{ name: string; is_dir: boolean }>>(
+          'read_folder_children',
+          { folderPath: resolvedPath, source: 'ai' }
+        );
 
         if (!Array.isArray(nodes) || nodes.length === 0) {
-          return { tool_call_id: '', output: `目录内容 (${resolvedPath}):\n\n(空目录 / 不存在 / 无权限)` };
+          return {
+            tool_call_id: '',
+            output: `目录内容 (${resolvedPath}):\n\n(空目录 / 不存在 / 无权限)`,
+          };
         }
 
-        const filtered = dirsOnly ? nodes.filter(n => n.is_dir) : nodes;
+        const filtered = dirsOnly ? nodes.filter((n) => n.is_dir) : nodes;
         const lines = filtered
           .map((n) => {
             const name = typeof n?.name === 'string' ? n.name : 'unknown';
@@ -319,7 +337,9 @@ class ListDirectoryHandler implements ToolHandler<'list_directory'> {
         const filterNote = dirsOnly ? ' (仅目录)' : '';
         return { tool_call_id: '', output: `目录内容${filterNote} (${resolvedPath}):\n\n${lines}` };
       } catch (error) {
-        throw new Error(`无法列出目录: ${error}`, { cause: error instanceof Error ? error : undefined });
+        throw new Error(`无法列出目录: ${error}`, {
+          cause: error,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {
@@ -356,7 +376,9 @@ class GetFileTreeHandler implements ToolHandler<'get_file_tree'> {
 
         return { tool_call_id: '', output: result.tree };
       } catch (error) {
-        throw new Error(`无法获取文件树: ${error}`, { cause: error instanceof Error ? error : undefined });
+        throw new Error(`无法获取文件树: ${error}`, {
+          cause: error,
+        });
       }
     } catch (error) {
       if (error instanceof ToolError) {

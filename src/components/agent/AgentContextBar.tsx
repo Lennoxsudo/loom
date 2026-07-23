@@ -2,10 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { ChevronDownIcon } from '../shared/Icons';
 import { useTranslation } from '../../i18n';
-import {
-  useRecentWorkspaces,
-  useTouchRecentWorkspace,
-} from '../../stores';
+import { useRecentWorkspaces, useTouchRecentWorkspace } from '../../stores';
 import type { RecentWorkspace } from '../../types/settings';
 import styles from './AgentContextBar.module.css';
 

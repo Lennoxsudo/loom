@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  AGENT_SESSION_EXTRAS_STORAGE_KEY,
-  PENDING_CHANGES_STORAGE_KEY,
-} from '../types/chat';
+import { AGENT_SESSION_EXTRAS_STORAGE_KEY, PENDING_CHANGES_STORAGE_KEY } from '../types/chat';
 import type { PendingFileChange } from '../components/agent/utils';
 
 vi.mock('@tauri-apps/api/core', () => ({

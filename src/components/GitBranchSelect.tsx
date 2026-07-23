@@ -95,9 +95,7 @@ export const GitBranchSelect = memo(function GitBranchSelect({
         <span className={styles.itemMarker} aria-hidden="true">
           {isActive ? '*' : ''}
         </span>
-        <span className={styles.itemLabel}>
-          {formatBranchLabel(branch.name, branch.isRemote)}
-        </span>
+        <span className={styles.itemLabel}>{formatBranchLabel(branch.name, branch.isRemote)}</span>
       </button>
     );
   };

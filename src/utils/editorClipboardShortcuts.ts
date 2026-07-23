@@ -3,10 +3,7 @@ import { getMonacoInstance } from '../monaco-loader';
 import { copyEditorContent, cutEditorContent, pasteEditorContent } from './editorClipboard';
 
 type MonacoEditorWithCommands = MonacoEditor & {
-  addCommand(
-    keybinding: number,
-    handler: () => void | Promise<void>
-  ): string | null;
+  addCommand(keybinding: number, handler: () => void | Promise<void>): string | null;
 };
 
 export function installEditorClipboardShortcuts(

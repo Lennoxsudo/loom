@@ -16,8 +16,6 @@ vi.mock('../../../utils/browserController', () => ({
   },
 }));
 
-
-
 describe('executeToolCall', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -93,8 +91,6 @@ describe('executeToolCall', () => {
     expect(result.output).toContain('文件内容');
   });
 
-
-
   it('should normalize tool arguments', async () => {
     vi.mocked(invoke).mockResolvedValueOnce({
       is_binary: false,
@@ -143,9 +139,9 @@ describe('executeToolCall', () => {
   });
 
   it('should execute ask tool when the environment provides a question callback', async () => {
-    const onAskUserQuestion = vi.fn().mockResolvedValue([
-      { questionIndex: 0, selected: ['继续修复'] },
-    ]);
+    const onAskUserQuestion = vi
+      .fn()
+      .mockResolvedValue([{ questionIndex: 0, selected: ['继续修复'] }]);
     const toolCall: ToolCall = {
       id: 'ask-test-id',
       type: 'function',

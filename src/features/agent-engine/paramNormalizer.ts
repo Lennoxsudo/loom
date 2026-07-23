@@ -57,7 +57,15 @@ const PARAM_ALIASES: ParamAliasConfig[] = [
   },
   {
     canonical: 'path',
-    aliases: ['path', 'filePath', 'file_path', 'directoryPath', 'directory_path', 'folderPath', 'folder_path'],
+    aliases: [
+      'path',
+      'filePath',
+      'file_path',
+      'directoryPath',
+      'directory_path',
+      'folderPath',
+      'folder_path',
+    ],
     description: 'File or directory path',
   },
   {
@@ -341,10 +349,7 @@ const PARAM_ALIAS_MAP: Record<string, string[]> = Object.fromEntries(
   PARAM_ALIASES.map((config) => [config.canonical, config.aliases])
 );
 
-function findFirstValue(
-  args: Record<string, unknown>,
-  aliases: string[]
-): unknown | undefined {
+function findFirstValue(args: Record<string, unknown>, aliases: string[]): unknown | undefined {
   for (const alias of aliases) {
     if (args[alias] !== undefined) {
       return args[alias];
@@ -353,10 +358,7 @@ function findFirstValue(
   return undefined;
 }
 
-function findCanonicalValue(
-  args: Record<string, unknown>,
-  canonical: string
-): unknown | undefined {
+function findCanonicalValue(args: Record<string, unknown>, canonical: string): unknown | undefined {
   const aliases = PARAM_ALIAS_MAP[canonical];
   if (!aliases) {
     return args[canonical];
@@ -417,12 +419,12 @@ export function normalizeToolArgs(
     if (typeof result.subagent_type === 'string') {
       const lower = result.subagent_type.toLowerCase();
       const mapping: Record<string, string> = {
-        'explore': 'Explore',
-        'plan': 'Plan',
-        'general': 'general-purpose',
+        explore: 'Explore',
+        plan: 'Plan',
+        general: 'general-purpose',
         'general-purpose': 'general-purpose',
-        'verification': 'verification',
-        'bash': 'general-purpose', // bash mapped to general-purpose
+        verification: 'verification',
+        bash: 'general-purpose', // bash mapped to general-purpose
       };
       if (mapping[lower]) {
         result.subagent_type = mapping[lower];
@@ -564,9 +566,7 @@ function normalizeAskToolArgs(result: Record<string, unknown>): void {
       header = header.slice(0, 12);
     }
 
-    const options = normalizeAskOptions(
-      q.options ?? q.choices ?? q.answers ?? q.opts
-    );
+    const options = normalizeAskOptions(q.options ?? q.choices ?? q.answers ?? q.opts);
 
     const multiSelect =
       typeof q.multiSelect === 'boolean'
@@ -724,14 +724,16 @@ function getToolSpecificNormalizations(toolName: string): Record<string, unknown
     case 'search_content':
     case 'list_directory':
       if (!normalizations.folder_path) {
-        normalizations.folder_path = findCanonicalValue(normalizations, 'path') ||
+        normalizations.folder_path =
+          findCanonicalValue(normalizations, 'path') ||
           findCanonicalValue(normalizations, 'root_path');
       }
       break;
     case 'get_git_diff':
     case 'undo_changes':
       if (!normalizations.repo_path) {
-        normalizations.repo_path = findCanonicalValue(normalizations, 'path') ||
+        normalizations.repo_path =
+          findCanonicalValue(normalizations, 'path') ||
           findCanonicalValue(normalizations, 'root_path');
       }
       break;
@@ -739,4 +741,3 @@ function getToolSpecificNormalizations(toolName: string): Record<string, unknown
 
   return normalizations;
 }
-

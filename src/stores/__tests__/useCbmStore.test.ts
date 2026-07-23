@@ -95,7 +95,7 @@ describe('useCbmStore', () => {
       () =>
         new Promise((resolve) => {
           resolveList = resolve;
-        }),
+        })
     );
 
     const first = useCbmStore.getState().refreshProjects();

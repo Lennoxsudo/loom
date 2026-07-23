@@ -19,10 +19,7 @@ function makeChange(overrides: Partial<PendingFileChange> = {}): PendingFileChan
   };
 }
 
-function renderCapsule(
-  pendingChanges: PendingFileChange[],
-  onOpenReview = vi.fn()
-) {
+function renderCapsule(pendingChanges: PendingFileChange[], onOpenReview = vi.fn()) {
   render(
     <I18nProvider defaultLocale="zh-CN">
       <ChangeCountCapsule pendingChanges={pendingChanges} onOpenReview={onOpenReview} />

@@ -204,94 +204,94 @@ export default function AgentProviderProfileModelSelector({
       </div>
 
       {shouldShowProfileSelector && (
-      <div className={`${styles.wrap} ${styles.profileWrap}`}>
-        <div className={styles.anchor}>
-          <button
-            ref={profileAnchorRef}
-            type="button"
-            className={`${styles.pill} ${openDropdown === 'profile' ? styles.pillOpen : ''}`}
-            title={profileLabelText}
-            aria-label={profileLabel}
-            onClick={() => toggleDropdown('profile')}
-          >
-            <span className={styles.pillLabel}>{profileLabelText}</span>
-            <span
-              className={`${styles.chevron} ${openDropdown === 'profile' ? styles.chevronOpen : ''}`}
+        <div className={`${styles.wrap} ${styles.profileWrap}`}>
+          <div className={styles.anchor}>
+            <button
+              ref={profileAnchorRef}
+              type="button"
+              className={`${styles.pill} ${openDropdown === 'profile' ? styles.pillOpen : ''}`}
+              title={profileLabelText}
+              aria-label={profileLabel}
+              onClick={() => toggleDropdown('profile')}
             >
-              <ChevronDownIcon size={10} />
-            </span>
-          </button>
-        </div>
-        {renderPortalMenu(
-          openDropdown === 'profile' && availableProfiles.length > 0,
-          profileMenuRef,
-          profileMenuPos,
-          `${styles.dropdownScrollable} ${styles.profileDropdown}`,
-          availableProfiles.map((profile) => (
-            <div
-              key={profile.id}
-              className={`${styles.dropdownItem} ${
-                selectedProfileId === profile.id ? styles.dropdownItemActive : ''
-              }`}
-              title={profile.name || profile.id}
-              onClick={() => {
-                onSelectProfile(profile.id);
-                setOpenDropdown(null);
-              }}
-            >
-              {profile.name || profile.id}
-            </div>
-          ))
-        )}
-      </div>
-      )}
-
-      {!isAutoRouting && (
-      <div className={`${styles.wrap} ${styles.modelWrap}`}>
-        <div className={styles.anchor}>
-          <button
-            ref={modelAnchorRef}
-            type="button"
-            className={`${styles.pill} ${openDropdown === 'model' ? styles.pillOpen : ''}`}
-            title={selectedModel || selectModelLabel}
-            onClick={() => {
-              if (availableModels.length > 1) {
-                toggleDropdown('model');
-              }
-            }}
-          >
-            <span className={styles.pillLabel}>{selectedModel || selectModelLabel}</span>
-            {availableModels.length > 1 && (
+              <span className={styles.pillLabel}>{profileLabelText}</span>
               <span
-                className={`${styles.chevron} ${openDropdown === 'model' ? styles.chevronOpen : ''}`}
+                className={`${styles.chevron} ${openDropdown === 'profile' ? styles.chevronOpen : ''}`}
               >
                 <ChevronDownIcon size={10} />
               </span>
-            )}
-          </button>
+            </button>
+          </div>
+          {renderPortalMenu(
+            openDropdown === 'profile' && availableProfiles.length > 0,
+            profileMenuRef,
+            profileMenuPos,
+            `${styles.dropdownScrollable} ${styles.profileDropdown}`,
+            availableProfiles.map((profile) => (
+              <div
+                key={profile.id}
+                className={`${styles.dropdownItem} ${
+                  selectedProfileId === profile.id ? styles.dropdownItemActive : ''
+                }`}
+                title={profile.name || profile.id}
+                onClick={() => {
+                  onSelectProfile(profile.id);
+                  setOpenDropdown(null);
+                }}
+              >
+                {profile.name || profile.id}
+              </div>
+            ))
+          )}
         </div>
-        {renderPortalMenu(
-          openDropdown === 'model' && availableModels.length > 1,
-          modelMenuRef,
-          modelMenuPos,
-          `${styles.dropdownScrollable} ${styles.modelDropdown}`,
-          availableModels.map((model) => (
-            <div
-              key={model}
-              className={`${styles.dropdownItem} ${
-                selectedModel === model ? styles.dropdownItemActive : ''
-              }`}
-              title={model}
+      )}
+
+      {!isAutoRouting && (
+        <div className={`${styles.wrap} ${styles.modelWrap}`}>
+          <div className={styles.anchor}>
+            <button
+              ref={modelAnchorRef}
+              type="button"
+              className={`${styles.pill} ${openDropdown === 'model' ? styles.pillOpen : ''}`}
+              title={selectedModel || selectModelLabel}
               onClick={() => {
-                onSelectModel(model);
-                setOpenDropdown(null);
+                if (availableModels.length > 1) {
+                  toggleDropdown('model');
+                }
               }}
             >
-              {model}
-            </div>
-          ))
-        )}
-      </div>
+              <span className={styles.pillLabel}>{selectedModel || selectModelLabel}</span>
+              {availableModels.length > 1 && (
+                <span
+                  className={`${styles.chevron} ${openDropdown === 'model' ? styles.chevronOpen : ''}`}
+                >
+                  <ChevronDownIcon size={10} />
+                </span>
+              )}
+            </button>
+          </div>
+          {renderPortalMenu(
+            openDropdown === 'model' && availableModels.length > 1,
+            modelMenuRef,
+            modelMenuPos,
+            `${styles.dropdownScrollable} ${styles.modelDropdown}`,
+            availableModels.map((model) => (
+              <div
+                key={model}
+                className={`${styles.dropdownItem} ${
+                  selectedModel === model ? styles.dropdownItemActive : ''
+                }`}
+                title={model}
+                onClick={() => {
+                  onSelectModel(model);
+                  setOpenDropdown(null);
+                }}
+              >
+                {model}
+              </div>
+            ))
+          )}
+        </div>
       )}
     </div>
   );

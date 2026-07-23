@@ -20,22 +20,28 @@ describe('Context Budget & Truncation (Regression Tests)', () => {
     const messages: AnyMessage[] = [
       { role: 'system', content: 'You are an AI.' },
       { role: 'user', content: 'Hello' },
-      { 
-        role: 'assistant', 
-        content: fakeLongContent, 
-        tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{}' } }]
+      {
+        role: 'assistant',
+        content: fakeLongContent,
+        tool_calls: [
+          { id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{}' } },
+        ],
       },
-      { role: 'user', content: 'What about tomorrow?' }
+      { role: 'user', content: 'What about tomorrow?' },
     ];
 
     // budget 故意设小，迫使其截去中间片段（包括带有 tool_calls 的那条 assistant 消息）
     const trimmed = trimMessagesToFit(messages, 100, 0);
 
     // 首先断言是否截取成功，以及截取后的结构
-    expect(trimmed.some((m) => typeof m.content === 'string' && m.content.includes(TRIM_PLACEHOLDER))).toBe(true);
-    
+    expect(
+      trimmed.some((m) => typeof m.content === 'string' && m.content.includes(TRIM_PLACEHOLDER))
+    ).toBe(true);
+
     // 寻找截断生成的 placeholder 占位消息
-    const placeholderMsg = trimmed.find(m => typeof m.content === 'string' && m.content.includes(TRIM_PLACEHOLDER));
+    const placeholderMsg = trimmed.find(
+      (m) => typeof m.content === 'string' && m.content.includes(TRIM_PLACEHOLDER)
+    );
     expect(placeholderMsg).toBeDefined();
 
     // 回归：占位符必须是绝对纯净的 user，不应含 tool_calls 或 tool_call_id
@@ -47,13 +53,13 @@ describe('Context Budget & Truncation (Regression Tests)', () => {
   it('Task 3 Regression: should survive extreme truncation constraints without crashing and fallback to hard trim', () => {
     // 模拟极致预算冲突：将受保护的区段 (first + last 两轮) 本身的长度拉到远超 budget 的程度
     const giantSystemPrompt = 'B'.repeat(10000); // system 永远受保护
-    const giantLastMessage = 'C'.repeat(10000);  // 尾部消息在 trim 中受保护
-    
+    const giantLastMessage = 'C'.repeat(10000); // 尾部消息在 trim 中受保护
+
     const messages: AnyMessage[] = [
       { role: 'system', content: giantSystemPrompt },
       { role: 'user', content: 'Hello' },
       { role: 'assistant', content: 'Hi' },
-      { role: 'user', content: giantLastMessage }
+      { role: 'user', content: giantLastMessage },
     ];
 
     // 令预算只有可怜的 100 tokens (约300字符)，远远装不下 20000 字符的保护区
@@ -84,7 +90,7 @@ describe('Context Budget & Truncation (Regression Tests)', () => {
     const hasOrphanToolResult = trimmed.some((m) => {
       if (m.role !== 'user' || !Array.isArray(m.content)) return false;
       return (m.content as Array<{ type?: string; tool_use_id?: string }>).some(
-        (b) => b.type === 'tool_result' && b.tool_use_id === 'orphan_call',
+        (b) => b.type === 'tool_result' && b.tool_use_id === 'orphan_call'
       );
     });
 
@@ -92,7 +98,7 @@ describe('Context Budget & Truncation (Regression Tests)', () => {
     const last = trimmed[trimmed.length - 1];
     if (last.role === 'user' && Array.isArray(last.content)) {
       expect(
-        (last.content as Array<{ type?: string }>).every((b) => b.type !== 'tool_result'),
+        (last.content as Array<{ type?: string }>).every((b) => b.type !== 'tool_result')
       ).toBe(true);
     }
   });
@@ -192,14 +198,14 @@ describe('applyContextBudget trim toolchain repair', () => {
       'claude-3-5-sonnet',
       undefined,
       0, // reserveTokens
-      1000, // maxContextTokens
+      1000 // maxContextTokens
     );
 
     // Check if the orphan tool_result has been removed
     const hasOrphanToolResult = result.messages.some((m) => {
       if (m.role !== 'user' || !Array.isArray(m.content)) return false;
       return (m.content as Array<{ type?: string; tool_use_id?: string }>).some(
-        (b) => b.type === 'tool_result' && b.tool_use_id === 'call_1',
+        (b) => b.type === 'tool_result' && b.tool_use_id === 'call_1'
       );
     });
 

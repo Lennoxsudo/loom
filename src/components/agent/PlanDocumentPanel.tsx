@@ -96,7 +96,7 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
   const prevForceExpandRef = useRef(false);
 
   const [plan, setPlanState] = useState<PlanDocument>(() =>
-    conversationId ? loadPlan(conversationId) : peekPlan(''),
+    conversationId ? loadPlan(conversationId) : peekPlan('')
   );
   /** overlay: collapsed header vs open panel */
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -113,7 +113,7 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
         forceContent: true,
       });
     },
-    [conversationId],
+    [conversationId]
   );
 
   // Conversation switch only — reset expand preference for the new thread
@@ -242,7 +242,15 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
     fit();
     const raf = requestAnimationFrame(fit);
     return () => cancelAnimationFrame(raf);
-  }, [isInline, expandLevel, draftContent, draftTitle, plan.status, fullLineCount, fullEditorHeightPx]);
+  }, [
+    isInline,
+    expandLevel,
+    draftContent,
+    draftTitle,
+    plan.status,
+    fullLineCount,
+    fullEditorHeightPx,
+  ]);
 
   // Report height for bottom-dock layout (overlay open panel or inline body)
   useEffect(() => {
@@ -297,8 +305,7 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
 
   const persistDraft = useCallback(() => {
     if (!conversationId) return plan;
-    const title =
-      draftTitle.trim() || plan.title.trim() || inferPlanTitle(draftContent) || '';
+    const title = draftTitle.trim() || plan.title.trim() || inferPlanTitle(draftContent) || '';
     return setPlan(conversationId, {
       content: draftContent,
       title,
@@ -313,8 +320,7 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
 
   const handleAccept = useCallback(() => {
     if (!conversationId) return;
-    const title =
-      draftTitle.trim() || plan.title.trim() || inferPlanTitle(draftContent) || '';
+    const title = draftTitle.trim() || plan.title.trim() || inferPlanTitle(draftContent) || '';
     const saved = setPlan(conversationId, {
       content: draftContent,
       title,
@@ -341,7 +347,7 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
       openInMainEditor(saved, true);
       autoOpenedContentRef.current = saved.content;
     },
-    [conversationId, openInMainEditor, persistDraft],
+    [conversationId, openInMainEditor, persistDraft]
   );
 
   const toggleExpand = useCallback(() => {
@@ -374,7 +380,7 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
       userCollapsedRef.current = false;
       setExpandLevel('full');
     },
-    [isInline, expandLevel],
+    [isInline, expandLevel]
   );
 
   if (!conversationId || (!hasContent && !isReviewing)) {
@@ -476,11 +482,11 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
           aria-expanded={isFull}
         >
           <div className={styles.summary}>
-            <span className={`${styles.badge} ${statusBadgeClass(plan.status)}`}>{statusLabel}</span>
+            <span className={`${styles.badge} ${statusBadgeClass(plan.status)}`}>
+              {statusLabel}
+            </span>
             <span className={styles.summaryText}>{summaryTitle}</span>
-            {!isInline && (
-              <span className={styles.summaryMeta}>{t.agent.planPanel.planLabel}</span>
-            )}
+            {!isInline && <span className={styles.summaryMeta}>{t.agent.planPanel.planLabel}</span>}
           </div>
           <span className={styles.headerTrailing} aria-hidden={!isInline}>
             {isInline && (
@@ -494,7 +500,14 @@ const PlanDocumentPanel: React.FC<PlanDocumentPanelProps> = ({
               className={`${styles.chevron} ${isFull ? styles.chevronExpanded : ''}`}
               aria-hidden
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </span>

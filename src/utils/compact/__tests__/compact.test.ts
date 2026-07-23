@@ -74,9 +74,7 @@ describe('compact/autoCompact', () => {
   });
 
   it('does not compact when under threshold', () => {
-    const messages: CompactableMessage[] = [
-      { id: '1', role: 'user', text: 'hi' },
-    ];
+    const messages: CompactableMessage[] = [{ id: '1', role: 'user', text: 'hi' }];
     const budget = computeCompressionThreshold({ maxContextTokens: 200_000 });
     expect(shouldAutoCompact({ messages, budgetTokens: budget })).toBe(false);
   });

@@ -16,7 +16,7 @@ const runAgentLoopMock = vi.fn();
 vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
   buildForkMessages: (messages: any) => messages ?? [],
-  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
+  filterToolsForSubagentType: <T>(tools: T[]) => tools,
 }));
 
 describe('RunSubagentHandler Registry', () => {
@@ -69,10 +69,7 @@ describe('RunSubagentHandler Execution', () => {
   it('returns disabled summary when enableSubagents is false', async () => {
     useSettingsStore.setState({ enableSubagents: false });
 
-    const result = await handler.execute(
-      { task: 'Do some work' },
-      { agentId: 'parent-agent-id' }
-    );
+    const result = await handler.execute({ task: 'Do some work' }, { agentId: 'parent-agent-id' });
 
     expect(result.output).toBe(SUBAGENT_DISABLED_SUMMARY);
     expect(runAgentLoopMock).not.toHaveBeenCalled();
@@ -96,7 +93,7 @@ describe('RunSubagentHandler Execution', () => {
     const runs = useSubagentStore.getState().runs;
     const taskIds = Object.keys(runs);
     expect(taskIds.length).toBe(1);
-    
+
     const run = runs[taskIds[0]];
     expect(run.task.description).toBe('Do some work');
     expect(run.task.allowedTools).toEqual(['read', 'write']); // run_subagent must be filtered out
@@ -108,15 +105,12 @@ describe('RunSubagentHandler Execution', () => {
   it('should handle loop failure gracefully', async () => {
     runAgentLoopMock.mockRejectedValue(new Error('API failure'));
 
-    const result = await handler.execute(
-      { task: 'Do some work' },
-      { agentId: 'parent-agent-id' }
-    );
+    const result = await handler.execute({ task: 'Do some work' }, { agentId: 'parent-agent-id' });
 
     const runs = useSubagentStore.getState().runs;
     const taskIds = Object.keys(runs);
     expect(taskIds.length).toBe(1);
-    
+
     const run = runs[taskIds[0]];
     expect(run.status).toBe('failed');
     expect(run.result?.error).toBe('API failure');
@@ -189,4 +183,3 @@ describe('useSubagentStore visualization actions', () => {
     });
   });
 });
-

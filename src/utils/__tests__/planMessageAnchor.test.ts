@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  findPlanAnchorMessageId,
-  insertAfterMessageAnchor,
-} from '../planMessageAnchor';
+import { findPlanAnchorMessageId, insertAfterMessageAnchor } from '../planMessageAnchor';
 
 describe('planMessageAnchor', () => {
   it('finds last update_plan / exit_plan_mode tool message', () => {
@@ -22,7 +19,7 @@ describe('planMessageAnchor', () => {
       findPlanAnchorMessageId([
         { id: 'u1', role: 'user' },
         { id: 'a1', role: 'assistant' },
-      ]),
+      ])
     ).toBe('a1');
   });
 
@@ -32,11 +29,7 @@ describe('planMessageAnchor', () => {
       { type: 'tool_group', id: 'g1', messages: [{ id: 't1' }, { id: 't2' }] },
       { id: 'u2' },
     ];
-    const next = insertAfterMessageAnchor(
-      items,
-      { type: 'plan_document', id: 'plan' },
-      't2',
-    );
+    const next = insertAfterMessageAnchor(items, { type: 'plan_document', id: 'plan' }, 't2');
     expect(next.map((x) => x.id)).toEqual(['u1', 'g1', 'plan', 'u2']);
   });
 
@@ -49,7 +42,7 @@ describe('planMessageAnchor', () => {
     const next = insertAfterMessageAnchor(
       items as never[],
       { kind: 'plan', id: 'plan' } as never,
-      't-plan',
+      't-plan'
     );
     // Insert AFTER the anchor: [u1, t-plan, plan, u2]
     expect((next[0] as { message: { id: string } }).message.id).toBe('u1');

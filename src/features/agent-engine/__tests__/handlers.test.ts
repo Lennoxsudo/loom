@@ -16,8 +16,6 @@ vi.mock('../../../utils/browserController', () => ({
   },
 }));
 
-
-
 describe('ToolHandler Registry', () => {
   it('should register file handlers', () => {
     expect(hasToolHandler('read_file')).toBe(true);

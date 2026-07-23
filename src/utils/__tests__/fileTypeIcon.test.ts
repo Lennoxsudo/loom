@@ -1,11 +1,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-  getFileTypeIconName,
-  getFileTypeIconUrl,
-  MATERIAL_ICONS_BASE_URL,
-} from '../fileTypeIcon';
+import { getFileTypeIconName, getFileTypeIconUrl, MATERIAL_ICONS_BASE_URL } from '../fileTypeIcon';
 
 const ICONS_DIR = resolve(process.cwd(), 'public/material-icons');
 
@@ -14,9 +10,7 @@ describe('fileTypeIcon', () => {
     expect(getFileTypeIconName('README.md', false)).toBe('markdown');
     expect(getFileTypeIconName('notes.markdown', false)).toBe('markdown');
     expect(getFileTypeIconName('开发规范.mdc', false)).toBe('markdown');
-    expect(getFileTypeIconUrl('README.md', false)).toBe(
-      `${MATERIAL_ICONS_BASE_URL}/markdown.svg`,
-    );
+    expect(getFileTypeIconUrl('README.md', false)).toBe(`${MATERIAL_ICONS_BASE_URL}/markdown.svg`);
   });
 
   it('uses json icon only for weak json mappings', () => {

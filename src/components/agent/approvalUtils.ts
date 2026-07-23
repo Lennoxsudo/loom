@@ -1,9 +1,4 @@
-import {
-  CREATE_DELETE_TOOLS,
-  EXECUTE_TOOLS,
-  GIT_TOOLS,
-  WRITE_TOOLS,
-} from '../../utils/agentTools';
+import { CREATE_DELETE_TOOLS, EXECUTE_TOOLS, GIT_TOOLS, WRITE_TOOLS } from '../../utils/agentTools';
 import type { AgentAccessMode } from '../../types/settings';
 import { requiresConfirmation } from '../../utils/toolGuard';
 import type { ToolCall } from '../../features/agent-engine';
@@ -46,8 +41,7 @@ export function getApprovalType(
   if (EXECUTE_TOOLS.has(toolName) || EXECUTE_TOOLS.has(underlyingToolName)) {
     return 'command';
   }
-  const graphAction =
-    typeof args.action === 'string' ? args.action.toLowerCase() : '';
+  const graphAction = typeof args.action === 'string' ? args.action.toLowerCase() : '';
   if (
     (toolName === 'graph_index' || underlyingToolName === 'graph_index') &&
     (graphAction === 'index' || graphAction === '')
@@ -85,7 +79,7 @@ export function buildApprovalSummary(
   const detail =
     type === 'command'
       ? underlyingToolName === 'graph_index'
-        ? getStringArg(normalizedArgs, ['action', 'repo_path']) ?? 'index'
+        ? (getStringArg(normalizedArgs, ['action', 'repo_path']) ?? 'index')
         : getStringArg(normalizedArgs, ['command'])
       : type === 'file'
         ? getStringArg(normalizedArgs, [

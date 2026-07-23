@@ -45,6 +45,9 @@ describe('AgentContextBar', () => {
       expect(screen.getByRole('button', { name: /branch: main/i })).toBeInTheDocument();
     });
 
-    expect(invokeMock).toHaveBeenCalledWith('git_workspace_snapshot', expect.objectContaining({ limit: 1 }));
+    expect(invokeMock).toHaveBeenCalledWith(
+      'git_workspace_snapshot',
+      expect.objectContaining({ limit: 1 })
+    );
   });
 });

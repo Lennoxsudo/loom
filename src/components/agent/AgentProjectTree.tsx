@@ -274,7 +274,11 @@ const AgentProjectTree = memo(function AgentProjectTree({
                                     </span>
                                   ) : null}
                                   {thread.branchName ? (
-                                    <span className={styles.branchIcon} title={thread.branchName} aria-hidden />
+                                    <span
+                                      className={styles.branchIcon}
+                                      title={thread.branchName}
+                                      aria-hidden
+                                    />
                                   ) : null}
                                 </span>
                               </button>

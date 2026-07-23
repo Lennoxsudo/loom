@@ -9,10 +9,7 @@ import {
   computeNextRunAt,
   generateAutomationId,
 } from '../useAutomationStore';
-import type {
-  AutomationTask,
-  AutomationTrigger,
-} from '../../types/automation';
+import type { AutomationTask, AutomationTrigger } from '../../types/automation';
 
 // ── Helper to create a sample task ─────────────────────────────────────────
 

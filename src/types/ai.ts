@@ -332,4 +332,3 @@ export interface SymbolDefinitionResult {
   /** Resolved absolute path */
   resolved_path: string;
 }
-

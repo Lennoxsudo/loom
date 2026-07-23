@@ -13,44 +13,109 @@ type RoutedTool = {
 const MERGED_TOOL_ROUTES: Record<string, (args: Record<string, unknown>) => RoutedTool | null> = {
   term: (args) => {
     const action = String(args.action ?? '').toLowerCase();
-    if (action === 'run') return {
-      toolName: 'run_command',
-      args: {
-        command: args.command,
-        terminal_id: args.terminal_id ?? args.tid,
-        working_dir: args.working_dir ?? args.cwd,
-        shell: args.shell,
-        timeout: args.timeout,
-        description: args.description ?? args.desc,
-        run_in_background: args.run_in_background ?? args.bg,
-        no_output_expected: args.no_output_expected ?? args.quiet,
-        max_lines: args.max_lines,
-        script: args.script,
-      },
-    };
-    if (action === 'read_output') return { toolName: 'read_terminal_output', args: { terminal_id: args.terminal_id ?? args.tid } };
+    if (action === 'run')
+      return {
+        toolName: 'run_command',
+        args: {
+          command: args.command,
+          terminal_id: args.terminal_id ?? args.tid,
+          working_dir: args.working_dir ?? args.cwd,
+          shell: args.shell,
+          timeout: args.timeout,
+          description: args.description ?? args.desc,
+          run_in_background: args.run_in_background ?? args.bg,
+          no_output_expected: args.no_output_expected ?? args.quiet,
+          max_lines: args.max_lines,
+          script: args.script,
+        },
+      };
+    if (action === 'read_output')
+      return {
+        toolName: 'read_terminal_output',
+        args: { terminal_id: args.terminal_id ?? args.tid },
+      };
     if (action === 'list_bg') return { toolName: 'list_bg_tasks', args: {} };
-    if (action === 'kill') return { toolName: 'kill_bg_task', args: { terminal_id: args.terminal_id ?? args.tid } };
+    if (action === 'kill')
+      return { toolName: 'kill_bg_task', args: { terminal_id: args.terminal_id ?? args.tid } };
     return null;
   },
   finfo: (args) => {
     const action = String(args.action ?? '').toLowerCase();
-    if (action === 'list') return { toolName: 'list_directory', args: { path: args.path, dirs_only: args.dirs_only } };
-    if (action === 'tree') return { toolName: 'get_file_tree', args: { root_path: args.root_path ?? args.path, max_depth: args.max_depth ?? args.depth, dirs_only: args.dirs_only } };
-    if (action === 'info' || action === 'stat') return { toolName: 'get_file_info', args: { path: args.path } };
+    if (action === 'list')
+      return { toolName: 'list_directory', args: { path: args.path, dirs_only: args.dirs_only } };
+    if (action === 'tree')
+      return {
+        toolName: 'get_file_tree',
+        args: {
+          root_path: args.root_path ?? args.path,
+          max_depth: args.max_depth ?? args.depth,
+          dirs_only: args.dirs_only,
+        },
+      };
+    if (action === 'info' || action === 'stat')
+      return { toolName: 'get_file_info', args: { path: args.path } };
     return null;
   },
   search: (args) => {
     const searchType = String(args.type ?? args.action ?? '').toLowerCase();
-    if (searchType === 'files' || searchType === 'glob' || searchType === 'file') return { toolName: 'search_files', args: { pattern: args.pattern, folder_path: args.folder_path ?? args.dir, max_results: args.max_results ?? args.limit, exclude: args.exclude } };
-    if (searchType === 'content' || searchType === 'grep' || searchType === 'text') return { toolName: 'search_content', args: { query: args.query ?? args.pattern, folder_path: args.folder_path ?? args.dir, case_sensitive: args.case_sensitive ?? args.cs, regex: args.regex, file_glob: args.file_glob ?? args.glob, max_results: args.max_results ?? args.limit, exclude: args.exclude, context_lines: args.context_lines } };
-    if (searchType === 'both') return { toolName: 'search_both', args: { pattern: args.pattern, query: args.query ?? args.pattern, folder_path: args.folder_path ?? args.dir, case_sensitive: args.case_sensitive ?? args.cs, regex: args.regex, file_glob: args.file_glob ?? args.glob, max_results: args.max_results ?? args.limit, exclude: args.exclude, context_lines: args.context_lines } };
+    if (searchType === 'files' || searchType === 'glob' || searchType === 'file')
+      return {
+        toolName: 'search_files',
+        args: {
+          pattern: args.pattern,
+          folder_path: args.folder_path ?? args.dir,
+          max_results: args.max_results ?? args.limit,
+          exclude: args.exclude,
+        },
+      };
+    if (searchType === 'content' || searchType === 'grep' || searchType === 'text')
+      return {
+        toolName: 'search_content',
+        args: {
+          query: args.query ?? args.pattern,
+          folder_path: args.folder_path ?? args.dir,
+          case_sensitive: args.case_sensitive ?? args.cs,
+          regex: args.regex,
+          file_glob: args.file_glob ?? args.glob,
+          max_results: args.max_results ?? args.limit,
+          exclude: args.exclude,
+          context_lines: args.context_lines,
+        },
+      };
+    if (searchType === 'both')
+      return {
+        toolName: 'search_both',
+        args: {
+          pattern: args.pattern,
+          query: args.query ?? args.pattern,
+          folder_path: args.folder_path ?? args.dir,
+          case_sensitive: args.case_sensitive ?? args.cs,
+          regex: args.regex,
+          file_glob: args.file_glob ?? args.glob,
+          max_results: args.max_results ?? args.limit,
+          exclude: args.exclude,
+          context_lines: args.context_lines,
+        },
+      };
     return null;
   },
   git: (args) => {
     const action = String(args.action ?? '').toLowerCase();
-    if (action === 'diff') return { toolName: 'get_git_diff', args: { repo_path: args.repo_path ?? args.repo, file_path: args.file_path ?? args.file, cached: args.cached, max_lines: args.max_lines ?? args.limit } };
-    if (action === 'undo' || action === 'checkout' || action === 'restore') return { toolName: 'undo_changes', args: { repo_path: args.repo_path ?? args.repo, file_paths: args.file_paths ?? args.paths } };
+    if (action === 'diff')
+      return {
+        toolName: 'get_git_diff',
+        args: {
+          repo_path: args.repo_path ?? args.repo,
+          file_path: args.file_path ?? args.file,
+          cached: args.cached,
+          max_lines: args.max_lines ?? args.limit,
+        },
+      };
+    if (action === 'undo' || action === 'checkout' || action === 'restore')
+      return {
+        toolName: 'undo_changes',
+        args: { repo_path: args.repo_path ?? args.repo, file_paths: args.file_paths ?? args.paths },
+      };
     return null;
   },
   // Legacy merged names route to same handlers
@@ -68,7 +133,10 @@ function routeMergedTool(name: string, args: Record<string, unknown>): RoutedToo
   return router(args);
 }
 
-export function resolveUnderlyingToolName(mergedName: string, args?: Record<string, unknown>): string {
+export function resolveUnderlyingToolName(
+  mergedName: string,
+  args?: Record<string, unknown>
+): string {
   if (!isMergedToolName(mergedName)) return mergedName;
   if (!args) return mergedName;
 
@@ -85,7 +153,9 @@ export async function executeMergedToolCall(
 
   let args: Record<string, unknown>;
   try {
-    args = parseToolArguments(typeof argsStr === 'string' ? argsStr : JSON.stringify(argsStr ?? {})) as Record<string, unknown>;
+    args = parseToolArguments(
+      typeof argsStr === 'string' ? argsStr : JSON.stringify(argsStr ?? {})
+    ) as Record<string, unknown>;
   } catch (parseError) {
     return { tool_call_id: id, output: '', error: `参数解析失败: ${parseError}` };
   }

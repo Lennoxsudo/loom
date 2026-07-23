@@ -3,14 +3,7 @@
  * 提供通知状态管理和全局通知注册
  */
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { ToastContainer, type ToastItem } from '../components/Toast';
 import { registerNotification, type NotificationItem } from '../utils/notification';
 
@@ -55,58 +48,68 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     return unregister;
   }, [addToast]);
 
-  const showSuccess = useCallback((message: string, title?: string) => {
-    const toast: ToastItem = {
-      id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      type: 'success',
-      title,
-      message,
-      duration: 3000,
-      onClose: removeToast,
-    };
-    setToasts((prev) => [...prev, toast]);
-  }, [removeToast]);
+  const showSuccess = useCallback(
+    (message: string, title?: string) => {
+      const toast: ToastItem = {
+        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        type: 'success',
+        title,
+        message,
+        duration: 3000,
+        onClose: removeToast,
+      };
+      setToasts((prev) => [...prev, toast]);
+    },
+    [removeToast]
+  );
 
-  const showError = useCallback((message: string, title?: string) => {
-    const toast: ToastItem = {
-      id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      type: 'error',
-      title,
-      message,
-      duration: 5000,
-      onClose: removeToast,
-    };
-    setToasts((prev) => [...prev, toast]);
-  }, [removeToast]);
+  const showError = useCallback(
+    (message: string, title?: string) => {
+      const toast: ToastItem = {
+        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        type: 'error',
+        title,
+        message,
+        duration: 5000,
+        onClose: removeToast,
+      };
+      setToasts((prev) => [...prev, toast]);
+    },
+    [removeToast]
+  );
 
-  const showWarning = useCallback((message: string, title?: string) => {
-    const toast: ToastItem = {
-      id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      type: 'warning',
-      title,
-      message,
-      duration: 4000,
-      onClose: removeToast,
-    };
-    setToasts((prev) => [...prev, toast]);
-  }, [removeToast]);
+  const showWarning = useCallback(
+    (message: string, title?: string) => {
+      const toast: ToastItem = {
+        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        type: 'warning',
+        title,
+        message,
+        duration: 4000,
+        onClose: removeToast,
+      };
+      setToasts((prev) => [...prev, toast]);
+    },
+    [removeToast]
+  );
 
-  const showInfo = useCallback((message: string, title?: string) => {
-    const toast: ToastItem = {
-      id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      type: 'info',
-      title,
-      message,
-      duration: 3000,
-      onClose: removeToast,
-    };
-    setToasts((prev) => [...prev, toast]);
-  }, [removeToast]);
+  const showInfo = useCallback(
+    (message: string, title?: string) => {
+      const toast: ToastItem = {
+        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        type: 'info',
+        title,
+        message,
+        duration: 3000,
+        onClose: removeToast,
+      };
+      setToasts((prev) => [...prev, toast]);
+    },
+    [removeToast]
+  );
 
   return (
-    <NotificationContext.Provider
-      value={{ showSuccess, showError, showWarning, showInfo }}
-    >
+    <NotificationContext.Provider value={{ showSuccess, showError, showWarning, showInfo }}>
       {children}
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </NotificationContext.Provider>

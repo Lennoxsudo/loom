@@ -33,23 +33,26 @@ export default function BrowserPanel({ initialUrl = 'http://localhost:3000' }: B
   const [history, setHistory] = useState<string[]>([initialUrl]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const navigateToUrl = useCallback((newUrl: string, addToHistory = true) => {
-    const isExternal = !newUrl.includes('localhost') && !newUrl.includes('127.0.0.1');
-    setNotice(isExternal ? 'external' : null);
+  const navigateToUrl = useCallback(
+    (newUrl: string, addToHistory = true) => {
+      const isExternal = !newUrl.includes('localhost') && !newUrl.includes('127.0.0.1');
+      setNotice(isExternal ? 'external' : null);
 
-    setUrl(newUrl);
-    setInputUrl(newUrl);
-    setIsLoading(true);
-    iframeKeyRef.current += 1;
+      setUrl(newUrl);
+      setInputUrl(newUrl);
+      setIsLoading(true);
+      iframeKeyRef.current += 1;
 
-    if (addToHistory) {
-      setHistory((prev) => {
-        const newHistory = [...prev.slice(0, currentIndex + 1), newUrl];
-        setCurrentIndex(newHistory.length - 1);
-        return newHistory;
-      });
-    }
-  }, [currentIndex]);
+      if (addToHistory) {
+        setHistory((prev) => {
+          const newHistory = [...prev.slice(0, currentIndex + 1), newUrl];
+          setCurrentIndex(newHistory.length - 1);
+          return newHistory;
+        });
+      }
+    },
+    [currentIndex]
+  );
 
   const goBack = () => {
     if (currentIndex > 0) {

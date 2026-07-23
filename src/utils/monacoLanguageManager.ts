@@ -1,6 +1,6 @@
 /**
  * Monaco Editor 语言管理器
- * 
+ *
  * 管理Monaco Editor的语言注册和配置，与按需加载系统集成。
  * 提供语言配置的集中管理，避免在多个地方重复定义。
  */
@@ -27,7 +27,8 @@ const languageConfigs: Record<string, LanguageConfig> = {
     aliases: ['js', 'jsx', 'mjs', 'cjs'],
     extensions: ['.js', '.jsx', '.mjs', '.cjs'],
     mimetypes: ['text/javascript', 'application/javascript'],
-    loader: () => import('monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js'),
+    loader: () =>
+      import('monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js'),
     basicLanguage: true,
   },
   typescript: {
@@ -149,7 +150,8 @@ const languageConfigs: Record<string, LanguageConfig> = {
     aliases: ['docker'],
     extensions: ['.dockerfile', 'Dockerfile'],
     mimetypes: ['text/x-dockerfile'],
-    loader: () => import('monaco-editor/esm/vs/basic-languages/dockerfile/dockerfile.contribution.js'),
+    loader: () =>
+      import('monaco-editor/esm/vs/basic-languages/dockerfile/dockerfile.contribution.js'),
     basicLanguage: true,
   },
   csharp: {
@@ -237,14 +239,14 @@ function getLanguageConfig(language: string): LanguageConfig | null {
  */
 function normalizeLanguageId(language: string): string {
   const normalized = language.toLowerCase();
-  
+
   // 检查别名
   for (const [langId, config] of Object.entries(languageConfigs)) {
     if (config.aliases?.includes(normalized)) {
       return langId;
     }
   }
-  
+
   // 检查扩展名
   if (normalized.startsWith('.')) {
     for (const [langId, config] of Object.entries(languageConfigs)) {
@@ -253,35 +255,37 @@ function normalizeLanguageId(language: string): string {
       }
     }
   }
-  
+
   // 直接匹配
   return languageConfigs[normalized] ? normalized : 'plaintext';
 }
 
 async function registerLanguage(language: string): Promise<boolean> {
   const langId = normalizeLanguageId(language);
-  
+
   // 检查是否已注册
   if (registeredLanguages.has(langId)) {
     return true;
   }
-  
+
   const config = getLanguageConfig(langId);
   if (!config) {
-    console.warn(`[MonacoLanguageManager] No config found for language: ${language} (normalized: ${langId})`);
+    console.warn(
+      `[MonacoLanguageManager] No config found for language: ${language} (normalized: ${langId})`
+    );
     return false;
   }
-  
+
   try {
     // 加载语言模块
     if (config.loader) {
       await config.loader();
     }
-    
+
     // 标记为已注册
     registeredLanguages.add(langId);
     console.warn(`[MonacoLanguageManager] Registered language: ${langId}`);
-    
+
     return true;
   } catch (error) {
     console.error(`[MonacoLanguageManager] Failed to register language ${langId}:`, error);
@@ -293,8 +297,8 @@ async function registerLanguage(language: string): Promise<boolean> {
  * 批量注册语言
  */
 async function registerLanguages(languageIds: string[]): Promise<void> {
-  const uniqueLangs = [...new Set(languageIds.map(l => normalizeLanguageId(l)))];
-  const promises = uniqueLangs.map(langId => registerLanguage(langId));
+  const uniqueLangs = [...new Set(languageIds.map((l) => normalizeLanguageId(l)))];
+  const promises = uniqueLangs.map((langId) => registerLanguage(langId));
   await Promise.all(promises);
 }
 
@@ -306,7 +310,7 @@ export async function initializeLanguageManager(): Promise<void> {
     // 预注册一些常用语言
     const commonLanguages = ['javascript', 'typescript', 'html', 'css', 'json', 'markdown'];
     await registerLanguages(commonLanguages);
-    
+
     console.warn(`[MonacoLanguageManager] Initialized with ${registeredLanguages.size} languages`);
   } catch (error) {
     console.error('[MonacoLanguageManager] Failed to initialize:', error);

@@ -22,11 +22,7 @@ export default function ComposerQuestionAnchor({
     <div className={styles.anchor}>
       {showPanel && (
         <div className={styles.overlay} data-testid="inline-question-overlay">
-          <InlineQuestionPanel
-            questions={questions}
-            onSubmit={onSubmit}
-            onCancel={onCancel}
-          />
+          <InlineQuestionPanel questions={questions} onSubmit={onSubmit} onCancel={onCancel} />
         </div>
       )}
       {children}

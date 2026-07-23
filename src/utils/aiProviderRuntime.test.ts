@@ -93,9 +93,9 @@ describe('pickModelFromAvailable', () => {
   });
 
   it('falls back when the current model is unavailable', () => {
-    expect(
-      pickModelFromAvailable('gpt-4o', ['mimo-v2.5-pro', 'mimo-v2.5'], 'gpt-4o')
-    ).toBe('mimo-v2.5-pro');
+    expect(pickModelFromAvailable('gpt-4o', ['mimo-v2.5-pro', 'mimo-v2.5'], 'gpt-4o')).toBe(
+      'mimo-v2.5-pro'
+    );
   });
 
   it('parses composite fallback model ids before matching available models', () => {
@@ -107,9 +107,7 @@ describe('pickModelFromAvailable', () => {
 
 describe('agentModelSelectionsMatch', () => {
   it('treats composite agent ids and plain UI ids as the same model', () => {
-    expect(
-      agentModelSelectionsMatch('openai:profile-a:mimo-v2.5:0', 'mimo-v2.5')
-    ).toBe(true);
+    expect(agentModelSelectionsMatch('openai:profile-a:mimo-v2.5:0', 'mimo-v2.5')).toBe(true);
     expect(resolveComparableAgentModel('openai:profile-a:mimo-v2.5:0')).toBe('mimo-v2.5');
   });
 });
@@ -182,9 +180,7 @@ describe('resolveExplicitProfileSelection', () => {
 
 describe('resolveModelSelection', () => {
   it('binds model to owning profile and exposes that profile models', () => {
-    expect(
-      resolveModelSelection(sampleConfig, 'openai', 'glm-4.7-flash', 'profile-a')
-    ).toEqual({
+    expect(resolveModelSelection(sampleConfig, 'openai', 'glm-4.7-flash', 'profile-a')).toEqual({
       model: 'glm-4.7-flash',
       profileId: 'profile-b',
       availableModels: ['glm-4.7-flash', 'shared-model'],
@@ -297,9 +293,7 @@ describe('reconcileProviderRequest', () => {
   });
 
   it('prefers owning profile over stale profileId', () => {
-    expect(
-      reconcileProviderRequest(sampleConfig, 'openai', 'glm-4.7-flash', 'profile-a')
-    ).toEqual({
+    expect(reconcileProviderRequest(sampleConfig, 'openai', 'glm-4.7-flash', 'profile-a')).toEqual({
       provider: 'openai',
       model: 'glm-4.7-flash',
       profileId: 'profile-b',

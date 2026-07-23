@@ -19,12 +19,12 @@ function looksLikeToolError(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return true;
   return (
-    trimmed.startsWith('❌')
-    || trimmed.includes('错误:')
-    || trimmed.includes('执行失败')
-    || trimmed.startsWith('搜索失败')
-    || /^error:/i.test(trimmed)
-    || /\bfailed\b/i.test(trimmed)
+    trimmed.startsWith('❌') ||
+    trimmed.includes('错误:') ||
+    trimmed.includes('执行失败') ||
+    trimmed.startsWith('搜索失败') ||
+    /^error:/i.test(trimmed) ||
+    /\bfailed\b/i.test(trimmed)
   );
 }
 
@@ -106,10 +106,7 @@ export function formatResultUrl(url: string, maxLen = 72): string {
   }
 }
 
-export function parseWebSearchToolResult(
-  text: string,
-  isError = false,
-): WebSearchToolResultView {
+export function parseWebSearchToolResult(text: string, isError = false): WebSearchToolResultView {
   const raw = text || '';
 
   if (isError || looksLikeToolError(raw)) {
@@ -154,9 +151,7 @@ export function parseWebSearchToolResult(
 
   let emptyMessage: string | undefined;
   if (count === 0 || results.length === 0) {
-    const emptyBody = body
-      .replace(/^\d+\.\s*[\s\S]*/m, '')
-      .trim();
+    const emptyBody = body.replace(/^\d+\.\s*[\s\S]*/m, '').trim();
     emptyMessage = emptyBody ? normalizeSearchText(emptyBody) : undefined;
   }
 

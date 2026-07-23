@@ -54,7 +54,10 @@ function getSelectionCopyText(editor: MonacoEditor, model: MonacoModel): string 
   return null;
 }
 
-export function getEditorCopyText(editor: MonacoEditor, options?: { fullDocument?: boolean }): string {
+export function getEditorCopyText(
+  editor: MonacoEditor,
+  options?: { fullDocument?: boolean }
+): string {
   const model = editor.getModel();
   if (!model) {
     return editor.getValue();

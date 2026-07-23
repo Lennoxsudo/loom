@@ -1,11 +1,4 @@
-import React, {
-  memo,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   loadTodos,
   peekTodos,
@@ -45,7 +38,16 @@ const TodoStatusIndicator = memo(function TodoStatusIndicator({ status }: { stat
   if (status === 'completed') {
     return (
       <span className={`${styles.indicator} ${styles.completedMark}`} aria-hidden>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </span>
@@ -124,15 +126,15 @@ const TodoListBar: React.FC<TodoListBarProps> = ({ conversationId, style, onLayo
   const sortedTodos = useMemo(() => sortTodos(todoItems), [todoItems]);
   const inProgressItems = useMemo(
     () => sortedTodos.filter((item) => item.status === 'in_progress'),
-    [sortedTodos],
+    [sortedTodos]
   );
   const pendingCount = useMemo(
     () => sortedTodos.filter((item) => item.status === 'pending').length,
-    [sortedTodos],
+    [sortedTodos]
   );
   const completedCount = useMemo(
     () => sortedTodos.filter((item) => item.status === 'completed').length,
-    [sortedTodos],
+    [sortedTodos]
   );
 
   const metaSummary = useMemo(() => {
@@ -217,17 +219,27 @@ const TodoListBar: React.FC<TodoListBarProps> = ({ conversationId, style, onLayo
             <>
               <TodoInProgressIndicator />
               <span className={styles.summaryText}>{primaryInProgress.content}</span>
-              {extraInProgress > 0 && (
-                <span className={styles.more}>+{extraInProgress}</span>
-              )}
+              {extraInProgress > 0 && <span className={styles.more}>+{extraInProgress}</span>}
             </>
           ) : (
             <span className={styles.summaryMeta}>{metaSummary}</span>
           )}
         </div>
 
-        <span className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`} aria-hidden>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <span
+          className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}
+          aria-hidden
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </span>

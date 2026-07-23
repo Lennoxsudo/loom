@@ -59,7 +59,10 @@ describe('ExecCommandCard', () => {
   });
 
   test('shows running state', () => {
-    renderCard({ ...baseParsed, output: '', exitCode: null, durationMs: null }, { isRunning: true });
+    renderCard(
+      { ...baseParsed, output: '', exitCode: null, durationMs: null },
+      { isRunning: true }
+    );
     expect(screen.getAllByText('Running…').length).toBeGreaterThan(0);
     expect(screen.getByText('run')).toBeInTheDocument();
   });
@@ -80,11 +83,7 @@ describe('ExecCommandCard', () => {
 
     rerender(
       <I18nProvider defaultLocale="en-US">
-        <ExecCommandCard
-          parsed={{ ...baseParsed, output }}
-          isRunning={false}
-          isError={false}
-        />
+        <ExecCommandCard parsed={{ ...baseParsed, output }} isRunning={false} isError={false} />
       </I18nProvider>
     );
     // body stays mounted for collapse animation; collapsed via grid-template-rows 0fr

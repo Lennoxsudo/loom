@@ -8,8 +8,13 @@
 
 .barFooter {
   padding: 7px 12px 8px;
-  border-top: 1px solid color-mix(in srgb, var(--surface-overlay-border, rgba(255, 255, 255, 0.08)) 100%, transparent);
-  background: color-mix(in srgb, var(--surface-overlay-soft, rgba(255, 255, 255, 0.04)) 55%, transparent);
+  border-top: 1px solid
+    color-mix(in srgb, var(--surface-overlay-border, rgba(255, 255, 255, 0.08)) 100%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--surface-overlay-soft, rgba(255, 255, 255, 0.04)) 55%,
+    transparent
+  );
 }
 
 .barHeader {
@@ -192,7 +197,6 @@
 .outcomeDenied {
   color: color-mix(in srgb, var(--text-error) 78%, var(--text-primary));
 }
-
 
 .barHeader .badge {
   padding: 3px 8px;

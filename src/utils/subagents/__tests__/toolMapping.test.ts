@@ -28,10 +28,7 @@ describe('toolMapping', () => {
     expect(fromEmpty.length).toBeGreaterThan(0);
     expect(fromEmpty).toContain('read');
 
-    const fromUndefined = resolveSubagentToolNames(explore, [
-      undefined as unknown as string,
-      '',
-    ]);
+    const fromUndefined = resolveSubagentToolNames(explore, [undefined as unknown as string, '']);
     expect(fromUndefined.length).toBeGreaterThan(0);
     expect(fromUndefined).toContain('read');
   });

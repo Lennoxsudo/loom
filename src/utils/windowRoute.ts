@@ -1,6 +1,4 @@
-type WindowRoute =
-  | { kind: 'main' }
-  | { kind: 'agent'; projectPath: string };
+type WindowRoute = { kind: 'main' } | { kind: 'agent'; projectPath: string };
 
 type RouteLocation = Pick<Location, 'pathname' | 'search' | 'hash'>;
 type WindowRouteOptions = {
@@ -30,9 +28,7 @@ export function resolveWindowRoute(
     return {
       kind: 'agent',
       projectPath: safeDecode(
-        searchParams.get('projectPath') ??
-          hashParams.get('projectPath') ??
-          ''
+        searchParams.get('projectPath') ?? hashParams.get('projectPath') ?? ''
       ),
     };
   }

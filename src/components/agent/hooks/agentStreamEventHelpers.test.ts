@@ -15,9 +15,7 @@ describe('buildThinkingEndedPatch', () => {
   });
 
   it('returns empty patch when thinking already ended', () => {
-    expect(
-      buildThinkingEndedPatch({ thinking: 'done', thinkingEndedAt: 123 })
-    ).toEqual({});
+    expect(buildThinkingEndedPatch({ thinking: 'done', thinkingEndedAt: 123 })).toEqual({});
   });
 
   it('returns empty patch when there is no thinking content', () => {
@@ -33,7 +31,14 @@ describe('appendExecutedToolToMessage', () => {
       thinkingEndedAt: undefined as number | undefined,
       isStreaming: true,
       isProcessingTools: false,
-      executedTools: [] as Array<{ tool_name: string; tool_call_id: string; result_preview: string; success: boolean; round: number; total_rounds_so_far: number }>,
+      executedTools: [] as Array<{
+        tool_name: string;
+        tool_call_id: string;
+        result_preview: string;
+        success: boolean;
+        round: number;
+        total_rounds_so_far: number;
+      }>,
     };
 
     const patched = appendExecutedToolToMessage(msg, {

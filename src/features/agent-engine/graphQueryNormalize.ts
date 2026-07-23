@@ -52,9 +52,7 @@ export function sanitizeCbmQualifiedName(qualifiedName: string): string {
 }
 
 /** Action-aware param mapping (runs after global paramNormalizer). */
-export function normalizeGraphQueryArgs(
-  args: Record<string, unknown>,
-): Record<string, unknown> {
+export function normalizeGraphQueryArgs(args: Record<string, unknown>): Record<string, unknown> {
   const result = { ...args };
   fixRegexPatternAliasConfusion(result);
   const action = String(result.action ?? '').toLowerCase();
@@ -110,9 +108,9 @@ export function normalizeGraphQueryArgs(
         }
       }
       if (
-        (result.pattern === undefined || String(result.pattern).trim() === '')
-        && queryStr
-        && !looksLikeCypher(queryStr)
+        (result.pattern === undefined || String(result.pattern).trim() === '') &&
+        queryStr &&
+        !looksLikeCypher(queryStr)
       ) {
         result.pattern = queryStr;
       }
@@ -134,11 +132,11 @@ export function normalizeGraphQueryArgs(
       }
     }
     if (
-      (result.name_pattern === undefined || String(result.name_pattern).trim() === '')
-      && typeof result.query === 'string'
-      && result.query.trim()
-      && action === 'search'
-      && !strArg(result.qn_pattern)
+      (result.name_pattern === undefined || String(result.name_pattern).trim() === '') &&
+      typeof result.query === 'string' &&
+      result.query.trim() &&
+      action === 'search' &&
+      !strArg(result.qn_pattern)
     ) {
       result.name_pattern = result.query;
     }
@@ -163,7 +161,6 @@ export function normalizeGraphQueryArgs(
         delete result.query;
       }
     }
-
   }
 
   const rewritten = rewriteGraphSearchDegreeFilter(result);
@@ -257,7 +254,7 @@ export function rewriteCodePropertyCypher(query: string): { query: string; rewri
   const nodeVar = extractPrimaryNodeVar(trimmed);
   const rewrittenQuery = trimmed.replace(
     /\bRETURN\b[\s\S]*$/i,
-    `RETURN ${nodeVar}.name, ${nodeVar}.file_path, ${nodeVar}.qualified_name, ${nodeVar}.start_line, ${nodeVar}.end_line`,
+    `RETURN ${nodeVar}.name, ${nodeVar}.file_path, ${nodeVar}.qualified_name, ${nodeVar}.start_line, ${nodeVar}.end_line`
   );
   return { query: rewrittenQuery, rewritten: true };
 }
@@ -267,23 +264,23 @@ export function rewriteCodePropertyCypher(query: string): { query: string; rewri
  * NOT edge rows. Rewrite to query_graph Cypher that returns type(r)/labels(n) values.
  */
 export function rewriteGraphSearchDegreeFilter(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Record<string, unknown> | null {
   const action = String(args.action ?? '').toLowerCase();
   if (action !== 'search') return null;
 
   const relationship = strArg(
-    args.relationship ?? args.relationship_type ?? args.edge_type ?? args.rel_type,
+    args.relationship ?? args.relationship_type ?? args.edge_type ?? args.rel_type
   );
   const minDegree = numArg(args.min_degree ?? args.minDegree);
   const maxDegree = numArg(args.max_degree ?? args.maxDegree);
   const excludeEntry = args.exclude_entry_points === true;
   const limit = numArg(args.limit) ?? 20;
   const hasNameFilter = Boolean(
-    strArg(args.name_pattern)
-      ?? strArg(args.qualified_name)
-      ?? strArg(args.qn_pattern)
-      ?? strArg(args.label),
+    strArg(args.name_pattern) ??
+    strArg(args.qualified_name) ??
+    strArg(args.qn_pattern) ??
+    strArg(args.label)
   );
 
   if (relationship && !hasNameFilter) {
@@ -298,9 +295,7 @@ export function rewriteGraphSearchDegreeFilter(
   }
 
   if (maxDegree === 0 || (minDegree === 0 && maxDegree === 0)) {
-    const entryFilter = excludeEntry
-      ? ' AND coalesce(n.is_entry_point, false) = false'
-      : '';
+    const entryFilter = excludeEntry ? ' AND coalesce(n.is_entry_point, false) = false' : '';
     return {
       ...args,
       action: 'query',
@@ -350,7 +345,7 @@ export function isLabelsTypesSchemaIntent(query: string): boolean {
 
   if (
     /^MATCH\s+\(\s*\)\s*-\s*\[[^\]]*\]\s*->\s*\(\s*\)\s+RETURN\s+(DISTINCT\s+)?type\s*\(\s*\w+\s*\)(\s+LIMIT\s+\d+)?\s*$/i.test(
-      q,
+      q
     )
   ) {
     return true;
@@ -358,7 +353,7 @@ export function isLabelsTypesSchemaIntent(query: string): boolean {
 
   if (
     /^MATCH\s+\(\s*\w+\s*(?::\s*\w+)?\s*\)\s+RETURN\s+(DISTINCT\s+)?labels\s*\(\s*\w+\s*\)(\s+LIMIT\s+\d+)?\s*$/i.test(
-      q,
+      q
     )
   ) {
     return true;
@@ -390,12 +385,12 @@ function rewriteReturnExpressionAliases(query: string): string {
   let q = query;
   q = q.replace(
     /(\bRETURN\s+(?:DISTINCT\s+)?)type\s*\(\s*(\w+)\s*\)(?!\s+AS\b)/gi,
-    '$1type($2) AS rel_type',
+    '$1type($2) AS rel_type'
   );
   q = q.replace(/,\s*type\s*\(\s*(\w+)\s*\)(?!\s+AS\b)/gi, ', type($1) AS rel_type');
   q = q.replace(
     /(\bRETURN\s+(?:DISTINCT\s+)?)count\s*\(\s*(\w+)\s*\)(?!\s+AS\b)/gi,
-    '$1count($2) AS cnt',
+    '$1count($2) AS cnt'
   );
   q = q.replace(/,\s*count\s*\(\s*(\w+)\s*\)(?!\s+AS\b)/gi, ', count($1) AS cnt');
   return q;
@@ -411,21 +406,17 @@ export function normalizeCbmCypher(query: string): { query: string; hint?: strin
   if (CALL_PROCEDURE_RE.test(q)) {
     return {
       query: q,
-      hint:
-        'CBM 不支持 CALL db.*() 过程调用。请改用 graph_query action=schema 获取标签/边类型名称，或用 MATCH … RETURN labels(n)/type(r)。',
+      hint: 'CBM 不支持 CALL db.*() 过程调用。请改用 graph_query action=schema 获取标签/边类型名称，或用 MATCH … RETURN labels(n)/type(r)。',
     };
   }
 
   q = q.replace(/\brelationshipType\s*\(\s*(\w+)\s*\)/gi, 'type($1)');
 
-  q = q.replace(
-    /\blabels\s*\(\s*(\w+)\s*\)\s*=\s*['"]([^'"]+)['"]/gi,
-    '$1.label = \'$2\'',
-  );
+  q = q.replace(/\blabels\s*\(\s*(\w+)\s*\)\s*=\s*['"]([^'"]+)['"]/gi, "$1.label = '$2'");
 
   q = q.replace(
     /\blabels\s*\(\s*(\w+)\s*\)\s*\[\s*0\s*\]\s*=\s*['"]([^'"]+)['"]/gi,
-    '$1.label = \'$2\'',
+    "$1.label = '$2'"
   );
 
   q = q.replace(/\blabels\s*\(\s*(\w+)\s*\)\s*\[\s*0\s*\]/gi, '$1.label');
@@ -473,12 +464,17 @@ export function formatCbmQueryCell(value: unknown, column?: string): string {
   return raw;
 }
 
-export function formatGraphQueryValidationHint(action: string, missing: 'query' | 'pattern'): string {
+export function formatGraphQueryValidationHint(
+  action: string,
+  missing: 'query' | 'pattern'
+): string {
   if (action === 'query' && missing === 'query') {
     return 'action=query 需要 `query` 参数：Cypher MATCH 语句（非自然语言）。示例: MATCH (f:Function) WHERE f.name =~ ".*Auth.*" RETURN f.name, f.file_path LIMIT 10';
   }
   if (action === 'code' && missing === 'pattern') {
     return 'action=code 需要 `pattern` 参数：在已索引符号体内搜索的文本或正则。示例: pattern="TODO" 或 pattern="deprecated"';
   }
-  return missing === 'query' ? '缺少 query（Cypher MATCH 语句）' : '缺少 pattern（符号体内搜索文本）';
+  return missing === 'query'
+    ? '缺少 query（Cypher MATCH 语句）'
+    : '缺少 pattern（符号体内搜索文本）';
 }

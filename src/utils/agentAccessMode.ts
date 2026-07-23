@@ -1,9 +1,5 @@
 import type { AgentAccessMode } from '../types/settings';
-import {
-  CREATE_DELETE_TOOLS,
-  EXECUTE_TOOLS,
-  WRITE_TOOLS,
-} from './agentTools';
+import { CREATE_DELETE_TOOLS, EXECUTE_TOOLS, WRITE_TOOLS } from './agentTools';
 
 export const READ_ONLY_TOOL_NAMES = new Set([
   'read',

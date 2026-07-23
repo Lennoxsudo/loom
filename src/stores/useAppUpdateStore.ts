@@ -22,7 +22,7 @@ interface PendingUpdate {
     onEvent?: (event: {
       event: string;
       data?: { contentLength?: number; chunkLength?: number };
-    }) => void,
+    }) => void
   ) => Promise<void>;
 }
 
@@ -206,8 +206,8 @@ export const useAppUpdateStore = create<AppUpdateState>()(
         }
       },
     }),
-    { name: 'AppUpdateStore' },
-  ),
+    { name: 'AppUpdateStore' }
+  )
 );
 
 export const useAppUpdateState = () =>
@@ -224,5 +224,5 @@ export const useAppUpdateState = () =>
       checkForUpdates: s.checkForUpdates,
       downloadAndInstall: s.downloadAndInstall,
       clearError: s.clearError,
-    })),
+    }))
   );

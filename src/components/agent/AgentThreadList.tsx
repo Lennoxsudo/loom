@@ -66,10 +66,7 @@ const AgentThreadList = memo(function AgentThreadList({
         const isRenaming = renamingThreadId === thread.id;
 
         return (
-          <div
-            key={thread.id}
-            className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
-          >
+          <div key={thread.id} className={`${styles.item} ${isActive ? styles.itemActive : ''}`}>
             {isRenaming ? (
               <input
                 className={styles.renameInput}
@@ -102,9 +99,7 @@ const AgentThreadList = memo(function AgentThreadList({
                   </span>
                   <span className={styles.title}>{thread.title}</span>
                 </span>
-                {thread.preview && (
-                  <span className={styles.preview}>{thread.preview}</span>
-                )}
+                {thread.preview && <span className={styles.preview}>{thread.preview}</span>}
                 <span className={styles.meta}>
                   {thread.branchName && (
                     <span>
@@ -112,9 +107,7 @@ const AgentThreadList = memo(function AgentThreadList({
                     </span>
                   )}
                   {thread.updatedAt ? (
-                    <span>
-                      {formatRelativeTime(thread.updatedAt, language)}
-                    </span>
+                    <span>{formatRelativeTime(thread.updatedAt, language)}</span>
                   ) : null}
                 </span>
               </button>

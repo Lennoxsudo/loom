@@ -25,11 +25,14 @@ function getApprovalRequest(message: Message): ChatApprovalRequest | null {
 
   return {
     requestId: request.requestId,
-    status: request.status === 'approved' || request.status === 'denied' ? request.status : 'pending',
+    status:
+      request.status === 'approved' || request.status === 'denied' ? request.status : 'pending',
     summaries: request.summaries as ChatApprovalSummary[],
     toolCalls: request.toolCalls,
     sourceAssistantMessageId:
-      typeof request.sourceAssistantMessageId === 'string' ? request.sourceAssistantMessageId : undefined,
+      typeof request.sourceAssistantMessageId === 'string'
+        ? request.sourceAssistantMessageId
+        : undefined,
   };
 }
 
@@ -50,11 +53,7 @@ function ChatApprovalCard({
     request.status === 'approved' ? 'approved' : request.status === 'denied' ? 'denied' : 'pending';
 
   const shellMode =
-    request.status === 'denied'
-      ? 'denied'
-      : request.status === 'approved'
-        ? 'resolved'
-        : 'pending';
+    request.status === 'denied' ? 'denied' : request.status === 'approved' ? 'resolved' : 'pending';
 
   return (
     <ToolApprovalShell
@@ -180,18 +179,18 @@ export function ChatToolGroupContent({
     <>
       {segments.map((seg) => {
         if (seg.kind === 'readGroup') {
-          return <ChatReadListGroup key={`read-group-${seg.messages[0].id}`} messages={seg.messages} />;
+          return (
+            <ChatReadListGroup key={`read-group-${seg.messages[0].id}`} messages={seg.messages} />
+          );
         }
         const msg = seg.message;
-        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content ?? '');
+        const content =
+          typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content ?? '');
         return msg.tool_name === CHAT_APPROVAL_TOOL_NAME ? (
-          <ChatApprovalCard
-            key={msg.id}
-            message={msg}
-            onApprove={onApprove}
-            onDeny={onDeny}
-          />
-        ) : msg.tool_name === 'graph_index' || msg.tool_name === 'graph_query' || msg.tool_name === 'graph_trace' ? (
+          <ChatApprovalCard key={msg.id} message={msg} onApprove={onApprove} onDeny={onDeny} />
+        ) : msg.tool_name === 'graph_index' ||
+          msg.tool_name === 'graph_query' ||
+          msg.tool_name === 'graph_trace' ? (
           <div key={msg.id} style={{ width: '100%' }}>
             <GraphToolResultCard message={msg} />
           </div>
@@ -200,17 +199,17 @@ export function ChatToolGroupContent({
             <ToolResultMessage
               dense
               message={{
-              id: msg.id,
-              role: 'tool',
-              text: content,
-              createdAt: msg.timestamp,
-              tool_call_id: msg.tool_call_id,
-              tool_name: msg.tool_name,
-              tool_args: msg.tool_args,
-              isError: msg.isError,
-              isStreaming: msg.isStreaming,
-              approvalStatus: msg.approvalStatus,
-            }}
+                id: msg.id,
+                role: 'tool',
+                text: content,
+                createdAt: msg.timestamp,
+                tool_call_id: msg.tool_call_id,
+                tool_name: msg.tool_name,
+                tool_args: msg.tool_args,
+                isError: msg.isError,
+                isStreaming: msg.isStreaming,
+                approvalStatus: msg.approvalStatus,
+              }}
             />
           </div>
         );

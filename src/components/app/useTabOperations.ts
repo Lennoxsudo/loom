@@ -93,7 +93,15 @@ export function useTabOperations({
         setActiveGroupId('group-2');
       }
     },
-    [isSplit, editorGroups, openFilesByPathRef, showWarning, setSplitDirection, setActiveGroupId, setEditorGroups]
+    [
+      isSplit,
+      editorGroups,
+      openFilesByPathRef,
+      showWarning,
+      setSplitDirection,
+      setActiveGroupId,
+      setEditorGroups,
+    ]
   );
 
   const handleSplitDown = useCallback(
@@ -125,7 +133,15 @@ export function useTabOperations({
         setActiveGroupId('group-2');
       }
     },
-    [isSplit, editorGroups, openFilesByPathRef, showWarning, setSplitDirection, setActiveGroupId, setEditorGroups]
+    [
+      isSplit,
+      editorGroups,
+      openFilesByPathRef,
+      showWarning,
+      setSplitDirection,
+      setActiveGroupId,
+      setEditorGroups,
+    ]
   );
 
   const handleSingle = useCallback(() => {
@@ -145,14 +161,23 @@ export function useTabOperations({
       }
 
       const mergedActive =
-        activeBefore === 'group-2' ? g2.activePath || g1.activePath : g1.activePath || g2.activePath;
+        activeBefore === 'group-2'
+          ? g2.activePath || g1.activePath
+          : g1.activePath || g2.activePath;
 
       return [{ id: 'group-1', tabPaths: mergedTabs, activePath: mergedActive }];
     });
 
     setActiveGroupId('group-1');
     setHoveredTabId(null);
-  }, [isSplit, activeGroupId, setIsEditorSplitResizing, setEditorGroups, setActiveGroupId, setHoveredTabId]);
+  }, [
+    isSplit,
+    activeGroupId,
+    setIsEditorSplitResizing,
+    setEditorGroups,
+    setActiveGroupId,
+    setHoveredTabId,
+  ]);
 
   const handleFocusGroup = useCallback(
     (groupId: EditorGroupId) => {

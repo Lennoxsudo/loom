@@ -16,11 +16,7 @@ export function DeleteConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <SettingsDeleteModal
-      title={t.confirm.deleteFile}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-    >
+    <SettingsDeleteModal title={t.confirm.deleteFile} onCancel={onCancel} onConfirm={onConfirm}>
       {t.confirm.irreversible.replace('此操作', `删除提示词"${promptName}"`)}
     </SettingsDeleteModal>
   );

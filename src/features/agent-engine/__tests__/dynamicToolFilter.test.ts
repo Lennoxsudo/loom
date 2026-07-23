@@ -8,7 +8,11 @@ import {
 // ==================== filterToolsByContext ====================
 
 describe('filterToolsByContext', () => {
-  const makeTool = (name: string) => ({ name, description: '', parameters: { type: 'object' as const, properties: {}, required: [] } });
+  const makeTool = (name: string) => ({
+    name,
+    description: '',
+    parameters: { type: 'object' as const, properties: {}, required: [] },
+  });
 
   it('removes git tools when not a git repo', () => {
     const tools = [makeTool('read'), makeTool('git'), makeTool('get_git_diff')];
@@ -23,7 +27,12 @@ describe('filterToolsByContext', () => {
   });
 
   it('removes browser tools when no browser capability', () => {
-    const tools = [makeTool('read'), makeTool('browser'), makeTool('fetch'), makeTool('web_search')];
+    const tools = [
+      makeTool('read'),
+      makeTool('browser'),
+      makeTool('fetch'),
+      makeTool('web_search'),
+    ];
     const result = filterToolsByContext(tools, { hasBrowserCapability: false });
     expect(result.map((t) => t.name)).toEqual(['read']);
   });

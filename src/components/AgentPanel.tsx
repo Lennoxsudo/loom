@@ -1,16 +1,24 @@
 ﻿import styles from './AgentPanel.module.css';
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
 import { useTranslation, useLocale } from '../i18n';
 import { useNotification } from '../contexts/NotificationContext';
-import { useAgentAccessMode, useStreamSpeed, useThinkingBlockAutoExpand, useRecentWorkspaces, useTouchRecentWorkspace, useRemoveRecentWorkspace, useUpdateAgentAccessMode, useReasoningEffort, useUpdateReasoningEffort, useEnableCodeGraph, useEnableCdpBrowser, useGraphAutoIndexOnOpen, useGraphAutoIndexMaxFiles } from '../stores';
+import {
+  useAgentAccessMode,
+  useStreamSpeed,
+  useThinkingBlockAutoExpand,
+  useRecentWorkspaces,
+  useTouchRecentWorkspace,
+  useRemoveRecentWorkspace,
+  useUpdateAgentAccessMode,
+  useReasoningEffort,
+  useUpdateReasoningEffort,
+  useEnableCodeGraph,
+  useEnableCdpBrowser,
+  useGraphAutoIndexOnOpen,
+  useGraphAutoIndexMaxFiles,
+} from '../stores';
 import { useCbmGraphReady } from '../stores/useCbmStore';
 import { useCbmIndexEvents } from '../hooks/useCbmIndexEvents';
 import { useCbmConfigSync } from '../hooks/useCbmConfigSync';
@@ -67,12 +75,14 @@ import {
 } from '../utils/imageGenConfig';
 import { useAgentAttachments, VISION_UNSUPPORTED_ERROR } from './agent/hooks/useAgentAttachments';
 import { useAgentPreviewPanel } from './agent/hooks/useAgentPreviewPanel';
-import { useAgentInit, loadProjectConversationStateFromDisk, seedProjectPersistenceSnapshot } from './agent/hooks/useAgentInit';
+import {
+  useAgentInit,
+  loadProjectConversationStateFromDisk,
+  seedProjectPersistenceSnapshot,
+} from './agent/hooks/useAgentInit';
 import { useHydrateSubagentRuns } from './agent/hooks/useHydrateSubagentRuns';
 import { useAgentStreamingQueue } from './agent/hooks/useAgentStreamingQueue';
-import {
-  useAgentStreamEvents,
-} from './agent/hooks/useAgentStreamEvents';
+import { useAgentStreamEvents } from './agent/hooks/useAgentStreamEvents';
 import { extractKnownToolNamesFromProviderTools } from '../features/agent-engine/streamCompletionToolCalls';
 import { useAgentStreamControl } from './agent/hooks/useAgentStreamControl';
 import { useAgentSendMessage } from './agent/hooks/useAgentSendMessage';
@@ -84,10 +94,7 @@ import { useAgentPendingChanges } from './agent/hooks/useAgentPendingChanges';
 import { useAutomationEvent } from './agent/hooks/useAutomationEvent';
 import AutomationsPanel from './agent/AutomationsPanel';
 import { useAgentToolCalls } from './agent/hooks/useAgentToolCalls';
-import {
-  filterToolsByCapabilities,
-  normalizeCapabilities,
-} from '../utils/agentTools';
+import { filterToolsByCapabilities, normalizeCapabilities } from '../utils/agentTools';
 import { isToolFilteredInReadOnlyProviderList } from '../utils/agentAccessMode';
 import {
   buildPendingSessionKey,
@@ -169,7 +176,7 @@ export default function AgentPanel({
         ...AI_TOOLS,
         ...(isImageGenConfigured(imageGenConfig) ? [buildGenerateImageTool(imageGenConfig)] : []),
         ...mcpTools,
-      ]),
+      ])
     );
     const shouldApplyGlobalCommandPolicy = !!currentAgent;
     const capabilityForFilter =
@@ -200,7 +207,7 @@ export default function AgentPanel({
     let filteredBaseTools = filterToolsByCapabilities(
       baseTools,
       capabilityForFilter,
-      modeForAgent === 'plan',
+      modeForAgent === 'plan'
     );
 
     filteredBaseTools = filterToolsByContext(filteredBaseTools, {
@@ -219,10 +226,7 @@ export default function AgentPanel({
     return filteredBaseTools;
   };
 
-  const getProviderTools = (
-    provider: AIProvider,
-    currentAgentId?: string
-  ) => {
+  const getProviderTools = (provider: AIProvider, currentAgentId?: string) => {
     const cacheKey = `${provider}::${currentAgentId ?? ''}`;
     const deps = [
       mcpTools.map((t) => t.name).join(','),
@@ -335,25 +339,27 @@ export default function AgentPanel({
 
   useEffect(() => {
     let cancelled = false;
-    getSkillsList(projectPath || '').then(({ global: globalSkills, project: projectSkills }) => {
-      if (!cancelled) {
-        const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
-        const merged = [
-          ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
-          ...projectSkills,
-        ].sort((a, b) => a.name.localeCompare(b.name));
-        const names = merged.map((skill) => skill.name);
-        setSkillNames(names);
-        setSkillsCount(names.length);
-        setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        setSkillNames([]);
-        setSkillsCount(0);
-        setInvocableSkills([]);
-      }
-    });
+    getSkillsList(projectPath || '')
+      .then(({ global: globalSkills, project: projectSkills }) => {
+        if (!cancelled) {
+          const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
+          const merged = [
+            ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
+            ...projectSkills,
+          ].sort((a, b) => a.name.localeCompare(b.name));
+          const names = merged.map((skill) => skill.name);
+          setSkillNames(names);
+          setSkillsCount(names.length);
+          setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSkillNames([]);
+          setSkillsCount(0);
+          setInvocableSkills([]);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -362,9 +368,9 @@ export default function AgentPanel({
   const mcpToolNames = useMemo(
     () =>
       [...new Set(mcpTools.map((tool) => stripMcpToolPrefix(tool.name)))].sort((a, b) =>
-        a.localeCompare(b),
+        a.localeCompare(b)
       ),
-    [mcpTools],
+    [mcpTools]
   );
 
   const {
@@ -435,10 +441,8 @@ export default function AgentPanel({
       try {
         if (provider === 'builtin') {
           const { useBuiltinGatewayStore } = await import('../stores/useBuiltinGatewayStore');
-          const {
-            BUILTIN_PROFILE_ID,
-            BUILTIN_PROFILE_NAME,
-          } = await import('../utils/builtinGateway');
+          const { BUILTIN_PROFILE_ID, BUILTIN_PROFILE_NAME } =
+            await import('../utils/builtinGateway');
           const store = useBuiltinGatewayStore.getState();
           if (!store.hydrated) await store.hydrate();
           if (!store.isActivated()) {
@@ -478,8 +482,7 @@ export default function AgentPanel({
             },
           ]);
           const preferred = model.trim() || fallbackModel?.trim() || '';
-          const selected =
-            preferred && models.includes(preferred) ? preferred : models[0] || '';
+          const selected = preferred && models.includes(preferred) ? preferred : models[0] || '';
           setAvailableModels(models);
           setActiveProfileId(BUILTIN_PROFILE_ID);
           setSelectedModel(selected);
@@ -498,10 +501,7 @@ export default function AgentPanel({
         setAvailableProfiles(profiles);
 
         const resolvedProfileId =
-          profileId ||
-          config.profiles?.[provider]?.activeId ||
-          profiles[0]?.id ||
-          '';
+          profileId || config.profiles?.[provider]?.activeId || profiles[0]?.id || '';
 
         const selection =
           mode === 'explicit' && resolvedProfileId
@@ -616,7 +616,9 @@ export default function AgentPanel({
   const selectedAgentIdRef = useRef<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const providerToolsCacheRef = useRef<Record<string, { tools: unknown[]; deps: string }>>({});
-  const rawAgentToolsCacheRef = useRef<Record<string, { tools: ToolDefinition[]; deps: string }>>({});
+  const rawAgentToolsCacheRef = useRef<Record<string, { tools: ToolDefinition[]; deps: string }>>(
+    {}
+  );
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<AgentMessageListHandle>(null);
   const isNearBottomRef = useRef(true);
@@ -681,7 +683,9 @@ export default function AgentPanel({
     if (!projectPath) return;
     (async () => {
       try {
-        const isGitRepo = await invoke<boolean>('check_git_repo', { path: projectPath }).catch(() => true);
+        const isGitRepo = await invoke<boolean>('check_git_repo', { path: projectPath }).catch(
+          () => true
+        );
         projectContextRef.current = { isGitRepo };
       } catch {
         // keep defaults
@@ -756,15 +760,10 @@ export default function AgentPanel({
 
   /** Non-blocking: show plan panel; agent turn ends after exit_plan_mode tool. */
   const handleExitPlanMode = useCallback(
-    (req: {
-      conversationId: string;
-      agentId?: string;
-      plan: string;
-      title?: string;
-    }) => {
+    (req: { conversationId: string; agentId?: string; plan: string; title?: string }) => {
       setPlanReviewConversationId(req.conversationId);
     },
-    [],
+    []
   );
 
   /** User accepted the plan — switch to execute and start a new turn. */
@@ -796,7 +795,7 @@ export default function AgentPanel({
         void handleSendCurrentMessageRef.current?.();
       }, 80);
     },
-    [agent?.id, planReviewConversationId],
+    [agent?.id, planReviewConversationId]
   );
 
   const handleAgentModeChange = useCallback(
@@ -807,7 +806,7 @@ export default function AgentPanel({
         [agent.id]: mode,
       }));
     },
-    [agent?.id],
+    [agent?.id]
   );
 
   const projectName = useMemo(
@@ -840,7 +839,7 @@ export default function AgentPanel({
       registerUserMessage(messageId, element);
       scheduleUpdate();
     },
-    [registerUserMessage, scheduleUpdate],
+    [registerUserMessage, scheduleUpdate]
   );
   const handleJumpToPinnedUserMessage = useCallback(() => {
     if (!pinnedMessage || !messagesContainerRef.current) return;
@@ -848,12 +847,7 @@ export default function AgentPanel({
     const behavior = reducedMotion ? 'auto' : 'smooth';
     const scrolled =
       messageListRef.current?.scrollToMessageId(pinnedMessage.id, behavior) ||
-      scrollToMessage(
-        messagesContainerRef.current,
-        pinnedMessage.id,
-        behavior,
-        getLayoutCache(),
-      );
+      scrollToMessage(messagesContainerRef.current, pinnedMessage.id, behavior, getLayoutCache());
     if (scrolled) {
       scheduleUpdate();
     }
@@ -862,8 +856,7 @@ export default function AgentPanel({
     clearLayoutCache();
   }, [selectedConversationId, clearLayoutCache]);
   const isEmptyConversationState =
-    !!selectedAgent &&
-    (!selectedConversationId || selectedMessages.length === 0);
+    !!selectedAgent && (!selectedConversationId || selectedMessages.length === 0);
 
   useEffect(() => {
     if (!selectedConversationId) return;
@@ -996,10 +989,8 @@ export default function AgentPanel({
         const runtimeSnapshot = agentRuntimeRef.current;
         const tools = selectedAgent
           ? getProviderTools(
-              (runtimeSnapshot.provider ??
-                selectedAgent.provider ??
-                'openai') as AIProvider,
-              selectedAgent.id,
+              (runtimeSnapshot.provider ?? selectedAgent.provider ?? 'openai') as AIProvider,
+              selectedAgent.id
             )
           : undefined;
         const usage = await buildAgentContextUsage({
@@ -1008,8 +999,9 @@ export default function AgentPanel({
           draftMessage,
           attachedImages,
           projectPath: projectPathRef.current,
-          agentMode:
-            agent?.id ? (agentModesRef.current[agent.id] ?? 'always-allow') : 'always-allow',
+          agentMode: agent?.id
+            ? (agentModesRef.current[agent.id] ?? 'always-allow')
+            : 'always-allow',
           tools,
           runtimeSnapshot,
         });
@@ -1080,8 +1072,7 @@ export default function AgentPanel({
   const trackStream = useCallback(
     (messageId: string, meta: StreamMeta) => {
       const sessionKey =
-        meta.sessionKey ??
-        buildPendingSessionKey(activeProjectKeyRef.current, meta.conversationId);
+        meta.sessionKey ?? buildPendingSessionKey(activeProjectKeyRef.current, meta.conversationId);
       streamMetaByMessageIdRef.current[messageId] = { ...meta, sessionKey };
       activeStreamMessageIdsBySessionRef.current[sessionKey] = messageId;
 
@@ -1097,25 +1088,21 @@ export default function AgentPanel({
   );
 
   // Stream control hook
-  const {
-    isStopRequested,
-    consumeStopRequest,
-    handleStopStreaming,
-    clearTrackedStream,
-  } = useAgentStreamControl({
-    selectedAgentId: agent?.id ?? null,
-    selectedSessionKey: selectedPendingSessionKey,
-    activeStreamMessageIdsByAgentRef,
-    activeStreamMessageIdsBySessionRef,
-    streamMetaByMessageIdRef,
-    busySessionKeysRef,
-    streamFlushRef,
-    setAgentBusy,
-    setSessionBusy,
-    setConversationState,
-    setError,
-    stopFailedText: t.errors.stopFailed,
-  });
+  const { isStopRequested, consumeStopRequest, handleStopStreaming, clearTrackedStream } =
+    useAgentStreamControl({
+      selectedAgentId: agent?.id ?? null,
+      selectedSessionKey: selectedPendingSessionKey,
+      activeStreamMessageIdsByAgentRef,
+      activeStreamMessageIdsBySessionRef,
+      streamMetaByMessageIdRef,
+      busySessionKeysRef,
+      streamFlushRef,
+      setAgentBusy,
+      setSessionBusy,
+      setConversationState,
+      setError,
+      stopFailedText: t.errors.stopFailed,
+    });
 
   // Agent init hook
   const handleActiveProjectPathResolved = useCallback(
@@ -1154,7 +1141,15 @@ export default function AgentPanel({
       });
     }, 2000);
     return () => window.clearTimeout(timer);
-  }, [cbmGraphEnabled, graphAutoIndexMaxFiles, graphAutoIndexOnOpen, isInitializing, projectPath, showWarning, t.graph.projectTooLarge]);
+  }, [
+    cbmGraphEnabled,
+    graphAutoIndexMaxFiles,
+    graphAutoIndexOnOpen,
+    isInitializing,
+    projectPath,
+    showWarning,
+    t.graph.projectTooLarge,
+  ]);
 
   useEffect(() => {
     if (isInitializing) return;
@@ -1339,7 +1334,16 @@ export default function AgentPanel({
         profileId ? 'explicit' : 'infer'
       );
     },
-    [applyModelSelectionFromConfig, selectedAgent, selectedProvider, agentAccessMode, reasoningEffort, syncAgentRuntimeRef, updateAgentAccessMode, updateReasoningEffort]
+    [
+      applyModelSelectionFromConfig,
+      selectedAgent,
+      selectedProvider,
+      agentAccessMode,
+      reasoningEffort,
+      syncAgentRuntimeRef,
+      updateAgentAccessMode,
+      updateReasoningEffort,
+    ]
   );
 
   const collectCurrentThreadSettings = useCallback((): AgentThreadSettings | undefined => {
@@ -1422,12 +1426,7 @@ export default function AgentPanel({
       : buildComposeDraftSessionKey(activeProjectKey);
     const savedDraft = loadDraftForSession(sessionKey);
     setDraftMessage(savedDraft);
-  }, [
-    extrasLoaded,
-    activeProjectKey,
-    selectedThreadIdFromManager,
-    loadDraftForSession,
-  ]);
+  }, [extrasLoaded, activeProjectKey, selectedThreadIdFromManager, loadDraftForSession]);
 
   useEffect(() => {
     if (!extrasLoaded || !activeProjectKey) return;
@@ -1664,11 +1663,7 @@ export default function AgentPanel({
     const previousAgentId = previousContentAgentIdRef.current;
     previousContentAgentIdRef.current = agent?.id ?? null;
 
-    if (
-      !previousAgentId ||
-      !agent?.id ||
-      previousAgentId === agent.id
-    ) {
+    if (!previousAgentId || !agent?.id || previousAgentId === agent.id) {
       setIsAgentContentEntering(false);
       return;
     }
@@ -1735,7 +1730,6 @@ export default function AgentPanel({
       busySessionKeysRef.current = new Set();
     };
   }, []);
-
 
   const handleUserMessageSent = useCallback(() => {
     setShowScrollButton(false);
@@ -1858,7 +1852,19 @@ export default function AgentPanel({
       params.set('projectPath', path);
       window.location.search = params.toString();
     },
-    [activeProjectKey, agent, cbmGraphEnabled, flushProjectStateNow, graphAutoIndexMaxFiles, graphAutoIndexOnOpen, loadDraftForSession, onProjectPathChange, persistCurrentThreadBeforeSwitch, showWarning, t.graph.projectTooLarge]
+    [
+      activeProjectKey,
+      agent,
+      cbmGraphEnabled,
+      flushProjectStateNow,
+      graphAutoIndexMaxFiles,
+      graphAutoIndexOnOpen,
+      loadDraftForSession,
+      onProjectPathChange,
+      persistCurrentThreadBeforeSwitch,
+      showWarning,
+      t.graph.projectTooLarge,
+    ]
   );
 
   const handleSelectThreadInProject = useCallback(
@@ -2261,7 +2267,9 @@ export default function AgentPanel({
             </div>
             <div className={styles.loaderText}>{t.agent.agentLoading}</div>
             <div className={styles.loaderSubtext}>
-              {language.startsWith('zh') ? '正在配置安全沙箱与运行环境...' : 'Configuring sandbox environment and runtime connection...'}
+              {language.startsWith('zh')
+                ? '正在配置安全沙箱与运行环境...'
+                : 'Configuring sandbox environment and runtime connection...'}
             </div>
           </div>
         ) : !selectedAgent ? (
@@ -2316,9 +2324,7 @@ export default function AgentPanel({
                                 conversationId={selectedConversationId}
                                 variant="inline"
                                 autoOpenInEditor={false}
-                                forceExpand={
-                                  planReviewConversationId === selectedConversationId
-                                }
+                                forceExpand={planReviewConversationId === selectedConversationId}
                                 onAccept={(planDoc) => {
                                   settleExitPlanReview(selectedConversationId, planDoc);
                                 }}
@@ -2376,7 +2382,6 @@ export default function AgentPanel({
             </div>
           </div>
         )}
-
       </main>
 
       <ChangeReviewPanel

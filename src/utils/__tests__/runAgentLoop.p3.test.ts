@@ -10,7 +10,7 @@ import type { ChatMessage } from '../../types/chat';
 // ==================== 方法 13: buildForkMessages ====================
 
 describe('buildForkMessages (方法 13)', () => {
-	  const makeMsg = (role: ChatMessage['role'], text: string, id?: string): ChatMessage => ({
+  const makeMsg = (role: ChatMessage['role'], text: string, id?: string): ChatMessage => ({
     id: id ?? `msg-${Math.random().toString(36).slice(2, 8)}`,
     role,
     text,
@@ -60,7 +60,9 @@ describe('buildForkMessages (方法 13)', () => {
       makeMsg('user', 'Please read the config file'),
       {
         ...makeMsg('assistant', 'I read the file.'),
-        tool_calls: [{ id: 'tc1', type: 'function', function: { name: 'read_file', arguments: '{}' } }],
+        tool_calls: [
+          { id: 'tc1', type: 'function', function: { name: 'read_file', arguments: '{}' } },
+        ],
       },
       makeMsg('user', 'recent question'),
       makeMsg('assistant', 'recent answer'),
@@ -132,7 +134,12 @@ describe('filterToolsForSubagentType (方法 14)', () => {
   });
 
   it('does not filter for unknown subagent types (except excluded tools)', () => {
-    const tools = [makeTool('read'), makeTool('write'), makeTool('terminal'), makeTool('generate_image')];
+    const tools = [
+      makeTool('read'),
+      makeTool('write'),
+      makeTool('terminal'),
+      makeTool('generate_image'),
+    ];
     const result = filterToolsForSubagentType(tools, 'custom-agent');
     const names = result.map((t) => t.name);
     // No preset for 'custom-agent', so all tools except excluded are kept

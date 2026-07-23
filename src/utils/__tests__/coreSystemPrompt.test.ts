@@ -42,7 +42,7 @@ describe('buildCoreSystemPrompt', () => {
     expect(prompt).not.toContain('## Using the shell');
     expect(prompt).not.toContain('## Shell execution guidelines');
     expect(CORE_SYSTEM_PROMPT_SECTIONS_PLAN.length).toBeLessThan(
-      CORE_SYSTEM_PROMPT_SECTIONS_FULL.length,
+      CORE_SYSTEM_PROMPT_SECTIONS_FULL.length
     );
   });
 

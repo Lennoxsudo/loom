@@ -194,7 +194,9 @@ function readGitPanelDraftStorage(key: string): GitPanelDraftEntry | null {
     const raw = sessionStorage.getItem(`${GIT_PANEL_DRAFT_STORAGE_PREFIX}${key}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<GitPanelDraftEntry> & { commitMsg?: string };
-    const legacySplit = splitLegacyCommitMsg(typeof parsed.commitMsg === 'string' ? parsed.commitMsg : '');
+    const legacySplit = splitLegacyCommitMsg(
+      typeof parsed.commitMsg === 'string' ? parsed.commitMsg : ''
+    );
     return {
       commitSummary:
         typeof parsed.commitSummary === 'string' ? parsed.commitSummary : legacySplit.summary,
@@ -258,10 +260,7 @@ function setGitPanelDraft(projectPath: string, draft: Partial<GitPanelDraftEntry
   writeGitPanelDraftStorage(key, next);
 }
 
-function applyGitPanelDraft(
-  projectPath: string,
-  apply: (draft: GitPanelDraftEntry) => void
-) {
+function applyGitPanelDraft(projectPath: string, apply: (draft: GitPanelDraftEntry) => void) {
   const draft = getGitPanelDraft(projectPath);
   apply(draft);
 }
@@ -413,7 +412,11 @@ function scmStripeClass(variant: ScmBadgeVariant): string {
 
 function GitResourceStripe({ variant, title }: { variant: ScmBadgeVariant; title: string }) {
   return (
-    <div className={`${styles.resourceStripe} ${scmStripeClass(variant)}`} title={title} aria-hidden />
+    <div
+      className={`${styles.resourceStripe} ${scmStripeClass(variant)}`}
+      title={title}
+      aria-hidden
+    />
   );
 }
 
@@ -662,7 +665,9 @@ export default function GitPanel({
   const [blameState, setBlameState] = useState<BlameState | null>(null);
   const [stashList, setStashList] = useState<GitStashEntry[]>([]);
   const [stashLoading, setStashLoading] = useState(false);
-  const [stashMessage, setStashMessage] = useState(() => getGitPanelDraft(projectPath).stashMessage);
+  const [stashMessage, setStashMessage] = useState(
+    () => getGitPanelDraft(projectPath).stashMessage
+  );
   const [branchFormMode, setBranchFormMode] = useState<'create' | 'rename' | 'delete' | null>(null);
   const [branchFormValue, setBranchFormValue] = useState('');
   const [branchFormTarget, setBranchFormTarget] = useState('');
@@ -720,7 +725,9 @@ export default function GitPanel({
     async (repoPath: string) => {
       if (!repoPath || warnedReservedRef.current.has(repoPath)) return;
       try {
-        const names = await invoke<string[]>('find_windows_reserved_repo_files', { path: repoPath });
+        const names = await invoke<string[]>('find_windows_reserved_repo_files', {
+          path: repoPath,
+        });
         if (names.length === 0) return;
         warnedReservedRef.current.add(repoPath);
         const command = names
@@ -738,16 +745,13 @@ export default function GitPanel({
     [showWarning, t.git]
   );
 
-  const applyCache = useCallback(
-    (cache: GitPanelCacheEntry | null) => {
-      setIsGitRepo(cache?.isGitRepo ?? null);
-      setStatus(cache?.status ?? null);
-      setBranches(cache?.branches ?? []);
-      setCommits(cache?.commits ?? []);
-      setConflicted(cache?.conflicted ?? []);
-    },
-    []
-  );
+  const applyCache = useCallback((cache: GitPanelCacheEntry | null) => {
+    setIsGitRepo(cache?.isGitRepo ?? null);
+    setStatus(cache?.status ?? null);
+    setBranches(cache?.branches ?? []);
+    setCommits(cache?.commits ?? []);
+    setConflicted(cache?.conflicted ?? []);
+  }, []);
 
   useEffect(() => {
     if (!pushBusy || pushStartedAt === null) {
@@ -786,55 +790,60 @@ export default function GitPanel({
     };
   }, [recentCommitNotice]);
 
-  const refresh = useCallback(async (options?: { force?: boolean }) => {
-    if (!projectPath) return;
-    const cache = getCachedGitPanelState(projectPath);
-    if (!options?.force && isGitPanelCacheFresh(cache)) {
-      applyCache(cache);
-      return;
-    }
+  const refresh = useCallback(
+    async (options?: { force?: boolean }) => {
+      if (!projectPath) return;
+      const cache = getCachedGitPanelState(projectPath);
+      if (!options?.force && isGitPanelCacheFresh(cache)) {
+        applyCache(cache);
+        return;
+      }
 
-    const generation = refreshGenerationRef.current + 1;
-    refreshGenerationRef.current = generation;
-    setLoading(true);
-    try {
-      const snapshot = await invoke<GitWorkspaceSnapshot>('git_workspace_snapshot', {
-        repoPath: projectPath,
-        limit: commitLogLimit,
-      });
-      if (refreshGenerationRef.current !== generation) return;
-      setIsGitRepo(snapshot.isRepo);
-      setStatus(snapshot.status);
-      setBranches(snapshot.branches);
-      setCommits(snapshot.commits);
-      setConflicted(snapshot.conflicted);
-      setHasMoreCommits(snapshot.commits.length >= commitLogLimit);
-      setCachedGitPanelState(projectPath, {
-        isGitRepo: snapshot.isRepo,
-        status: snapshot.status,
-        branches: snapshot.branches,
-        commits: snapshot.commits,
-        conflicted: snapshot.conflicted,
-        updatedAt: Date.now(),
-      });
-      if (snapshot.isRepo) {
-        void warnWindowsReservedRepoFiles(projectPath);
+      const generation = refreshGenerationRef.current + 1;
+      refreshGenerationRef.current = generation;
+      setLoading(true);
+      try {
+        const snapshot = await invoke<GitWorkspaceSnapshot>('git_workspace_snapshot', {
+          repoPath: projectPath,
+          limit: commitLogLimit,
+        });
+        if (refreshGenerationRef.current !== generation) return;
+        setIsGitRepo(snapshot.isRepo);
+        setStatus(snapshot.status);
+        setBranches(snapshot.branches);
+        setCommits(snapshot.commits);
+        setConflicted(snapshot.conflicted);
+        setHasMoreCommits(snapshot.commits.length >= commitLogLimit);
+        setCachedGitPanelState(projectPath, {
+          isGitRepo: snapshot.isRepo,
+          status: snapshot.status,
+          branches: snapshot.branches,
+          commits: snapshot.commits,
+          conflicted: snapshot.conflicted,
+          updatedAt: Date.now(),
+        });
+        if (snapshot.isRepo) {
+          void warnWindowsReservedRepoFiles(projectPath);
+        }
+      } catch (e) {
+        if (refreshGenerationRef.current !== generation) return;
+        notifyGitError(e);
+      } finally {
+        if (refreshGenerationRef.current === generation) {
+          setLoading(false);
+        }
       }
-    } catch (e) {
-      if (refreshGenerationRef.current !== generation) return;
-      notifyGitError(e);
-    } finally {
-      if (refreshGenerationRef.current === generation) {
-        setLoading(false);
-      }
-    }
-  }, [applyCache, commitLogLimit, notifyGitError, projectPath, warnWindowsReservedRepoFiles]);
+    },
+    [applyCache, commitLogLimit, notifyGitError, projectPath, warnWindowsReservedRepoFiles]
+  );
 
   const refreshStashList = useCallback(async () => {
     if (!projectPath) return;
     setStashLoading(true);
     try {
-      const list = await invoke<GitStashEntry[]>('git_workspace_stash_list', { repoPath: projectPath });
+      const list = await invoke<GitStashEntry[]>('git_workspace_stash_list', {
+        repoPath: projectPath,
+      });
       setStashList(list);
     } catch (e) {
       showError(String(e));
@@ -959,7 +968,11 @@ export default function GitPanel({
       setHasMoreCommits(result.commits.length >= newLimit);
       const cache = getCachedGitPanelState(projectPath);
       if (cache) {
-        setCachedGitPanelState(projectPath, { ...cache, commits: result.commits, updatedAt: Date.now() });
+        setCachedGitPanelState(projectPath, {
+          ...cache,
+          commits: result.commits,
+          updatedAt: Date.now(),
+        });
       }
     } catch (e) {
       showError(String(e));
@@ -1029,7 +1042,14 @@ export default function GitPanel({
         openingDiffLockRef.current = false;
       }
     },
-    [onOpenDiffInEditor, projectPath, showError, t.git.diffEditorTabSuffix, t.git.diffLabelCommit, t.git.diffLabelParent]
+    [
+      onOpenDiffInEditor,
+      projectPath,
+      showError,
+      t.git.diffEditorTabSuffix,
+      t.git.diffLabelCommit,
+      t.git.diffLabelParent,
+    ]
   );
 
   const handleViewBlame = useCallback(
@@ -1163,7 +1183,16 @@ export default function GitPanel({
     } finally {
       setBranchBusy(false);
     }
-  }, [afterMutation, branchFormTarget, projectPath, showError, showSuccess, showWarning, status?.branch, t.git]);
+  }, [
+    afterMutation,
+    branchFormTarget,
+    projectPath,
+    showError,
+    showSuccess,
+    showWarning,
+    status?.branch,
+    t.git,
+  ]);
 
   const handleStashSave = useCallback(async () => {
     if (!projectPath || gitOpsDisabled) return;
@@ -1231,7 +1260,9 @@ export default function GitPanel({
     setGitignoreBusy(true);
     const abs = joinRepoPath(projectPath, '.gitignore');
     try {
-      const info = await invoke<{ exists: boolean; file_type: string }>('get_file_info', { path: abs });
+      const info = await invoke<{ exists: boolean; file_type: string }>('get_file_info', {
+        path: abs,
+      });
       if (info.exists && info.file_type === 'directory') {
         showWarning(t.git.gitignoreBlockedByDir);
         return;
@@ -1271,14 +1302,18 @@ export default function GitPanel({
       gitignoreActionLockRef.current = true;
       setGitignoreBusy(true);
       try {
-        const info = await invoke<{ exists: boolean; file_type: string }>('get_file_info', { path: gitignoreAbs });
+        const info = await invoke<{ exists: boolean; file_type: string }>('get_file_info', {
+          path: gitignoreAbs,
+        });
         if (info.exists && info.file_type === 'directory') {
           showWarning(t.git.gitignoreBlockedByDir);
           return;
         }
         let content = '';
         if (info.exists) {
-          content = await invoke<string>('read_file_content', { filePath: gitignoreAbs }).catch(() => '');
+          content = await invoke<string>('read_file_content', { filePath: gitignoreAbs }).catch(
+            () => ''
+          );
         }
         if (gitignoreAlreadyHasRule(content, rule)) {
           showWarning(t.git.addToGitignoreAlready);
@@ -1570,7 +1605,9 @@ export default function GitPanel({
     if (!branchName || branchName === status?.branch) return;
     setBranchBusy(true);
     try {
-      await invoke('git_workspace_checkout', { options: { repoPath: projectPath, branch: branchName } });
+      await invoke('git_workspace_checkout', {
+        options: { repoPath: projectPath, branch: branchName },
+      });
       await afterMutation();
     } catch (e) {
       showError(String(e));
@@ -1604,9 +1641,7 @@ export default function GitPanel({
       .replace(/\{behind\}/g, String(status.behind));
   }, [status, t.git.aheadBehind]);
 
-  const canSyncRemote = Boolean(
-    status?.upstreamName && (status.ahead > 0 || status.behind > 0)
-  );
+  const canSyncRemote = Boolean(status?.upstreamName && (status.ahead > 0 || status.behind > 0));
 
   const pushElapsedLabel = useMemo(() => {
     const mins = Math.floor(pushElapsedSec / 60);
@@ -1626,11 +1661,19 @@ export default function GitPanel({
     }
     const elapsedHours = Math.floor(elapsedMinutes / 60);
     return t.git.committedHoursAgo.replace('{hours}', String(elapsedHours));
-  }, [recentCommitNotice, recentCommitNow, t.git.committedHoursAgo, t.git.committedJustNow, t.git.committedMinutesAgo]);
+  }, [
+    recentCommitNotice,
+    recentCommitNow,
+    t.git.committedHoursAgo,
+    t.git.committedJustNow,
+    t.git.committedMinutesAgo,
+  ]);
 
   const latestCommit = commits[0] ?? null;
   const hasUnpushedCommits = (status?.ahead ?? 0) > 0;
-  const showBottomCommitNotice = Boolean(recentCommitNotice || (hasUnpushedCommits && latestCommit));
+  const showBottomCommitNotice = Boolean(
+    recentCommitNotice || (hasUnpushedCommits && latestCommit)
+  );
 
   const bottomCommitWhenLabel = useMemo(() => {
     if (!showBottomCommitNotice) return null;
@@ -1652,7 +1695,7 @@ export default function GitPanel({
   ]);
 
   const bottomCommitSubject = showBottomCommitNotice
-    ? recentCommitNotice?.subject ?? latestCommit?.subject ?? null
+    ? (recentCommitNotice?.subject ?? latestCommit?.subject ?? null)
     : null;
 
   const gitPanelCtxEntries: GitPanelMenuEntry[] = (() => {
@@ -1768,7 +1811,12 @@ export default function GitPanel({
             <span className={styles.topBarTitle}>{t.git.workspaceTitle}</span>
           </div>
           <div className={styles.headerActions}>
-            <button type="button" className={styles.iconButton} onClick={onCollapse} title={t.git.collapseSidebar}>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={onCollapse}
+              title={t.git.collapseSidebar}
+            >
               ‹
             </button>
           </div>
@@ -1817,7 +1865,12 @@ export default function GitPanel({
           >
             <span className={loading ? styles.spin : undefined}>↻</span>
           </button>
-          <button type="button" className={styles.iconButton} onClick={onCollapse} title={t.git.collapseSidebar}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={onCollapse}
+            title={t.git.collapseSidebar}
+          >
             ‹
           </button>
         </div>
@@ -1896,7 +1949,11 @@ export default function GitPanel({
                   {status.rebaseInProgress && <span>{t.git.rebaseInProgress}</span>}
                 </div>
                 <div className={styles.bannerRow}>
-                  <button type="button" className={styles.dangerButton} onClick={() => void handleAbortMerge()}>
+                  <button
+                    type="button"
+                    className={styles.dangerButton}
+                    onClick={() => void handleAbortMerge()}
+                  >
                     {t.git.abortMerge}
                   </button>
                   <button
@@ -2168,14 +2225,22 @@ export default function GitPanel({
                   ) : (
                     activeChangeRows.map((r) => {
                       const ctxSection =
-                        changesTab === 'staged' ? 'staged' : changesTab === 'untracked' ? 'untracked' : 'unstaged';
+                        changesTab === 'staged'
+                          ? 'staged'
+                          : changesTab === 'untracked'
+                            ? 'untracked'
+                            : 'unstaged';
                       return (
                         <div
                           key={`${changesTab}-${r.filePath}`}
                           className={styles.changeFileRow}
-                          onContextMenu={(e) => openGitFileContextMenu(e, { section: ctxSection, row: r })}
+                          onContextMenu={(e) =>
+                            openGitFileContextMenu(e, { section: ctxSection, row: r })
+                          }
                         >
-                          <div className={`${styles.fileIconBox} ${scmIconColorClass(r.scmVariant)}`}>
+                          <div
+                            className={`${styles.fileIconBox} ${scmIconColorClass(r.scmVariant)}`}
+                          >
                             {r.scmLetter}
                           </div>
                           <div className={styles.fileMeta}>
@@ -2188,7 +2253,9 @@ export default function GitPanel({
                             >
                               {pathBaseName(r.displayPath)}
                             </button>
-                            <span className={styles.fileStatus}>{scmBadgeHint(r.scmVariant, t.git)}</span>
+                            <span className={styles.fileStatus}>
+                              {scmBadgeHint(r.scmVariant, t.git)}
+                            </span>
                           </div>
                           <div className={styles.fileRowActions}>
                             {changesTab === 'staged' && (
@@ -2309,43 +2376,53 @@ export default function GitPanel({
                                   <div>{commitDetail.meta.author}</div>
                                   <div>{commitDetail.meta.date}</div>
                                   {commitDetail.meta.body && (
-                                    <div className={styles.commitDetailBody}>{commitDetail.meta.body}</div>
+                                    <div className={styles.commitDetailBody}>
+                                      {commitDetail.meta.body}
+                                    </div>
                                   )}
                                   {commitDetail.truncated && (
                                     <div className={styles.meta}>{t.git.commitTruncated}</div>
                                   )}
                                 </div>
-                                <div className={styles.sectionTitle}>{t.git.commitFilesChanged}</div>
+                                <div className={styles.sectionTitle}>
+                                  {t.git.commitFilesChanged}
+                                </div>
                                 <div className={styles.fileList}>
                                   {commitDetail.files.map((f) => {
                                     const fileVariant = commitFileStatusVariant(f.status);
                                     return (
-                                    <div
-                                      key={f.path}
-                                      className={styles.fileRow}
-                                      role="button"
-                                      tabIndex={0}
-                                      onClick={() => void handleOpenCommitFileDiff(c.hash, f.path)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault();
-                                          void handleOpenCommitFileDiff(c.hash, f.path);
+                                      <div
+                                        key={f.path}
+                                        className={styles.fileRow}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() =>
+                                          void handleOpenCommitFileDiff(c.hash, f.path)
                                         }
-                                      }}
-                                    >
-                                      <GitResourceStripe
-                                        variant={fileVariant}
-                                        title={scmBadgeHint(fileVariant, t.git)}
-                                      />
-                                      <GitScmPathLabel
-                                        fullPath={gitPathPreferSeparators(projectPath, f.path)}
-                                        className={`${styles.filePath} ${styles.gitPathSlot} ${styles.clickablePath}`}
-                                      />
-                                      <span className={styles.commitFileStats}>
-                                        <span className={styles.commitFileAdditions}>+{f.additions}</span>
-                                        <span className={styles.commitFileDeletions}>-{f.deletions}</span>
-                                      </span>
-                                    </div>
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            void handleOpenCommitFileDiff(c.hash, f.path);
+                                          }
+                                        }}
+                                      >
+                                        <GitResourceStripe
+                                          variant={fileVariant}
+                                          title={scmBadgeHint(fileVariant, t.git)}
+                                        />
+                                        <GitScmPathLabel
+                                          fullPath={gitPathPreferSeparators(projectPath, f.path)}
+                                          className={`${styles.filePath} ${styles.gitPathSlot} ${styles.clickablePath}`}
+                                        />
+                                        <span className={styles.commitFileStats}>
+                                          <span className={styles.commitFileAdditions}>
+                                            +{f.additions}
+                                          </span>
+                                          <span className={styles.commitFileDeletions}>
+                                            -{f.deletions}
+                                          </span>
+                                        </span>
+                                      </div>
                                     );
                                   })}
                                 </div>
@@ -2496,7 +2573,9 @@ export default function GitPanel({
             <div className={styles.commitNotice} role="status" aria-live="polite">
               <div className={styles.commitNoticeMain}>
                 <div className={styles.commitNoticeWhen}>
-                  {recentCommitNotice ? bottomCommitWhenLabel : `${t.git.latestCommitLabel} · ${bottomCommitWhenLabel}`}
+                  {recentCommitNotice
+                    ? bottomCommitWhenLabel
+                    : `${t.git.latestCommitLabel} · ${bottomCommitWhenLabel}`}
                 </div>
                 <div className={styles.commitNoticeSubject} title={bottomCommitSubject}>
                   {bottomCommitSubject}

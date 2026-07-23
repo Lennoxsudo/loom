@@ -4,7 +4,11 @@ import type { MonacoEditor } from '../../types/monaco';
 import { getMonacoInstance } from '../../monaco-loader';
 import { applyMonacoTheme } from '../../utils/monacoTheme';
 import { forceRegisterTokenizers } from '../../monaco-languages';
-import { loadMonacoLanguage, isLanguageLoaded, languageLoadMonitor } from '../../utils/monacoLanguageLoader';
+import {
+  loadMonacoLanguage,
+  isLanguageLoaded,
+  languageLoadMonitor,
+} from '../../utils/monacoLanguageLoader';
 import { installEditorClipboardShortcuts } from '../../utils/editorClipboardShortcuts';
 
 export interface MonacoHostProps {
@@ -255,7 +259,7 @@ export function MonacoHost(props: MonacoHostProps) {
         }
       });
 
-      const existingLang = monaco.languages.getLanguages().find(l => l.id === initLangId);
+      const existingLang = monaco.languages.getLanguages().find((l) => l.id === initLangId);
       if (existingLang && editorRef.current) {
         editorRef.current.trigger('wv2-fix', 'editor.action.forceRetokenize', null);
       }
@@ -305,13 +309,22 @@ export function MonacoHost(props: MonacoHostProps) {
       >
         <div style={{ textAlign: 'center' }}>
           <div>Loading {language} language support...</div>
-          {loadingError && <div style={{ fontSize: '12px', color: 'var(--text-error)', marginTop: '8px' }}>{loadingError}</div>}
+          {loadingError && (
+            <div style={{ fontSize: '12px', color: 'var(--text-error)', marginTop: '8px' }}>
+              {loadingError}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg-editor)' }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg-editor)' }}
+    />
+  );
 }
 
 export function MonacoDiffHost(props: MonacoDiffHostProps) {
@@ -420,10 +433,14 @@ export function MonacoDiffHost(props: MonacoDiffHostProps) {
       }
     });
 
-    const existingLang = monaco.languages.getLanguages().find(l => l.id === language);
+    const existingLang = monaco.languages.getLanguages().find((l) => l.id === language);
     if (existingLang && diffEditorRef.current) {
-      diffEditorRef.current.getOriginalEditor().trigger('wv2-fix', 'editor.action.forceRetokenize', null);
-      diffEditorRef.current.getModifiedEditor().trigger('wv2-fix', 'editor.action.forceRetokenize', null);
+      diffEditorRef.current
+        .getOriginalEditor()
+        .trigger('wv2-fix', 'editor.action.forceRetokenize', null);
+      diffEditorRef.current
+        .getModifiedEditor()
+        .trigger('wv2-fix', 'editor.action.forceRetokenize', null);
     }
 
     resizeObserverRef.current = new ResizeObserver(() => {
@@ -477,11 +494,20 @@ export function MonacoDiffHost(props: MonacoDiffHostProps) {
       >
         <div style={{ textAlign: 'center' }}>
           <div>Loading {language} language support...</div>
-          {loadingError && <div style={{ fontSize: '12px', color: 'var(--text-error)', marginTop: '8px' }}>{loadingError}</div>}
+          {loadingError && (
+            <div style={{ fontSize: '12px', color: 'var(--text-error)', marginTop: '8px' }}>
+              {loadingError}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg-editor)' }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg-editor)' }}
+    />
+  );
 }

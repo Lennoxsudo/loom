@@ -83,8 +83,19 @@ describe('messageScrollUtils', () => {
     expect(
       isPinnableUserMessage({
         ...createUserMessage('2', '  '),
-        attachments: [{ id: 'a', type: 'image', path: '/tmp/a.png', mediaType: 'image/png', width: 100, height: 100, size: 1024, sha256: 'abc' }],
-      }),
+        attachments: [
+          {
+            id: 'a',
+            type: 'image',
+            path: '/tmp/a.png',
+            mediaType: 'image/png',
+            width: 100,
+            height: 100,
+            size: 1024,
+            sha256: 'abc',
+          },
+        ],
+      })
     ).toBe(true);
     expect(isPinnableUserMessage({ ...createUserMessage('3', ''), role: 'assistant' })).toBe(false);
   });
@@ -175,28 +186,32 @@ describe('messageScrollUtils', () => {
     expect(
       areMessageAnchorPositionsEqual(
         [{ id: 'u1', topPercent: 12.34 }],
-        [{ id: 'u1', topPercent: 12.33 }],
-      ),
+        [{ id: 'u1', topPercent: 12.33 }]
+      )
     ).toBe(true);
     expect(
       areMessageAnchorPositionsEqual(
         [{ id: 'u1', topPercent: 12.3 }],
-        [{ id: 'u1', topPercent: 12.5 }],
-      ),
+        [{ id: 'u1', topPercent: 12.5 }]
+      )
     ).toBe(false);
   });
 
   it('getUserMessagePreviewText truncates long text and handles attachment-only messages', () => {
     const longText = 'a'.repeat(300);
-    expect(getUserMessagePreviewText(createUserMessage('1', longText), '(attachments)')).toHaveLength(241);
+    expect(
+      getUserMessagePreviewText(createUserMessage('1', longText), '(attachments)')
+    ).toHaveLength(241);
     expect(
       getUserMessagePreviewText(
         {
           ...createUserMessage('2', ''),
-          fileAttachments: [{ id: 'f1', path: '/tmp/a.ts', name: 'a.ts', content: 'x', language: 'typescript' }],
+          fileAttachments: [
+            { id: 'f1', path: '/tmp/a.ts', name: 'a.ts', content: 'x', language: 'typescript' },
+          ],
         },
-        '(attachments)',
-      ),
+        '(attachments)'
+      )
     ).toBe('(attachments)');
   });
 });

@@ -65,7 +65,7 @@ describe('recoverPlanFromMessages', () => {
       recoverPlanFromMessages([
         { role: 'user', text: 'hi' },
         { role: 'assistant', text: 'hello' },
-      ]),
+      ])
     ).toBeNull();
   });
 });

@@ -111,8 +111,18 @@ export const DEFAULT_GUARD_POLICY: GuardPolicy = {
   },
   dangerousTools: [
     { name: 'delete_file', riskLevel: 'high', requiresConfirmation: true, description: '删除文件' },
-    { name: 'move_file', riskLevel: 'medium', requiresConfirmation: false, description: '移动文件' },
-    { name: 'run_command', riskLevel: 'medium', requiresConfirmation: false, description: '执行命令' },
+    {
+      name: 'move_file',
+      riskLevel: 'medium',
+      requiresConfirmation: false,
+      description: '移动文件',
+    },
+    {
+      name: 'run_command',
+      riskLevel: 'medium',
+      requiresConfirmation: false,
+      description: '执行命令',
+    },
     { name: 'term', riskLevel: 'medium', requiresConfirmation: false, description: '终端操作' },
     { name: 'terminal', riskLevel: 'medium', requiresConfirmation: false, description: '终端操作' },
     { name: 'write', riskLevel: 'low', requiresConfirmation: false, description: '写入文件' },
@@ -178,12 +188,7 @@ export const DEFAULT_GUARD_POLICY: GuardPolicy = {
     },
   ],
   accessModePolicies: DEFAULT_ACCESS_MODE_POLICIES,
-  blockedCommands: [
-    'rm -rf /',
-    'format c:',
-    'del /s /q',
-    ':(){ :|:& };:',
-  ],
+  blockedCommands: ['rm -rf /', 'format c:', 'del /s /q', ':(){ :|:& };:'],
   maxRepetitions: 3,
   noProgressThreshold: 2,
   enableLogging: true,
@@ -239,9 +244,7 @@ export function requiresConfirmation(
   const modePolicy = policy.accessModePolicies[accessMode];
   if (
     modePolicy.confirmWrites &&
-    ['write', 'write_file', 'edit', 'edit_file', 'delete_file', 'move_file'].includes(
-      resolvedName
-    )
+    ['write', 'write_file', 'edit', 'edit_file', 'delete_file', 'move_file'].includes(resolvedName)
   ) {
     return true;
   }
@@ -467,7 +470,10 @@ export class ToolGuard {
       return { exhausted: true, reason: `文件读取次数已达上限 (${limits.maxFileReads})` };
     }
     if (usage.totalBytes >= limits.maxTotalBytes) {
-      return { exhausted: true, reason: `读取字节数已达上限 (${formatBytes(limits.maxTotalBytes)})` };
+      return {
+        exhausted: true,
+        reason: `读取字节数已达上限 (${formatBytes(limits.maxTotalBytes)})`,
+      };
     }
     if (usage.commandExecutions >= limits.maxCommandExecutions) {
       return { exhausted: true, reason: `命令执行次数已达上限 (${limits.maxCommandExecutions})` };
@@ -552,7 +558,12 @@ export class ToolGuard {
 
   private updateResourceUsage(toolName: string, result: ToolResult) {
     const resolvedName = resolveToUnderlyingTool(toolName);
-    if (resolvedName === 'read_file' || resolvedName === 'read' || resolvedName === 'get_file_tree' || resolvedName === 'search_content') {
+    if (
+      resolvedName === 'read_file' ||
+      resolvedName === 'read' ||
+      resolvedName === 'get_file_tree' ||
+      resolvedName === 'search_content'
+    ) {
       this.resourceUsage.fileReads++;
       const bytes = result.output?.length || 0;
       this.resourceUsage.totalBytes += bytes;
@@ -640,7 +651,14 @@ export class ToolGuard {
       });
     }
 
-    const pathArg = args.path || args.source || args.destination || args.file_path || args.file || args.repo_path || args.repo;
+    const pathArg =
+      args.path ||
+      args.source ||
+      args.destination ||
+      args.file_path ||
+      args.file ||
+      args.repo_path ||
+      args.repo;
     if (typeof pathArg === 'string') {
       const pathCheck = this.checkBlockedPaths(pathArg);
       if (pathCheck.blocked) {

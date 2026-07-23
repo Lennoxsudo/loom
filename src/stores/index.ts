@@ -13,16 +13,8 @@ export {
   useEditorActions,
 } from './useEditorStore';
 export { useFileStore } from './useFileStore';
-export {
-  useCbmGraphReady,
-  useCbmProjects,
-  useCbmSidecarState,
-  useCbmStore,
-} from './useCbmStore';
-export {
-  useBuiltinGatewayStore,
-  useBuiltinGatewayState,
-} from './useBuiltinGatewayStore';
+export { useCbmGraphReady, useCbmProjects, useCbmSidecarState, useCbmStore } from './useCbmStore';
+export { useBuiltinGatewayStore, useBuiltinGatewayState } from './useBuiltinGatewayStore';
 export {
   useSidebarWidth,
   useIsResizing,

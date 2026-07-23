@@ -8,7 +8,6 @@
 // - removes most remaining control characters
 
 function stripAnsi(input: string): string {
-   
   const ansiPattern =
     // eslint-disable-next-line no-control-regex
     /[\u001B\u009B][[\]()#;?]*(?:(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~]|(?:[0-9A-ORZcf-nqry=><~]))/g;
@@ -53,4 +52,3 @@ export function normalizeTerminalTextOutput(
   s = stripControlChars(s);
   return s;
 }
-

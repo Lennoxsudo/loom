@@ -1,6 +1,6 @@
 /**
  * 共享 Markdown 渲染组件
- * 
+ *
  * 被 ChatPanel 和 AgentPanel 共享使用
  */
 
@@ -81,7 +81,13 @@ interface CodeBlockProps {
   ref?: unknown;
 }
 
-const CodeBlockRenderer = ({ children, className, node: _node, ref: _ref, ...rest }: CodeBlockProps) => {
+const CodeBlockRenderer = ({
+  children,
+  className,
+  node: _node,
+  ref: _ref,
+  ...rest
+}: CodeBlockProps) => {
   const t = useTranslation();
   const match = /language-(\w+)/.exec(className || '');
   let language = match ? match[1] : '';
@@ -96,12 +102,41 @@ const CodeBlockRenderer = ({ children, className, node: _node, ref: _ref, ...res
         break;
       }
     }
-    
+
     if (firstContentIndex !== -1) {
       const firstLine = lines[firstContentIndex].trim().toLowerCase();
-      if (['bash', 'shell', 'sh', 'javascript', 'typescript', 'js', 'ts', 'json', 'html', 'css', 'python', 'rust', 'go', 'java', 'c', 'cpp', 'yml', 'yaml', 'xml', 'sql', 'text', 'plaintext', 'txt'].includes(firstLine)) {
+      if (
+        [
+          'bash',
+          'shell',
+          'sh',
+          'javascript',
+          'typescript',
+          'js',
+          'ts',
+          'json',
+          'html',
+          'css',
+          'python',
+          'rust',
+          'go',
+          'java',
+          'c',
+          'cpp',
+          'yml',
+          'yaml',
+          'xml',
+          'sql',
+          'text',
+          'plaintext',
+          'txt',
+        ].includes(firstLine)
+      ) {
         language = firstLine;
-        codeText = lines.slice(firstContentIndex + 1).join('\n').replace(/^\s*\n/, '');
+        codeText = lines
+          .slice(firstContentIndex + 1)
+          .join('\n')
+          .replace(/^\s*\n/, '');
       }
     }
   }
@@ -189,13 +224,15 @@ const CodeBlockRenderer = ({ children, className, node: _node, ref: _ref, ...res
           padding: '12px',
           fontSize: '12px',
           backgroundColor: 'transparent',
-          fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', 'Consolas', 'Liberation Mono', 'Menlo', monospace",
+          fontFamily:
+            "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', 'Consolas', 'Liberation Mono', 'Menlo', monospace",
           lineHeight: '1.5',
           letterSpacing: '0',
         }}
         codeTagProps={{
           style: {
-            fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', 'Consolas', 'Liberation Mono', 'Menlo', monospace",
+            fontFamily:
+              "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', 'Consolas', 'Liberation Mono', 'Menlo', monospace",
             letterSpacing: '0',
           },
         }}
@@ -246,7 +283,7 @@ function cleanAutolinkHref(href: string): [string, string] {
   // 合法 URL 字符集（RFC 3986 unreserved + reserved + percent-encoded）
   // 中文标号（全角括号、句号、逗号等）不属于合法 URL 字符
   const URL_CHARS = new Set(
-    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/?#[]@!$&\'()*+,;=._~%-'
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/?#[]@!$&'()*+,;=._~%-"
   );
   for (let i = 0; i < href.length; i++) {
     const ch = href[i];
@@ -254,8 +291,10 @@ function cleanAutolinkHref(href: string): [string, string] {
     if (ch === '%' && i + 2 < href.length) {
       const hex1 = href.charCodeAt(i + 1);
       const hex2 = href.charCodeAt(i + 2);
-      const isHex1 = (hex1 >= 48 && hex1 <= 57) || (hex1 >= 65 && hex1 <= 70) || (hex1 >= 97 && hex1 <= 102);
-      const isHex2 = (hex2 >= 48 && hex2 <= 57) || (hex2 >= 65 && hex2 <= 70) || (hex2 >= 97 && hex2 <= 102);
+      const isHex1 =
+        (hex1 >= 48 && hex1 <= 57) || (hex1 >= 65 && hex1 <= 70) || (hex1 >= 97 && hex1 <= 102);
+      const isHex2 =
+        (hex2 >= 48 && hex2 <= 57) || (hex2 >= 65 && hex2 <= 70) || (hex2 >= 97 && hex2 <= 102);
       if (isHex1 && isHex2) continue;
     }
     if (!URL_CHARS.has(ch)) {

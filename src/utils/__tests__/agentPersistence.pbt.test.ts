@@ -15,7 +15,7 @@ import type { Agent, AIProvider, AgentCapabilities } from '../agentPersistence';
 const nonCliProviderArb: fc.Arbitrary<AIProvider> = fc.constantFrom(
   'openai' as const,
   'anthropic' as const,
-  'ollama' as const,
+  'ollama' as const
 );
 
 const capabilitiesArb: fc.Arbitrary<AgentCapabilities> = fc.record({
@@ -56,7 +56,7 @@ const agentArb = (provider: fc.Arbitrary<AIProvider | undefined>): fc.Arbitrary<
       capabilities: capabilitiesArb,
     })
     .map(({ id, name, type, provider, capabilities }) =>
-      makeAgent({ id, name, type, provider, capabilities }),
+      makeAgent({ id, name, type, provider, capabilities })
     );
 
 describe('Agent persistence normalization', () => {
@@ -96,9 +96,9 @@ describe('Agent persistence normalization', () => {
           expect(loaded!.updatedAt).toBe(agent.updatedAt);
           expect(loaded!.provider).toBe(agent.provider);
           expect(loaded!.rules).toBe(rules);
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 

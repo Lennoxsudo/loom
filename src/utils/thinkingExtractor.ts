@@ -1,13 +1,16 @@
 /**
  * 智能思考气泡内容提取器
- * 
+ *
  * 解决AI模型错误地将正文内容放入思考气泡的问题
  */
 
 /**
  * 提取思考标签内的内容
  */
-export function extractThinkingContent(text: string, isStreaming?: boolean): {
+export function extractThinkingContent(
+  text: string,
+  isStreaming?: boolean
+): {
   thinking: string;
   content: string;
   hasThinkingTag: boolean;
@@ -16,75 +19,88 @@ export function extractThinkingContent(text: string, isStreaming?: boolean): {
   text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   // 如果没有思考标签，直接返回
-  if (!text.includes('<thinking') && !text.includes('<think') && !text.includes('<think>') && !text.includes('</think>')) {
+  if (
+    !text.includes('<thinking') &&
+    !text.includes('<think') &&
+    !text.includes('<think>') &&
+    !text.includes('</think>')
+  ) {
     return {
       thinking: '',
       content: isStreaming ? text : text.trim(),
-      hasThinkingTag: false
+      hasThinkingTag: false,
     };
   }
 
   // 尝试匹配标准 <thinking> 标签
   const thinkingRegex = /<thinking[\s\S]*?>([\s\S]*?)<\/thinking>/i;
   const thinkRegex = /<think[\s\S]*?>([\s\S]*?)<\/think>/i;
-  
+
   let thinkingMatch = thinkingRegex.exec(text) || thinkRegex.exec(text);
-  
+
   // 如果没有匹配到标准标签，尝试中文标签
   if (!thinkingMatch) {
     const cnThinkingRegex = /思考开始([\s\S]*?)思考结束/;
     thinkingMatch = cnThinkingRegex.exec(text);
   }
-  
+
   if (thinkingMatch) {
     const thinkingContent = thinkingMatch[1].trim();
     // 移除标签（包括内容）获取剩余的正文，并清理多余的换行符
-    let remainingContent = isStreaming ? text.replace(thinkingMatch[0], '') : text.replace(thinkingMatch[0], '').trim();
+    let remainingContent = isStreaming
+      ? text.replace(thinkingMatch[0], '')
+      : text.replace(thinkingMatch[0], '').trim();
     remainingContent = remainingContent.replace(/\r\n/g, '\n').replace(/\n\s*\n/g, '\n');
-    
+
     // 首先尝试检测思考内容中是否包含最终答案
     const finalAnswerInThinking = detectFinalAnswerInThinking(thinkingContent);
-    
+
     if (finalAnswerInThinking) {
       // 如果思考内容中包含最终答案，将答案提取到正文，思考内容保留剩余部分
-      const thinkingWithoutAnswer = extractThinkingWithoutFinalAnswer(thinkingContent, finalAnswerInThinking);
+      const thinkingWithoutAnswer = extractThinkingWithoutFinalAnswer(
+        thinkingContent,
+        finalAnswerInThinking
+      );
       return {
         thinking: thinkingWithoutAnswer,
-        content: remainingContent ? `${finalAnswerInThinking}\n\n${remainingContent}`.trim() : finalAnswerInThinking,
-        hasThinkingTag: true
+        content: remainingContent
+          ? `${finalAnswerInThinking}\n\n${remainingContent}`.trim()
+          : finalAnswerInThinking,
+        hasThinkingTag: true,
       };
     }
-    
+
     // 如果思考内容很长（>80字符）且正文为空，尝试识别内部结构
     if (thinkingContent.length > 80 && remainingContent.length === 0) {
       return handleAllContentInThinking(thinkingContent);
     }
-    
+
     return {
       thinking: thinkingContent,
       content: remainingContent,
-      hasThinkingTag: true
+      hasThinkingTag: true,
     };
   }
-  
+
   // 尝试匹配未闭合的思考标签（流式传输中可能未闭合）
   const unclosedThinkingRegex = /<thinking[\s\S]*?>([\s\S]*)/i;
   const unclosedThinkRegex = /<think[\s\S]*?>([\s\S]*)/i;
   const unclosedCnThinkingRegex = /思考开始([\s\S]*)/;
-  
-  const unclosedMatch = unclosedThinkingRegex.exec(text) || 
-                        unclosedThinkRegex.exec(text) ||
-                        unclosedCnThinkingRegex.exec(text);
-  
+
+  const unclosedMatch =
+    unclosedThinkingRegex.exec(text) ||
+    unclosedThinkRegex.exec(text) ||
+    unclosedCnThinkingRegex.exec(text);
+
   if (unclosedMatch) {
     // 对于未闭合的标签，将所有后续内容都视为思考过程
     return {
       thinking: isStreaming ? unclosedMatch[1] : unclosedMatch[1].trim(),
       content: '',
-      hasThinkingTag: true
+      hasThinkingTag: true,
     };
   }
-  
+
   // 如果无法解析，尝试简单的分隔（某些模型可能使用自定义格式）
   return extractUsingHeuristics(text);
 }
@@ -94,7 +110,7 @@ export function extractThinkingContent(text: string, isStreaming?: boolean): {
  */
 function detectFinalAnswerInThinking(thinking: string): string | null {
   const thinkingLines = thinking.split('\n');
-  
+
   // 查找常见的答案指示符 - 扩展了更多模式
   const answerPatterns = [
     // 明确标识答案的部分
@@ -106,12 +122,12 @@ function detectFinalAnswerInThinking(thinking: string): string | null {
     // 英语答案标记
     /(?:^|(?<=[。！？.!?])\s*)(?:Thus|Therefore|In summary|In conclusion|To sum up|So|The answer is|The solution is|The recommendation is)(?:[\s,，:：]+|$)/i,
   ];
-  
+
   // 从最后一行开始向前查找，因为答案通常在最后
   for (let i = thinkingLines.length - 1; i >= 0; i--) {
     const line = thinkingLines[i].trim();
     if (line.length < 5) continue; // 太短可能不是完整答案
-    
+
     // 检查是否是答案段落
     for (const pattern of answerPatterns) {
       const match = pattern.exec(line);
@@ -119,9 +135,12 @@ function detectFinalAnswerInThinking(thinking: string): string | null {
         // 从匹配的位置开始提取该行
         let answerPart = line;
         if (typeof match.index === 'number' && match.index > 0) {
-          answerPart = line.substring(match.index).replace(/^[。！？；：,.\s]+/, '').trim();
+          answerPart = line
+            .substring(match.index)
+            .replace(/^[。！？；：,.\s]+/, '')
+            .trim();
         }
-        
+
         const answerLines = [answerPart];
         const thinkingStartKeywords = /^(?:接下来|现在|思考|让我|我需要|分析|推理|首先|其次|再次)/;
         for (let j = i + 1; j < thinkingLines.length; j++) {
@@ -134,19 +153,28 @@ function detectFinalAnswerInThinking(thinking: string): string | null {
         return answerLines.join('\n').trim();
       }
     }
-    
+
     // 如果该行包含常见答案结束标记且长度合理
-    if (line.includes('答案是') || line.includes('所以') || line.includes('因此') || 
-        line.includes('答案：') || line.includes('回答') || line.includes('建议')) {
+    if (
+      line.includes('答案是') ||
+      line.includes('所以') ||
+      line.includes('因此') ||
+      line.includes('答案：') ||
+      line.includes('回答') ||
+      line.includes('建议')
+    ) {
       const words = line.split(/[，。！？\s]/);
       if (words.length >= 3 && line.length > 10) {
         // 查找这些关键字在行中的位置，从那里开始提取
         let answerPart = line;
         const index = line.search(/(?:答案是|所以|因此|答案：|回答|建议)/);
         if (index > 0) {
-          answerPart = line.substring(index).replace(/^[。！？；：,.\s]+/, '').trim();
+          answerPart = line
+            .substring(index)
+            .replace(/^[。！？；：,.\s]+/, '')
+            .trim();
         }
-        
+
         const answerLines = [answerPart];
         const thinkingStartKeywords = /^(?:接下来|现在|思考|让我|我需要|分析|推理|首先|浅次|再次)/;
         for (let j = i + 1; j < thinkingLines.length; j++) {
@@ -160,7 +188,7 @@ function detectFinalAnswerInThinking(thinking: string): string | null {
       }
     }
   }
-  
+
   return null;
 }
 
@@ -179,22 +207,25 @@ function extractThinkingWithoutFinalAnswer(thinking: string, finalAnswer: string
     }
     return remaining;
   }
-  
+
   // 如果无法定位，尝试通过模式匹配移除
   const lines = thinking.split('\n');
   const cleanedLines = [];
-  
+
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (trimmedLine.length === 0) continue;
-    
+
     // 跳过看起来像答案的行
-    const isAnswerLine = /^(?:所以|因此|综上所述|总结一下|总之|答案是|答案:|结论:|结果:|最终:|最终答案:|最终结果:|回答:|解决方案:|建议:|具体来说:|实际上:|Thus|Therefore|In summary|In conclusion|To sum up|So|The answer is|The solution is)/i.test(trimmedLine);
+    const isAnswerLine =
+      /^(?:所以|因此|综上所述|总结一下|总之|答案是|答案:|结论:|结果:|最终:|最终答案:|最终结果:|回答:|解决方案:|建议:|具体来说:|实际上:|Thus|Therefore|In summary|In conclusion|To sum up|So|The answer is|The solution is)/i.test(
+        trimmedLine
+      );
     if (!isAnswerLine) {
       cleanedLines.push(line);
     }
   }
-  
+
   return cleanedLines.join('\n').trim();
 }
 
@@ -206,14 +237,20 @@ function isStartOfAnswerParagraph(paragraph: string): boolean {
   const trimmed = paragraph.trim();
   if (trimmed.includes('|')) {
     const lines = trimmed.split('\n');
-    const hasTableBar = lines.some(line => /^[|:\-\s]+$/.test(line.trim().replace(/[a-zA-Z0-9\u4e00-\u9fff]/g, '')));
-    const hasMultipleBars = lines.filter(line => line.includes('|')).length >= 2;
+    const hasTableBar = lines.some((line) =>
+      /^[|:\-\s]+$/.test(line.trim().replace(/[a-zA-Z0-9\u4e00-\u9fff]/g, ''))
+    );
+    const hasMultipleBars = lines.filter((line) => line.includes('|')).length >= 2;
     if (hasTableBar || hasMultipleBars) return true;
   }
   if (trimmed.includes('```')) {
     return true;
   }
-  if (trimmed.includes('├──') || trimmed.includes('└──') || (trimmed.includes('│') && trimmed.includes('  '))) {
+  if (
+    trimmed.includes('├──') ||
+    trimmed.includes('└──') ||
+    (trimmed.includes('│') && trimmed.includes('  '))
+  ) {
     return true;
   }
   if (trimmed.startsWith('#')) {
@@ -227,7 +264,11 @@ function isStartOfAnswerParagraph(paragraph: string): boolean {
     '\u9879\u76ee\u7ed3\u6784', // 项目结构
     '\u6280\u672f\u6808', // 技术栈
     '\u6bd4\u5982\uff1a', // 比如：
-    'Here are', 'Here is the', 'Below is', 'The solution', 'I will update',
+    'Here are',
+    'Here is the',
+    'Below is',
+    'The solution',
+    'I will update',
     '\u6211\u5df2', // 我已
     '\u6211\u4eec\u53ef\u4ee5', // 我们可以
     '\u4f60\u53ef\u4ee5', // 你可以
@@ -235,10 +276,19 @@ function isStartOfAnswerParagraph(paragraph: string): boolean {
     '\u5177\u4f53\u6b65\u9aa4', // 具体步骤
     '\u6bd4\u5982', // 比如
     '\u8bbe\u8ba1\u65b9\u6848', // 设计方案
-    'Now I have', 'Let me', 'I have analyzed', 'Based on', 'Sure, I', 'Certainly,', 'Okay, ',
-    '好的，', '没问题', '根据', '首先，我们'
+    'Now I have',
+    'Let me',
+    'I have analyzed',
+    'Based on',
+    'Sure, I',
+    'Certainly,',
+    'Okay, ',
+    '好的，',
+    '没问题',
+    '根据',
+    '首先，我们',
   ];
-  if (startKeywords.some(keyword => trimmed.startsWith(keyword))) {
+  if (startKeywords.some((keyword) => trimmed.startsWith(keyword))) {
     return true;
   }
   const answerIndicators = [
@@ -258,9 +308,9 @@ function isStartOfAnswerParagraph(paragraph: string): boolean {
     'So,',
     'The answer is',
     'The solution is',
-    'The recommendation is'
+    'The recommendation is',
   ];
-  if (answerIndicators.some(marker => trimmed.startsWith(marker) && trimmed.length > 5)) {
+  if (answerIndicators.some((marker) => trimmed.startsWith(marker) && trimmed.length > 5)) {
     return true;
   }
   return false;
@@ -298,7 +348,9 @@ export function parseInlineThinkingFromContent(cleanContent: string): {
   if (closingTagMatch) {
     const closingTagIndex = closingTagMatch.index ?? -1;
     let thinking = cleanContent.slice(0, closingTagIndex);
-    const text = cleanContent.slice(closingTagIndex + closingTagMatch[0].length).replace(/^\s+/, '');
+    const text = cleanContent
+      .slice(closingTagIndex + closingTagMatch[0].length)
+      .replace(/^\s+/, '');
     thinking = thinking
       .replace(/<think(?:ing)?[\s\S]*?>/gi, '')
       .replace(/思考开始/g, '')
@@ -332,8 +384,11 @@ function handleAllContentInThinking(thinking: string): {
   hasThinkingTag: boolean;
 } {
   // 尝试检测段落分隔
-  const paragraphs = thinking.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
-  
+  const paragraphs = thinking
+    .split('\n\n')
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
   if (paragraphs.length <= 1) {
     // 只有一个段落，尝试在内部寻找答案分隔点
     return splitSingleParagraphThinking(thinking);
@@ -346,59 +401,59 @@ function handleAllContentInThinking(thinking: string): {
       return {
         thinking: thinkingContent,
         content,
-        hasThinkingTag: true
+        hasThinkingTag: true,
       };
     }
   }
-  
+
   // 有多个段落，通常最后一个段落是答案
   const answerIndicators = ['所以', '因此', '综上所述', '总结', '答案', '结论', '结果', '最终'];
-  
+
   for (let i = paragraphs.length - 1; i >= 0; i--) {
     const paragraph = paragraphs[i];
-    
+
     // 检查段落是否包含答案标记
-    const hasAnswerMarker = answerIndicators.some(marker => 
-      paragraph.includes(marker) && paragraph.length > 20
+    const hasAnswerMarker = answerIndicators.some(
+      (marker) => paragraph.includes(marker) && paragraph.length > 20
     );
-    
+
     if (hasAnswerMarker && i < paragraphs.length - 1) {
       // 从包含答案标记的段落开始到最后，作为正文内容
       const content = paragraphs.slice(i).join('\n\n').trim();
       const thinkingContent = paragraphs.slice(0, i).join('\n\n').trim();
-      
+
       return {
         thinking: thinkingContent,
         content,
-        hasThinkingTag: true
+        hasThinkingTag: true,
       };
     }
   }
-  
+
   // 如果没有找到明显的答案标记，尝试基于段落长度和结构判断
   // 通常最后一个段落是答案，特别是如果它比前面的段落短
   if (paragraphs.length >= 2) {
     const lastParagraph = paragraphs[paragraphs.length - 1];
     const secondLastParagraph = paragraphs[paragraphs.length - 2];
-    
+
     // 如果最后一个段落相对较短且包含结论性词语
     if (lastParagraph.length < secondLastParagraph.length * 0.7) {
       const thinkingContent = paragraphs.slice(0, -1).join('\n\n').trim();
       const content = lastParagraph.trim();
-      
+
       return {
         thinking: thinkingContent,
         content,
-        hasThinkingTag: true
+        hasThinkingTag: true,
       };
     }
   }
-  
+
   // 如果所有方法都失败，将整个内容作为思考，但标记为空正文
   return {
     thinking,
     content: '',
-    hasThinkingTag: true
+    hasThinkingTag: true,
   };
 }
 
@@ -419,10 +474,10 @@ function splitSingleParagraphThinking(thinking: string): {
     // 段落中的明显转折
     /\n\n(?:接下来|现在|那么|但是|然而|因此|所以)/,
   ];
-  
+
   let bestSplitIndex = -1;
   let bestSplitLength = 0;
-  
+
   for (const pattern of splitPoints) {
     const match = pattern.exec(thinking);
     if (match && match.index > 0) {
@@ -433,55 +488,57 @@ function splitSingleParagraphThinking(thinking: string): {
       }
     }
   }
-  
+
   if (bestSplitIndex > 0) {
     const thinkingPart = thinking.substring(0, bestSplitIndex).trim();
     const contentPart = thinking.substring(bestSplitIndex).trim();
-    
+
     // 确保思考部分不是太短
     if (thinkingPart.length > 20) {
       return {
         thinking: thinkingPart,
         content: contentPart,
-        hasThinkingTag: true
+        hasThinkingTag: true,
       };
     }
   }
-  
+
   // 如果没有找到合适的拆分点，使用启发式方法
   const lines = thinking.split('\n');
   if (lines.length >= 3) {
     // 尝试在最后1/3处拆分
-    const splitPoint = Math.floor(lines.length * 2 / 3);
+    const splitPoint = Math.floor((lines.length * 2) / 3);
     const thinkingLines = lines.slice(0, splitPoint);
     const contentLines = lines.slice(splitPoint);
-    
+
     return {
       thinking: thinkingLines.join('\n').trim(),
       content: contentLines.join('\n').trim(),
-      hasThinkingTag: true
+      hasThinkingTag: true,
     };
   }
-  
+
   // 如果是单行但很长，尝试按句号/感叹号/问号拆分
-  const sentences = thinking.split(/(?<=[。！？])|(?<=[.!?])(?=\s*[\u4e00-\u9fff])|(?<=[.!?])(?=\s+[A-Z])/u);
+  const sentences = thinking.split(
+    /(?<=[。！？])|(?<=[.!?])(?=\s*[\u4e00-\u9fff])|(?<=[.!?])(?=\s+[A-Z])/u
+  );
   if (sentences.length >= 3) {
-    const splitPoint = Math.floor(sentences.length * 2 / 3);
+    const splitPoint = Math.floor((sentences.length * 2) / 3);
     const thinkingSentences = sentences.slice(0, splitPoint);
     const contentSentences = sentences.slice(splitPoint);
-    
+
     return {
       thinking: thinkingSentences.join('').trim(),
       content: contentSentences.join('').trim(),
-      hasThinkingTag: true
+      hasThinkingTag: true,
     };
   }
-  
+
   // 最后的手段：将整个内容作为思考
   return {
     thinking,
     content: '',
-    hasThinkingTag: true
+    hasThinkingTag: true,
   };
 }
 
@@ -495,17 +552,43 @@ function extractUsingHeuristics(text: string): {
 } {
   // 查找思考开始标记
   const thinkingStartMarkers = [
-    '首先', '让我想一想', '让我思考一下', '我需要思考', '考虑一下',
-    '让我们来分析', '分析一下', '思考过程', '推理过程', '让我想想',
-    '我想一下', '让我考虑', '我需要想想', '思考：', '分析：', '推理：'
+    '首先',
+    '让我想一想',
+    '让我思考一下',
+    '我需要思考',
+    '考虑一下',
+    '让我们来分析',
+    '分析一下',
+    '思考过程',
+    '推理过程',
+    '让我想想',
+    '我想一下',
+    '让我考虑',
+    '我需要想想',
+    '思考：',
+    '分析：',
+    '推理：',
   ];
-  
+
   const contentStartMarkers = [
-    '所以', '因此', '综上所述', '总结一下', '总之', '答案是',
-    '结论是', '结果是', '最终答案是', '最终结果是', '回答是',
-    '解决方案是', '建议是', '答案是：', '结论是：', '结果是：'
+    '所以',
+    '因此',
+    '综上所述',
+    '总结一下',
+    '总之',
+    '答案是',
+    '结论是',
+    '结果是',
+    '最终答案是',
+    '最终结果是',
+    '回答是',
+    '解决方案是',
+    '建议是',
+    '答案是：',
+    '结论是：',
+    '结果是：',
   ];
-  
+
   // 尝试找到思考部分的开始
   let thinkingStart = -1;
   for (const marker of thinkingStartMarkers) {
@@ -514,7 +597,7 @@ function extractUsingHeuristics(text: string): {
       thinkingStart = index;
     }
   }
-  
+
   // 尝试找到正文部分的开始
   let contentStart = -1;
   for (const marker of contentStartMarkers) {
@@ -523,34 +606,34 @@ function extractUsingHeuristics(text: string): {
       contentStart = index;
     }
   }
-  
+
   if (thinkingStart !== -1 && contentStart !== -1 && contentStart > thinkingStart) {
     // 有明显的思考-正文结构
     const thinking = text.substring(thinkingStart, contentStart).trim();
     const content = text.substring(contentStart).trim();
-    
+
     return {
       thinking,
       content,
-      hasThinkingTag: false
+      hasThinkingTag: false,
     };
   } else if (thinkingStart !== -1 && contentStart === -1) {
     // 只有思考部分
     const thinking = text.substring(thinkingStart).trim();
     const content = thinkingStart > 0 ? text.substring(0, thinkingStart).trim() : '';
-    
+
     return {
       thinking,
       content,
-      hasThinkingTag: false
+      hasThinkingTag: false,
     };
   }
-  
+
   // 无法区分，将所有内容作为正文
   return {
     thinking: '',
     content: text.trim(),
-    hasThinkingTag: false
+    hasThinkingTag: false,
   };
 }
 
@@ -574,7 +657,7 @@ export function processStreamingThinkingChunk(
     const endTags = ['</thinking>', '</think>', '思考结束'];
     let earliestEndPos = -1;
     let endTagLength = 0;
-    
+
     for (const tag of endTags) {
       const pos = text.indexOf(tag);
       if (pos !== -1 && (earliestEndPos === -1 || pos < earliestEndPos)) {
@@ -582,31 +665,31 @@ export function processStreamingThinkingChunk(
         endTagLength = tag.length;
       }
     }
-    
+
     if (earliestEndPos !== -1) {
       // 找到结束标签
       const thinkingContent = text.substring(0, earliestEndPos);
       const remainingText = text.substring(earliestEndPos + endTagLength);
-      
+
       return {
         isThinking: false, // 思考结束
         extractedContent: thinkingContent,
-        remainingText: remainingText.replace(/^\s+/, '')
+        remainingText: remainingText.replace(/^\s+/, ''),
       };
     }
-    
+
     // 未找到结束标签，全部内容仍在思考中
     return {
       isThinking: true,
       extractedContent: text,
-      remainingText: ''
+      remainingText: '',
     };
   } else {
     // 不在思考中，查找开始标签
     const startTags = ['<thinking>', '<think>', '思考开始'];
     let earliestStartPos = -1;
     let startTagLength = 0;
-    
+
     for (const tag of startTags) {
       const pos = text.indexOf(tag);
       if (pos !== -1 && (earliestStartPos === -1 || pos < earliestStartPos)) {
@@ -614,27 +697,27 @@ export function processStreamingThinkingChunk(
         startTagLength = tag.length;
       }
     }
-    
+
     if (earliestStartPos !== -1) {
       // 找到开始标签
       const contentBeforeThinking = text.substring(0, earliestStartPos);
       const afterTag = text.substring(earliestStartPos + startTagLength);
-      
+
       // 递归处理标签后的内容
       const result = processStreamingThinkingChunk(afterTag, true);
-      
+
       return {
         isThinking: result.isThinking,
         extractedContent: result.extractedContent,
-        remainingText: contentBeforeThinking + result.remainingText
+        remainingText: contentBeforeThinking + result.remainingText,
       };
     }
-    
+
     // 没有思考标签，所有内容都是正文
     return {
       isThinking: false,
       extractedContent: '',
-      remainingText: text
+      remainingText: text,
     };
   }
 }
@@ -655,21 +738,21 @@ export function fixThinkingContentSeparation(message: {
   const normalizedText = (message.text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const normalizedThinking = (message.thinking || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const isStreaming = message.isStreaming;
-  
+
   // 如果已经有思考内容，则信任现有分离
   if (normalizedThinking && normalizedThinking.trim().length > 0) {
     return {
       text: isStreaming ? normalizedText : normalizedText.trim(),
-      thinking: isStreaming ? normalizedThinking : normalizedThinking.trim()
+      thinking: isStreaming ? normalizedThinking : normalizedThinking.trim(),
     };
   }
-  
+
   // 否则尝试从text中提取
   const extracted = extractThinkingContent(normalizedText, isStreaming);
-  
+
   return {
     text: extracted.content,
-    thinking: extracted.thinking || normalizedThinking
+    thinking: extracted.thinking || normalizedThinking,
   };
 }
 
@@ -677,7 +760,11 @@ export function fixThinkingContentSeparation(message: {
  * 智能合并思考内容和正文
  * 当某些模型错误地将所有内容放入思考标签时，尝试重新分配
  */
-export function smartMergeThinkingAndContent(text: string, thinking?: string, hasToolCalls?: boolean): {
+export function smartMergeThinkingAndContent(
+  text: string,
+  thinking?: string,
+  hasToolCalls?: boolean
+): {
   finalText: string;
   finalThinking: string;
 } {
@@ -685,43 +772,46 @@ export function smartMergeThinkingAndContent(text: string, thinking?: string, ha
   if (!thinking || thinking.trim().length === 0) {
     return {
       finalText: text.trim(),
-      finalThinking: ''
+      finalThinking: '',
     };
   }
-  
+
   const trimmedText = text.trim();
   const trimmedThinking = thinking.trim();
-  
+
   // 如果正文为空且没有工具调用，尝试从思考内容中提取可能混入的答案
   if (trimmedText.length === 0 && !hasToolCalls) {
     const finalAnswerInThinking = detectFinalAnswerInThinking(trimmedThinking);
     if (finalAnswerInThinking) {
-      const thinkingWithoutAnswer = extractThinkingWithoutFinalAnswer(trimmedThinking, finalAnswerInThinking);
+      const thinkingWithoutAnswer = extractThinkingWithoutFinalAnswer(
+        trimmedThinking,
+        finalAnswerInThinking
+      );
       return {
         finalText: finalAnswerInThinking,
-        finalThinking: thinkingWithoutAnswer
+        finalThinking: thinkingWithoutAnswer,
       };
     }
-    
+
     if (trimmedThinking.length > 50) {
       const extracted = extractThinkingContent(`<thinking>${trimmedThinking}</thinking>`);
       if (extracted.content && extracted.content.length > 0) {
         return {
           finalText: extracted.content,
-          finalThinking: extracted.thinking
+          finalThinking: extracted.thinking,
         };
       }
-      
+
       const handled = handleAllContentInThinking(trimmedThinking);
       if (handled.content && handled.content.length > 0) {
         return {
           finalText: handled.content,
-          finalThinking: handled.thinking
+          finalThinking: handled.thinking,
         };
       }
     }
   }
-  
+
   // 如果思考内容和正文有重叠，优化处理
   if (trimmedText.length > 0 && trimmedThinking.length > 0) {
     // 检查思考内容是否以正文开头（常见错误模式）
@@ -731,82 +821,85 @@ export function smartMergeThinkingAndContent(text: string, thinking?: string, ha
       const cleanedRemaining = remainingThinking.replace(/^[，。！？、\s]+/, '').trim();
       return {
         finalText: trimmedText,
-        finalThinking: cleanedRemaining
+        finalThinking: cleanedRemaining,
       };
     }
-    
+
     // 检查思考内容是否包含正文
     const thinkingIndex = trimmedThinking.indexOf(trimmedText);
     if (thinkingIndex !== -1) {
       const beforeText = trimmedThinking.substring(0, thinkingIndex).trim();
       const afterText = trimmedThinking.substring(thinkingIndex + trimmedText.length).trim();
-      
+
       // 清理前后文本，移除多余的空格和标点
       const cleanBefore = beforeText.replace(/[，。！？、\s]+$/, '').trim();
       const cleanAfter = afterText.replace(/^[，。！？、\s]+/, '').trim();
-      
+
       // 将重复的正文从思考中移除
       if (cleanBefore && cleanAfter) {
         return {
           finalText: trimmedText,
-          finalThinking: cleanBefore + '\n' + cleanAfter
+          finalThinking: cleanBefore + '\n' + cleanAfter,
         };
       } else if (cleanBefore) {
         return {
           finalText: trimmedText,
-          finalThinking: cleanBefore
+          finalThinking: cleanBefore,
         };
       } else if (cleanAfter) {
         return {
           finalText: trimmedText,
-          finalThinking: cleanAfter
+          finalThinking: cleanAfter,
         };
       } else {
         return {
           finalText: trimmedText,
-          finalThinking: ''
+          finalThinking: '',
         };
       }
     }
-    
+
     // 检查正文是否以思考内容开头（另一种常见错误模式）
     if (trimmedText.startsWith(trimmedThinking)) {
       const remainingText = trimmedText.substring(trimmedThinking.length).trim();
       const cleanedRemaining = remainingText.replace(/^[，。！？、\s]+/, '').trim();
       return {
         finalText: cleanedRemaining,
-        finalThinking: trimmedThinking
+        finalThinking: trimmedThinking,
       };
     }
   }
-  
+
   // 如果思考内容看起来像是答案，而不是真正的思考过程
-  const looksLikeAnswer = /^(?:所以|因此|综上所述|总结一下|总之|答案是|答案:|结论:|结果:|最终:|最终答案:|最终结果:|回答:|解决方案:|建议:|Thus|Therefore|In summary|In conclusion|To sum up|So|The answer is|The solution is)/i.test(trimmedThinking);
+  const looksLikeAnswer =
+    /^(?:所以|因此|综上所述|总结一下|总之|答案是|答案:|结论:|结果:|最终:|最终答案:|最终结果:|回答:|解决方案:|建议:|Thus|Therefore|In summary|In conclusion|To sum up|So|The answer is|The solution is)/i.test(
+      trimmedThinking
+    );
   if (looksLikeAnswer && trimmedText.length === 0) {
     return {
       finalText: trimmedThinking,
-      finalThinking: ''
+      finalThinking: '',
     };
   }
-  
+
   // 如果思考内容很长但正文很长，可能思考被误放
   if (trimmedThinking.length < 30 && trimmedText.length > 50) {
     // 检查思考内容是否看起来像是正文的一部分
     const isTextContainsThinking = trimmedText.includes(trimmedThinking);
     const isThinkingStartMarker = /^(?:首先|让我|我需要|考虑|分析)/i.test(trimmedThinking);
-    
+
     if (isTextContainsThinking && !isThinkingStartMarker) {
       // 思考内容可能是误放的实际答案部分
       return {
         finalText: trimmedText,
-        finalThinking: ''
+        finalThinking: '',
       };
     }
   }
-  
+
   return {
     finalText: trimmedText,
-    finalThinking: trimmedThinking
+    finalThinking: trimmedThinking,
   };
 }
 
@@ -824,9 +917,7 @@ function normalizeThinkTagArtifacts(message: {
   normalized: boolean;
 } {
   const isStreaming = message.isStreaming;
-  const existingThinking = isStreaming
-    ? (message.thinking ?? '')
-    : (message.thinking ?? '').trim();
+  const existingThinking = isStreaming ? (message.thinking ?? '') : (message.thinking ?? '').trim();
   let nextText = message.text;
   let nextThinking = existingThinking;
   let normalized = false;
@@ -835,7 +926,7 @@ function normalizeThinkTagArtifacts(message: {
   const closingTags = [/<\/think(?:ing)?>/i, /思考结束/];
   let closingTagMatch: RegExpMatchArray | null = null;
   let matchedTagPattern: RegExp | null = null;
-  
+
   for (const pattern of closingTags) {
     const match = nextText.match(pattern);
     if (match && (match.index ?? -1) >= 0) {
@@ -851,8 +942,7 @@ function normalizeThinkTagArtifacts(message: {
     if (closingTagIndex >= 0) {
       let leakedThinking = nextText.slice(0, closingTagIndex);
       leakedThinking = isStreaming ? leakedThinking : leakedThinking.trim();
-      const answerText = nextText
-        .slice(closingTagIndex + closingTagMatch[0].length);
+      const answerText = nextText.slice(closingTagIndex + closingTagMatch[0].length);
       const finalAnswerText = answerText.replace(/^\s+/, '');
 
       // Clean start tags from leaked thinking
@@ -863,7 +953,9 @@ function normalizeThinkTagArtifacts(message: {
 
       if (leakedThinking.length > 0) {
         nextThinking = nextThinking
-          ? (isStreaming ? `${nextThinking}\n${leakedThinking}` : `${nextThinking}\n${leakedThinking}`.trim())
+          ? isStreaming
+            ? `${nextThinking}\n${leakedThinking}`
+            : `${nextThinking}\n${leakedThinking}`.trim()
           : leakedThinking;
       }
 
@@ -876,20 +968,24 @@ function normalizeThinkTagArtifacts(message: {
   if (!closingTagMatch) {
     const unclosedPatterns = [
       { regex: /<think(?:ing)?[\s\S]*?>([\s\S]*)$/i, tag: '<think' },
-      { regex: /思考开始([\s\S]*)$/, tag: '思考开始' }
+      { regex: /思考开始([\s\S]*)$/, tag: '思考开始' },
     ];
-    
+
     for (const item of unclosedPatterns) {
       const match = nextText.match(item.regex);
       if (match) {
         const startTagIndex = nextText.toLowerCase().indexOf(item.tag.toLowerCase());
         if (startTagIndex >= 0) {
           const leakedThinking = isStreaming ? match[1] : match[1].trim();
-          const beforeText = isStreaming ? nextText.slice(0, startTagIndex) : nextText.slice(0, startTagIndex).trim();
+          const beforeText = isStreaming
+            ? nextText.slice(0, startTagIndex)
+            : nextText.slice(0, startTagIndex).trim();
 
           if (leakedThinking.length > 0) {
             nextThinking = nextThinking
-              ? (isStreaming ? `${nextThinking}\n${leakedThinking}` : `${nextThinking}\n${leakedThinking}`.trim())
+              ? isStreaming
+                ? `${nextThinking}\n${leakedThinking}`
+                : `${nextThinking}\n${leakedThinking}`.trim()
               : leakedThinking;
           }
           nextText = beforeText;
@@ -945,8 +1041,9 @@ function enhanceMessageSeparation(message: {
   const originalText = cleanMessage.text;
 
   // Check if we are currently in thinking mode (unclosed tag exists)
-  const isThinking = 
-    (cleanMessage.text.toLowerCase().includes('<think') || cleanMessage.text.includes('思考开始')) &&
+  const isThinking =
+    (cleanMessage.text.toLowerCase().includes('<think') ||
+      cleanMessage.text.includes('思考开始')) &&
     !cleanMessage.text.toLowerCase().includes('</think') &&
     !cleanMessage.text.includes('思考结束');
 
@@ -957,66 +1054,80 @@ function enhanceMessageSeparation(message: {
       text: normalizedMessage.text,
       thinking: normalizedMessage.thinking,
       isStreaming: true,
-      hasToolCalls: cleanMessage.hasToolCalls
+      hasToolCalls: cleanMessage.hasToolCalls,
     });
     return {
       text: fixed.text,
       thinking: fixed.thinking,
       separationIssueFixed: normalizedMessage.normalized,
-      isThinking: isThinking || (cleanMessage.thinking ? !cleanMessage.thinking.includes('</think') && !cleanMessage.thinking.includes('思考结束') : false)
+      isThinking:
+        isThinking ||
+        (cleanMessage.thinking
+          ? !cleanMessage.thinking.includes('</think') &&
+            !cleanMessage.thinking.includes('思考结束')
+          : false),
     };
   }
 
   // 首先尝试标准的分离修复
   const fixed = fixThinkingContentSeparation(normalizedMessage);
-  
+
   // 检查是否存在分离问题（如果是工具调用导致的正文为空，则不视为分离问题）
-  const hasSeparationIssue = 
+  const hasSeparationIssue =
     !cleanMessage.hasToolCalls &&
-    (originalText.includes('<thinking>') || originalText.includes('<think') || originalText.includes('思考开始')) &&
+    (originalText.includes('<thinking>') ||
+      originalText.includes('<think') ||
+      originalText.includes('思考开始')) &&
     fixed.text.length === 0 &&
     fixed.thinking.length > 0;
-  
+
   // 如果存在分离问题，使用增强算法
   const separationIssueFixed = normalizedMessage.normalized;
 
   if (!cleanMessage.trustBackendSplit && hasSeparationIssue) {
     const enhanced = extractThinkingContent(`<thinking>${fixed.thinking}</thinking>`);
-    
+
     if (enhanced.content && enhanced.content.length > 0) {
       return {
         text: enhanced.content,
         thinking: enhanced.thinking,
         separationIssueFixed: true,
-        isThinking: false
+        isThinking: false,
       };
     }
   }
 
   // 如果思考内容不为空，尝试智能合并
   if (!cleanMessage.trustBackendSplit && fixed.thinking.length > 0) {
-    const merged = smartMergeThinkingAndContent(fixed.text, fixed.thinking, cleanMessage.hasToolCalls);
-    
+    const merged = smartMergeThinkingAndContent(
+      fixed.text,
+      fixed.thinking,
+      cleanMessage.hasToolCalls
+    );
+
     // 如果合并改变了内容，说明有重复
     if (merged.finalText !== fixed.text || merged.finalThinking !== fixed.thinking) {
       return {
         text: merged.finalText,
         thinking: merged.finalThinking,
         separationIssueFixed: true,
-        isThinking: false
+        isThinking: false,
       };
     }
   }
-  
+
   return {
     text: fixed.text,
     thinking: fixed.thinking,
     separationIssueFixed,
-    isThinking: false
+    isThinking: false,
   };
 }
 
-function splitThinkingSuffix(thinking: string, nextTextNonEmpty: boolean): {
+function splitThinkingSuffix(
+  thinking: string,
+  nextTextNonEmpty: boolean
+): {
   thinking: string;
   leakedText: string;
 } {
@@ -1028,13 +1139,17 @@ function splitThinkingSuffix(thinking: string, nextTextNonEmpty: boolean): {
     };
   }
 
-  const explicitKeywordsPattern = /(?:已在|已将|已完成|我已|下面|以下|修改内容如下|具体如下|操作结果|测试结果|更新任务|创建任务|删除任务|Here(?:'s| is)|The updated|The change|I updated|Updated|Added)/i;
+  const explicitKeywordsPattern =
+    /(?:已在|已将|已完成|我已|下面|以下|修改内容如下|具体如下|操作结果|测试结果|更新任务|创建任务|删除任务|Here(?:'s| is)|The updated|The change|I updated|Updated|Added)/i;
 
   const splitPatterns = nextTextNonEmpty
     ? [
         // Safe patterns: must match explicit conclusion keywords (allowing optional formatting)
-        new RegExp("(?<=[.?!。！？])\\s*(?=[*\\`#\\s]*" + explicitKeywordsPattern.source + ")", 'i'),
-        new RegExp("\\n{2,}(?=[*\\`#\\s]*" + explicitKeywordsPattern.source + ")", 'i'),
+        new RegExp(
+          '(?<=[.?!。！？])\\s*(?=[*\\`#\\s]*' + explicitKeywordsPattern.source + ')',
+          'i'
+        ),
+        new RegExp('\\n{2,}(?=[*\\`#\\s]*' + explicitKeywordsPattern.source + ')', 'i'),
       ]
     : [
         // Aggressive patterns: used when nextText is empty to extract final answer maximally
@@ -1078,12 +1193,7 @@ export function mergeDistinctTextSegments(prefixText: string, existingText: stri
   return `${prefix}\n\n${existing}`.trim();
 }
 
-const CLOSING_THINK_TAG_LITERALS = [
-  '</thinking>',
-  '</think>',
-  '</think>',
-  '思考结束',
-] as const;
+const CLOSING_THINK_TAG_LITERALS = ['</thinking>', '</think>', '</think>', '思考结束'] as const;
 
 /**
  * Remove stray think-tag artifacts from display text (does not split at closing tags).
@@ -1121,7 +1231,9 @@ export function sanitizeSeparateReasoningStream(rawThinking: string): {
       : normalized.indexOf(tag);
     if (
       pos !== -1 &&
-      (earliestIndex === -1 || pos < earliestIndex || (pos === earliestIndex && tag.length > tagLength))
+      (earliestIndex === -1 ||
+        pos < earliestIndex ||
+        (pos === earliestIndex && tag.length > tagLength))
     ) {
       earliestIndex = pos;
       tagLength = tag.length;
@@ -1143,14 +1255,12 @@ export function sanitizeSeparateReasoningStream(rawThinking: string): {
 
 function applySeparateReasoningSanitization(
   thinking: string,
-  text: string,
+  text: string
 ): { thinking: string; text: string } {
   const sanitized = sanitizeSeparateReasoningStream(thinking);
   return {
     thinking: sanitized.thinking,
-    text: sanitized.leakedText
-      ? mergeDistinctTextSegments(sanitized.leakedText, text)
-      : text,
+    text: sanitized.leakedText ? mergeDistinctTextSegments(sanitized.leakedText, text) : text,
   };
 }
 
@@ -1243,7 +1353,7 @@ function separateThinkingForDisplay(message: {
  */
 export function mergeStreamingAndFinalSplit(
   stream: { text: string; thinking: string },
-  final: { text: string; thinking: string },
+  final: { text: string; thinking: string }
 ): { text: string; thinking: string } {
   const streamText = (stream.text || '').trim();
   const streamThinking = (stream.thinking || '').trim();
@@ -1265,7 +1375,10 @@ export function mergeStreamingAndFinalSplit(
     }
 
     if (nextThinking.includes(streamText)) {
-      const withoutBody = nextThinking.replace(streamText, '').replace(/\n{3,}/g, '\n\n').trim();
+      const withoutBody = nextThinking
+        .replace(streamText, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
       nextThinking = streamThinking || withoutBody;
     } else if (streamThinking && !nextThinking) {
       nextThinking = streamThinking;
@@ -1306,11 +1419,11 @@ export function separateMessageState(inputs: {
   isThinking: boolean;
 } {
   const { rawContent, rawThinking, isStreaming } = inputs;
-  
+
   // 统一规格化换行符
   const cleanContent = rawContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const cleanThinking = rawThinking.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  
+
   // 情况 1: 后端使用了独立的思考流（如 DeepSeek/Claude 3.7 在特定接口下的 reasoning 独立推送）
   if (cleanThinking.length > 0) {
     let mergedText = cleanContent;
@@ -1348,7 +1461,7 @@ export function separateMessageState(inputs: {
       isThinking: !mergedText.trim() && !!mergedThinking.trim(),
     };
   }
-  
+
   // 情况 2: 后端混合流，正文中携带 <think> 标签（如 Ollama 或其他中转的 R1 混合推送）
   // 查找结束标签（中英文）
   const closingTags = [/<\/think(?:ing)?>/i, /思考结束/];
@@ -1361,18 +1474,20 @@ export function separateMessageState(inputs: {
       }
     }
   }
-  
+
   if (closingTagMatch) {
     const closingTagIndex = closingTagMatch.index ?? -1;
     let thinking = cleanContent.slice(0, closingTagIndex);
-    const text = cleanContent.slice(closingTagIndex + closingTagMatch[0].length).replace(/^\s+/, '');
-    
+    const text = cleanContent
+      .slice(closingTagIndex + closingTagMatch[0].length)
+      .replace(/^\s+/, '');
+
     // 清理思考区内的开始标签
     thinking = thinking
       .replace(/<think(?:ing)?[\s\S]*?>/gi, '')
       .replace(/思考开始/g, '')
       .trim();
-      
+
     // 如果不是处于流式状态，进行最后的修剪和提取（以支持复杂的段落划分）
     if (!isStreaming) {
       const fixed = separateThinkingForDisplay({ text, thinking, isStreaming: false });
@@ -1382,14 +1497,14 @@ export function separateMessageState(inputs: {
         isThinking: false,
       };
     }
-    
+
     return {
       text,
       thinking,
       isThinking: false,
     };
   }
-  
+
   // 查找开始标签（中英文）
   const startTags = ['<thinking>', '<think>', '思考开始'];
   let earliestStartPos = -1;
@@ -1401,7 +1516,7 @@ export function separateMessageState(inputs: {
       startTagLength = tag.length;
     }
   }
-  
+
   if (earliestStartPos !== -1) {
     const thinking = cleanContent.slice(earliestStartPos + startTagLength);
     const text = cleanContent.slice(0, earliestStartPos);
@@ -1411,7 +1526,7 @@ export function separateMessageState(inputs: {
       isThinking: isStreaming,
     };
   }
-  
+
   // 情况 3: 无思考内容，直接输出正文
   return {
     text: cleanContent,

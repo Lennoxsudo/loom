@@ -1,18 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from '../../i18n';
-import {
-  useEnableCdpBrowser,
-  useUpdateEnableCdpBrowser,
-} from '../../stores';
+import { useEnableCdpBrowser, useUpdateEnableCdpBrowser } from '../../stores';
 import { useNotification } from '../../contexts/NotificationContext';
 import pageStyles from './SettingsPage.module.css';
 import styles from './PluginsContent.module.css';
-import {
-  SettingsPanel,
-  SettingsRow,
-  SettingsSection,
-  SettingsToggle,
-} from './SettingsPrimitives';
+import { SettingsPanel, SettingsRow, SettingsSection, SettingsToggle } from './SettingsPrimitives';
 
 export function PluginsContent() {
   const t = useTranslation();

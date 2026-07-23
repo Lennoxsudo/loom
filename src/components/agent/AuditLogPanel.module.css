@@ -57,7 +57,9 @@
   background: transparent;
   color: var(--text-secondary, #888);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .filterBtn:hover {

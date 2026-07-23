@@ -32,15 +32,16 @@ export function buildSubagentTaskFromToolArgs(
         : 'general-purpose'
   );
   const spawnMode =
-    args.resume === 'self' || args.spawn_mode === 'fork' ? ('fork' as const) : ('isolated' as const);
+    args.resume === 'self' || args.spawn_mode === 'fork'
+      ? ('fork' as const)
+      : ('isolated' as const);
 
   return {
     id: taskId,
     description: readTaskDescription(args) || '子代理任务运行中…',
     context: typeof args.context === 'string' ? args.context : undefined,
     model: typeof args.model === 'string' ? args.model : undefined,
-    maxToolRounds:
-      typeof args.max_tool_rounds === 'number' ? args.max_tool_rounds : undefined,
+    maxToolRounds: typeof args.max_tool_rounds === 'number' ? args.max_tool_rounds : undefined,
     subagentType,
     spawnMode,
     allowedTools: Array.isArray(args.allowed_tools)

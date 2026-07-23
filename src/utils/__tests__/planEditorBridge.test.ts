@@ -91,9 +91,9 @@ describe('inferPlanTitle', () => {
   });
 
   it('extracts first markdown heading', () => {
-    expect(
-      inferPlanTitle('# 给 README 增加一段安装说明 - 实现计划\n\n## 项目概况\n- a'),
-    ).toBe('给 README 增加一段安装说明');
+    expect(inferPlanTitle('# 给 README 增加一段安装说明 - 实现计划\n\n## 项目概况\n- a')).toBe(
+      '给 README 增加一段安装说明'
+    );
   });
 
   it('falls back to first prose line', () => {

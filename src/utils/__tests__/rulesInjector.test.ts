@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatRulesContext, shouldInjectRules, buildRulesMessage, getRulesContentHash } from '../rulesInjector';
+import {
+  formatRulesContext,
+  shouldInjectRules,
+  buildRulesMessage,
+  getRulesContentHash,
+} from '../rulesInjector';
 
 describe('formatRulesContext', () => {
   it('wraps non-empty rules in context tags', () => {
@@ -116,9 +121,9 @@ describe('Feature: agent-rules, Property 7: Rules 格式化标记完整性', () 
 
           // Contains the original rules content
           expect(result).toContain(rules);
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -140,9 +145,7 @@ describe('Feature: agent-rules, Property 5: 空 Rules 跳过注入', () => {
 
   const whitespaceArb = fc.oneof(
     fc.constant(''),
-    fc
-      .array(fc.constantFrom(' ', '\t', '\n', '\r', '\f', '\v'))
-      .map((chars) => chars.join('')),
+    fc.array(fc.constantFrom(' ', '\t', '\n', '\r', '\f', '\v')).map((chars) => chars.join(''))
   );
 
   it('formatRulesContext returns empty string for any empty/whitespace-only input', () => {
@@ -153,7 +156,7 @@ describe('Feature: agent-rules, Property 5: 空 Rules 跳过注入', () => {
         expect(result).not.toContain('[Rules Context]');
         expect(result).not.toContain('[End Rules Context]');
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -162,7 +165,7 @@ describe('Feature: agent-rules, Property 5: 空 Rules 跳过注入', () => {
       fc.property(whitespaceArb, fc.boolean(), (rules, alreadyInjected) => {
         expect(shouldInjectRules(rules, alreadyInjected)).toBe(false);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -174,7 +177,7 @@ describe('Feature: agent-rules, Property 5: 空 Rules 跳过注入', () => {
         expect(msg.content).not.toContain('[Rules Context]');
         expect(msg.content).not.toContain('[End Rules Context]');
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -212,7 +215,7 @@ describe('Feature: agent-rules, Property 4: Rules 注入幂等性', () => {
         const thirdResult = shouldInjectRules(rules, true);
         expect(thirdResult).toBe(false);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -223,7 +226,7 @@ describe('Feature: agent-rules, Property 4: Rules 注入幂等性', () => {
         const second = formatRulesContext(rules);
         expect(first).toBe(second);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -242,29 +245,26 @@ describe('Feature: agent-rules, Property 4: Rules 注入幂等性', () => {
         }
 
         const countAfterFirst = messages.filter((m) =>
-          m.content.includes('[Rules Context]'),
+          m.content.includes('[Rules Context]')
         ).length;
 
         // Simulate second injection attempt (same rules, same hash)
         if (shouldInjectRules(rules, injected, contentHash)) {
           messages.push(buildRulesMessage(rules));
-          injected = true;
-          contentHash = getRulesContentHash(rules);
         }
 
         const countAfterSecond = messages.filter((m) =>
-          m.content.includes('[Rules Context]'),
+          m.content.includes('[Rules Context]')
         ).length;
 
         // Idempotency: count should be the same after second injection attempt
         expect(countAfterSecond).toBe(countAfterFirst);
         expect(countAfterFirst).toBe(1);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
-
 
 /**
  * Property-based tests for Agent Rules isolation
@@ -297,35 +297,30 @@ describe('Feature: agent-rules, Property 6: Agent Rules 隔离性', () => {
     const nonEmptyStringArb = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
 
     fc.assert(
-      fc.property(
-        nonEmptyStringArb,
-        nonEmptyStringArb,
-        (rulesA, rulesB) => {
-          // Ensure the two rules are actually different
-          fc.pre(rulesA !== rulesB);
+      fc.property(nonEmptyStringArb, nonEmptyStringArb, (rulesA, rulesB) => {
+        // Ensure the two rules are actually different
+        fc.pre(rulesA !== rulesB);
 
-          // Build messages independently for each agent
-          const messageA = buildRulesMessage(rulesA);
-          const messageB = buildRulesMessage(rulesB);
+        // Build messages independently for each agent
+        const messageA = buildRulesMessage(rulesA);
+        const messageB = buildRulesMessage(rulesB);
 
-          // Extract the exact rules content from each formatted message
-          const contentA = extractRulesContent(messageA.content);
-          const contentB = extractRulesContent(messageB.content);
+        // Extract the exact rules content from each formatted message
+        const contentA = extractRulesContent(messageA.content);
+        const contentB = extractRulesContent(messageB.content);
 
-          // Agent A's extracted content is exactly Agent A's rules
-          expect(contentA).toBe(rulesA);
-          // Agent B's extracted content is exactly Agent B's rules
-          expect(contentB).toBe(rulesB);
+        // Agent A's extracted content is exactly Agent A's rules
+        expect(contentA).toBe(rulesA);
+        // Agent B's extracted content is exactly Agent B's rules
+        expect(contentB).toBe(rulesB);
 
-          // Since rulesA !== rulesB, the extracted contents must differ
-          expect(contentA).not.toBe(contentB);
-        },
-      ),
-      { numRuns: 100 },
+        // Since rulesA !== rulesB, the extracted contents must differ
+        expect(contentA).not.toBe(contentB);
+      }),
+      { numRuns: 100 }
     );
   });
 });
-
 
 /**
  * Property-based tests for Rules first injection
@@ -350,7 +345,7 @@ describe('Feature: agent-rules, Property 3: Rules 首次注入', () => {
         // First message: alreadyInjected is false
         expect(shouldInjectRules(rules, false)).toBe(true);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -369,7 +364,7 @@ describe('Feature: agent-rules, Property 3: Rules 首次注入', () => {
         expect(msg.content.startsWith('[Rules Context]')).toBe(true);
         expect(msg.content.endsWith('[End Rules Context]')).toBe(true);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -400,7 +395,7 @@ describe('Feature: agent-rules, Property 3: Rules 首次注入', () => {
         expect(rulesMsg.content).toContain('[Rules Context]');
         expect(rulesMsg.content).toContain('[End Rules Context]');
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

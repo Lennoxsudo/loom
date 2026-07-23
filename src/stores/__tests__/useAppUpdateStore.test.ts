@@ -76,7 +76,7 @@ describe('useAppUpdateStore', () => {
       () =>
         new Promise((resolve) => {
           resolveCheck = resolve;
-        }),
+        })
     );
     const useAppUpdateStore = await loadStore();
 

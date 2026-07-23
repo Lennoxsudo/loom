@@ -31,7 +31,7 @@ describe('toolMatcher: findBestToolMatch', () => {
   it('should match valid substrings that are at least 2 characters long', () => {
     // 'search_file' matches 'search' through substring matching and token overlap
     expect(findBestToolMatch('search_file', candidates)).toBe('search');
-    
+
     // 'terminal' should match 'term'
     expect(findBestToolMatch('terminal', candidates)).toBe('term');
   });
@@ -40,10 +40,10 @@ describe('toolMatcher: findBestToolMatch', () => {
     // 'run_command' shares 'run' or similar with candidates, but wait:
     // Let's test custom candidates list
     const customCandidates = ['run_command', 'read_file', 'write_file'];
-    
+
     // 'run' has overlap with 'run_command'
     expect(findBestToolMatch('run', customCandidates)).toBe('run_command');
-    
+
     // 'read' matches 'read_file'
     expect(findBestToolMatch('read', customCandidates)).toBe('read_file');
   });

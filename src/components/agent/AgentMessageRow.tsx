@@ -63,9 +63,7 @@ function getDeleteDisplayName(m: ChatMessage) {
   if (pathFromArgs) {
     fileName = pathFromArgs.split(/[/\\]/).pop() || pathFromArgs;
   } else {
-    const pathMatch = m.text.match(
-      /(?:已.*删除|已移入回收站|deleted|removed)[^:]*:\s*(.+?)$/im
-    );
+    const pathMatch = m.text.match(/(?:已.*删除|已移入回收站|deleted|removed)[^:]*:\s*(.+?)$/im);
     if (pathMatch) {
       const raw = pathMatch[1].trim();
       fileName = raw.split(/[/\\]/).pop() || raw;

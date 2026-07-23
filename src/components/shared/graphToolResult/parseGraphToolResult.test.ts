@@ -4,16 +4,14 @@ import { parseGraphToolResult } from './parseGraphToolResult';
 
 describe('parseGraphToolResult', () => {
   it('returns null for non-graph tools', () => {
-    expect(
-      parseGraphToolResult({ toolName: 'read', text: 'file content' }),
-    ).toBeNull();
+    expect(parseGraphToolResult({ toolName: 'read', text: 'file content' })).toBeNull();
   });
 
   it('parses graph_index status with stats summary', () => {
     const text = formatGraphOutput(
       'graph_index',
       'status',
-      '{"indexed":true,"node_count":1234,"edge_count":5678,"indexed_at":"2026-01-01"}',
+      '{"indexed":true,"node_count":1234,"edge_count":5678,"indexed_at":"2026-01-01"}'
     );
     const view = parseGraphToolResult({
       toolName: 'graph_index',
@@ -31,7 +29,7 @@ describe('parseGraphToolResult', () => {
     const text = formatGraphOutput(
       'graph_index',
       'list',
-      '{"projects":[{"repo_path":"D:/foo","node_count":10,"indexed_at":"2026-01-01"}]}',
+      '{"projects":[{"repo_path":"D:/foo","node_count":10,"indexed_at":"2026-01-01"}]}'
     );
     const view = parseGraphToolResult({
       toolName: 'graph_index',
@@ -47,7 +45,7 @@ describe('parseGraphToolResult', () => {
     const text = formatGraphOutput(
       'graph_query',
       'search',
-      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}',
+      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}'
     );
     const view = parseGraphToolResult({
       toolName: 'graph_query',
@@ -63,7 +61,7 @@ describe('parseGraphToolResult', () => {
     const text = formatGraphOutput(
       'graph_query',
       'snippet',
-      '{"code":"fn foo() {}","file":"src/lib.rs","start_line":1,"end_line":1,"qualified_name":"crate::foo"}',
+      '{"code":"fn foo() {}","file":"src/lib.rs","start_line":1,"end_line":1,"qualified_name":"crate::foo"}'
     );
     const view = parseGraphToolResult({
       toolName: 'graph_query',
@@ -79,7 +77,7 @@ describe('parseGraphToolResult', () => {
     const text = formatGraphOutput(
       'graph_trace',
       'trace',
-      '{"callers":[{"name":"bar","file":"src/bar.rs","line":5}],"callees":[{"name":"baz","file":"src/baz.rs","line":10}]}',
+      '{"callers":[{"name":"bar","file":"src/bar.rs","line":5}],"callees":[{"name":"baz","file":"src/baz.rs","line":10}]}'
     );
     const view = parseGraphToolResult({
       toolName: 'graph_trace',
@@ -99,7 +97,7 @@ describe('parseGraphToolResult', () => {
         total_edges: 247,
         node_labels: [{ label: 'Function', count: 19 }],
         edge_types: [{ type: 'DEFINES', count: 163 }],
-      }),
+      })
     );
     const view = parseGraphToolResult({
       toolName: 'graph_trace',

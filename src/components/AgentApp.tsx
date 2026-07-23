@@ -13,11 +13,7 @@ import { emit } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { I18nProvider } from '../i18n';
 import { NotificationProvider } from '../contexts/NotificationContext';
-import {
-  useSettingsLoading,
-  useInitializeSettings,
-  useLanguage,
-} from '../stores';
+import { useSettingsLoading, useInitializeSettings, useLanguage } from '../stores';
 import { useCbmStore } from '../stores/useCbmStore';
 import { useUsageStore } from '../stores/useUsageStore';
 import TitleBar from './TitleBar';
@@ -80,23 +76,16 @@ export default function AgentApp({ projectPath: initialProjectPath }: AgentAppPr
     }
   }, [loading]);
 
-  const handleFilesChanged = useCallback(
-    (paths: string[]) => {
-      // 通过 Tauri event 广播回主窗口，让主窗口刷新文件树
-      void emit('agent-files-changed', { paths });
-    },
-    []
-  );
+  const handleFilesChanged = useCallback((paths: string[]) => {
+    // 通过 Tauri event 广播回主窗口，让主窗口刷新文件树
+    void emit('agent-files-changed', { paths });
+  }, []);
 
   return (
     <I18nProvider defaultLocale={language}>
       <NotificationProvider>
         <div className={styles.root} data-theme="light">
-          <TitleBar
-            onOpenFolder={() => {}}
-            onOpenFile={() => {}}
-            hideMenu
-          />
+          <TitleBar onOpenFolder={() => {}} onOpenFile={() => {}} hideMenu />
           <div className={styles.content} style={loading ? loadingStateStyle : undefined}>
             {loading ? (
               <div data-testid="agent-app-loading">Loading Agent…</div>

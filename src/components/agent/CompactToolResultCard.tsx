@@ -1,10 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { TOOL_RESULT_WIDTH } from './toolResultLayout';
-import {
-  parsePlanToolOutput,
-  resolveCompactToolLabel,
-} from './compactToolResult';
+import { parsePlanToolOutput, resolveCompactToolLabel } from './compactToolResult';
 import { formatToolDisplayName } from './toolResultLayout';
 import styles from './CompactToolResultCard.module.css';
 
@@ -26,17 +23,13 @@ const CompactToolResultCard = memo(function CompactToolResultCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const displayName = useMemo(
-    () => resolveCompactToolLabel(
-      toolName,
-      labels.tools,
-      formatToolDisplayName(toolName),
-    ),
-    [toolName, labels.tools],
+    () => resolveCompactToolLabel(toolName, labels.tools, formatToolDisplayName(toolName)),
+    [toolName, labels.tools]
   );
 
   const planMeta = useMemo(
     () => (toolName && PLAN_TOOLS.has(toolName) ? parsePlanToolOutput(text) : null),
-    [toolName, text],
+    [toolName, text]
   );
 
   const hasBody = Boolean(text.trim());
@@ -55,9 +48,7 @@ const CompactToolResultCard = memo(function CompactToolResultCard({
         >
           <div className={styles.headerMain}>
             <span className={styles.toolName}>{displayName}</span>
-            {planMeta?.title && (
-              <span className={styles.meta}>{planMeta.title}</span>
-            )}
+            {planMeta?.title && <span className={styles.meta}>{planMeta.title}</span>}
             <span className={styles.statusPill}>{statusLabel}</span>
           </div>
           {hasBody && (
@@ -65,7 +56,16 @@ const CompactToolResultCard = memo(function CompactToolResultCard({
               className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}
               aria-hidden
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </span>
@@ -77,14 +77,10 @@ const CompactToolResultCard = memo(function CompactToolResultCard({
             className={`${styles.panel} ${isExpanded ? styles.panelExpanded : ''}`}
             aria-hidden={!isExpanded}
           >
-            <div
-              className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}
-            >
+            <div className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}>
               {planMeta ? (
                 <div className={styles.specRows}>
-                  {planMeta.lead && (
-                    <p className={styles.body}>{planMeta.lead}</p>
-                  )}
+                  {planMeta.lead && <p className={styles.body}>{planMeta.lead}</p>}
                   {planMeta.title && (
                     <div className={styles.specRow}>
                       <span className={styles.specLabel}>{labels.planTitle}</span>

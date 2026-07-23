@@ -68,7 +68,7 @@ const baseConversation: AgentConversation = {
 describe('buildAgentContextUsage', () => {
   beforeEach(() => {
     vi.mocked(loadSkillsContext).mockResolvedValue(
-      '<available_skills>\n"review": code review\n</available_skills>',
+      '<available_skills>\n"review": code review\n</available_skills>'
     );
     vi.mocked(invoke).mockResolvedValue('');
   });
@@ -100,7 +100,7 @@ describe('buildAgentContextUsage', () => {
 
     expect(usage.maxContextTokens).toBe(DEFAULT_CONTEXT_WINDOW);
     expect(usage.availableContextTokens).toBe(
-      DEFAULT_CONTEXT_WINDOW - AGENT_CONTEXT_RESERVE_TOKENS,
+      DEFAULT_CONTEXT_WINDOW - AGENT_CONTEXT_RESERVE_TOKENS
     );
     expect(usage.toolTokens).toBe(estimateToolsTokens(tools));
     expect(usage.messageTokens).toBeGreaterThan(0);
@@ -135,7 +135,7 @@ describe('buildAgentRequestContext', () => {
         message !== null &&
         'role' in message &&
         (message as { role?: string }).role === 'system' &&
-        typeof (message as { content?: unknown }).content === 'string',
+        typeof (message as { content?: unknown }).content === 'string'
     );
 
     expect(system?.content).toContain(`${APP_DISPLAY_NAME}`);

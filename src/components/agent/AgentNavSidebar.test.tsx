@@ -8,9 +8,7 @@ const ACTIVE_PATH = 'D:\\active\\project';
 const ORPHAN_PATH = 'D:\\orphan\\with-threads';
 const ORPHAN_KEY = normalizeProjectPath(ORPHAN_PATH);
 
-function renderSidebar(
-  overrides: Partial<React.ComponentProps<typeof AgentNavSidebar>> = {}
-) {
+function renderSidebar(overrides: Partial<React.ComponentProps<typeof AgentNavSidebar>> = {}) {
   render(
     <I18nProvider defaultLocale="en-US">
       <AgentNavSidebar

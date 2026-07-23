@@ -29,11 +29,7 @@ export function reconcileChatRequestRuntime(
   autoRoutingOptions?: AutoRoutingResolveOptions
 ): ChatRuntimeSnapshot | null {
   if (protocolSelection === 'auto') {
-    const resolved = resolveActiveAutoRoutingRuntime(
-      config,
-      activeRuntime,
-      autoRoutingOptions
-    );
+    const resolved = resolveActiveAutoRoutingRuntime(config, activeRuntime, autoRoutingOptions);
     if (!resolved?.model?.trim()) {
       return null;
     }
@@ -53,12 +49,7 @@ export function reconcileChatRequestRuntime(
   // Built-in: logical provider stays `builtin`; config lives under openai profile.
   if (isBuiltinProtocol(protocolSelection)) {
     const configProvider = toConfigProviderKey('builtin');
-    const reconciled = reconcileProviderRequest(
-      config,
-      configProvider,
-      model,
-      BUILTIN_PROFILE_ID
-    );
+    const reconciled = reconcileProviderRequest(config, configProvider, model, BUILTIN_PROFILE_ID);
     return {
       provider: 'builtin',
       model: reconciled.model,

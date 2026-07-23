@@ -125,8 +125,7 @@ export function UpdateContent() {
     }
   };
 
-  const showInstall =
-    status === 'available' || status === 'downloading' || status === 'installing';
+  const showInstall = status === 'available' || status === 'downloading' || status === 'installing';
   const showProgress = status === 'downloading';
 
   return (

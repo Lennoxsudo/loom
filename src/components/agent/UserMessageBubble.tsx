@@ -107,13 +107,7 @@ export default function UserMessageBubble({
       }}
     >
       <div className={styles.wrap}>
-        <div
-          className={
-            editing
-              ? styles.editPanel
-              : styles.bubble
-          }
-        >
+        <div className={editing ? styles.editPanel : styles.bubble}>
           {message.attachments && message.attachments.length > 0 && (
             <div
               style={{

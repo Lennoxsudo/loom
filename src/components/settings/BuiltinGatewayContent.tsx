@@ -13,16 +13,8 @@ const QUOTA_POLL_MS = 30_000;
 export function BuiltinGatewayContent() {
   const t = useTranslation();
   const { showError, showSuccess } = useNotification();
-  const {
-    status,
-    error,
-    activatedAt,
-    lastQuotas,
-    quotaStatus,
-    healthy,
-    hydrated,
-    apiKeyPresent,
-  } = useBuiltinGatewayState();
+  const { status, error, activatedAt, lastQuotas, quotaStatus, healthy, hydrated, apiKeyPresent } =
+    useBuiltinGatewayState();
   const hydrate = useBuiltinGatewayStore((s) => s.hydrate);
   const activate = useBuiltinGatewayStore((s) => s.activate);
   const clearLocalKey = useBuiltinGatewayStore((s) => s.clearLocalKey);
@@ -63,7 +55,11 @@ export function BuiltinGatewayContent() {
         void refreshHealth();
       } else {
         const err = useBuiltinGatewayStore.getState().error;
-        showError(err === 'UNAUTHORIZED' ? t.settingsBuiltin.unauthorized : err || t.settingsBuiltin.activateFailed);
+        showError(
+          err === 'UNAUTHORIZED'
+            ? t.settingsBuiltin.unauthorized
+            : err || t.settingsBuiltin.activateFailed
+        );
       }
     } finally {
       setBusy(false);

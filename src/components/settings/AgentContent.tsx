@@ -171,10 +171,16 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
 
   const renderStoragePath = (panel = false) => {
     if (loading) {
-      return <div className={panel ? panelStyles.pathStatus : primitiveStyles.pathStatus}>{t.common.loading}</div>;
+      return (
+        <div className={panel ? panelStyles.pathStatus : primitiveStyles.pathStatus}>
+          {t.common.loading}
+        </div>
+      );
     }
     if (error) {
-      return <div className={panel ? panelStyles.pathError : primitiveStyles.pathError}>{error}</div>;
+      return (
+        <div className={panel ? panelStyles.pathError : primitiveStyles.pathError}>{error}</div>
+      );
     }
 
     if (panel) {
@@ -226,7 +232,11 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
           <>
             <section className={panelStyles.block}>
               <h3 className={panelStyles.blockTitle}>{t.settingsAgent.accessMode.title}</h3>
-              <div className={panelStyles.choiceGrid} role="radiogroup" aria-label={t.settingsAgent.accessMode.title}>
+              <div
+                className={panelStyles.choiceGrid}
+                role="radiogroup"
+                aria-label={t.settingsAgent.accessMode.title}
+              >
                 {accessModeOptions.map((option) => {
                   const active = agentAccessMode === option.value;
                   return (
@@ -308,7 +318,10 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
         {section === 'audit' && (
           <section className={panelStyles.block}>
             <h3 className={panelStyles.blockTitle}>Sandbox Audit Log</h3>
-            <p className={panelStyles.blockDesc} style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
+            <p
+              className={panelStyles.blockDesc}
+              style={{ fontSize: 12, color: '#888', marginBottom: 8 }}
+            >
               Structured record of every sandbox decision (allow/deny) for AI tool calls.
             </p>
             <AuditLogPanel />

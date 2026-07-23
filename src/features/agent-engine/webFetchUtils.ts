@@ -71,7 +71,7 @@ type PermissionDecision = 'allow' | 'deny' | 'ask';
 
 interface WebFetchRules {
   allowed: string[]; // 格式: "domain:example.com"
-  denied: string[];  // 格式: "domain:example.com"
+  denied: string[]; // 格式: "domain:example.com"
 }
 
 const RULES_STORAGE_KEY = 'web-fetch-rules';

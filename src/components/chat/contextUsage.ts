@@ -49,7 +49,7 @@ function buildChatRequestMessages(
   chatRules: { content: string }[],
   chatRulesInjected: boolean,
   chatMode: 'plan' | 'always-allow',
-  conversationId?: string,
+  conversationId?: string
 ): ProviderRequestMessage[] {
   const requestMessages = toChatPanelProviderRequestMessages(messages);
   const combinedChatRules = chatRules.map((rule) => rule.content).join('\n');
@@ -68,7 +68,7 @@ function buildChatRequestMessages(
 }
 
 export async function buildChatContextUsage(
-  options: BuildChatContextUsageOptions,
+  options: BuildChatContextUsageOptions
 ): Promise<ChatContextUsage> {
   const {
     messages,
@@ -103,7 +103,7 @@ export async function buildChatContextUsage(
     chatRules,
     chatRulesInjected,
     chatMode,
-    conversationId,
+    conversationId
   );
   const skillsContext = await loadSkillsContext(projectPath);
   const { messages: preparedMessages } = buildContextForRequest({
@@ -120,13 +120,12 @@ export async function buildChatContextUsage(
   const normalizedMessages = preparedMessages as Array<{ role: string; content: unknown }>;
   const messageTokens = normalizedMessages.reduce(
     (sum, message) => sum + estimateMessageTokens(message),
-    0,
+    0
   );
   const toolTokens = estimateToolsTokens(tools);
   const availableContextTokens = Math.max(0, maxContextTokens - CHAT_CONTEXT_RESERVE_TOKENS);
   const usedTokens = messageTokens + toolTokens;
-  const usagePercent =
-    availableContextTokens > 0 ? (usedTokens / availableContextTokens) * 100 : 0;
+  const usagePercent = availableContextTokens > 0 ? (usedTokens / availableContextTokens) * 100 : 0;
 
   return {
     preparedMessages,

@@ -59,10 +59,18 @@ const SUMMARY_CHAR_BUDGET = 6000;
 /**
  * 从一条消息中提取结构化信息片段
  */
-function extractMessageFragments(
-  msg: MessageLike & Record<string, unknown>
-): { userIntents: string[]; toolCalls: string[]; fileChanges: string[]; conclusions: string[] } {
-  const result = { userIntents: [] as string[], toolCalls: [] as string[], fileChanges: [] as string[], conclusions: [] as string[] };
+function extractMessageFragments(msg: MessageLike & Record<string, unknown>): {
+  userIntents: string[];
+  toolCalls: string[];
+  fileChanges: string[];
+  conclusions: string[];
+} {
+  const result = {
+    userIntents: [] as string[],
+    toolCalls: [] as string[],
+    fileChanges: [] as string[],
+    conclusions: [] as string[],
+  };
   const content = msg.content;
 
   if (msg.role === 'user') {
@@ -292,7 +300,13 @@ export function compressAndTrim(
   }
 
   if (totalTokens <= budgetTokens) {
-    return { messages, compressed: false, summary: null, originalTokens: totalTokens, compressedTokens: totalTokens };
+    return {
+      messages,
+      compressed: false,
+      summary: null,
+      originalTokens: totalTokens,
+      compressedTokens: totalTokens,
+    };
   }
 
   // 计算保护区
@@ -307,7 +321,13 @@ export function compressAndTrim(
   }
 
   if (removableIndices.length === 0) {
-    return { messages, compressed: false, summary: null, originalTokens: totalTokens, compressedTokens: totalTokens };
+    return {
+      messages,
+      compressed: false,
+      summary: null,
+      originalTokens: totalTokens,
+      compressedTokens: totalTokens,
+    };
   }
 
   // 计算可移除的 token 数
@@ -319,7 +339,13 @@ export function compressAndTrim(
   // 如果移除区全部移除后仍超预算，不需要压缩——直接走裁剪
   const afterRemoval = totalTokens - removableTokens;
   if (afterRemoval > budgetTokens) {
-    return { messages, compressed: false, summary: null, originalTokens: totalTokens, compressedTokens: totalTokens };
+    return {
+      messages,
+      compressed: false,
+      summary: null,
+      originalTokens: totalTokens,
+      compressedTokens: totalTokens,
+    };
   }
 
   // 需要压缩——生成摘要
@@ -367,11 +393,12 @@ export function compressAndTrim(
 
   if (isFirstSystem) {
     // 将摘要追加到现有 system 消息的 content 末尾
-    const firstContent = typeof firstMsg.content === 'string'
-      ? firstMsg.content
-      : Array.isArray(firstMsg.content)
+    const firstContent =
+      typeof firstMsg.content === 'string'
         ? firstMsg.content
-        : String(firstMsg.content ?? '');
+        : Array.isArray(firstMsg.content)
+          ? firstMsg.content
+          : String(firstMsg.content ?? '');
 
     if (typeof firstContent === 'string') {
       result.push({
@@ -382,10 +409,7 @@ export function compressAndTrim(
       // Anthropic 格式：content 是 block 数组
       result.push({
         ...firstMsg,
-        content: [
-          ...firstContent,
-          { type: 'text', text: summaryPrefix + summaryText },
-        ],
+        content: [...firstContent, { type: 'text', text: summaryPrefix + summaryText }],
       });
     } else {
       // 兜底：直接替换为字符串

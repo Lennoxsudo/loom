@@ -43,8 +43,7 @@ export default function ConversationSelector({
   requestDeleteConversation,
   t,
 }: ConversationSelectorProps) {
-  const title =
-    currentConversation?.title?.trim() || t.chat.newConversation;
+  const title = currentConversation?.title?.trim() || t.chat.newConversation;
 
   return (
     <div className={styles.root} ref={conversationDropdownRef}>

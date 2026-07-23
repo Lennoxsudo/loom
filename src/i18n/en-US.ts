@@ -273,9 +273,11 @@ export const enUS: I18nMessages = {
     pushCopyError: 'Copy error details',
     pushFailedGeneric: 'Push failed: {detail}',
     pushFailedNoUpstream: 'Push failed: this branch has no upstream branch configured yet.',
-    pushFailedNetwork: 'Push failed because the remote could not be reached. Check your network or remote URL and try again.',
+    pushFailedNetwork:
+      'Push failed because the remote could not be reached. Check your network or remote URL and try again.',
     pushFailedAuth: 'Push failed because authentication or repository access was rejected.',
-    pushFailedNonFastForward: 'Push failed because the remote branch contains newer commits. Pull or rebase first, then push again.',
+    pushFailedNonFastForward:
+      'Push failed because the remote branch contains newer commits. Pull or rebase first, then push again.',
     pushFailedRemoteRejected: 'Push failed because the remote server rejected the update.',
     syncRemote: 'Sync remote',
     syncRemoteTooltip: 'Fetch from the remote, then pull or push as needed to clear ahead/behind',
@@ -320,7 +322,8 @@ export const enUS: I18nMessages = {
     openGitignore: '.gitignore',
     openGitignoreTooltip: 'Open repo root .gitignore, or create one with common ignore rules',
     gitignoreCreated: 'Created .gitignore with common ignore rules — edit further in the editor.',
-    gitignoreBlockedByDir: 'A folder named .gitignore already exists — cannot create a file with the same name.',
+    gitignoreBlockedByDir:
+      'A folder named .gitignore already exists — cannot create a file with the same name.',
     addToGitignore: 'Add to .gitignore',
     addToGitignoreAlready: 'This rule is already in .gitignore',
     addToGitignoreUnsafe: 'Cannot add this path to .gitignore (e.g. .git metadata or invalid path)',
@@ -525,7 +528,8 @@ export const enUS: I18nMessages = {
     scrollToUserMessage: 'Jump to user message',
     userMessageAttachmentOnly: '(Contains attachments)',
     emptyStateTitle: 'Start a new task',
-    emptyStateSubtitle: 'Describe the goal, paste an error, or attach files to get the Agent working.',
+    emptyStateSubtitle:
+      'Describe the goal, paste an error, or attach files to get the Agent working.',
     emptyStateProjectStructure: 'Explain this project structure',
     emptyStateDebugError: 'Help me debug the current error',
     emptyStateRefactorCode: 'Refactor a piece of code',
@@ -554,7 +558,8 @@ export const enUS: I18nMessages = {
     selectProfile: 'Select profile',
     profileLabel: 'API profile',
     autoRouting: 'Auto Routing',
-    autoRoutingNotConfigured: 'Auto routing is disabled or not configured. Set it up in Settings first.',
+    autoRoutingNotConfigured:
+      'Auto routing is disabled or not configured. Set it up in Settings first.',
     modelSwitchedFromTo: 'Model changed from {from} to {to}',
     agentName: 'Agent Name',
     agentNamePlaceholder: 'e.g., Refactoring Assistant',
@@ -633,8 +638,10 @@ export const enUS: I18nMessages = {
       deleteProjectTitle: 'Delete project',
       deleteProjectConfirm: 'Remove "{name}" from the workspace?',
       deleteProjectThreadCount: 'This will delete {count} conversation(s) and their history.',
-      deleteProjectHint: 'Agent sessions, drafts, and pending review changes for this project will be removed. The project folder on disk will not be deleted.',
-      deleteProjectStreamingBlocked: 'A conversation is still streaming. Try again when it finishes.',
+      deleteProjectHint:
+        'Agent sessions, drafts, and pending review changes for this project will be removed. The project folder on disk will not be deleted.',
+      deleteProjectStreamingBlocked:
+        'A conversation is still streaming. Try again when it finishes.',
       deleteProjectFailed: 'Failed to delete project',
     },
     placeholder: {
@@ -706,7 +713,8 @@ export const enUS: I18nMessages = {
     userMessage: {
       edit: 'Edit message',
       editAria: 'Edit user message',
-      editHint: 'Enter to send · Esc to cancel · rolls back later file changes and removes AI replies',
+      editHint:
+        'Enter to send · Esc to cancel · rolls back later file changes and removes AI replies',
       cancelEdit: 'Cancel',
       resend: 'Send',
       resending: 'Sending…',
@@ -818,7 +826,8 @@ export const enUS: I18nMessages = {
       statusFailed: 'Failed',
       statusBlocked: 'Blocked by approval',
       deleteConfirm: 'Confirm Delete',
-      deleteMessage: 'Are you sure you want to delete automation task "{name}"? This action cannot be undone.',
+      deleteMessage:
+        'Are you sure you want to delete automation task "{name}"? This action cannot be undone.',
       cronInvalid: 'Invalid cron expression',
     },
   },
@@ -952,7 +961,8 @@ export const enUS: I18nMessages = {
     resetConfirm: 'Reset all usage statistics? This cannot be undone.',
     overCapWarning: 'Cumulative cost has exceeded the configured spend cap ({cap} USD).',
     enableTracking: 'Enable usage recording',
-    enableTrackingHint: 'When off, new tokens and cost are no longer accumulated (existing data is kept).',
+    enableTrackingHint:
+      'When off, new tokens and cost are no longer accumulated (existing data is kept).',
     prevPage: 'Previous',
     nextPage: 'Next',
     pageInfo: 'Page {page} / {totalPages} · {total} total',
@@ -1019,7 +1029,8 @@ export const enUS: I18nMessages = {
   },
   settingsAutoRouting: {
     title: 'Auto Routing',
-    description: 'Configure automatic provider fallback when quota is exhausted. Providers will be tried in order.',
+    description:
+      'Configure automatic provider fallback when quota is exhausted. Providers will be tried in order.',
     enableAutoRouting: 'Enable Auto Routing',
     addEntry: 'Add Provider',
     deleteEntry: 'Delete',
@@ -1031,7 +1042,8 @@ export const enUS: I18nMessages = {
     moveDown: 'Move Down',
     saveConfig: 'Save Configuration',
     saving: 'Saving...',
-    allExhaustedError: 'All providers have exhausted their quota. Please add more providers or increase your quota.',
+    allExhaustedError:
+      'All providers have exhausted their quota. Please add more providers or increase your quota.',
     incompleteEntry: 'Please complete the profile and model selection for each routing entry.',
     savedPartial: 'Saved {saved} valid route(s); {skipped} incomplete entry(ies) were skipped.',
     providerCount: '{count} provider(s)',
@@ -1105,35 +1117,35 @@ export const enUS: I18nMessages = {
       seconds5: '5s',
       seconds10: '10s',
     },
-      fontSize: {
-        title: 'Font Size',
-        current: 'Current {size}px',
-      },
-      themeMode: {
-        title: 'Theme Mode',
-        system: 'Follow System',
-        dark: 'Dark',
-        light: 'Light',
-      },
-      wordWrap: {
-        title: 'Word Wrap',
-      },
+    fontSize: {
+      title: 'Font Size',
+      current: 'Current {size}px',
+    },
+    themeMode: {
+      title: 'Theme Mode',
+      system: 'Follow System',
+      dark: 'Dark',
+      light: 'Light',
+    },
+    wordWrap: {
+      title: 'Word Wrap',
+    },
     lineNumbers: {
       title: 'Line Numbers',
     },
-      minimap: {
-        title: 'Code Minimap',
-      },
-      renderWhitespace: {
-        title: 'Render Whitespace',
-        none: 'None',
-        boundary: 'Boundary',
-        selection: 'Selection',
-        all: 'All',
-      },
-      cursorStyle: {
-        title: 'Cursor Style',
-        line: 'Line',
+    minimap: {
+      title: 'Code Minimap',
+    },
+    renderWhitespace: {
+      title: 'Render Whitespace',
+      none: 'None',
+      boundary: 'Boundary',
+      selection: 'Selection',
+      all: 'All',
+    },
+    cursorStyle: {
+      title: 'Cursor Style',
+      line: 'Line',
       block: 'Block',
       underline: 'Underline',
     },
@@ -1144,21 +1156,21 @@ export const enUS: I18nMessages = {
       phase: 'Phase',
       off: 'Off',
     },
-      formatOnSave: {
-        title: 'Format On Save',
-      },
-      currentLineHighlight: {
-        title: 'Highlight Current Line',
-        resetDefault: 'Reset to Default',
-      },
-      bracketPairColorization: {
-        title: 'Bracket Pair Colorization',
-        description:
-          'Controls rainbow bracket colors and matching-bracket highlighting at the caret; disabling turns both off.',
-      },
-      startup: {
-        title: 'On Startup',
-        lastProject: 'Open last project',
+    formatOnSave: {
+      title: 'Format On Save',
+    },
+    currentLineHighlight: {
+      title: 'Highlight Current Line',
+      resetDefault: 'Reset to Default',
+    },
+    bracketPairColorization: {
+      title: 'Bracket Pair Colorization',
+      description:
+        'Controls rainbow bracket colors and matching-bracket highlighting at the caret; disabling turns both off.',
+    },
+    startup: {
+      title: 'On Startup',
+      lastProject: 'Open last project',
       welcome: 'Show welcome page',
       empty: 'Empty window',
     },
@@ -1176,21 +1188,21 @@ export const enUS: I18nMessages = {
       byType: 'Sort by type',
       byModified: 'Sort by modified time',
       name: 'Name',
-        type: 'Type',
-        modified: 'Modified',
-        foldersFirst: 'Folders always first',
-      },
-      compactFolders: {
-        title: 'Compact Folders',
-        enabled: 'Compress single-child directory chains',
-        disabled: 'Show directories level by level',
-      },
-      autoRevealCurrentFile: {
-        title: 'Auto Reveal Current File',
-        enabled: 'Expand and locate the active editor file automatically',
-        disabled: 'Do not auto-expand or scroll the file tree',
-      },
+      type: 'Type',
+      modified: 'Modified',
+      foldersFirst: 'Folders always first',
     },
+    compactFolders: {
+      title: 'Compact Folders',
+      enabled: 'Compress single-child directory chains',
+      disabled: 'Show directories level by level',
+    },
+    autoRevealCurrentFile: {
+      title: 'Auto Reveal Current File',
+      enabled: 'Expand and locate the active editor file automatically',
+      disabled: 'Do not auto-expand or scroll the file tree',
+    },
+  },
   settingsSkills: {
     title: 'Skills Configuration',
     globalSkills: 'Global Skills',
@@ -1273,8 +1285,7 @@ export const enUS: I18nMessages = {
   },
   settingsBuiltin: {
     title: 'Built-in Models',
-    description:
-      'Enter an invite code to enable built-in models—no API setup required.',
+    description: 'Enter an invite code to enable built-in models—no API setup required.',
     endpoint: 'Endpoint',
     status: 'Status',
     statusLoading: 'Loading…',
@@ -1353,7 +1364,8 @@ export const enUS: I18nMessages = {
     },
     accessMode: {
       title: 'Access Mode',
-      description: 'Controls tool access for Agent and Chat: read-only, require approval for operations, or full access within sandbox constraints.',
+      description:
+        'Controls tool access for Agent and Chat: read-only, require approval for operations, or full access within sandbox constraints.',
       readOnly: 'Read Only',
       auto: 'Auto',
       fullAccess: 'Full Access',
@@ -1373,7 +1385,8 @@ export const enUS: I18nMessages = {
     },
     chatToolApproval: {
       title: 'Chat Tool Approval',
-      description: 'Control whether Chat must request approval before running commands, file writes, Git actions, or MCP calls.',
+      description:
+        'Control whether Chat must request approval before running commands, file writes, Git actions, or MCP calls.',
       reject: 'Reject actions',
       request: 'Request approval',
       always: 'Always allow',
@@ -1403,7 +1416,8 @@ export const enUS: I18nMessages = {
     },
     toolCallDelay: {
       title: 'Post-Tool Call Delay',
-      description: 'Delay before sending AI request after tool execution. Increasing the delay allows tool results to be displayed more completely.',
+      description:
+        'Delay before sending AI request after tool execution. Increasing the delay allows tool results to be displayed more completely.',
       noDelay: 'No delay',
       ms500: '0.5s',
       ms1000: '1s',
@@ -1413,18 +1427,21 @@ export const enUS: I18nMessages = {
     },
     streamSpeed: {
       title: 'Stream Output Speed',
-      description: 'Controls the typewriter effect for AI responses. Fast shows text immediately; slower modes reveal text gradually.',
+      description:
+        'Controls the typewriter effect for AI responses. Fast shows text immediately; slower modes reveal text gradually.',
       fast: 'Fast',
       normal: 'Normal',
       slow: 'Slow',
     },
     thinkingBlockAutoExpand: {
       title: 'Auto-Expand Thinking',
-      description: 'Automatically expand the thinking bubble while AI is thinking; collapse when thinking is complete.',
+      description:
+        'Automatically expand the thinking bubble while AI is thinking; collapse when thinking is complete.',
     },
     enableSubagents: {
       title: 'Enable subagents (experimental)',
-      description: 'When off, the main agent completes work serially. When on, subagent delegation is available; concurrency, context, and rounds are decided by the AI via tool parameters.',
+      description:
+        'When off, the main agent completes work serially. When on, subagent delegation is available; concurrency, context, and rounds are decided by the AI via tool parameters.',
     },
     subagent: {
       title: 'Subagents',
@@ -1540,8 +1557,7 @@ export const enUS: I18nMessages = {
     imageGeneration: {
       tabLabel: 'Image Gen',
       title: 'Image generation',
-      hint:
-        'Uses the OpenAI Images API format (POST /v1/images/generations). Separate from chat models. When enabled, Chat/Agent can use the generate_image tool.',
+      hint: 'Uses the OpenAI Images API format (POST /v1/images/generations). Separate from chat models. When enabled, Chat/Agent can use the generate_image tool.',
       enabled: 'Enable image generation',
       enabledHint: 'When off, the generate_image tool is hidden from AI',
       connectionTitle: 'API connection',
@@ -1607,7 +1623,8 @@ export const enUS: I18nMessages = {
       noTemplate: 'None',
       maxContextTokens: 'Max Context (Optional)',
       maxContextTokensPlaceholder: '200000',
-      maxContextTokensHint: 'Context window size in tokens, default 200000. Auto-compresses history at 90%.',
+      maxContextTokensHint:
+        'Context window size in tokens, default 200000. Auto-compresses history at 90%.',
     },
     step2: {
       title: 'Configure Agent Abilities',
@@ -1751,7 +1768,8 @@ export const enUS: I18nMessages = {
     indexedProjectsStaleUnused: '30d unused',
     indexedProjectsDeleteConfirm: 'Delete the code graph index for this project?',
     indexedProjectsManage: 'Indexed project management',
-    indexedProjectsManageDesc: 'View indexes, clean stale entries, or delete all graph data (project folders are not removed)',
+    indexedProjectsManageDesc:
+      'View indexes, clean stale entries, or delete all graph data (project folders are not removed)',
     projectsLoadFailed: 'Failed to load indexed projects',
     retryLoadProjects: 'Retry',
     sidecarUnavailable: 'Code graph not ready',
@@ -1759,15 +1777,18 @@ export const enUS: I18nMessages = {
     indexComplete: 'Indexing complete: {name}',
     indexFailed: 'Indexing failed: {name}',
     indexDeleted: 'Code graph index deleted',
-    indexDeleteFailed: 'Failed to clean up code graph index. You can clean it manually in Settings.',
-    projectTooLarge: 'Project has too many files; auto-index skipped. Raise the limit in settings or run graph_index manually.',
+    indexDeleteFailed:
+      'Failed to clean up code graph index. You can clean it manually in Settings.',
+    projectTooLarge:
+      'Project has too many files; auto-index skipped. Raise the limit in settings or run graph_index manually.',
     enableCodeGraph: 'Enable code knowledge graph',
     enableCodeGraphDesc: 'Expose graph_index / graph_query / graph_trace tools to Agent',
     graphAutoIndexOnOpen: 'Auto-index on workspace open',
     graphAutoIndexOnOpenDesc: 'Build CBM graph index in the background when switching projects',
     sidecarReady: 'Sidecar ready',
     sidecarMissing: 'Sidecar missing (run npm run fetch:cbm)',
-    versionMismatch: 'Sidecar version mismatch (bundled {pinned}, runtime {runtime}). Re-run npm run fetch:cbm',
+    versionMismatch:
+      'Sidecar version mismatch (bundled {pinned}, runtime {runtime}). Re-run npm run fetch:cbm',
     sidecarVersion: 'Bundled {pinned} · Runtime {runtime}',
     sidecarVersionUnknown: 'unknown',
     storageTitle: 'Index storage',
@@ -1783,7 +1804,8 @@ export const enUS: I18nMessages = {
     cleanupStale: 'Clean stale indexes',
     cleanupStaleDone: 'Stale indexes cleaned up',
     deleteAllIndexes: 'Delete all indexes',
-    deleteAllConfirm: 'Delete graph data for all indexed projects? Project folders will not be removed.',
+    deleteAllConfirm:
+      'Delete graph data for all indexed projects? Project folders will not be removed.',
     deleteAllDone: 'All graph indexes deleted',
     nodeCount: '{count} nodes',
     uiTitle: '3D graph browser',

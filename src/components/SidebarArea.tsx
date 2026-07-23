@@ -248,7 +248,8 @@ function SidebarAreaBase({
               <div style={emptyStateStyle}>
                 {fileTree.length > 0 ? t.preview.filesFilteredByRules : t.search.openFolderToSearch}
               </div>
-            ) : !showIndexedProjects || (!indexedProjectsLoading && indexedProjects.length === 0) ? (
+            ) : !showIndexedProjects ||
+              (!indexedProjectsLoading && indexedProjects.length === 0) ? (
               <div style={emptyStateStyle}>{t.search.openFolderToSearch}</div>
             ) : null}
           </div>

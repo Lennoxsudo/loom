@@ -27,7 +27,7 @@ export function scrollToMessage(
   container: HTMLElement,
   messageId: string,
   behavior: ScrollBehavior = 'smooth',
-  layoutCache?: UserMessageLayoutCache,
+  layoutCache?: UserMessageLayoutCache
 ): boolean {
   const selector = `#msg-${CSS.escape(messageId)}`;
   const target = container.querySelector<HTMLElement>(selector);
@@ -51,7 +51,7 @@ export function scrollToMessage(
 export function findPinnedUserMessage(
   messages: ChatMessage[],
   container: HTMLElement,
-  layoutCache: UserMessageLayoutCache,
+  layoutCache: UserMessageLayoutCache
 ): ChatMessage | null {
   const containerRect = container.getBoundingClientRect();
   const scrollTop = container.scrollTop;
@@ -89,7 +89,7 @@ export function findPinnedUserMessage(
 export function computeMessageAnchorPositions(
   messages: ChatMessage[],
   container: HTMLElement,
-  layoutCache: UserMessageLayoutCache,
+  layoutCache: UserMessageLayoutCache
 ): MessageAnchorPosition[] {
   const scrollHeight = container.scrollHeight;
   if (scrollHeight <= 0) return [];
@@ -133,7 +133,7 @@ function roundAnchorTop(top: number): number {
 
 export function areMessageAnchorPositionsEqual(
   a: MessageAnchorPosition[],
-  b: MessageAnchorPosition[],
+  b: MessageAnchorPosition[]
 ): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -146,7 +146,7 @@ export function areMessageAnchorPositionsEqual(
 export function getUserMessagePreviewText(
   message: ChatMessage,
   attachmentOnlyLabel: string,
-  maxLength = 240,
+  maxLength = 240
 ): string {
   const trimmed = message.text.trim().replace(/\s+/g, ' ');
   if (trimmed.length > 0) {

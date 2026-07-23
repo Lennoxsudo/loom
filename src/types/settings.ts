@@ -76,9 +76,7 @@ export type AgentAccessMode = 'read_only' | 'auto' | 'full_access';
  * Map legacy three-state execution/approval modes to access tiers.
  * Used during settings loading to migrate old settings files.
  */
-export function migrateLegacyExecutionMode(
-  mode: AgentCommandExecutionMode
-): AgentAccessMode {
+export function migrateLegacyExecutionMode(mode: AgentCommandExecutionMode): AgentAccessMode {
   if (mode === 'deny') return 'read_only';
   if (mode === 'request') return 'auto';
   return 'full_access';

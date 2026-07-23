@@ -13,7 +13,10 @@ export function normalizeImageGenerationConfig(value: unknown): ImageGenerationC
 
   let models: string[];
   if (Array.isArray(obj.models)) {
-    models = obj.models.map((m) => (typeof m === 'string' ? m : '')).filter(Boolean).slice(0, 10);
+    models = obj.models
+      .map((m) => (typeof m === 'string' ? m : ''))
+      .filter(Boolean)
+      .slice(0, 10);
   } else {
     models = [...fallback.models];
   }
@@ -42,9 +45,9 @@ export function normalizeImageGenerationConfig(value: unknown): ImageGenerationC
 export function isImageGenConfigured(config: ImageGenerationConfig): boolean {
   return Boolean(
     config.enabled &&
-      config.endpoint.trim() &&
-      config.apiKey.trim() &&
-      config.models.some((model) => model.trim())
+    config.endpoint.trim() &&
+    config.apiKey.trim() &&
+    config.models.some((model) => model.trim())
   );
 }
 

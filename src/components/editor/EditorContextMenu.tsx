@@ -142,8 +142,7 @@ export function EditorContextMenu({
       !!liveServerStatus.port &&
       (!liveServerStatus.root ||
         (hasProject &&
-          normalizePathForCompare(liveServerStatus.root) ===
-            normalizePathForCompare(projectPath)));
+          normalizePathForCompare(liveServerStatus.root) === normalizePathForCompare(projectPath)));
 
     return {
       canLiveServerStart: !!activeFilePath && isHtmlActive && inProject,
@@ -270,7 +269,18 @@ export function EditorContextMenu({
         },
       },
     ],
-    [t, actionSupported, hasSelection, liveServerContext, activeFilePath, projectPath, onOpenWithLiveServer, onOpenInBrowser, onStopLiveServer, onRefreshLiveServerStatus]
+    [
+      t,
+      actionSupported,
+      hasSelection,
+      liveServerContext,
+      activeFilePath,
+      projectPath,
+      onOpenWithLiveServer,
+      onOpenInBrowser,
+      onStopLiveServer,
+      onRefreshLiveServerStatus,
+    ]
   );
 
   return (

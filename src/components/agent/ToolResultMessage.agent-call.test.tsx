@@ -273,8 +273,10 @@ describe('ToolResultMessage agent call rendering', () => {
     // hidden sections stay mounted for expand animation
     expect(screen.getByText('pending task a')).toBeInTheDocument();
     expect(screen.getByText('done task d')).toBeInTheDocument();
-    expect(screen.getByTestId('todo-expand-toggle').closest('[aria-hidden]')
-      || screen.getByTestId('todo-expand-toggle').parentElement?.querySelector('[aria-hidden]')).toBeTruthy();
+    expect(
+      screen.getByTestId('todo-expand-toggle').closest('[aria-hidden]') ||
+        screen.getByTestId('todo-expand-toggle').parentElement?.querySelector('[aria-hidden]')
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByTestId('todo-expand-toggle'));
     expect(screen.getByText('pending task a')).toBeInTheDocument();

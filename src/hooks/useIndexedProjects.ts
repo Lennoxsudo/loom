@@ -40,7 +40,7 @@ export function useIndexedProjects(enabled: boolean, graphReady = false) {
         showError(t.graph.indexDeleteFailed);
       }
     },
-    [showError, showInfo, t.graph.indexDeleted, t.graph.indexDeleteFailed],
+    [showError, showInfo, t.graph.indexDeleted, t.graph.indexDeleteFailed]
   );
 
   // Refresh when code graph is turned on, or when the sidecar becomes ready.

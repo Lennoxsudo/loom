@@ -4,7 +4,17 @@ import { emit } from '@tauri-apps/api/event';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useTranslation } from '../../i18n';
 import { showSuccess as globalShowSuccess } from '../../utils/notification';
-import { type AIProvider, type AIConfigTab, type AIConfig, type AIProfileItem, type AIProviderProfiles, type AIProfiles, type ImageGenerationConfig, DEFAULT_AI_CONFIGS, DEFAULT_IMAGE_GENERATION_CONFIG } from './types';
+import {
+  type AIProvider,
+  type AIConfigTab,
+  type AIConfig,
+  type AIProfileItem,
+  type AIProviderProfiles,
+  type AIProfiles,
+  type ImageGenerationConfig,
+  DEFAULT_AI_CONFIGS,
+  DEFAULT_IMAGE_GENERATION_CONFIG,
+} from './types';
 import { normalizeImageGenerationConfig } from '../../utils/imageGenConfig';
 import { ImageGenerationSection } from './ImageGenerationSection';
 import { ChevronDownIcon, CloseIcon, CopyIcon, EditIcon, PlusIcon } from '../shared/Icons';
@@ -141,9 +151,7 @@ function ProfileCard({
   }, [isExpanded]);
 
   return (
-    <div
-      className={`${styles.profileCard} ${isActive ? styles.profileCardActive : ''}`}
-    >
+    <div className={`${styles.profileCard} ${isActive ? styles.profileCardActive : ''}`}>
       <div
         ref={renameAreaRef}
         role="button"
@@ -181,7 +189,9 @@ function ProfileCard({
             )}
             {!isRenaming && badge ? <span className={styles.activeBadge}>{badge}</span> : null}
           </div>
-          {!isRenaming && subtitle ? <div className={styles.profileSubtitle}>{subtitle}</div> : null}
+          {!isRenaming && subtitle ? (
+            <div className={styles.profileSubtitle}>{subtitle}</div>
+          ) : null}
         </div>
 
         <div className={styles.profileActions}>
@@ -350,7 +360,11 @@ function ConfigForm({
         label={t.settingsAiConfig.form.apiKey}
         value={config.apiKey || ''}
         onChange={(value) => handleChange('apiKey', value)}
-        placeholder={provider === 'ollama' ? t.settingsAiConfig.form.apiKeyPlaceholderOllama : t.settingsAiConfig.form.apiKeyPlaceholder}
+        placeholder={
+          provider === 'ollama'
+            ? t.settingsAiConfig.form.apiKeyPlaceholderOllama
+            : t.settingsAiConfig.form.apiKeyPlaceholder
+        }
         type="password"
         required={provider !== 'ollama'}
         error={errors.apiKey}
@@ -529,12 +543,7 @@ function ConfigForm({
       )}
 
       <div className={styles.formFooter}>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className={styles.primaryBtn}
-        >
+        <button type="button" onClick={onSave} disabled={isSaving} className={styles.primaryBtn}>
           {isSaving ? t.settingsAiConfig.form.saving : t.settingsAiConfig.form.saveConfig}
         </button>
       </div>
@@ -582,13 +591,18 @@ export function AIConfigContent() {
   const createDefaultProfiles = (): AIProfiles => ({
     openai: {
       activeId: 'default-openai',
-              items: [{ id: 'default-openai', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.openai }],    },
+      items: [{ id: 'default-openai', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.openai }],
+    },
     anthropic: {
       activeId: 'default-anthropic',
-              items: [{ id: 'default-anthropic', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.anthropic }],    },
+      items: [
+        { id: 'default-anthropic', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.anthropic },
+      ],
+    },
     ollama: {
       activeId: 'default-ollama',
-              items: [{ id: 'default-ollama', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.ollama }],    },
+      items: [{ id: 'default-ollama', name: t.common.defaultConfig, ...DEFAULT_AI_CONFIGS.ollama }],
+    },
   });
 
   const normalizeConfigValue = (provider: AIProvider, value: unknown): Partial<AIConfig> => {
@@ -732,7 +746,9 @@ export function AIConfigContent() {
                 const id = `default-${provider}`;
                 return {
                   activeId: id,
-                  items: [{ id, name: t.common.defaultConfig, ...nextConfigs[provider] } as AIProfileItem],
+                  items: [
+                    { id, name: t.common.defaultConfig, ...nextConfigs[provider] } as AIProfileItem,
+                  ],
                 };
               }
 
@@ -761,7 +777,9 @@ export function AIConfigContent() {
               const id = `default-${provider}`;
               return {
                 activeId: id,
-                items: [{ id, name: t.common.defaultConfig, ...nextConfigs[provider] } as AIProfileItem],
+                items: [
+                  { id, name: t.common.defaultConfig, ...nextConfigs[provider] } as AIProfileItem,
+                ],
               };
             };
             nextProfiles = {
@@ -961,7 +979,7 @@ export function AIConfigContent() {
 
   const makeUniqueCopyName = (baseName: string, existingNames: string[]) => {
     const template = t.settingsAiConfig.profileCopyName;
-    let candidate = template.replace('{name}', baseName);
+    const candidate = template.replace('{name}', baseName);
     if (!existingNames.includes(candidate)) return candidate;
 
     let n = 2;
@@ -987,8 +1005,7 @@ export function AIConfigContent() {
       endpoint: source.endpoint || '',
       apiKey: source.apiKey || '',
       models: Array.isArray(source.models) ? [...source.models] : [''],
-      organizationId:
-        provider === 'openai' ? source.organizationId || '' : undefined,
+      organizationId: provider === 'openai' ? source.organizationId || '' : undefined,
       supportsVision: source.supportsVision,
       visionMaxImages: source.visionMaxImages,
       visionMaxBytes: source.visionMaxBytes,
@@ -1270,7 +1287,9 @@ export function AIConfigContent() {
       </header>
 
       {message && (
-        <div className={`${styles.message} ${message.type === 'success' ? styles.messageSuccess : styles.messageError}`}>
+        <div
+          className={`${styles.message} ${message.type === 'success' ? styles.messageSuccess : styles.messageError}`}
+        >
           <span>{message.text}</span>
           <button type="button" onClick={() => setMessage(null)} className={styles.messageClose}>
             ×
@@ -1302,84 +1321,84 @@ export function AIConfigContent() {
           isSaving={isSaving}
         />
       ) : (
-      <div>
-        <div className={styles.toolbar}>
-          <div className={styles.toolbarHint}>{t.settingsAiConfig.hint}</div>
-          <button type="button" onClick={handleAddProfile} className={styles.addButton}>
-            <PlusIcon size={12} />
-            {t.settingsAiConfig.addProfile}
-          </button>
-        </div>
+        <div>
+          <div className={styles.toolbar}>
+            <div className={styles.toolbarHint}>{t.settingsAiConfig.hint}</div>
+            <button type="button" onClick={handleAddProfile} className={styles.addButton}>
+              <PlusIcon size={12} />
+              {t.settingsAiConfig.addProfile}
+            </button>
+          </div>
 
-        <div className={styles.profileList}>
-        {profiles[selectedProvider].items.map((item) => {
-          const isActive = profiles[selectedProvider].activeId === item.id;
-          const isExpanded = expandedProfileId === item.id;
-          const isRenaming = renamingProfileId === item.id;
-          const shortEndpoint = (item.endpoint || '').replace(/^https?:\/\//, '').slice(0, 48);
-          return (
-            <ProfileCard
-              key={item.id}
-              title={item.name}
-              subtitle={shortEndpoint}
-              badge={isActive ? t.settingsAiConfig.enabled : ''}
-              isActive={isActive}
-              isExpanded={isExpanded}
-              isRenaming={isRenaming}
-              renameValue={renameValue}
-              onRenameChange={setRenameValue}
-              onRenameSubmit={() => void saveRenameProfile(item.id)}
-              onRenameCancel={cancelRename}
-              onToggle={() => {
-                if (expandedProfileId === item.id) {
-                  clearFetchedModelsForProfile(item.id);
-                  setExpandedProfileId(null);
-                } else {
-                  setExpandedProfileId(item.id);
-                }
-              }}
-              onEdit={() => startRenameProfile(item.id)}
-              onCopy={() => void handleDuplicateProfile(selectedProvider, item.id)}
-              onEnable={
-                isActive ? undefined : () => void handleEnableProfile(selectedProvider, item.id)
-              }
-              onDelete={
-                profiles[selectedProvider].items.length > 1
-                  ? () => requestDeleteProfile(selectedProvider, item.id)
-                  : undefined
-              }
-            >
-              <ConfigForm
-                provider={selectedProvider}
-                config={item}
-                onConfigChange={(field, value) =>
-                  handleProfileConfigChange(item.id, field, value)
-                }
-                onSave={handleSaveConfig}
-                onTestModel={(index) => void handleTestModel(item.id, index)}
-                onFetchModels={() => void handleFetchModels(item.id)}
-                isSaving={isSaving}
-                testingModelIndexes={
-                  new Set(
-                    Array.from(testingModelKeys)
-                      .filter((key) => key.startsWith(`${item.id}:`))
-                      .map((key) => Number(key.slice(item.id.length + 1)))
-                      .filter((n) => Number.isFinite(n))
-                  )
-                }
-                isFetchingModels={fetchingModelsProfileId === item.id}
-                modelTestResults={modelTestResultsByProfileId[item.id] || {}}
-                modelFetch={modelFetchByProfileId[item.id]}
-                onCopyModel={(model) => void handleCopyModel(model)}
-                onAddModel={() => handleAddModel(item.id)}
-                onRemoveModel={(index) => handleRemoveModel(item.id, index)}
-                onModelChange={(index, value) => handleModelChange(item.id, index, value)}
-              />
-            </ProfileCard>
-          );
-        })}
+          <div className={styles.profileList}>
+            {profiles[selectedProvider].items.map((item) => {
+              const isActive = profiles[selectedProvider].activeId === item.id;
+              const isExpanded = expandedProfileId === item.id;
+              const isRenaming = renamingProfileId === item.id;
+              const shortEndpoint = (item.endpoint || '').replace(/^https?:\/\//, '').slice(0, 48);
+              return (
+                <ProfileCard
+                  key={item.id}
+                  title={item.name}
+                  subtitle={shortEndpoint}
+                  badge={isActive ? t.settingsAiConfig.enabled : ''}
+                  isActive={isActive}
+                  isExpanded={isExpanded}
+                  isRenaming={isRenaming}
+                  renameValue={renameValue}
+                  onRenameChange={setRenameValue}
+                  onRenameSubmit={() => void saveRenameProfile(item.id)}
+                  onRenameCancel={cancelRename}
+                  onToggle={() => {
+                    if (expandedProfileId === item.id) {
+                      clearFetchedModelsForProfile(item.id);
+                      setExpandedProfileId(null);
+                    } else {
+                      setExpandedProfileId(item.id);
+                    }
+                  }}
+                  onEdit={() => startRenameProfile(item.id)}
+                  onCopy={() => void handleDuplicateProfile(selectedProvider, item.id)}
+                  onEnable={
+                    isActive ? undefined : () => void handleEnableProfile(selectedProvider, item.id)
+                  }
+                  onDelete={
+                    profiles[selectedProvider].items.length > 1
+                      ? () => requestDeleteProfile(selectedProvider, item.id)
+                      : undefined
+                  }
+                >
+                  <ConfigForm
+                    provider={selectedProvider}
+                    config={item}
+                    onConfigChange={(field, value) =>
+                      handleProfileConfigChange(item.id, field, value)
+                    }
+                    onSave={handleSaveConfig}
+                    onTestModel={(index) => void handleTestModel(item.id, index)}
+                    onFetchModels={() => void handleFetchModels(item.id)}
+                    isSaving={isSaving}
+                    testingModelIndexes={
+                      new Set(
+                        Array.from(testingModelKeys)
+                          .filter((key) => key.startsWith(`${item.id}:`))
+                          .map((key) => Number(key.slice(item.id.length + 1)))
+                          .filter((n) => Number.isFinite(n))
+                      )
+                    }
+                    isFetchingModels={fetchingModelsProfileId === item.id}
+                    modelTestResults={modelTestResultsByProfileId[item.id] || {}}
+                    modelFetch={modelFetchByProfileId[item.id]}
+                    onCopyModel={(model) => void handleCopyModel(model)}
+                    onAddModel={() => handleAddModel(item.id)}
+                    onRemoveModel={(index) => handleRemoveModel(item.id, index)}
+                    onModelChange={(index, value) => handleModelChange(item.id, index, value)}
+                  />
+                </ProfileCard>
+              );
+            })}
+          </div>
         </div>
-      </div>
       )}
 
       {pendingDeleteProfile && (

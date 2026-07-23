@@ -93,17 +93,17 @@ export async function executeToolCall(
               ...context,
               toolCallId: id,
             });
-            
+
             // 如果是写操作，清理相关缓存
             if (toolResult.files_changed && toolResult.files_changed.length > 0) {
               clearCacheForChangedFiles(name, args, toolResult.files_changed, context);
             }
-            
+
             return toolResult;
           },
           getCacheTTLForTool(name)
         );
-        
+
         result.tool_call_id = id;
         emitToolEnd(name, id, !result.error, context, result.error);
         return result;
@@ -134,23 +134,58 @@ export async function executeToolCall(
  */
 const KNOWN_TOOL_NAMES: readonly string[] = [
   // New short names
-  'read', 'write', 'edit',
-  'term', 'finfo', 'search', 'git',
+  'read',
+  'write',
+  'edit',
+  'term',
+  'finfo',
+  'search',
+  'git',
   'sym',
-  'browser', 'fetch', 'web_search',
-  'todo', 'update_plan', 'exit_plan_mode', 'ask', 'skill', 'generate_image', 'run_subagent', 'run_subagents', 'Agent', 'Task',
-  'graph_index', 'graph_query', 'graph_trace',
+  'browser',
+  'fetch',
+  'web_search',
+  'todo',
+  'update_plan',
+  'exit_plan_mode',
+  'ask',
+  'skill',
+  'generate_image',
+  'run_subagent',
+  'run_subagents',
+  'Agent',
+  'Task',
+  'graph_index',
+  'graph_query',
+  'graph_trace',
   // Legacy names (for backward compatibility)
-  'read_file', 'write_file', 'edit_file',
-  'terminal', 'file_info',
+  'read_file',
+  'write_file',
+  'edit_file',
+  'terminal',
+  'file_info',
   'get_symbol_definition',
-  'control_browser', 'fetch_web_content',
-  'TodoWrite', 'ask_user_question', 'load_skill',
+  'control_browser',
+  'fetch_web_content',
+  'TodoWrite',
+  'ask_user_question',
+  'load_skill',
   // Individual handler names
-  'search_files', 'search_content', 'search_both', 'list_directory', 'create_folder', 'get_file_tree', 'get_file_info',
-  'move_file', 'delete_file',
-  'run_command', 'read_terminal_output', 'list_bg_tasks', 'kill_bg_task',
-  'get_git_diff', 'undo_changes',
+  'search_files',
+  'search_content',
+  'search_both',
+  'list_directory',
+  'create_folder',
+  'get_file_tree',
+  'get_file_info',
+  'move_file',
+  'delete_file',
+  'run_command',
+  'read_terminal_output',
+  'list_bg_tasks',
+  'kill_bg_task',
+  'get_git_diff',
+  'undo_changes',
 ];
 
 const KNOWN_TOOL_SET: ReadonlySet<string> = new Set(KNOWN_TOOL_NAMES);
@@ -182,41 +217,41 @@ export function getAvailableToolNames(): string[] {
 function getCacheTTLForTool(toolName: string): number {
   const toolTTL: Record<string, number> = {
     // 文件读取类：5分钟
-    'read': 5 * 60 * 1000,
-    'read_file': 5 * 60 * 1000,
-    'get_file_info': 5 * 60 * 1000,
-    'get_file_tree': 5 * 60 * 1000,
-    
+    read: 5 * 60 * 1000,
+    read_file: 5 * 60 * 1000,
+    get_file_info: 5 * 60 * 1000,
+    get_file_tree: 5 * 60 * 1000,
+
     // 搜索类：2分钟
-    'search_files': 2 * 60 * 1000,
-    'search_content': 2 * 60 * 1000,
-    'search_both': 2 * 60 * 1000,
-    
+    search_files: 2 * 60 * 1000,
+    search_content: 2 * 60 * 1000,
+    search_both: 2 * 60 * 1000,
+
     // 目录列表：5分钟
-    'list_directory': 5 * 60 * 1000,
-    
+    list_directory: 5 * 60 * 1000,
+
     // Git相关：1分钟
-    'get_git_diff': 1 * 60 * 1000,
-    
+    get_git_diff: 1 * 60 * 1000,
+
     // 符号定义：10分钟
-    'sym': 10 * 60 * 1000,
-    'get_symbol_definition': 10 * 60 * 1000,
-    
+    sym: 10 * 60 * 1000,
+    get_symbol_definition: 10 * 60 * 1000,
+
     // 网络内容：15分钟
-    'fetch': 15 * 60 * 1000,
-    'fetch_web_content': 15 * 60 * 1000,
+    fetch: 15 * 60 * 1000,
+    fetch_web_content: 15 * 60 * 1000,
     // Web 搜索：5分钟（SERP 变化较快）
-    'web_search': 5 * 60 * 1000,
-    
+    web_search: 5 * 60 * 1000,
+
     // 合并工具
-    'finfo': 5 * 60 * 1000,
-    'file_info': 5 * 60 * 1000,
-    'search': 2 * 60 * 1000,
-    'graph_index': 10 * 60 * 1000,
-    'graph_query': 2 * 60 * 1000,
-    'graph_trace': 2 * 60 * 1000,
+    finfo: 5 * 60 * 1000,
+    file_info: 5 * 60 * 1000,
+    search: 2 * 60 * 1000,
+    graph_index: 10 * 60 * 1000,
+    graph_query: 2 * 60 * 1000,
+    graph_trace: 2 * 60 * 1000,
   };
-  
+
   return toolTTL[toolName] || 5 * 60 * 1000; // 默认5分钟
 }
 
@@ -260,7 +295,10 @@ function isPathInsideChangedDirectories(
   const normalizedCandidate = resolveComparablePath(candidatePath, baseDir).replace(/\/+$/, '');
   return changedFiles.some((file) => {
     const normalizedChanged = resolveComparablePath(file, baseDir);
-    return normalizedChanged.startsWith(`${normalizedCandidate}/`) || normalizedChanged === normalizedCandidate;
+    return (
+      normalizedChanged.startsWith(`${normalizedCandidate}/`) ||
+      normalizedChanged === normalizedCandidate
+    );
   });
 }
 
@@ -272,60 +310,70 @@ function clearCacheForChangedFiles(
 ): void {
   // 对于文件写操作，清理相关目录的缓存
   const writeTools = new Set([
-    'write', 'edit',
-    'write_file', 'edit_file',
-    'create_folder', 'move_file', 'delete_file',
+    'write',
+    'edit',
+    'write_file',
+    'edit_file',
+    'create_folder',
+    'move_file',
+    'delete_file',
   ]);
   if (!writeTools.has(toolName)) return;
 
   // 清理所有相关的文件读取和搜索缓存
-  const patternsToClear: Array<{tool: string, paramMatcher: (params: any) => boolean}> = [
+  const patternsToClear: Array<{ tool: string; paramMatcher: (params: any) => boolean }> = [
     // 清理相同文件的读取缓存
     {
       tool: 'read',
-      paramMatcher: (params) => matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir)
+      paramMatcher: (params) =>
+        matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir),
     },
     {
       tool: 'read_file',
-      paramMatcher: (params) => matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir)
+      paramMatcher: (params) =>
+        matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir),
     },
     {
       tool: 'finfo',
-      paramMatcher: (params) => matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir)
+      paramMatcher: (params) =>
+        matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir),
     },
     {
       tool: 'get_file_info',
-      paramMatcher: (params) => matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir)
+      paramMatcher: (params) =>
+        matchesChangedFilePath(params.path ?? params.filePath, changedFiles, context?.baseDir),
     },
     // 清理包含该文件的目录列表缓存
     {
       tool: 'list_directory',
-      paramMatcher: (params) => isPathInsideChangedDirectories(params.path, changedFiles, context?.baseDir)
+      paramMatcher: (params) =>
+        isPathInsideChangedDirectories(params.path, changedFiles, context?.baseDir),
     },
     // 清理文件树缓存
     {
       tool: 'get_file_tree',
-      paramMatcher: () => true // 文件树总是需要刷新
+      paramMatcher: () => true, // 文件树总是需要刷新
     },
     // 清理搜索缓存（如果搜索路径包含变更文件）
     {
       tool: 'search',
-      paramMatcher: (params) => isPathInsideChangedDirectories(params.path, changedFiles, context?.baseDir)
+      paramMatcher: (params) =>
+        isPathInsideChangedDirectories(params.path, changedFiles, context?.baseDir),
     },
     {
       tool: 'search_files',
       paramMatcher: (params) => {
         return isPathInsideChangedDirectories(params.path, changedFiles, context?.baseDir);
-      }
+      },
     },
     {
       tool: 'search_content',
       paramMatcher: (params) => {
         return isPathInsideChangedDirectories(params.path, changedFiles, context?.baseDir);
-      }
-    }
+      },
+    },
   ];
-  
+
   // 清理缓存
   const cacheEntries = toolCache.getEntries();
   for (const entry of cacheEntries) {
@@ -333,16 +381,16 @@ function clearCacheForChangedFiles(
     try {
       const cacheKeyParts = entry.key.split(':');
       if (cacheKeyParts.length < 2) continue;
-      
+
       const cacheToolName = cacheKeyParts[0];
       const cacheParamsStr = cacheKeyParts.slice(1).join(':');
       const cacheParams = JSON.parse(cacheParamsStr);
-      
+
       // 检查是否需要清理此缓存条目
-      const shouldClear = patternsToClear.some(pattern => 
-        pattern.tool === cacheToolName && pattern.paramMatcher(cacheParams)
+      const shouldClear = patternsToClear.some(
+        (pattern) => pattern.tool === cacheToolName && pattern.paramMatcher(cacheParams)
       );
-      
+
       if (shouldClear) {
         toolCache.delete(cacheToolName, cacheParams);
       }
@@ -432,9 +480,7 @@ function extractMcpTextContent(result: {
  *
  * 解析 mcp_<serverId>__<toolName> 格式，调用 MCP 服务器并返回文本结果。
  */
-async function executeMcpToolCall(
-  toolCall: ToolCall
-): Promise<ToolResult> {
+async function executeMcpToolCall(toolCall: ToolCall): Promise<ToolResult> {
   const { id, function: func } = toolCall;
   const { name, arguments: argsStr } = func;
 

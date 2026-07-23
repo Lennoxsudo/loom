@@ -16,7 +16,9 @@ describe('loadAllProjectThreadSummaries', () => {
     vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
       if (cmd === 'get_projects_index') {
         return {
-          projects: [{ key: 'project-a', path: 'D:\\project-a', updatedAt: '2026-01-01T00:00:00Z' }],
+          projects: [
+            { key: 'project-a', path: 'D:\\project-a', updatedAt: '2026-01-01T00:00:00Z' },
+          ],
           lastActiveProjectPath: 'D:\\project-a',
         };
       }

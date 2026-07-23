@@ -504,7 +504,12 @@ function AppContent() {
     const walk = (list: FileNode[]) => {
       for (const node of list) {
         nodes.push(node);
-        if (node.is_dir && expandedDirs.has(node.path) && node.children && node.children.length > 0) {
+        if (
+          node.is_dir &&
+          expandedDirs.has(node.path) &&
+          node.children &&
+          node.children.length > 0
+        ) {
           walk(node.children);
         }
       }
@@ -565,27 +570,30 @@ function AppContent() {
       });
     }, 2000);
     return () => window.clearTimeout(timer);
-  }, [cbmGraphEnabled, graphAutoIndexMaxFiles, graphAutoIndexOnOpen, projectPath, showWarning, t.graph.projectTooLarge]);
+  }, [
+    cbmGraphEnabled,
+    graphAutoIndexMaxFiles,
+    graphAutoIndexOnOpen,
+    projectPath,
+    showWarning,
+    t.graph.projectTooLarge,
+  ]);
 
-  const {
-    handleOpenFolder,
-    handleSelectFile,
-    handleOpenFile,
-    openFolderAtPath,
-  } = useOpenFileHandlers({
-    activeGroupId,
-    openFileInGroup,
-    setProjectName,
-    setProjectPath,
-    setFileTree,
-    setExpandedDirs,
-    setLoadingDirs,
-    setOpenFilesByPath,
-    setEditorGroups,
-    setActiveGroupId,
-    setHoveredTabId,
-    showError,
-  });
+  const { handleOpenFolder, handleSelectFile, handleOpenFile, openFolderAtPath } =
+    useOpenFileHandlers({
+      activeGroupId,
+      openFileInGroup,
+      setProjectName,
+      setProjectPath,
+      setFileTree,
+      setExpandedDirs,
+      setLoadingDirs,
+      setOpenFilesByPath,
+      setEditorGroups,
+      setActiveGroupId,
+      setHoveredTabId,
+      showError,
+    });
 
   const {
     handleActivateTab,
@@ -712,213 +720,230 @@ function AppContent() {
     setRenamingItem(null);
   }, []);
 
-  const remapOpenPaths = useCallback((oldPath: string, newPath: string) => {
-    const normalizedOldPath = normalizePathForCompare(oldPath);
-    const normalizedOldPathLower = normalizedOldPath.toLowerCase();
-    const oldPrefix = `${normalizedOldPathLower}\\`;
+  const remapOpenPaths = useCallback(
+    (oldPath: string, newPath: string) => {
+      const normalizedOldPath = normalizePathForCompare(oldPath);
+      const normalizedOldPathLower = normalizedOldPath.toLowerCase();
+      const oldPrefix = `${normalizedOldPathLower}\\`;
 
-    const mapPath = (candidate: string) => {
-      const normalizedCandidate = normalizePathForCompare(candidate);
-      const normalizedCandidateLower = normalizedCandidate.toLowerCase();
-      if (normalizedCandidateLower === normalizedOldPathLower) {
-        return newPath;
-      }
-      if (normalizedCandidateLower.startsWith(oldPrefix)) {
-        return `${newPath}\\${normalizedCandidate.slice(normalizedOldPath.length + 1)}`;
-      }
-      return candidate;
-    };
-
-    setOpenFilesByPath((prev) => {
-      let changed = false;
-      const next: typeof prev = {};
-
-      for (const [path, file] of Object.entries(prev)) {
-        const mappedPath = mapPath(path);
-        if (mappedPath !== path) {
-          changed = true;
-          const mappedName = getBasename(mappedPath);
-          next[mappedPath] = file.kind === 'image'
-            ? { ...file, path: mappedPath, name: mappedName, src: convertFileSrc(mappedPath) }
-            : { ...file, path: mappedPath, name: mappedName };
-        } else {
-          next[path] = file;
+      const mapPath = (candidate: string) => {
+        const normalizedCandidate = normalizePathForCompare(candidate);
+        const normalizedCandidateLower = normalizedCandidate.toLowerCase();
+        if (normalizedCandidateLower === normalizedOldPathLower) {
+          return newPath;
         }
-      }
-
-      return changed ? next : prev;
-    });
-
-    setEditorGroups((prev) => prev.map((group) => ({
-      ...group,
-      tabPaths: group.tabPaths.map(mapPath),
-      activePath: group.activePath ? mapPath(group.activePath) : null,
-    })));
-  }, [setEditorGroups, setOpenFilesByPath]);
-
-  const remapPathSet = useCallback((
-    oldPath: string,
-    newPath: string,
-    setter: typeof setExpandedDirs | typeof setLoadingDirs,
-  ) => {
-    const normalizedOldPath = normalizePathForCompare(oldPath);
-    const normalizedOldPathLower = normalizedOldPath.toLowerCase();
-    const oldPrefix = `${normalizedOldPathLower}\\`;
-
-    const mapPath = (candidate: string) => {
-      const normalizedCandidate = normalizePathForCompare(candidate);
-      const normalizedCandidateLower = normalizedCandidate.toLowerCase();
-      if (normalizedCandidateLower === normalizedOldPathLower) {
-        return newPath;
-      }
-      if (normalizedCandidateLower.startsWith(oldPrefix)) {
-        return `${newPath}\\${normalizedCandidate.slice(normalizedOldPath.length + 1)}`;
-      }
-      return candidate;
-    };
-
-    setter((prev) => {
-      let changed = false;
-      const next = new Set<string>();
-      for (const path of prev) {
-        const mappedPath = mapPath(path);
-        if (mappedPath !== path) {
-          changed = true;
+        if (normalizedCandidateLower.startsWith(oldPrefix)) {
+          return `${newPath}\\${normalizedCandidate.slice(normalizedOldPath.length + 1)}`;
         }
-        next.add(mappedPath);
-      }
-      return changed ? next : prev;
-    });
-  }, [setExpandedDirs, setLoadingDirs]);
+        return candidate;
+      };
 
-  const removeOpenPathsUnder = useCallback((targetPath: string) => {
-    const normalizedTargetPath = normalizePathForCompare(targetPath);
-    const normalizedTargetLower = normalizedTargetPath.toLowerCase();
-    const targetPrefix = `${normalizedTargetLower}\\`;
+      setOpenFilesByPath((prev) => {
+        let changed = false;
+        const next: typeof prev = {};
 
-    const shouldRemove = (candidate: string) => {
-      const normalizedCandidateLower = normalizePathForCompare(candidate).toLowerCase();
-      return (
-        normalizedCandidateLower === normalizedTargetLower ||
-        normalizedCandidateLower.startsWith(targetPrefix)
-      );
-    };
-
-    setOpenFilesByPath((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const path of Object.keys(prev)) {
-        if (!shouldRemove(path)) continue;
-        delete next[path];
-        changed = true;
-      }
-      return changed ? next : prev;
-    });
-
-    setEditorGroups((prev) =>
-      prev.map((group) => {
-        const nextTabPaths = group.tabPaths.filter((path) => !shouldRemove(path));
-        const nextActivePath =
-          group.activePath && shouldRemove(group.activePath)
-            ? nextTabPaths[0] ?? null
-            : group.activePath;
-
-        if (
-          nextTabPaths.length === group.tabPaths.length &&
-          nextActivePath === group.activePath
-        ) {
-          return group;
+        for (const [path, file] of Object.entries(prev)) {
+          const mappedPath = mapPath(path);
+          if (mappedPath !== path) {
+            changed = true;
+            const mappedName = getBasename(mappedPath);
+            next[mappedPath] =
+              file.kind === 'image'
+                ? { ...file, path: mappedPath, name: mappedName, src: convertFileSrc(mappedPath) }
+                : { ...file, path: mappedPath, name: mappedName };
+          } else {
+            next[path] = file;
+          }
         }
 
-        return {
+        return changed ? next : prev;
+      });
+
+      setEditorGroups((prev) =>
+        prev.map((group) => ({
           ...group,
-          tabPaths: nextTabPaths,
-          activePath: nextActivePath,
-        };
-      })
-    );
-  }, [setEditorGroups, setOpenFilesByPath]);
+          tabPaths: group.tabPaths.map(mapPath),
+          activePath: group.activePath ? mapPath(group.activePath) : null,
+        }))
+      );
+    },
+    [setEditorGroups, setOpenFilesByPath]
+  );
 
-  const resolveTreeOperationNodes = useCallback((primaryNode: FileNode) => {
-    const selectedPaths = selectedTreeNodePaths.has(primaryNode.path)
-      ? Array.from(selectedTreeNodePaths)
-      : [primaryNode.path];
+  const remapPathSet = useCallback(
+    (oldPath: string, newPath: string, setter: typeof setExpandedDirs | typeof setLoadingDirs) => {
+      const normalizedOldPath = normalizePathForCompare(oldPath);
+      const normalizedOldPathLower = normalizedOldPath.toLowerCase();
+      const oldPrefix = `${normalizedOldPathLower}\\`;
 
-    const candidateNodes = selectedPaths
-      .map((path) => allTreeNodesByPath.get(path))
-      .filter((node): node is FileNode => Boolean(node));
-
-    const filteredNodes = candidateNodes.filter((node) => {
-      const normalizedNodePath = normalizePathForCompare(node.path).toLowerCase();
-      return !candidateNodes.some((other) => {
-        if (other.path === node.path) {
-          return false;
+      const mapPath = (candidate: string) => {
+        const normalizedCandidate = normalizePathForCompare(candidate);
+        const normalizedCandidateLower = normalizedCandidate.toLowerCase();
+        if (normalizedCandidateLower === normalizedOldPathLower) {
+          return newPath;
         }
-        const normalizedOtherPath = normalizePathForCompare(other.path).toLowerCase();
-        return normalizedNodePath.startsWith(`${normalizedOtherPath}\\`);
+        if (normalizedCandidateLower.startsWith(oldPrefix)) {
+          return `${newPath}\\${normalizedCandidate.slice(normalizedOldPath.length + 1)}`;
+        }
+        return candidate;
+      };
+
+      setter((prev) => {
+        let changed = false;
+        const next = new Set<string>();
+        for (const path of prev) {
+          const mappedPath = mapPath(path);
+          if (mappedPath !== path) {
+            changed = true;
+          }
+          next.add(mappedPath);
+        }
+        return changed ? next : prev;
       });
-    });
+    },
+    [setExpandedDirs, setLoadingDirs]
+  );
 
-    const visibleOrder = new Map(flatVisibleTreeNodes.map((node, index) => [node.path, index] as const));
-    return filteredNodes.sort((a, b) => {
-      const indexA = visibleOrder.get(a.path) ?? Number.MAX_SAFE_INTEGER;
-      const indexB = visibleOrder.get(b.path) ?? Number.MAX_SAFE_INTEGER;
-      return indexA - indexB;
-    });
-  }, [allTreeNodesByPath, flatVisibleTreeNodes, selectedTreeNodePaths]);
+  const removeOpenPathsUnder = useCallback(
+    (targetPath: string) => {
+      const normalizedTargetPath = normalizePathForCompare(targetPath);
+      const normalizedTargetLower = normalizedTargetPath.toLowerCase();
+      const targetPrefix = `${normalizedTargetLower}\\`;
 
-  const handleActivateTreeNode = useCallback((
-    node: FileNode,
-    options?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; contextMenu?: boolean }
-  ) => {
-    const ctrlOrMeta = options?.ctrlKey || options?.metaKey;
-    const shiftKey = options?.shiftKey ?? false;
-    const contextMenu = options?.contextMenu ?? false;
-    const clickedPath = node.path;
-
-    setActiveTreeNode(node);
-
-    if (contextMenu) {
-      if (!selectedTreeNodePaths.has(clickedPath)) {
-        setSelectedTreeNodePaths(new Set([clickedPath]));
-        setTreeSelectionAnchorPath(clickedPath);
-      }
-      return;
-    }
-
-    if (shiftKey) {
-      const anchorPath = treeSelectionAnchorPath ?? activeTreeNode?.path ?? clickedPath;
-      const startIndex = flatVisibleTreeNodes.findIndex((item) => item.path === anchorPath);
-      const endIndex = flatVisibleTreeNodes.findIndex((item) => item.path === clickedPath);
-
-      if (startIndex !== -1 && endIndex !== -1) {
-        const [from, to] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
-        setSelectedTreeNodePaths(
-          new Set(flatVisibleTreeNodes.slice(from, to + 1).map((item) => item.path))
+      const shouldRemove = (candidate: string) => {
+        const normalizedCandidateLower = normalizePathForCompare(candidate).toLowerCase();
+        return (
+          normalizedCandidateLower === normalizedTargetLower ||
+          normalizedCandidateLower.startsWith(targetPrefix)
         );
-      } else {
-        setSelectedTreeNodePaths(new Set([clickedPath]));
-      }
-      return;
-    }
+      };
 
-    if (ctrlOrMeta) {
-      setSelectedTreeNodePaths((prev) => {
-        const next = new Set(prev);
-        if (next.has(clickedPath)) {
-          next.delete(clickedPath);
-        } else {
-          next.add(clickedPath);
+      setOpenFilesByPath((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const path of Object.keys(prev)) {
+          if (!shouldRemove(path)) continue;
+          delete next[path];
+          changed = true;
         }
-        return next;
+        return changed ? next : prev;
       });
-      setTreeSelectionAnchorPath(clickedPath);
-      return;
-    }
 
-    setSelectedTreeNodePaths(new Set([clickedPath]));
-    setTreeSelectionAnchorPath(clickedPath);
-  }, [activeTreeNode?.path, flatVisibleTreeNodes, selectedTreeNodePaths, treeSelectionAnchorPath]);
+      setEditorGroups((prev) =>
+        prev.map((group) => {
+          const nextTabPaths = group.tabPaths.filter((path) => !shouldRemove(path));
+          const nextActivePath =
+            group.activePath && shouldRemove(group.activePath)
+              ? (nextTabPaths[0] ?? null)
+              : group.activePath;
+
+          if (
+            nextTabPaths.length === group.tabPaths.length &&
+            nextActivePath === group.activePath
+          ) {
+            return group;
+          }
+
+          return {
+            ...group,
+            tabPaths: nextTabPaths,
+            activePath: nextActivePath,
+          };
+        })
+      );
+    },
+    [setEditorGroups, setOpenFilesByPath]
+  );
+
+  const resolveTreeOperationNodes = useCallback(
+    (primaryNode: FileNode) => {
+      const selectedPaths = selectedTreeNodePaths.has(primaryNode.path)
+        ? Array.from(selectedTreeNodePaths)
+        : [primaryNode.path];
+
+      const candidateNodes = selectedPaths
+        .map((path) => allTreeNodesByPath.get(path))
+        .filter((node): node is FileNode => Boolean(node));
+
+      const filteredNodes = candidateNodes.filter((node) => {
+        const normalizedNodePath = normalizePathForCompare(node.path).toLowerCase();
+        return !candidateNodes.some((other) => {
+          if (other.path === node.path) {
+            return false;
+          }
+          const normalizedOtherPath = normalizePathForCompare(other.path).toLowerCase();
+          return normalizedNodePath.startsWith(`${normalizedOtherPath}\\`);
+        });
+      });
+
+      const visibleOrder = new Map(
+        flatVisibleTreeNodes.map((node, index) => [node.path, index] as const)
+      );
+      return filteredNodes.sort((a, b) => {
+        const indexA = visibleOrder.get(a.path) ?? Number.MAX_SAFE_INTEGER;
+        const indexB = visibleOrder.get(b.path) ?? Number.MAX_SAFE_INTEGER;
+        return indexA - indexB;
+      });
+    },
+    [allTreeNodesByPath, flatVisibleTreeNodes, selectedTreeNodePaths]
+  );
+
+  const handleActivateTreeNode = useCallback(
+    (
+      node: FileNode,
+      options?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; contextMenu?: boolean }
+    ) => {
+      const ctrlOrMeta = options?.ctrlKey || options?.metaKey;
+      const shiftKey = options?.shiftKey ?? false;
+      const contextMenu = options?.contextMenu ?? false;
+      const clickedPath = node.path;
+
+      setActiveTreeNode(node);
+
+      if (contextMenu) {
+        if (!selectedTreeNodePaths.has(clickedPath)) {
+          setSelectedTreeNodePaths(new Set([clickedPath]));
+          setTreeSelectionAnchorPath(clickedPath);
+        }
+        return;
+      }
+
+      if (shiftKey) {
+        const anchorPath = treeSelectionAnchorPath ?? activeTreeNode?.path ?? clickedPath;
+        const startIndex = flatVisibleTreeNodes.findIndex((item) => item.path === anchorPath);
+        const endIndex = flatVisibleTreeNodes.findIndex((item) => item.path === clickedPath);
+
+        if (startIndex !== -1 && endIndex !== -1) {
+          const [from, to] =
+            startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+          setSelectedTreeNodePaths(
+            new Set(flatVisibleTreeNodes.slice(from, to + 1).map((item) => item.path))
+          );
+        } else {
+          setSelectedTreeNodePaths(new Set([clickedPath]));
+        }
+        return;
+      }
+
+      if (ctrlOrMeta) {
+        setSelectedTreeNodePaths((prev) => {
+          const next = new Set(prev);
+          if (next.has(clickedPath)) {
+            next.delete(clickedPath);
+          } else {
+            next.add(clickedPath);
+          }
+          return next;
+        });
+        setTreeSelectionAnchorPath(clickedPath);
+        return;
+      }
+
+      setSelectedTreeNodePaths(new Set([clickedPath]));
+      setTreeSelectionAnchorPath(clickedPath);
+    },
+    [activeTreeNode?.path, flatVisibleTreeNodes, selectedTreeNodePaths, treeSelectionAnchorPath]
+  );
 
   const handleFileTreeContextMenu = useCallback((node: FileNode, x: number, y: number) => {
     setFileTreeContextMenu({ node, x, y });
@@ -1000,20 +1025,26 @@ function AppContent() {
     setExpandedDirs,
   ]);
 
-  const handleFileTreeCreateAtNode = useCallback((node: FileNode, type: 'file' | 'folder') => {
-    setRenamingItem(null);
-    const parentPath = node.is_dir ? node.path : getParentDir(node.path);
-    startCreateItemAt(type, parentPath);
-  }, [startCreateItemAt]);
+  const handleFileTreeCreateAtNode = useCallback(
+    (node: FileNode, type: 'file' | 'folder') => {
+      setRenamingItem(null);
+      const parentPath = node.is_dir ? node.path : getParentDir(node.path);
+      startCreateItemAt(type, parentPath);
+    },
+    [startCreateItemAt]
+  );
 
-  const handleFileTreeCreateAtRoot = useCallback((type: 'file' | 'folder') => {
-    if (!projectPath) {
-      showWarning('请先打开一个文件夹');
-      return;
-    }
-    setRenamingItem(null);
-    startCreateItemAt(type, projectPath);
-  }, [projectPath, showWarning, startCreateItemAt]);
+  const handleFileTreeCreateAtRoot = useCallback(
+    (type: 'file' | 'folder') => {
+      if (!projectPath) {
+        showWarning('请先打开一个文件夹');
+        return;
+      }
+      setRenamingItem(null);
+      startCreateItemAt(type, projectPath);
+    },
+    [projectPath, showWarning, startCreateItemAt]
+  );
 
   const startFileTreeRename = useCallback((node: FileNode) => {
     setRenamingItem({
@@ -1023,104 +1054,139 @@ function AppContent() {
     });
   }, []);
 
-  const handleFileTreeRename = useCallback(async (nextName: string) => {
-    const currentItem = renamingItem;
-    const trimmedName = nextName.trim();
-    if (!currentItem) {
-      return;
-    }
-
-    if (!trimmedName || trimmedName === currentItem.name) {
-      setRenamingItem(null);
-      return;
-    }
-
-    const parentDir = getParentDir(currentItem.path);
-    const separator = currentItem.path.includes('/') ? '/' : '\\';
-    const newPath = parentDir ? `${parentDir}${separator}${trimmedName}` : trimmedName;
-    const wasExpanded =
-      currentItem.isDir &&
-      Array.from(expandedDirs).some(
-        (path) =>
-          normalizePathForCompare(path).toLowerCase() ===
-          normalizePathForCompare(currentItem.path).toLowerCase()
-      );
-
-    try {
-      await invoke('move_file_or_folder', {
-        oldPath: currentItem.path,
-        newPath,
-        overwrite: false,
-        rootPath: projectPath || undefined,
-      });
-      remapOpenPaths(currentItem.path, newPath);
-      remapPathSet(currentItem.path, newPath, setExpandedDirs);
-      remapPathSet(currentItem.path, newPath, setLoadingDirs);
-      await refreshFileTreeFromDisk([currentItem.path, newPath]);
-      if (wasExpanded) {
-        await loadFolderChildren(newPath, { silent: true });
+  const handleFileTreeRename = useCallback(
+    async (nextName: string) => {
+      const currentItem = renamingItem;
+      const trimmedName = nextName.trim();
+      if (!currentItem) {
+        return;
       }
-      setRenamingItem(null);
-    } catch (error) {
-      showError(`重命名失败: ${error}`);
-    }
-  }, [expandedDirs, loadFolderChildren, projectPath, refreshFileTreeFromDisk, remapOpenPaths, remapPathSet, renamingItem, setExpandedDirs, setLoadingDirs, showError]);
 
-  const handleFileTreeDelete = useCallback(async (node: FileNode) => {
-    const nodes = resolveTreeOperationNodes(node);
-    try {
-      for (const targetNode of nodes) {
-        await invoke('delete_file_or_folder', {
-          path: targetNode.path,
-          permanent: false,
+      if (!trimmedName || trimmedName === currentItem.name) {
+        setRenamingItem(null);
+        return;
+      }
+
+      const parentDir = getParentDir(currentItem.path);
+      const separator = currentItem.path.includes('/') ? '/' : '\\';
+      const newPath = parentDir ? `${parentDir}${separator}${trimmedName}` : trimmedName;
+      const wasExpanded =
+        currentItem.isDir &&
+        Array.from(expandedDirs).some(
+          (path) =>
+            normalizePathForCompare(path).toLowerCase() ===
+            normalizePathForCompare(currentItem.path).toLowerCase()
+        );
+
+      try {
+        await invoke('move_file_or_folder', {
+          oldPath: currentItem.path,
+          newPath,
+          overwrite: false,
           rootPath: projectPath || undefined,
         });
-        removeOpenPathsUnder(targetNode.path);
+        remapOpenPaths(currentItem.path, newPath);
+        remapPathSet(currentItem.path, newPath, setExpandedDirs);
+        remapPathSet(currentItem.path, newPath, setLoadingDirs);
+        await refreshFileTreeFromDisk([currentItem.path, newPath]);
+        if (wasExpanded) {
+          await loadFolderChildren(newPath, { silent: true });
+        }
+        setRenamingItem(null);
+      } catch (error) {
+        showError(`重命名失败: ${error}`);
       }
-      setSelectedTreeNodePaths(new Set());
-      setTreeSelectionAnchorPath(null);
-      setActiveTreeNode(null);
-      const refreshPaths = nodes.flatMap((targetNode) => [targetNode.path, getParentDir(targetNode.path)]);
-      await refreshFileTreeFromDisk(refreshPaths);
-    } catch (error) {
-      showError(`删除失败: ${error}`);
-    }
-  }, [projectPath, refreshFileTreeFromDisk, removeOpenPathsUnder, resolveTreeOperationNodes, showError]);
+    },
+    [
+      expandedDirs,
+      loadFolderChildren,
+      projectPath,
+      refreshFileTreeFromDisk,
+      remapOpenPaths,
+      remapPathSet,
+      renamingItem,
+      setExpandedDirs,
+      setLoadingDirs,
+      showError,
+    ]
+  );
 
-  const handleFileTreeCopyPath = useCallback(async (node: FileNode) => {
-    try {
-      await navigator.clipboard.writeText(node.path);
-    } catch (error) {
-      showError(`复制路径失败: ${error}`);
-    }
-  }, [showError]);
+  const handleFileTreeDelete = useCallback(
+    async (node: FileNode) => {
+      const nodes = resolveTreeOperationNodes(node);
+      try {
+        for (const targetNode of nodes) {
+          await invoke('delete_file_or_folder', {
+            path: targetNode.path,
+            permanent: false,
+            rootPath: projectPath || undefined,
+          });
+          removeOpenPathsUnder(targetNode.path);
+        }
+        setSelectedTreeNodePaths(new Set());
+        setTreeSelectionAnchorPath(null);
+        setActiveTreeNode(null);
+        const refreshPaths = nodes.flatMap((targetNode) => [
+          targetNode.path,
+          getParentDir(targetNode.path),
+        ]);
+        await refreshFileTreeFromDisk(refreshPaths);
+      } catch (error) {
+        showError(`删除失败: ${error}`);
+      }
+    },
+    [
+      projectPath,
+      refreshFileTreeFromDisk,
+      removeOpenPathsUnder,
+      resolveTreeOperationNodes,
+      showError,
+    ]
+  );
 
-  const handleFileTreeCopyRelativePath = useCallback(async (node: FileNode) => {
-    if (!projectPath || !isPathUnderRoot(node.path, projectPath)) {
-      showError('复制相对路径失败: 当前路径不在项目目录内');
-      return;
-    }
+  const handleFileTreeCopyPath = useCallback(
+    async (node: FileNode) => {
+      try {
+        await navigator.clipboard.writeText(node.path);
+      } catch (error) {
+        showError(`复制路径失败: ${error}`);
+      }
+    },
+    [showError]
+  );
 
-    const relativePath = toRelativePathUnderProject(node.path, projectPath);
-    const projectRootName = getBasename(normalizePathForCompare(projectPath));
-    const projectRelativePath = relativePath
-      ? `${projectRootName}/${relativePath}`
-      : projectRootName;
+  const handleFileTreeCopyRelativePath = useCallback(
+    async (node: FileNode) => {
+      if (!projectPath || !isPathUnderRoot(node.path, projectPath)) {
+        showError('复制相对路径失败: 当前路径不在项目目录内');
+        return;
+      }
 
-    try {
-      await navigator.clipboard.writeText(projectRelativePath);
-    } catch (error) {
-      showError(`复制相对路径失败: ${error}`);
-    }
-  }, [projectPath, showError]);
+      const relativePath = toRelativePathUnderProject(node.path, projectPath);
+      const projectRootName = getBasename(normalizePathForCompare(projectPath));
+      const projectRelativePath = relativePath
+        ? `${projectRootName}/${relativePath}`
+        : projectRootName;
 
-  const handleFileTreeRevealInExplorer = useCallback(async (node: FileNode) => {
-    try {
-      await revealItemInDir(node.path);
-    } catch (error) {
-      showError(`在资源管理器中显示失败: ${error}`);
-    }
-  }, [showError]);
+      try {
+        await navigator.clipboard.writeText(projectRelativePath);
+      } catch (error) {
+        showError(`复制相对路径失败: ${error}`);
+      }
+    },
+    [projectPath, showError]
+  );
+
+  const handleFileTreeRevealInExplorer = useCallback(
+    async (node: FileNode) => {
+      try {
+        await revealItemInDir(node.path);
+      } catch (error) {
+        showError(`在资源管理器中显示失败: ${error}`);
+      }
+    },
+    [showError]
+  );
 
   const handleRootCopyPath = useCallback(async () => {
     if (!projectPath) {
@@ -1155,13 +1221,16 @@ function AppContent() {
     }
   }, [projectPath, showError]);
 
-  const handleFileTreeRefresh = useCallback(async (node: FileNode) => {
-    try {
-      await loadFolderChildren(node.path);
-    } catch (error) {
-      showError(`刷新失败: ${error}`);
-    }
-  }, [loadFolderChildren, showError]);
+  const handleFileTreeRefresh = useCallback(
+    async (node: FileNode) => {
+      try {
+        await loadFolderChildren(node.path);
+      } catch (error) {
+        showError(`刷新失败: ${error}`);
+      }
+    },
+    [loadFolderChildren, showError]
+  );
 
   const handleFileTreeRefreshRoot = useCallback(async () => {
     if (!projectPath) {
@@ -1175,12 +1244,15 @@ function AppContent() {
     }
   }, [loadFolderChildren, projectPath, showError]);
 
-  const handleToggleTreeNodeExpanded = useCallback((node: FileNode) => {
-    if (!node.is_dir) {
-      return;
-    }
-    toggleDir(node.path);
-  }, [toggleDir]);
+  const handleToggleTreeNodeExpanded = useCallback(
+    (node: FileNode) => {
+      if (!node.is_dir) {
+        return;
+      }
+      toggleDir(node.path);
+    },
+    [toggleDir]
+  );
 
   const handleExpandAllTreeNodes = useCallback(async () => {
     const dirPaths: string[] = [];
@@ -1273,93 +1345,120 @@ function AppContent() {
     return node;
   }, []);
 
-  const handleCopyTreeNode = useCallback((node: FileNode) => {
-    const nodes = resolveTreeOperationNodes(node);
-    setTreeClipboard({ mode: 'copy', nodes });
-  }, [resolveTreeOperationNodes]);
+  const handleCopyTreeNode = useCallback(
+    (node: FileNode) => {
+      const nodes = resolveTreeOperationNodes(node);
+      setTreeClipboard({ mode: 'copy', nodes });
+    },
+    [resolveTreeOperationNodes]
+  );
 
-  const handleCutTreeNode = useCallback((node: FileNode) => {
-    const nodes = resolveTreeOperationNodes(node);
-    setTreeClipboard({ mode: 'cut', nodes });
-  }, [resolveTreeOperationNodes]);
+  const handleCutTreeNode = useCallback(
+    (node: FileNode) => {
+      const nodes = resolveTreeOperationNodes(node);
+      setTreeClipboard({ mode: 'cut', nodes });
+    },
+    [resolveTreeOperationNodes]
+  );
 
-  const canPasteTreeNodeToDirectory = useCallback((targetDir: string) => {
-    if (!treeClipboard) {
-      return false;
-    }
-
-    const targetPath = normalizePathForCompare(targetDir).toLowerCase();
-    return treeClipboard.nodes.every((node) => {
-      const sourcePath = normalizePathForCompare(node.path).toLowerCase();
-      if (sourcePath === targetPath) {
+  const canPasteTreeNodeToDirectory = useCallback(
+    (targetDir: string) => {
+      if (!treeClipboard) {
         return false;
       }
-      if (treeClipboard.mode === 'cut') {
-        const sourceParentPath = normalizePathForCompare(getParentDir(node.path)).toLowerCase();
-        if (sourceParentPath === targetPath) {
+
+      const targetPath = normalizePathForCompare(targetDir).toLowerCase();
+      return treeClipboard.nodes.every((node) => {
+        const sourcePath = normalizePathForCompare(node.path).toLowerCase();
+        if (sourcePath === targetPath) {
           return false;
         }
-      }
-      return !targetPath.startsWith(`${sourcePath}\\`);
-    });
-  }, [treeClipboard]);
-
-  const handlePasteTreeNode = useCallback(async (targetDir: string) => {
-    if (!treeClipboard) {
-      return;
-    }
-
-    if (!canPasteTreeNodeToDirectory(targetDir)) {
-      return;
-    }
-
-    const { mode, nodes } = treeClipboard;
-    const separator = targetDir.includes('/') ? '/' : '\\';
-
-    try {
-      const refreshPaths: string[] = [targetDir];
-      for (const node of nodes) {
-        const sourcePath = node.path;
-        const sourceParentPath = getParentDir(sourcePath);
-        const destination = `${targetDir.replace(/[\\/]$/, '')}${separator}${node.name}`;
-        if (mode === 'copy') {
-          await invoke('file_ops_tool', {
-            action: 'copy',
-            source: sourcePath,
-            destination,
-            conflict: 'rename',
-            rootPath: projectPath || undefined,
-          });
-        } else {
-          await invoke('move_file_or_folder', {
-            oldPath: sourcePath,
-            newPath: destination,
-            overwrite: false,
-            rootPath: projectPath || undefined,
-          });
-          remapOpenPaths(sourcePath, destination);
-          remapPathSet(sourcePath, destination, setExpandedDirs);
-          remapPathSet(sourcePath, destination, setLoadingDirs);
-          setActiveTreeNode((prev) => remapTreeNode(prev, sourcePath, destination));
+        if (treeClipboard.mode === 'cut') {
+          const sourceParentPath = normalizePathForCompare(getParentDir(node.path)).toLowerCase();
+          if (sourceParentPath === targetPath) {
+            return false;
+          }
         }
-        refreshPaths.push(sourcePath, sourceParentPath, destination);
-      }
-      if (mode === 'cut') {
-        setSelectedTreeNodePaths(new Set());
-        setTreeSelectionAnchorPath(null);
-        setTreeClipboard(null);
-      }
-      await refreshFileTreeFromDisk(refreshPaths);
-      await loadFolderChildren(targetDir, { silent: true });
-    } catch (error) {
-      showError(`粘贴失败: ${error}`);
-    }
-  }, [canPasteTreeNodeToDirectory, treeClipboard, projectPath, remapOpenPaths, remapPathSet, setExpandedDirs, setLoadingDirs, remapTreeNode, refreshFileTreeFromDisk, loadFolderChildren, showError]);
+        return !targetPath.startsWith(`${sourcePath}\\`);
+      });
+    },
+    [treeClipboard]
+  );
 
-  const handlePasteIntoTreeNode = useCallback(async (node: FileNode) => {
-    const targetDir = node.is_dir ? node.path : getParentDir(node.path);
-    await handlePasteTreeNode(targetDir);
-  }, [handlePasteTreeNode]);
+  const handlePasteTreeNode = useCallback(
+    async (targetDir: string) => {
+      if (!treeClipboard) {
+        return;
+      }
+
+      if (!canPasteTreeNodeToDirectory(targetDir)) {
+        return;
+      }
+
+      const { mode, nodes } = treeClipboard;
+      const separator = targetDir.includes('/') ? '/' : '\\';
+
+      try {
+        const refreshPaths: string[] = [targetDir];
+        for (const node of nodes) {
+          const sourcePath = node.path;
+          const sourceParentPath = getParentDir(sourcePath);
+          const destination = `${targetDir.replace(/[\\/]$/, '')}${separator}${node.name}`;
+          if (mode === 'copy') {
+            await invoke('file_ops_tool', {
+              action: 'copy',
+              source: sourcePath,
+              destination,
+              conflict: 'rename',
+              rootPath: projectPath || undefined,
+            });
+          } else {
+            await invoke('move_file_or_folder', {
+              oldPath: sourcePath,
+              newPath: destination,
+              overwrite: false,
+              rootPath: projectPath || undefined,
+            });
+            remapOpenPaths(sourcePath, destination);
+            remapPathSet(sourcePath, destination, setExpandedDirs);
+            remapPathSet(sourcePath, destination, setLoadingDirs);
+            setActiveTreeNode((prev) => remapTreeNode(prev, sourcePath, destination));
+          }
+          refreshPaths.push(sourcePath, sourceParentPath, destination);
+        }
+        if (mode === 'cut') {
+          setSelectedTreeNodePaths(new Set());
+          setTreeSelectionAnchorPath(null);
+          setTreeClipboard(null);
+        }
+        await refreshFileTreeFromDisk(refreshPaths);
+        await loadFolderChildren(targetDir, { silent: true });
+      } catch (error) {
+        showError(`粘贴失败: ${error}`);
+      }
+    },
+    [
+      canPasteTreeNodeToDirectory,
+      treeClipboard,
+      projectPath,
+      remapOpenPaths,
+      remapPathSet,
+      setExpandedDirs,
+      setLoadingDirs,
+      remapTreeNode,
+      refreshFileTreeFromDisk,
+      loadFolderChildren,
+      showError,
+    ]
+  );
+
+  const handlePasteIntoTreeNode = useCallback(
+    async (node: FileNode) => {
+      const targetDir = node.is_dir ? node.path : getParentDir(node.path);
+      await handlePasteTreeNode(targetDir);
+    },
+    [handlePasteTreeNode]
+  );
 
   const handlePasteAtRoot = useCallback(async () => {
     if (!projectPath) {
@@ -1374,7 +1473,13 @@ function AppContent() {
       const isCutShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'x';
       const isPasteShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v';
 
-      if (event.key !== 'F2' && event.key !== 'Delete' && !isCopyShortcut && !isCutShortcut && !isPasteShortcut) {
+      if (
+        event.key !== 'F2' &&
+        event.key !== 'Delete' &&
+        !isCopyShortcut &&
+        !isCutShortcut &&
+        !isPasteShortcut
+      ) {
         return;
       }
       if (activeSidebarView !== 'explorer' || isFileTreeCollapsed) {
@@ -1442,7 +1547,21 @@ function AppContent() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [activeSidebarView, activeTreeNode, creatingItem, editorInstanceByGroupRef, handleCopyTreeNode, handleCutTreeNode, handleFileTreeDelete, handlePasteAtRoot, handlePasteIntoTreeNode, isFileTreeCollapsed, projectPath, renamingItem, startFileTreeRename]);
+  }, [
+    activeSidebarView,
+    activeTreeNode,
+    creatingItem,
+    editorInstanceByGroupRef,
+    handleCopyTreeNode,
+    handleCutTreeNode,
+    handleFileTreeDelete,
+    handlePasteAtRoot,
+    handlePasteIntoTreeNode,
+    isFileTreeCollapsed,
+    projectPath,
+    renamingItem,
+    startFileTreeRename,
+  ]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1728,10 +1847,10 @@ function AppContent() {
               focusedActiveFilePath={focusedActiveFilePath}
               selectedTreeNodePaths={selectedTreeNodePaths}
               treeClipboardMode={treeClipboardMode}
-                treeClipboardPaths={treeClipboardPaths}
-                autoRevealCurrentFile={autoRevealCurrentFile}
-                compactFolders={compactFolders}
-                creatingItem={creatingItem}
+              treeClipboardPaths={treeClipboardPaths}
+              autoRevealCurrentFile={autoRevealCurrentFile}
+              compactFolders={compactFolders}
+              creatingItem={creatingItem}
               renamingItem={renamingItem}
               onToggleCollapse={handleSidebarToggleCollapse}
               onCreateFolder={handleCreateFolder}
@@ -1807,14 +1926,14 @@ function AppContent() {
                 fontSize={fontSize}
                 wordWrap={wordWrap}
                 lineNumbers={lineNumbers}
-                  minimap={minimap}
-                  cursorStyle={cursorStyle}
-                  cursorBlinking={cursorBlinking}
-                  themeMode={themeMode}
-                  renderWhitespace={renderWhitespace}
-                  currentLineHighlight={currentLineHighlight}
-                  bracketPairColorization={bracketPairColorization}
-                  projectPath={projectPath || ''}
+                minimap={minimap}
+                cursorStyle={cursorStyle}
+                cursorBlinking={cursorBlinking}
+                themeMode={themeMode}
+                renderWhitespace={renderWhitespace}
+                currentLineHighlight={currentLineHighlight}
+                bracketPairColorization={bracketPairColorization}
+                projectPath={projectPath || ''}
                 handleFilesChanged={handleFilesChanged}
               />
 
@@ -1899,8 +2018,7 @@ function AppContent() {
           onCreateFile={(node) => handleFileTreeCreateAtNode(node, 'file')}
           onCreateFolder={(node) => handleFileTreeCreateAtNode(node, 'folder')}
           isNodeExpanded={
-            !!fileTreeContextMenu.node?.is_dir &&
-            expandedDirs.has(fileTreeContextMenu.node.path)
+            !!fileTreeContextMenu.node?.is_dir && expandedDirs.has(fileTreeContextMenu.node.path)
           }
           onToggleNodeExpanded={handleToggleTreeNodeExpanded}
           onCopyNode={handleCopyTreeNode}
@@ -1927,8 +2045,6 @@ function AppContent() {
           onRefreshRoot={() => void handleFileTreeRefreshRoot()}
         />
       )}
-
-
     </DndContext>
   );
 }
@@ -2002,19 +2118,18 @@ function AppWithSettings() {
   }, [themeMode]);
 
   useEffect(() => {
-    applyCurrentLineHighlightColor(
-      currentLineHighlightColor,
-      resolveThemeFromMode(themeMode)
-    );
+    applyCurrentLineHighlightColor(currentLineHighlightColor, resolveThemeFromMode(themeMode));
   }, [themeMode, currentLineHighlightColor]);
 
   useEffect(() => {
     if (!loading) {
       requestAnimationFrame(() => {
         try {
-          getCurrentWindow().show().catch(() => {
-            // 非 Tauri 环境或窗口已销毁，忽略
-          });
+          getCurrentWindow()
+            .show()
+            .catch(() => {
+              // 非 Tauri 环境或窗口已销毁，忽略
+            });
         } catch {
           // 非 Tauri 环境，忽略
         }
@@ -2061,8 +2176,12 @@ function DragPreviewWindowWithShow() {
   useEffect(() => {
     requestAnimationFrame(() => {
       try {
-        getCurrentWindow().show().catch(() => {});
-      } catch {}
+        getCurrentWindow()
+          .show()
+          .catch(() => {});
+      } catch {
+        /* window may be unavailable */
+      }
     });
   }, []);
   return <DragPreviewWindow />;

@@ -270,7 +270,6 @@ export type RunSubagentsArgs = {
   }>;
 };
 
-
 type TerminalMergedArgs = {
   action: 'run' | 'read_output' | 'list_bg' | 'kill';
   command?: string;

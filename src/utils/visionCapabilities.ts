@@ -1,6 +1,6 @@
 /**
  * Vision Capabilities 工具模块
- * 
+ *
  * 用于处理 AI 模型的视觉能力配置
  * 被 ChatPanel 和 AgentPanel 共享使用
  */
@@ -20,7 +20,12 @@ export const DEFAULT_VISION_CAPABILITIES: Record<AIProvider, VisionCapability> =
   builtin: { supportsVision: false, visionMaxImages: 0, visionMaxBytes: 0 },
 };
 
-export const ALLOWED_IMAGE_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+export const ALLOWED_IMAGE_MEDIA_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
 
 /**
  * 将值转换为有效的正整数
@@ -35,7 +40,9 @@ const toValidPositiveNumber = (value: unknown, fallback: number): number => {
 /**
  * 从原始配置中提取视觉能力
  */
-export const extractVisionCapabilities = (rawConfig: unknown): Record<AIProvider, VisionCapability> => {
+export const extractVisionCapabilities = (
+  rawConfig: unknown
+): Record<AIProvider, VisionCapability> => {
   const next: Record<AIProvider, VisionCapability> = {
     openai: { ...DEFAULT_VISION_CAPABILITIES.openai },
     anthropic: { ...DEFAULT_VISION_CAPABILITIES.anthropic },

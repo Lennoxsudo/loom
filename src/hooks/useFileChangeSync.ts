@@ -2,7 +2,11 @@ import { useEffect, useRef, useCallback } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import type { EditorGroupId, EditorGroupState, OpenFilesByPath } from '../types/app';
 import type { MonacoEditor } from '../types/monaco';
-import { normalizePathForCompare, normalizeEolForCompare, isPathUnderRoot } from '../utils/pathUtils';
+import {
+  normalizePathForCompare,
+  normalizeEolForCompare,
+  isPathUnderRoot,
+} from '../utils/pathUtils';
 import { isVirtualEditorPath } from '../utils/planEditorBridge';
 import { APP_CONFIG } from '../config/defaultSettings';
 import { useFileRefresh } from './useFileRefresh';
@@ -10,8 +14,12 @@ import { useFileRefresh } from './useFileRefresh';
 export interface UseFileChangeSyncOptions {
   openFilesByPathRef: React.MutableRefObject<OpenFilesByPath>;
   programmaticRefreshPathsRef: React.MutableRefObject<Set<string>>;
-  editorInstanceByGroupRef: React.MutableRefObject<Partial<Record<EditorGroupId, MonacoEditor | null>>>;
-  editorMountedFilePathByGroupRef: React.MutableRefObject<Partial<Record<EditorGroupId, string | null>>>;
+  editorInstanceByGroupRef: React.MutableRefObject<
+    Partial<Record<EditorGroupId, MonacoEditor | null>>
+  >;
+  editorMountedFilePathByGroupRef: React.MutableRefObject<
+    Partial<Record<EditorGroupId, string | null>>
+  >;
   projectPath: string;
   refreshFileTreeFromDisk: (paths: string[]) => Promise<void>;
   setOpenFilesByPath: React.Dispatch<React.SetStateAction<OpenFilesByPath>>;

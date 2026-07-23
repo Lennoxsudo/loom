@@ -58,13 +58,11 @@ function createOptions() {
     setAttachedFiles: vi.fn(),
     clearAttachedImages: vi.fn(),
     setAttachedImages: vi.fn((updater) => {
-      attachedImagesState =
-        typeof updater === 'function' ? updater(attachedImagesState) : updater;
+      attachedImagesState = typeof updater === 'function' ? updater(attachedImagesState) : updater;
     }),
     pendingChangesRef: { current: [] },
     setPendingChanges: vi.fn((updater) => {
-      pendingChangesState =
-        typeof updater === 'function' ? updater(pendingChangesState) : updater;
+      pendingChangesState = typeof updater === 'function' ? updater(pendingChangesState) : updater;
     }),
   };
 }

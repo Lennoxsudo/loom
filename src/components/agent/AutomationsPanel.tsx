@@ -94,7 +94,11 @@ function AutomationsPanel({ projectPath, onClose }: AutomationsPanelProps) {
   }, []);
 
   const handleFormSubmit = useCallback(
-    async (payload: CreateAutomationTaskPayload | UpdateAutomationTaskPayload, isEdit: boolean, id?: string) => {
+    async (
+      payload: CreateAutomationTaskPayload | UpdateAutomationTaskPayload,
+      isEdit: boolean,
+      id?: string
+    ) => {
       if (isEdit && id) {
         const { updateTask } = useAutomationStore.getState();
         await updateTask(id, payload as UpdateAutomationTaskPayload);
@@ -254,14 +258,29 @@ const TaskCard = memo(function TaskCard({
 
       <div className={styles.taskMeta}>
         <span className={styles.triggerBadge}>{triggerLabel}</span>
-        {task.targetThreadId && <span>{t.agent.automations.targetThread}: {task.targetThreadId.slice(0, 8)}…</span>}
-        {task.lastRunAt && <span>{t.agent.automations.lastRun}: {new Date(task.lastRunAt).toLocaleString()}</span>}
-        <span>{t.agent.automations.nextRun}: {nextRunLabel}</span>
+        {task.targetThreadId && (
+          <span>
+            {t.agent.automations.targetThread}: {task.targetThreadId.slice(0, 8)}…
+          </span>
+        )}
+        {task.lastRunAt && (
+          <span>
+            {t.agent.automations.lastRun}: {new Date(task.lastRunAt).toLocaleString()}
+          </span>
+        )}
+        <span>
+          {t.agent.automations.nextRun}: {nextRunLabel}
+        </span>
       </div>
 
       {task.runHistory.length > 0 && (
-        <button type="button" className={styles.runHistoryToggle} onClick={() => onToggleHistory(task.id)}>
-          {expanded ? t.agent.automations.hideHistory : t.agent.automations.showHistory} ({task.runHistory.length})
+        <button
+          type="button"
+          className={styles.runHistoryToggle}
+          onClick={() => onToggleHistory(task.id)}
+        >
+          {expanded ? t.agent.automations.hideHistory : t.agent.automations.showHistory} (
+          {task.runHistory.length})
         </button>
       )}
 
@@ -332,7 +351,9 @@ function TaskFormDialog({ t, projectPath, existingTask, onSubmit, onClose }: Tas
     existingTask?.trigger.type === 'cron' ? existingTask.trigger.expression : '0 */6 * * *'
   );
   const [filePatterns, setFilePatterns] = useState(
-    existingTask?.trigger.type === 'file_change' ? existingTask.trigger.patterns.join(', ') : '**/*.ts'
+    existingTask?.trigger.type === 'file_change'
+      ? existingTask.trigger.patterns.join(', ')
+      : '**/*.ts'
   );
   const [targetThreadId, setTargetThreadId] = useState(existingTask?.targetThreadId ?? '');
   const [accessMode, setAccessMode] = useState<AgentAccessMode>(
@@ -355,7 +376,10 @@ function TaskFormDialog({ t, projectPath, existingTask, onSubmit, onClose }: Tas
       case 'file_change':
         trigger = {
           type: 'file_change',
-          patterns: filePatterns.split(',').map((p) => p.trim()).filter(Boolean),
+          patterns: filePatterns
+            .split(',')
+            .map((p) => p.trim())
+            .filter(Boolean),
         };
         break;
     }
@@ -398,7 +422,10 @@ function TaskFormDialog({ t, projectPath, existingTask, onSubmit, onClose }: Tas
   ]);
 
   return (
-    <div className={styles.formOverlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className={styles.formOverlay}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className={styles.formPanel} role="dialog" aria-modal="true">
         <div className={styles.formHeader}>
           <span className={styles.title}>

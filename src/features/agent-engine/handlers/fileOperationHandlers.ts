@@ -4,7 +4,13 @@ import type { FileInfo, ToolResult } from '../../../types/ai';
 import { resolvePathWithBaseDir } from '../argsParser';
 import { ToolError, handleToolError } from '../errors';
 import type { ToolContext, ToolHandler } from '../types';
-import type { CopyFileArgs, CreateFolderArgs, DeleteFileArgs, GetFileInfoArgs, MoveFileArgs } from '../toolArgs';
+import type {
+  CopyFileArgs,
+  CreateFolderArgs,
+  DeleteFileArgs,
+  GetFileInfoArgs,
+  MoveFileArgs,
+} from '../toolArgs';
 
 class CopyFileHandler implements ToolHandler<'copy_file'> {
   name = 'copy_file' as const;

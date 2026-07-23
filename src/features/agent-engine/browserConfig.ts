@@ -26,7 +26,8 @@ const PREVIEW_BROWSER_TOOL: ToolDefinition = {
       },
       url: {
         type: 'string',
-        description: 'The URL to navigate to. Required for open and navigate actions. Ignored for refresh.',
+        description:
+          'The URL to navigate to. Required for open and navigate actions. Ignored for refresh.',
       },
     },
     required: ['action'],
@@ -114,7 +115,8 @@ const FETCH_TOOL: ToolDefinition = {
     properties: {
       url: {
         type: 'string',
-        description: 'The URL to fetch. Must be publicly accessible (http/https). HTTP is auto-upgraded to HTTPS.',
+        description:
+          'The URL to fetch. Must be publicly accessible (http/https). HTTP is auto-upgraded to HTTPS.',
       },
       method: {
         type: 'string',
@@ -136,7 +138,8 @@ const FETCH_TOOL: ToolDefinition = {
       },
       follow_redirects: {
         type: 'boolean',
-        description: 'Whether to follow HTTP redirects. Default is true. Set false to debug redirect chains.',
+        description:
+          'Whether to follow HTTP redirects. Default is true. Set false to debug redirect chains.',
       },
       extract_links: {
         type: 'boolean',
@@ -160,7 +163,8 @@ const WEB_SEARCH_TOOL: ToolDefinition = {
     properties: {
       query: {
         type: 'string',
-        description: 'Search query keywords. Be specific (e.g. "React 19 useEffect cleanup changelog").',
+        description:
+          'Search query keywords. Be specific (e.g. "React 19 useEffect cleanup changelog").',
       },
       num_results: {
         type: 'number',

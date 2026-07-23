@@ -21,8 +21,20 @@ interface GraphToolResultViewProps {
 
 function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (
-    <span className={`${styles.chevron} ${expanded ? styles.chevronExpanded : ''}`} aria-hidden="true">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <span
+      className={`${styles.chevron} ${expanded ? styles.chevronExpanded : ''}`}
+      aria-hidden="true"
+    >
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <polyline points="6 9 12 15 18 9" />
       </svg>
     </span>
@@ -40,25 +52,21 @@ export const GraphToolResultView = memo(function GraphToolResultView({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const hasExpandable = Boolean(
-    view.table
-    || view.codeBlock
-    || (view.sections && view.sections.length > 0)
-    || view.rawBody
-    || (view.stats && view.stats.length > 0)
-    || view.panelMeta,
+    view.table ||
+    view.codeBlock ||
+    (view.sections && view.sections.length > 0) ||
+    view.rawBody ||
+    (view.stats && view.stats.length > 0) ||
+    view.panelMeta
   );
 
   const actionLabel = labels.actionLabel(view.action);
-  const detailText = view.isError
-    ? labels.failed
-    : view.isEmpty
-      ? labels.empty
-      : view.summary;
+  const detailText = view.isError ? labels.failed : view.isEmpty ? labels.empty : view.summary;
 
   const showDetail = Boolean(
-    detailText
-    && detailText.toLowerCase() !== actionLabel.toLowerCase()
-    && detailText.toLowerCase() !== view.action.toLowerCase(),
+    detailText &&
+    detailText.toLowerCase() !== actionLabel.toLowerCase() &&
+    detailText.toLowerCase() !== view.action.toLowerCase()
   );
 
   const previewRows = view.table?.rows.slice(0, PREVIEW_ROW_LIMIT) ?? [];
@@ -103,9 +111,7 @@ export const GraphToolResultView = memo(function GraphToolResultView({
           className={`${styles.panel} ${isExpanded ? styles.panelExpanded : ''}`}
           aria-hidden={!isExpanded}
         >
-          <div
-            className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}
-          >
+          <div className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}>
             {view.panelMeta && (
               <div className={styles.panelMeta}>{truncate(view.panelMeta, 120)}</div>
             )}
@@ -152,7 +158,9 @@ export const GraphToolResultView = memo(function GraphToolResultView({
             {view.codeBlock && (
               <>
                 <div className={styles.codeHeader}>
-                  {view.codeBlock.file && <span className={styles.codeFile}>{view.codeBlock.file}</span>}
+                  {view.codeBlock.file && (
+                    <span className={styles.codeFile}>{view.codeBlock.file}</span>
+                  )}
                   {view.codeBlock.range && <span>{view.codeBlock.range}</span>}
                   {view.codeBlock.qualifiedName && <span>{view.codeBlock.qualifiedName}</span>}
                 </div>
@@ -165,7 +173,9 @@ export const GraphToolResultView = memo(function GraphToolResultView({
                 <div className={styles.sectionTitle}>{section.title}</div>
                 <ul className={styles.sectionList}>
                   {section.items.map((item, idx) => (
-                    <li key={`${section.title}-${idx}`} className={styles.sectionItem}>{item}</li>
+                    <li key={`${section.title}-${idx}`} className={styles.sectionItem}>
+                      {item}
+                    </li>
                   ))}
                 </ul>
               </div>

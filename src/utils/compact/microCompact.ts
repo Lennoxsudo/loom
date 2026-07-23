@@ -41,7 +41,9 @@ function microCompactToolText(text: string): string {
 /**
  * Apply micro-compaction to tool messages (keep last N tool results intact).
  */
-export function microCompactMessages<T extends CompactableMessage>(messages: T[]): {
+export function microCompactMessages<T extends CompactableMessage>(
+  messages: T[]
+): {
   messages: T[];
   changed: boolean;
   tokensSaved: number;
@@ -57,7 +59,9 @@ export function microCompactMessages<T extends CompactableMessage>(messages: T[]
     return { messages, changed: false, tokensSaved: 0 };
   }
 
-  const toCompact = new Set(toolIndices.slice(0, toolIndices.length - TOOL_RESULT_AGING_KEEP_COUNT));
+  const toCompact = new Set(
+    toolIndices.slice(0, toolIndices.length - TOOL_RESULT_AGING_KEEP_COUNT)
+  );
   let changed = false;
   let tokensSaved = 0;
   const next = messages.map((msg, i) => {
@@ -66,7 +70,9 @@ export function microCompactMessages<T extends CompactableMessage>(messages: T[]
     const compacted = microCompactToolText(original);
     if (compacted === original) return msg;
     changed = true;
-    tokensSaved += estimateMessageTokens(toBudgetMessage(msg)) - estimateMessageTokens(toBudgetMessage(writeMessageText(msg, compacted)));
+    tokensSaved +=
+      estimateMessageTokens(toBudgetMessage(msg)) -
+      estimateMessageTokens(toBudgetMessage(writeMessageText(msg, compacted)));
     return writeMessageText(msg, compacted);
   });
 

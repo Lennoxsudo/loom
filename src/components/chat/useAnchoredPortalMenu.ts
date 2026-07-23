@@ -29,8 +29,7 @@ export function useAnchoredPortalMenu(
     const menuWidth = menuRect?.width ?? 140;
     const menuHeight = menuRect?.height ?? 0;
 
-    let top =
-      placement === 'above' ? anchorRect.top - menuHeight - GAP : anchorRect.bottom + GAP;
+    let top = placement === 'above' ? anchorRect.top - menuHeight - GAP : anchorRect.bottom + GAP;
     let left = anchorRect.left;
 
     if (left + menuWidth > window.innerWidth - VIEWPORT_PADDING) {
@@ -42,10 +41,7 @@ export function useAnchoredPortalMenu(
 
     if (placement === 'above' && top < VIEWPORT_PADDING) {
       top = anchorRect.bottom + GAP;
-    } else if (
-      placement === 'below' &&
-      top + menuHeight > window.innerHeight - VIEWPORT_PADDING
-    ) {
+    } else if (placement === 'below' && top + menuHeight > window.innerHeight - VIEWPORT_PADDING) {
       top = Math.max(VIEWPORT_PADDING, anchorRect.top - menuHeight - GAP);
     }
 

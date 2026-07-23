@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { AgentConversation, AgentConversationState, AgentThreadSettings } from '../../../types/chat';
+import type {
+  AgentConversation,
+  AgentConversationState,
+  AgentThreadSettings,
+} from '../../../types/chat';
 import type { ProjectThreadSummary } from '../../../utils/agentPersistence';
 import {
   filterThreadsByProject,
@@ -11,15 +15,14 @@ import {
   normalizeProjectPath,
   type AgentThreadListItem,
 } from '../utils';
-import {
-  useAgentConversations,
-  type UseAgentConversationsOptions,
-} from './useAgentConversations';
+import { useAgentConversations, type UseAgentConversationsOptions } from './useAgentConversations';
 
 export type { AgentThreadListItem };
 
-export interface UseAgentThreadManagerOptions
-  extends Omit<UseAgentConversationsOptions, 'projectPath'> {
+export interface UseAgentThreadManagerOptions extends Omit<
+  UseAgentConversationsOptions,
+  'projectPath'
+> {
   projectPath: string;
   projectPaths: string[];
   branchName: string | null;
@@ -53,11 +56,7 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
   const [pendingDeleteThread, setPendingDeleteThread] = useState<AgentThreadListItem | null>(null);
   const [isDeletingThread, setIsDeletingThread] = useState(false);
 
-  const {
-    onSetConversationState,
-    onSetDraftMessage,
-    ...conversationRest
-  } = conversationOptions;
+  const { onSetConversationState, onSetDraftMessage, ...conversationRest } = conversationOptions;
 
   const conversationApi = useAgentConversations({
     ...conversationRest,
@@ -154,12 +153,7 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
         : buildComposeDraftSessionKey(activeProjectKey);
       onSetDraftMessage(onLoadDraftForSession(sessionKey));
     },
-    [
-      onHydrateThreadSettings,
-      onLoadDraftForSession,
-      onSetDraftMessage,
-      activeProjectKey,
-    ]
+    [onHydrateThreadSettings, onLoadDraftForSession, onSetDraftMessage, activeProjectKey]
   );
 
   const persistCurrentThreadBeforeSwitch = useCallback(() => {
@@ -193,7 +187,9 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
       const resolvedPath = targetProjectPath ?? projectPath;
       const conversation =
         conversationState.conversations.find((c) => c.id === conversationId) ??
-        filterThreadsByProject(conversationState, resolvedPath).find((c) => c.id === conversationId);
+        filterThreadsByProject(conversationState, resolvedPath).find(
+          (c) => c.id === conversationId
+        );
       if (conversation) {
         onHydrateThreadSettings(conversation.threadSettings);
         if (activeProjectKey) {

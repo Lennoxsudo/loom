@@ -44,7 +44,13 @@ export interface AddUsagePayload extends UsageTokens {
 interface UsageActions {
   addUsage: (payload: AddUsagePayload) => void;
   reset: () => void;
-  hydrate: (data: Partial<{ total: UsageEntry; sessions: Record<string, SessionUsageEntry>; byModel: Record<string, UsageEntry> }>) => void;
+  hydrate: (
+    data: Partial<{
+      total: UsageEntry;
+      sessions: Record<string, SessionUsageEntry>;
+      byModel: Record<string, UsageEntry>;
+    }>
+  ) => void;
   initUsage: () => Promise<void>;
 }
 
@@ -132,11 +138,11 @@ export const useUsageStore = create<UsageStore>()(
       reset: () => {
         set({ total: emptyEntry(), sessions: {}, byModel: {} });
         if (isTauri()) {
-          invoke('save_usage', { usage: JSON.stringify({ total: emptyEntry(), sessions: {}, byModel: {} }) }).catch(
-            () => {
-              /* ignore */
-            },
-          );
+          invoke('save_usage', {
+            usage: JSON.stringify({ total: emptyEntry(), sessions: {}, byModel: {} }),
+          }).catch(() => {
+            /* ignore */
+          });
         }
       },
 
@@ -165,8 +171,8 @@ export const useUsageStore = create<UsageStore>()(
         }
       },
     }),
-    { name: 'UsageStore' },
-  ),
+    { name: 'UsageStore' }
+  )
 );
 
 // --- Selector hooks (granular subscriptions) ---

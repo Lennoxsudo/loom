@@ -10,7 +10,7 @@ function renderChatGraphResult(message: Message) {
   render(
     <I18nProvider defaultLocale="en-US">
       <GraphToolResultCard message={message} />
-    </I18nProvider>,
+    </I18nProvider>
   );
 }
 
@@ -23,7 +23,7 @@ describe('GraphToolResultCard (Chat)', () => {
     const text = formatGraphOutput(
       'graph_index',
       'status',
-      '{"indexed":true,"node_count":42,"edge_count":10}',
+      '{"indexed":true,"node_count":42,"edge_count":10}'
     );
 
     renderChatGraphResult({
@@ -45,7 +45,7 @@ describe('GraphToolResultCard (Chat)', () => {
     const text = formatGraphOutput(
       'graph_query',
       'snippet',
-      '{"code":"fn foo() {}","file":"src/lib.rs","start_line":1,"end_line":1,"qualified_name":"crate::foo"}',
+      '{"code":"fn foo() {}","file":"src/lib.rs","start_line":1,"end_line":1,"qualified_name":"crate::foo"}'
     );
 
     renderChatGraphResult({

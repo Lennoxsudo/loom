@@ -1,6 +1,6 @@
 /**
  * Drag Drop Handlers Hook
- * 
+ *
  * 处理拖拽相关逻辑
  */
 
@@ -10,11 +10,7 @@ import { LogicalPosition } from '@tauri-apps/api/window';
 import type { DragStartEvent, DragEndEvent, DragCancelEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { FileNode } from '../components/FileTree';
-import type {
-  EditorGroupId,
-  EditorGroupState,
-  OpenFilesByPath,
-} from '../types/app';
+import type { EditorGroupId, EditorGroupState, OpenFilesByPath } from '../types/app';
 import { logDebug } from '../utils/errorHandling';
 import {
   isTabId,
@@ -81,9 +77,7 @@ export interface DragDropHandlersReturn {
   isSplit: boolean;
 }
 
-export function useDragDropHandlers(
-  options: DragDropHandlersOptions
-): DragDropHandlersReturn {
+export function useDragDropHandlers(options: DragDropHandlersOptions): DragDropHandlersReturn {
   const {
     fileTree,
     openFilesByPath: _openFilesByPath,
@@ -359,7 +353,7 @@ export function useDragDropHandlers(
             const overGroupId = isTabId(overId)
               ? parseTabId(overId).groupId
               : parseTabBarId(overId).groupId;
-            
+
             if (fromGroupId !== overGroupId) {
               return;
             }
@@ -661,9 +655,7 @@ export function useDragDropHandlers(
       const targetNode = findNodeByPath(fileTree, targetPath);
       const sourceName =
         sourceNode?.name || sourcePath.split(/[\\/]/).filter(Boolean).pop() || sourcePath;
-      const normalizedProjectPath = projectPath
-        ? normalizePathForCompare(projectPath)
-        : null;
+      const normalizedProjectPath = projectPath ? normalizePathForCompare(projectPath) : null;
       const normalizedTargetPath = normalizePathForCompare(targetPath);
 
       if (normalizedProjectPath && normalizedTargetPath === normalizedProjectPath) {

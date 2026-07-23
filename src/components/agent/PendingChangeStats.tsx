@@ -42,11 +42,11 @@ export default function PendingChangeStats({
       }}
     >
       {stats.added > 0 && (
-        <span style={{ color: 'color-mix(in srgb, #2f9e44 82%, var(--text-primary))' }}>+{stats.added}</span>
+        <span style={{ color: 'color-mix(in srgb, #2f9e44 82%, var(--text-primary))' }}>
+          +{stats.added}
+        </span>
       )}
-      {stats.removed > 0 && (
-        <span style={{ color: 'var(--text-error)' }}>-{stats.removed}</span>
-      )}
+      {stats.removed > 0 && <span style={{ color: 'var(--text-error)' }}>-{stats.removed}</span>}
     </div>
   );
 }

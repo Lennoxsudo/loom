@@ -9,11 +9,7 @@ import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CloseIcon, EditIcon, PlusIcon } from '../shared/Icons';
 import pageStyles from './SettingsPage.module.css';
 import styles from './AIManagementContent.module.css';
-import {
-  SettingsBlockBody,
-  SettingsPanel,
-  SettingsSection,
-} from './SettingsPrimitives';
+import { SettingsBlockBody, SettingsPanel, SettingsSection } from './SettingsPrimitives';
 
 interface PromptItem {
   id: string;
@@ -263,11 +259,17 @@ export function AIManagementContent() {
         <SettingsSection
           title={t.settingsAiManagement.listTitle}
           description={
-            prompts.length === 0 && !editingPrompt ? t.settingsAiManagement.noPromptsHint : undefined
+            prompts.length === 0 && !editingPrompt
+              ? t.settingsAiManagement.noPromptsHint
+              : undefined
           }
           action={
             !editingPrompt ? (
-              <button type="button" className={pageStyles.ghostAddButton} onClick={handleCreatePrompt}>
+              <button
+                type="button"
+                className={pageStyles.ghostAddButton}
+                onClick={handleCreatePrompt}
+              >
                 <PlusIcon size={12} />
                 {t.settingsAiManagement.newPrompt}
               </button>

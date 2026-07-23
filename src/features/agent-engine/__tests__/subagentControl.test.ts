@@ -152,7 +152,7 @@ describe('Subagent Controllability & Approval Tests', () => {
 
           emitEvent('ai-stream-complete', {
             message_id: msgId,
-            tool_calls: (!isSubsequentRound && toolCall) ? [toolCall] : [],
+            tool_calls: !isSubsequentRound && toolCall ? [toolCall] : [],
           });
         }, 5);
       }
@@ -283,7 +283,7 @@ describe('Subagent Controllability & Approval Tests', () => {
 
     // Cancel immediately after start
     const promise = handler.execute({ task: 'Long task' }, parentContext);
-    
+
     // Get taskId from store to cancel it
     setTimeout(() => {
       const runs = useSubagentStore.getState().runs;
@@ -311,12 +311,12 @@ describe('Subagent Controllability & Approval Tests', () => {
       },
     });
 
-    const promise = batchHandler.execute({
-      tasks: [
-        { task: 'Task A' },
-        { task: 'Task B' }
-      ]
-    }, parentContext);
+    const promise = batchHandler.execute(
+      {
+        tasks: [{ task: 'Task A' }, { task: 'Task B' }],
+      },
+      parentContext
+    );
 
     setTimeout(() => {
       useSubagentStore.getState().cancelAllSubagents();

@@ -164,18 +164,29 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
   }
 
   if (settings.keyBindings && typeof settings.keyBindings === 'object') {
-    result.keyBindings = { ...DEFAULT_KEY_BINDINGS, ...(settings.keyBindings as Record<string, string>) };
+    result.keyBindings = {
+      ...DEFAULT_KEY_BINDINGS,
+      ...(settings.keyBindings as Record<string, string>),
+    };
   }
 
   if (['read_only', 'auto', 'full_access'].includes(settings.agentAccessMode as string)) {
     result.agentAccessMode = settings.agentAccessMode as AgentAccessMode;
   }
 
-  if (['deny', 'request', 'always'].includes(settings.agentCommandExecutionMode as string)
-    || ['deny', 'request', 'always'].includes(settings.chatToolApprovalMode as string)) {
+  if (
+    ['deny', 'request', 'always'].includes(settings.agentCommandExecutionMode as string) ||
+    ['deny', 'request', 'always'].includes(settings.chatToolApprovalMode as string)
+  ) {
     // Read legacy fields for migration (not stored in result since they're removed from SettingsState)
-    const legacyMode = (settings.agentCommandExecutionMode ?? settings.chatToolApprovalMode) as string | undefined;
-    if (!result.agentAccessMode && legacyMode && ['deny', 'request', 'always'].includes(legacyMode)) {
+    const legacyMode = (settings.agentCommandExecutionMode ?? settings.chatToolApprovalMode) as
+      | string
+      | undefined;
+    if (
+      !result.agentAccessMode &&
+      legacyMode &&
+      ['deny', 'request', 'always'].includes(legacyMode)
+    ) {
       result.agentAccessMode = migrateLegacyExecutionMode(legacyMode as AgentCommandExecutionMode);
     }
   }
@@ -332,7 +343,15 @@ describe('parseLoadedSettings', () => {
   // ---- 布尔字段 ----
 
   describe('布尔字段解析', () => {
-    const booleanFields = ['wordWrap', 'lineNumbers', 'minimap', 'formatOnSave', 'foldersFirst', 'thinkingBlockAutoExpand', 'enableSubagents'] as const;
+    const booleanFields = [
+      'wordWrap',
+      'lineNumbers',
+      'minimap',
+      'formatOnSave',
+      'foldersFirst',
+      'thinkingBlockAutoExpand',
+      'enableSubagents',
+    ] as const;
 
     for (const field of booleanFields) {
       it(`${field}: true 被保留`, () => {
@@ -374,10 +393,13 @@ describe('parseLoadedSettings', () => {
   // ---- cursorBlinking ----
 
   describe('cursorBlinking 解析', () => {
-    it.each(['blink', 'smooth', 'phase', 'solid'] as CursorBlinking[])('合法值 "%s" 被保留', (value) => {
-      const result = parseLoadedSettings({ cursorBlinking: value });
-      expect(result.cursorBlinking).toBe(value);
-    });
+    it.each(['blink', 'smooth', 'phase', 'solid'] as CursorBlinking[])(
+      '合法值 "%s" 被保留',
+      (value) => {
+        const result = parseLoadedSettings({ cursorBlinking: value });
+        expect(result.cursorBlinking).toBe(value);
+      }
+    );
 
     it.each(['none', 'fast', ''])('非法值 "%s" 被忽略', (value) => {
       const result = parseLoadedSettings({ cursorBlinking: value });
@@ -388,10 +410,13 @@ describe('parseLoadedSettings', () => {
   // ---- startupBehavior ----
 
   describe('startupBehavior 解析', () => {
-    it.each(['lastProject', 'welcome', 'empty'] as StartupBehavior[])('合法值 "%s" 被保留', (value) => {
-      const result = parseLoadedSettings({ startupBehavior: value });
-      expect(result.startupBehavior).toBe(value);
-    });
+    it.each(['lastProject', 'welcome', 'empty'] as StartupBehavior[])(
+      '合法值 "%s" 被保留',
+      (value) => {
+        const result = parseLoadedSettings({ startupBehavior: value });
+        expect(result.startupBehavior).toBe(value);
+      }
+    );
 
     it.each(['always', 'never', ''])('非法值 "%s" 被忽略', (value) => {
       const result = parseLoadedSettings({ startupBehavior: value });
@@ -489,10 +514,13 @@ describe('parseLoadedSettings', () => {
   // ---- agentAccessMode ----
 
   describe('agentAccessMode 解析', () => {
-    it.each(['read_only', 'auto', 'full_access'] as AgentAccessMode[])('合法值 "%s" 被保留', (value) => {
-      const result = parseLoadedSettings({ agentAccessMode: value });
-      expect(result.agentAccessMode).toBe(value);
-    });
+    it.each(['read_only', 'auto', 'full_access'] as AgentAccessMode[])(
+      '合法值 "%s" 被保留',
+      (value) => {
+        const result = parseLoadedSettings({ agentAccessMode: value });
+        expect(result.agentAccessMode).toBe(value);
+      }
+    );
 
     it('从 agentCommandExecutionMode 迁移', () => {
       const result = parseLoadedSettings({ agentCommandExecutionMode: 'deny' });
@@ -585,14 +613,14 @@ describe('parseLoadedSettings', () => {
 
     it('混合合法与非法字段：仅合法字段被保留', () => {
       const input = {
-        tabSize: 4,              // ✅
-        fontSize: 99,            // ❌ 越界
-        wordWrap: 'yes',         // ❌ 非布尔
-        cursorStyle: 'line',     // ✅
-        startupBehavior: 'xyz',  // ❌ 非法值
-        excludePatterns: 'bad',  // ❌ 非数组
-        toolCallDelay: 2000,     // ✅
-        unknownField: 'extra',   // ❌ 未知字段
+        tabSize: 4, // ✅
+        fontSize: 99, // ❌ 越界
+        wordWrap: 'yes', // ❌ 非布尔
+        cursorStyle: 'line', // ✅
+        startupBehavior: 'xyz', // ❌ 非法值
+        excludePatterns: 'bad', // ❌ 非数组
+        toolCallDelay: 2000, // ✅
+        unknownField: 'extra', // ❌ 未知字段
       };
 
       const result = parseLoadedSettings(input);
@@ -609,18 +637,24 @@ describe('parseLoadedSettings', () => {
     });
 
     it('currentLineHighlightColor: 合法 hex 被规范化', () => {
-      expect(parseLoadedSettings({ currentLineHighlightColor: 'FF5500' }).currentLineHighlightColor).toBe(
-        '#ff5500'
-      );
-      expect(parseLoadedSettings({ currentLineHighlightColor: '#AbCdEf' }).currentLineHighlightColor).toBe(
-        '#abcdef'
-      );
+      expect(
+        parseLoadedSettings({ currentLineHighlightColor: 'FF5500' }).currentLineHighlightColor
+      ).toBe('#ff5500');
+      expect(
+        parseLoadedSettings({ currentLineHighlightColor: '#AbCdEf' }).currentLineHighlightColor
+      ).toBe('#abcdef');
     });
 
     it('currentLineHighlightColor: null 与非法值', () => {
-      expect(parseLoadedSettings({ currentLineHighlightColor: null }).currentLineHighlightColor).toBeNull();
-      expect(parseLoadedSettings({ currentLineHighlightColor: 'not-a-color' }).currentLineHighlightColor).toBeUndefined();
-      expect(parseLoadedSettings({ currentLineHighlightColor: '#fff' }).currentLineHighlightColor).toBeUndefined();
+      expect(
+        parseLoadedSettings({ currentLineHighlightColor: null }).currentLineHighlightColor
+      ).toBeNull();
+      expect(
+        parseLoadedSettings({ currentLineHighlightColor: 'not-a-color' }).currentLineHighlightColor
+      ).toBeUndefined();
+      expect(
+        parseLoadedSettings({ currentLineHighlightColor: '#fff' }).currentLineHighlightColor
+      ).toBeUndefined();
     });
   });
 });
@@ -644,13 +678,33 @@ describe('serializeSettings', () => {
     const parsed = JSON.parse(json);
 
     const expectedFields = [
-      'tabSize', 'autoSaveDelay', 'fontSize', 'wordWrap', 'lineNumbers',
-      'minimap', 'cursorStyle', 'cursorBlinking', 'formatOnSave',
-      'startupBehavior', 'excludePatterns', 'fileSortBy', 'foldersFirst',
-      'streamSpeed', 'keyBindings', 'agentAccessMode',
-      'toolCallDelay', 'thinkingBlockAutoExpand', 'enableSubagents', 'language', 'themeMode',
-      'renderWhitespace', 'currentLineHighlight', 'currentLineHighlightColor', 'bracketPairColorization',
-      'compactFolders', 'autoRevealCurrentFile',
+      'tabSize',
+      'autoSaveDelay',
+      'fontSize',
+      'wordWrap',
+      'lineNumbers',
+      'minimap',
+      'cursorStyle',
+      'cursorBlinking',
+      'formatOnSave',
+      'startupBehavior',
+      'excludePatterns',
+      'fileSortBy',
+      'foldersFirst',
+      'streamSpeed',
+      'keyBindings',
+      'agentAccessMode',
+      'toolCallDelay',
+      'thinkingBlockAutoExpand',
+      'enableSubagents',
+      'language',
+      'themeMode',
+      'renderWhitespace',
+      'currentLineHighlight',
+      'currentLineHighlightColor',
+      'bracketPairColorization',
+      'compactFolders',
+      'autoRevealCurrentFile',
     ];
 
     for (const field of expectedFields) {
@@ -731,10 +785,17 @@ describe('往返一致性 (serialize → parse → serialize)', () => {
       toolCallDelay: 5000,
       thinkingBlockAutoExpand: false,
       enableSubagents: true,
-      subagentModelAliases: { sonnet: 'claude-sonnet', haiku: 'inherit', opus: 'inherit', fable: 'inherit' },
+      subagentModelAliases: {
+        sonnet: 'claude-sonnet',
+        haiku: 'inherit',
+        opus: 'inherit',
+        fable: 'inherit',
+      },
       reasoningEffort: 'high',
       agentRuntimeMode: 'cloud',
-      recentWorkspaces: [{ path: '/tmp/proj', name: 'proj', lastOpenedAt: '2026-01-01T00:00:00.000Z' }],
+      recentWorkspaces: [
+        { path: '/tmp/proj', name: 'proj', lastOpenedAt: '2026-01-01T00:00:00.000Z' },
+      ],
       enableCodeGraph: false,
       enableCdpBrowser: true,
       checkForUpdatesOnStartup: true,

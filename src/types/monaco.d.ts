@@ -50,41 +50,57 @@ export interface MonacoEditor {
   focus(): void;
   layout(): void;
   dispose(): void;
-  
+
   getValue(): string;
   setValue(value: string): void;
   getModel(): MonacoModel | null;
-  
+
   getSelection(): MonacoSelection | null;
   getSelections(): MonacoSelection[];
-  setSelection(selection: MonacoSelection | { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }): void;
-  
+  setSelection(
+    selection:
+      | MonacoSelection
+      | { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }
+  ): void;
+
   getPosition(): MonacoPosition | null;
   setPosition(position: MonacoPosition): void;
-  
-  revealRangeInCenter(range: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }): void;
+
+  revealRangeInCenter(range: {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+  }): void;
   revealLineInCenter(lineNumber: number): void;
-  
+
   executeEdits(
     source: string,
     edits: Array<{
-      range: MonacoSelection | { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number };
+      range:
+        | MonacoSelection
+        | {
+            startLineNumber: number;
+            startColumn: number;
+            endLineNumber: number;
+            endColumn: number;
+          };
       text: string;
       forceMoveMarkers?: boolean;
     }>
   ): void;
   trigger(source: string, handlerId: string, payload?: unknown): void;
-  
+
   getAction(id: string): MonacoAction | null;
-  
+
   saveViewState(): MonacoViewState | null;
   restoreViewState(state: MonacoViewState): void;
-  
+
   onDidChangeModel(callback: () => void): { dispose: () => void };
   onDidDispose(callback: () => void): { dispose: () => void };
-  
+
   getDomNode(): HTMLElement | null;
-  
+
   updateOptions(opts: Record<string, unknown>): void;
 }
 

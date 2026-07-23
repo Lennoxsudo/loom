@@ -161,7 +161,9 @@
 
 .card:focus-within {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus), var(--shadow-sm);
+  box-shadow:
+    0 0 0 1px var(--border-focus),
+    var(--shadow-sm);
 }
 
 .cardDragOver {

@@ -24,10 +24,10 @@ export interface UseStopHandlerOptions {
 function messageHasVisibleContent(message: Message): boolean {
   return Boolean(
     message.content?.trim() ||
-      message.thinking?.trim() ||
-      message.rawContent?.trim() ||
-      message.rawThinking?.trim() ||
-      (message.tool_calls && message.tool_calls.length > 0)
+    message.thinking?.trim() ||
+    message.rawContent?.trim() ||
+    message.rawThinking?.trim() ||
+    (message.tool_calls && message.tool_calls.length > 0)
   );
 }
 

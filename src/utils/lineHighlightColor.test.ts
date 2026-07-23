@@ -41,13 +41,15 @@ describe('lineHighlightColor', () => {
     expect(document.documentElement.style.getPropertyValue('--editor-line-highlight').trim()).toBe(
       'rgba(255, 0, 0, 0.08)'
     );
-    expect(document.documentElement.style.getPropertyValue('--editor-line-highlight-border').trim()).toBe(
-      'rgba(255, 0, 0, 0.2)'
-    );
+    expect(
+      document.documentElement.style.getPropertyValue('--editor-line-highlight-border').trim()
+    ).toBe('rgba(255, 0, 0, 0.2)');
 
     applyCurrentLineHighlightColor(null, 'dark');
     expect(document.documentElement.style.getPropertyValue('--editor-line-highlight')).toBe('');
-    expect(document.documentElement.style.getPropertyValue('--editor-line-highlight-border')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--editor-line-highlight-border')).toBe(
+      ''
+    );
   });
 
   it('previewCurrentLineHighlightColor coalesces updates to one frame', () => {

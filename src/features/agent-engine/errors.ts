@@ -1,24 +1,24 @@
 /**
  * AI 工具系统错误处理模块
- * 
+ *
  * 本模块提供了统一的错误处理机制，包括：
  * - ToolErrorCode: 错误代码枚举
  * - ToolError: 统一错误类
  * - ERROR_SUGGESTIONS: 错误恢复建议
- * 
+ *
  * 所有工具处理器都应该使用 ToolError 来报告错误，
  * 以确保错误信息的一致性和可恢复性。
- * 
+ *
  * @module aiTools/errors
- * 
+ *
  * @example
  * ```typescript
  * // 创建参数缺失错误
  * throw ToolError.missingParam('path');
- * 
+ *
  * // 创建文件未找到错误
  * throw ToolError.fileNotFound('/test/file.txt');
- * 
+ *
  * // 处理错误
  * try {
  *   await handler.execute(args);
@@ -83,31 +83,21 @@ export class ToolError extends Error {
     this.code = code;
     this.recoverable = recoverable;
     this.suggestion = ERROR_SUGGESTIONS[code];
-    
+
     Object.setPrototypeOf(this, ToolError.prototype);
   }
 
   static missingParam(paramName: string): ToolError {
-    return new ToolError(
-      ToolErrorCode.MISSING_PARAM,
-      `缺少必需参数: ${paramName}`,
-      false
-    );
+    return new ToolError(ToolErrorCode.MISSING_PARAM, `缺少必需参数: ${paramName}`, false);
   }
 
   static invalidParam(paramName: string, reason?: string): ToolError {
-    const message = reason
-      ? `参数无效: ${paramName} - ${reason}`
-      : `参数无效: ${paramName}`;
+    const message = reason ? `参数无效: ${paramName} - ${reason}` : `参数无效: ${paramName}`;
     return new ToolError(ToolErrorCode.INVALID_PARAM, message, true);
   }
 
   static fileNotFound(path: string): ToolError {
-    return new ToolError(
-      ToolErrorCode.FILE_NOT_FOUND,
-      `文件不存在: ${path}`,
-      true
-    );
+    return new ToolError(ToolErrorCode.FILE_NOT_FOUND, `文件不存在: ${path}`, true);
   }
 
   static directoryNotFound(): ToolError {
@@ -119,53 +109,37 @@ export class ToolError extends Error {
   }
 
   static fileReadError(path: string, reason?: string): ToolError {
-    const message = reason
-      ? `无法读取文件 ${path}: ${reason}`
-      : `无法读取文件: ${path}`;
+    const message = reason ? `无法读取文件 ${path}: ${reason}` : `无法读取文件: ${path}`;
     return new ToolError(ToolErrorCode.FILE_READ_ERROR, message, true);
   }
 
   static fileWriteError(path: string, reason?: string): ToolError {
-    const message = reason
-      ? `无法写入文件 ${path}: ${reason}`
-      : `无法写入文件: ${path}`;
+    const message = reason ? `无法写入文件 ${path}: ${reason}` : `无法写入文件: ${path}`;
     return new ToolError(ToolErrorCode.FILE_WRITE_ERROR, message, true);
   }
 
   static fileEditError(path: string, reason?: string): ToolError {
-    const message = reason
-      ? `无法编辑文件 ${path}: ${reason}`
-      : `无法编辑文件: ${path}`;
+    const message = reason ? `无法编辑文件 ${path}: ${reason}` : `无法编辑文件: ${path}`;
     return new ToolError(ToolErrorCode.FILE_EDIT_ERROR, message, true);
   }
 
   static terminalError(reason?: string): ToolError {
-    const message = reason
-      ? `终端错误: ${reason}`
-      : '终端操作失败';
+    const message = reason ? `终端错误: ${reason}` : '终端操作失败';
     return new ToolError(ToolErrorCode.TERMINAL_ERROR, message, true);
   }
 
   static commandError(command: string, reason?: string): ToolError {
-    const message = reason
-      ? `命令执行失败 "${command}": ${reason}`
-      : `命令执行失败: ${command}`;
+    const message = reason ? `命令执行失败 "${command}": ${reason}` : `命令执行失败: ${command}`;
     return new ToolError(ToolErrorCode.COMMAND_ERROR, message, true);
   }
 
   static gitError(reason?: string): ToolError {
-    const message = reason
-      ? `Git 操作失败: ${reason}`
-      : 'Git 操作失败';
+    const message = reason ? `Git 操作失败: ${reason}` : 'Git 操作失败';
     return new ToolError(ToolErrorCode.GIT_ERROR, message, true);
   }
 
-
-
   static unknownError(reason?: string): ToolError {
-    const message = reason
-      ? `未知错误: ${reason}`
-      : '未知错误';
+    const message = reason ? `未知错误: ${reason}` : '未知错误';
     return new ToolError(ToolErrorCode.UNKNOWN_ERROR, message, true);
   }
 
@@ -182,11 +156,14 @@ export function isToolError(error: unknown): error is ToolError {
   return error instanceof ToolError;
 }
 
-export function handleToolError(error: unknown, toolCallId: string = ''): { tool_call_id: string; output: string; error: string } {
+export function handleToolError(
+  error: unknown,
+  toolCallId: string = ''
+): { tool_call_id: string; output: string; error: string } {
   if (isToolError(error)) {
     return error.toToolResult(toolCallId);
   }
-  
+
   const message = error instanceof Error ? error.message : String(error);
   return {
     tool_call_id: toolCallId,

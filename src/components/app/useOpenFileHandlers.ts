@@ -7,7 +7,11 @@ import { isTauriCancellationError } from '../../utils/editorUtils';
 
 export interface UseOpenFileHandlersOptions {
   activeGroupId: EditorGroupId;
-  openFileInGroup: (filePath: string, targetGroupId: EditorGroupId, forceRefresh?: boolean) => Promise<void>;
+  openFileInGroup: (
+    filePath: string,
+    targetGroupId: EditorGroupId,
+    forceRefresh?: boolean
+  ) => Promise<void>;
   setProjectName: (name: string) => void;
   setProjectPath: (path: string) => void;
   setFileTree: (nodes: FileNode[]) => void;

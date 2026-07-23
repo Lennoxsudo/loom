@@ -264,8 +264,14 @@ export function GeneralContent() {
                 value={renderWhitespace}
                 options={[
                   { value: 'none' as const, label: t.settingsGeneral.renderWhitespace.none },
-                  { value: 'boundary' as const, label: t.settingsGeneral.renderWhitespace.boundary },
-                  { value: 'selection' as const, label: t.settingsGeneral.renderWhitespace.selection },
+                  {
+                    value: 'boundary' as const,
+                    label: t.settingsGeneral.renderWhitespace.boundary,
+                  },
+                  {
+                    value: 'selection' as const,
+                    label: t.settingsGeneral.renderWhitespace.selection,
+                  },
                   { value: 'all' as const, label: t.settingsGeneral.renderWhitespace.all },
                 ]}
                 onChange={(mode) => withUpdate(() => updateRenderWhitespace(mode))}
@@ -371,7 +377,9 @@ export function GeneralContent() {
           <SettingsBlockBody>
             <div className={localStyles.patternList}>
               {excludePatterns.length === 0 ? (
-                <div className={localStyles.patternEmpty}>{t.settingsGeneral.excludePatterns.empty}</div>
+                <div className={localStyles.patternEmpty}>
+                  {t.settingsGeneral.excludePatterns.empty}
+                </div>
               ) : (
                 excludePatterns.map((pattern, index) => (
                   <div key={index} className={localStyles.patternItem}>
@@ -379,7 +387,8 @@ export function GeneralContent() {
                     <button
                       onClick={() =>
                         withUpdate(
-                          () => updateExcludePatterns(excludePatterns.filter((_, i) => i !== index)),
+                          () =>
+                            updateExcludePatterns(excludePatterns.filter((_, i) => i !== index)),
                           t.errors.deleteFailed
                         )
                       }

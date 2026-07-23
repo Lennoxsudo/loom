@@ -7,28 +7,19 @@ import { executeToolCall } from '../features/agent-engine';
 import { toAnthropicTools, toOpenAITools } from '../features/agent-engine/converters';
 import { subagentResourceLock } from '../features/agent-engine/subagentResourceLock';
 import type { ToolContext } from '../features/agent-engine/types';
-import {
-  toProviderRequestMessages,
-  buildContextForRequest,
-} from '../components/agent/utils';
+import { toProviderRequestMessages, buildContextForRequest } from '../components/agent/utils';
 import { loadSkillsContext } from './skills';
 import type { AIProvider } from './agentPersistence';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useUsageStore } from '../stores/useUsageStore';
 import { estimateMessageTokens, estimateTokens } from './contextBudget';
 import { agePersistedChatToolMessages } from './toolResultAging';
-import {
-  shouldBlockTool,
-  shouldRequestApproval,
-} from './agentAccessMode';
+import { shouldBlockTool, shouldRequestApproval } from './agentAccessMode';
 import { requiresConfirmation } from './toolGuard';
 import { resolveSubagentStreamToolCalls } from '../features/agent-engine/finalizeStreamToolCalls';
 import { looksLikePseudoToolCall } from '../features/agent-engine/compatToolCalls';
 import { beginSandboxExecution, endSandboxExecution } from './agentSandbox';
-import {
-  buildTransportInvokeArgs,
-  isOpenaiCompatibleLogicalProvider,
-} from './builtinGateway';
+import { buildTransportInvokeArgs, isOpenaiCompatibleLogicalProvider } from './builtinGateway';
 
 const DUPLICATE_TOOL_SKIP_MESSAGE =
   '已跳过重复工具调用：相同工具与参数在本子代理会话中已执行过。请根据上文已有结果直接输出最终结构化摘要，不要再调用工具。' +
@@ -115,7 +106,7 @@ const MESSAGES_PER_ROUND = 2;
  */
 export function buildForkMessages(
   parentMessages: ChatMessage[],
-  keepRounds = FORK_KEEP_RECENT_ROUNDS,
+  keepRounds = FORK_KEEP_RECENT_ROUNDS
 ): ChatMessage[] {
   if (parentMessages.length === 0) return [];
 
@@ -174,9 +165,7 @@ function buildParentContextSummary(messages: ChatMessage[]): string {
     }
   }
 
-  const lines: string[] = [
-    `Compressed from ${messages.length} earlier messages.`,
-  ];
+  const lines: string[] = [`Compressed from ${messages.length} earlier messages.`];
 
   if (userIntents.length > 0) {
     lines.push('');
@@ -197,7 +186,7 @@ function buildParentContextSummary(messages: ChatMessage[]): string {
       [...counts.entries()]
         .map(([name, count]) => (count > 1 ? `${name} (×${count})` : name))
         .slice(0, 20)
-        .join(', '),
+        .join(', ')
     );
   }
 
@@ -223,8 +212,32 @@ function buildParentContextSummary(messages: ChatMessage[]): string {
  * - 其他类：不做预设裁剪，由 agent 定义的 tools/disallowedTools 控制
  */
 const TOOL_PRESETS: Record<string, Set<string>> = {
-  research: new Set(['read', 'read_file', 'search', 'search_content', 'glob', 'grep', 'get_file_tree', 'list_directory', 'list_dir']),
-  coder: new Set(['read', 'read_file', 'write', 'write_file', 'edit', 'edit_file', 'search', 'search_content', 'glob', 'grep', 'get_file_tree', 'list_directory', 'list_dir']),
+  research: new Set([
+    'read',
+    'read_file',
+    'search',
+    'search_content',
+    'glob',
+    'grep',
+    'get_file_tree',
+    'list_directory',
+    'list_dir',
+  ]),
+  coder: new Set([
+    'read',
+    'read_file',
+    'write',
+    'write_file',
+    'edit',
+    'edit_file',
+    'search',
+    'search_content',
+    'glob',
+    'grep',
+    'get_file_tree',
+    'list_directory',
+    'list_dir',
+  ]),
 };
 
 /** 永远不需要的子代理工具（在所有预设中排除） */
@@ -239,7 +252,7 @@ const SUBAGENT_EXCLUDED_TOOLS = new Set(['generate_image', 'image_gen']);
  */
 export function filterToolsForSubagentType<T extends { name: string }>(
   tools: T[],
-  subagentType?: string,
+  subagentType?: string
 ): T[] {
   // 先排除子代理不需要的工具
   let result = tools.filter((t) => !SUBAGENT_EXCLUDED_TOOLS.has(t.name));
@@ -278,7 +291,6 @@ function estimateChatMessagesTokens(msgs: ChatMessage[]): number {
   return total;
 }
 
-
 export interface SubagentLoopEvent {
   type: 'chunk' | 'complete' | 'tool-start' | 'tool-end' | 'error';
   messageId: string;
@@ -297,18 +309,24 @@ export interface RunAgentLoopOptions {
   initialMessages?: ChatMessage[];
   /** 覆盖默认 skills 索引加载 */
   skillsContext?: string;
-  tools: ToolDefinition[];          // 允许的工具子集
-  model: string;                    // provider/model
-  provider: AIProvider;             // provider
+  tools: ToolDefinition[]; // 允许的工具子集
+  model: string; // provider/model
+  provider: AIProvider; // provider
 
-  context: ToolContext;             // baseDir / agentId / conversationId 等
-  maxRounds: number;                // 最大工具调用轮次
-  signal?: AbortSignal;             // 取消用
+  context: ToolContext; // baseDir / agentId / conversationId 等
+  maxRounds: number; // 最大工具调用轮次
+  signal?: AbortSignal; // 取消用
   onEvent?: (e: SubagentLoopEvent) => void; // 进度回调
-  taskId?: string;                  // 子代理的任务 ID
+  taskId?: string; // 子代理的任务 ID
 }
 
-export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ finalText: string; steps: number; truncated?: boolean; promptTokens: number; completionTokens: number }> {
+export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
+  finalText: string;
+  steps: number;
+  truncated?: boolean;
+  promptTokens: number;
+  completionTokens: number;
+}> {
   const {
     systemPrompt,
     initialUserMessage,
@@ -353,12 +371,11 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
     }
 
     const assistantMessageId = `sub-assistant-${Date.now()}-${rounds}`;
-    
+
     // Set up Tauri listeners first so we don't miss anything that starts immediately
     let accumulatedText = '';
     let accumulatedThinking = '';
     let completedToolCalls: ToolCall[] = [];
-
 
     // Use a deferred promise to wait for streaming events
     let resolveStream: (value: { text: string; toolCalls?: ToolCall[] }) => void;
@@ -394,28 +411,25 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
       };
       provider?: string;
       model?: string;
-    }>(
-      'ai-stream-complete',
-      (event) => {
-        if (event.payload.message_id !== assistantMessageId) return;
-        completedToolCalls = event.payload.tool_calls || [];
-        resolveStream({ text: accumulatedText, toolCalls: completedToolCalls });
+    }>('ai-stream-complete', (event) => {
+      if (event.payload.message_id !== assistantMessageId) return;
+      completedToolCalls = event.payload.tool_calls || [];
+      resolveStream({ text: accumulatedText, toolCalls: completedToolCalls });
 
-        // 用量/成本追踪：子代理产生的 token 也计入（按子代理任务聚合）
-        const usage = event.payload.usage;
-        if (usage) {
-          useUsageStore.getState().addUsage({
-            sessionKey: taskId ? `subagent:${taskId}` : assistantMessageId,
-            provider: event.payload.provider ?? provider,
-            model: event.payload.model ?? model,
-            input: usage.input_tokens,
-            output: usage.output_tokens,
-            cacheRead: usage.cache_read_input_tokens,
-            cacheWrite: usage.cache_creation_input_tokens,
-          });
-        }
+      // 用量/成本追踪：子代理产生的 token 也计入（按子代理任务聚合）
+      const usage = event.payload.usage;
+      if (usage) {
+        useUsageStore.getState().addUsage({
+          sessionKey: taskId ? `subagent:${taskId}` : assistantMessageId,
+          provider: event.payload.provider ?? provider,
+          model: event.payload.model ?? model,
+          input: usage.input_tokens,
+          output: usage.output_tokens,
+          cacheRead: usage.cache_read_input_tokens,
+          cacheWrite: usage.cache_creation_input_tokens,
+        });
       }
-    );
+    });
 
     const unlistenError = await listen<{ message_id: string; error: string }>(
       'ai-stream-error',
@@ -447,7 +461,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
           ? skillsContextOverride
           : await loadSkillsContext(context.baseDir || '');
       const providerTools = formatToolsForProvider(provider, tools);
-      
+
       const { messages: providerMessages } = buildContextForRequest({
         systemPrompt,
         projectPath: context.baseDir || '',
@@ -534,16 +548,49 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
         let executedNewToolThisRound = false;
 
         try {
-        for (const toolCall of resolvedToolCalls) {
-          if (signal?.aborted) {
-            throw new Error('Subagent loop aborted by user');
-          }
+          for (const toolCall of resolvedToolCalls) {
+            if (signal?.aborted) {
+              throw new Error('Subagent loop aborted by user');
+            }
 
-          const resolvedToolName = toolCall.function.name;
-          const parsedArgs = parseToolCallArgs(toolCall.function.arguments);
-          const fingerprint = buildToolCallFingerprint(resolvedToolName, parsedArgs);
+            const resolvedToolName = toolCall.function.name;
+            const parsedArgs = parseToolCallArgs(toolCall.function.arguments);
+            const fingerprint = buildToolCallFingerprint(resolvedToolName, parsedArgs);
 
-          if (executedToolFingerprints.has(fingerprint)) {
+            if (executedToolFingerprints.has(fingerprint)) {
+              steps++;
+              onEvent?.({
+                type: 'tool-start',
+                messageId: assistantMessageId,
+                toolName: resolvedToolName,
+                toolCallId: toolCall.id,
+              });
+              const duplicateResult: ToolResult = {
+                tool_call_id: toolCall.id,
+                output: DUPLICATE_TOOL_SKIP_MESSAGE,
+              };
+              onEvent?.({
+                type: 'tool-end',
+                messageId: assistantMessageId,
+                toolName: resolvedToolName,
+                toolCallId: toolCall.id,
+                toolResult: duplicateResult,
+              });
+              toolMessages.push({
+                id: `sub-tool-${toolCall.id}`,
+                role: 'tool',
+                text: DUPLICATE_TOOL_SKIP_MESSAGE,
+                tool_call_id: toolCall.id,
+                tool_name: resolvedToolName,
+                createdAt: Date.now(),
+              });
+              messages.push(toolMessages[toolMessages.length - 1]);
+              continue;
+            }
+
+            executedToolFingerprints.add(fingerprint);
+            executedNewToolThisRound = true;
+
             steps++;
             onEvent?.({
               type: 'tool-start',
@@ -551,148 +598,142 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
               toolName: resolvedToolName,
               toolCallId: toolCall.id,
             });
-            const duplicateResult: ToolResult = {
-              tool_call_id: toolCall.id,
-              output: DUPLICATE_TOOL_SKIP_MESSAGE,
-            };
+            // Execute the tool call using frontend executor with resource locking
+
+            let result: ToolResult;
+            const accessMode =
+              context.subagentPermissionMode ?? useSettingsStore.getState().agentAccessMode;
+
+            if (shouldBlockTool(accessMode, resolvedToolName)) {
+              result = {
+                tool_call_id: toolCall.id,
+                output: '',
+                error:
+                  '该工具已被访问档位策略拒绝 / This tool call has been denied by the access mode policy.',
+              };
+            } else {
+              const needsApproval =
+                shouldRequestApproval(accessMode, resolvedToolName) ||
+                requiresConfirmation(resolvedToolName, parsedArgs, accessMode);
+
+              if (needsApproval && !(context.onRequestToolApproval && taskId)) {
+                // Needs approval but no approval mechanism available — deny for safety
+                result = {
+                  tool_call_id: toolCall.id,
+                  output: '',
+                  error:
+                    '该工具需要审批但无法发起审批请求，已拒绝 / This tool requires approval but no approval handler is available, denied.',
+                };
+              } else if (needsApproval && context.onRequestToolApproval && taskId) {
+                let approved = false;
+                let abortHandler: (() => void) | undefined;
+
+                // Generate detail preview
+                let detailPreview = '';
+                if (
+                  resolvedToolName === 'term' ||
+                  resolvedToolName === 'terminal' ||
+                  resolvedToolName === 'run_command'
+                ) {
+                  const commandArg = parsedArgs.command ?? parsedArgs.script;
+                  detailPreview =
+                    typeof commandArg === 'string'
+                      ? commandArg
+                      : commandArg != null
+                        ? String(commandArg)
+                        : '';
+                } else {
+                  const path =
+                    parsedArgs.path ||
+                    parsedArgs.file_path ||
+                    parsedArgs.file ||
+                    parsedArgs.target ||
+                    parsedArgs.dest ||
+                    '';
+                  if (path) {
+                    detailPreview = String(path);
+                  } else {
+                    detailPreview =
+                      typeof toolCall.function.arguments === 'string'
+                        ? toolCall.function.arguments
+                        : JSON.stringify(toolCall.function.arguments || {});
+                  }
+                }
+                if (detailPreview.length > 200) {
+                  detailPreview = detailPreview.substring(0, 200) + '...';
+                }
+
+                try {
+                  const abortPromise = new Promise<'reject'>((_, reject) => {
+                    abortHandler = () => reject(new Error('Subagent loop aborted by user'));
+                    signal?.addEventListener('abort', abortHandler);
+                  });
+
+                  const approvalResult = await Promise.race([
+                    context.onRequestToolApproval({
+                      taskId,
+                      toolName: resolvedToolName,
+                      detailPreview,
+                    }),
+                    abortPromise,
+                  ]);
+
+                  if (approvalResult === 'approve') {
+                    approved = true;
+                  }
+                } catch (err) {
+                  if (abortHandler) {
+                    signal?.removeEventListener('abort', abortHandler);
+                  }
+                  throw err;
+                } finally {
+                  if (abortHandler) {
+                    signal?.removeEventListener('abort', abortHandler);
+                  }
+                }
+
+                if (approved) {
+                  result = await subagentResourceLock.runExclusive(
+                    resolvedToolName,
+                    parsedArgs,
+                    () => executeToolCall(toolCall, { ...context, spawnParentTaskId: taskId })
+                  );
+                } else {
+                  result = {
+                    tool_call_id: toolCall.id,
+                    output: '',
+                    error: detailPreview
+                      ? `❌ 用户已拒绝工具调用「${resolvedToolName}」（${detailPreview}）。操作未执行，目标未被修改。请勿汇报操作成功。 / User denied tool "${resolvedToolName}" (${detailPreview}). NOT executed. Do NOT report success.`
+                      : `❌ 用户已拒绝工具调用「${resolvedToolName}」。操作未执行，未产生任何变更。请勿汇报操作成功。 / User denied tool "${resolvedToolName}". NOT executed. Do NOT report success.`,
+                  };
+                }
+              } else {
+                result = await subagentResourceLock.runExclusive(resolvedToolName, parsedArgs, () =>
+                  executeToolCall(toolCall, { ...context, spawnParentTaskId: taskId })
+                );
+              }
+            }
+
             onEvent?.({
               type: 'tool-end',
               messageId: assistantMessageId,
               toolName: resolvedToolName,
               toolCallId: toolCall.id,
-              toolResult: duplicateResult,
+              toolResult: result,
             });
-            toolMessages.push({
+
+            const toolMessage: ChatMessage = {
               id: `sub-tool-${toolCall.id}`,
               role: 'tool',
-              text: DUPLICATE_TOOL_SKIP_MESSAGE,
+              text: result.error || result.output,
               tool_call_id: toolCall.id,
               tool_name: resolvedToolName,
               createdAt: Date.now(),
-            });
-            messages.push(toolMessages[toolMessages.length - 1]);
-            continue;
-          }
-
-          executedToolFingerprints.add(fingerprint);
-          executedNewToolThisRound = true;
-          
-          steps++;
-          onEvent?.({ type: 'tool-start', messageId: assistantMessageId, toolName: resolvedToolName, toolCallId: toolCall.id });
-          // Execute the tool call using frontend executor with resource locking
-          
-          let result: ToolResult;
-          const accessMode =
-            context.subagentPermissionMode ?? useSettingsStore.getState().agentAccessMode;
-
-          if (shouldBlockTool(accessMode, resolvedToolName)) {
-            result = {
-              tool_call_id: toolCall.id,
-              output: '',
-              error: '该工具已被访问档位策略拒绝 / This tool call has been denied by the access mode policy.',
+              isError: !!result.error,
             };
-          } else {
-            const needsApproval =
-              shouldRequestApproval(accessMode, resolvedToolName) ||
-              requiresConfirmation(resolvedToolName, parsedArgs, accessMode);
-
-            if (needsApproval && !(context.onRequestToolApproval && taskId)) {
-              // Needs approval but no approval mechanism available — deny for safety
-              result = {
-                tool_call_id: toolCall.id,
-                output: '',
-                error: '该工具需要审批但无法发起审批请求，已拒绝 / This tool requires approval but no approval handler is available, denied.',
-              };
-            } else if (needsApproval && context.onRequestToolApproval && taskId) {
-            let approved = false;
-            let abortHandler: (() => void) | undefined;
-            
-            // Generate detail preview
-            let detailPreview = '';
-            if (resolvedToolName === 'term' || resolvedToolName === 'terminal' || resolvedToolName === 'run_command') {
-              const commandArg = parsedArgs.command ?? parsedArgs.script;
-              detailPreview = typeof commandArg === 'string' ? commandArg : commandArg != null ? String(commandArg) : '';
-            } else {
-              const path = parsedArgs.path || parsedArgs.file_path || parsedArgs.file || parsedArgs.target || parsedArgs.dest || '';
-              if (path) {
-                detailPreview = String(path);
-              } else {
-                detailPreview = typeof toolCall.function.arguments === 'string'
-                  ? toolCall.function.arguments
-                  : JSON.stringify(toolCall.function.arguments || {});
-              }
-            }
-            if (detailPreview.length > 200) {
-              detailPreview = detailPreview.substring(0, 200) + '...';
-            }
-
-            try {
-              const abortPromise = new Promise<'reject'>((_, reject) => {
-                abortHandler = () => reject(new Error('Subagent loop aborted by user'));
-                signal?.addEventListener('abort', abortHandler);
-              });
-
-              const approvalResult = await Promise.race([
-                context.onRequestToolApproval({
-                  taskId,
-                  toolName: resolvedToolName,
-                  detailPreview,
-                }),
-                abortPromise,
-              ]);
-
-              if (approvalResult === 'approve') {
-                approved = true;
-              }
-            } catch (err) {
-              if (abortHandler) {
-                signal?.removeEventListener('abort', abortHandler);
-              }
-              throw err;
-            } finally {
-              if (abortHandler) {
-                signal?.removeEventListener('abort', abortHandler);
-              }
-            }
-
-            if (approved) {
-              result = await subagentResourceLock.runExclusive(
-                resolvedToolName,
-                parsedArgs,
-                () => executeToolCall(toolCall, { ...context, spawnParentTaskId: taskId })
-              );
-            } else {
-              result = {
-                tool_call_id: toolCall.id,
-                output: '',
-                error: detailPreview
-                  ? `❌ 用户已拒绝工具调用「${resolvedToolName}」（${detailPreview}）。操作未执行，目标未被修改。请勿汇报操作成功。 / User denied tool "${resolvedToolName}" (${detailPreview}). NOT executed. Do NOT report success.`
-                  : `❌ 用户已拒绝工具调用「${resolvedToolName}」。操作未执行，未产生任何变更。请勿汇报操作成功。 / User denied tool "${resolvedToolName}". NOT executed. Do NOT report success.`,
-              };
-            }
-            } else {
-              result = await subagentResourceLock.runExclusive(
-                resolvedToolName,
-                parsedArgs,
-                () => executeToolCall(toolCall, { ...context, spawnParentTaskId: taskId })
-              );
-            }
+            toolMessages.push(toolMessage);
+            messages.push(toolMessage);
           }
-          
-          onEvent?.({ type: 'tool-end', messageId: assistantMessageId, toolName: resolvedToolName, toolCallId: toolCall.id, toolResult: result });
-
-          const toolMessage: ChatMessage = {
-            id: `sub-tool-${toolCall.id}`,
-            role: 'tool',
-            text: result.error || result.output,
-            tool_call_id: toolCall.id,
-            tool_name: resolvedToolName,
-            createdAt: Date.now(),
-            isError: !!result.error,
-          };
-          toolMessages.push(toolMessage);
-          messages.push(toolMessage);
-        }
         } finally {
           await endSandboxExecution(executionId);
         }
@@ -702,7 +743,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
 
         if (!executedNewToolThisRound) {
           accumulatedPromptTokens += estimateChatMessagesTokens(
-            messages.slice(messageCountAtRoundStart),
+            messages.slice(messageCountAtRoundStart)
           );
           break;
         }
@@ -721,19 +762,19 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
           createdAt: Date.now(),
         });
         accumulatedPromptTokens += estimateChatMessagesTokens(
-          messages.slice(messageCountAtRoundStart),
+          messages.slice(messageCountAtRoundStart)
         );
         messageCountAtRoundStart = messages.length;
       } else {
         // No tool calls — count this round's new messages once, then finish.
         accumulatedPromptTokens += estimateChatMessagesTokens(
-          messages.slice(messageCountAtRoundStart),
+          messages.slice(messageCountAtRoundStart)
         );
         break;
       }
 
       accumulatedPromptTokens += estimateChatMessagesTokens(
-        messages.slice(messageCountAtRoundStart),
+        messages.slice(messageCountAtRoundStart)
       );
       messageCountAtRoundStart = messages.length;
     } catch (err) {
@@ -747,5 +788,11 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
   }
 
   const truncated = rounds >= maxRounds;
-  return { finalText: lastAssistantText, steps, truncated, promptTokens: accumulatedPromptTokens, completionTokens: accumulatedCompletionTokens };
+  return {
+    finalText: lastAssistantText,
+    steps,
+    truncated,
+    promptTokens: accumulatedPromptTokens,
+    completionTokens: accumulatedCompletionTokens,
+  };
 }

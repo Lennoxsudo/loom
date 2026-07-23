@@ -58,8 +58,7 @@ class GenerateImageHandler implements ToolHandler<'generate_image'> {
       const lines = [
         result.message,
         ...result.files.map(
-          (file) =>
-            `- ${file.relativePath} (${file.size} bytes)\n  absolute: ${file.absolutePath}`
+          (file) => `- ${file.relativePath} (${file.size} bytes)\n  absolute: ${file.absolutePath}`
         ),
       ];
 

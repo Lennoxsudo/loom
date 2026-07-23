@@ -99,7 +99,9 @@ describe('GitPanel extensions', () => {
             date: '2024-01-01',
             body: null,
           },
-          files: [{ path: 'README.md', oldPath: null, status: 'added', additions: 1, deletions: 0 }],
+          files: [
+            { path: 'README.md', oldPath: null, status: 'added', additions: 1, deletions: 0 },
+          ],
           truncated: false,
           truncatedInfo: null,
         });
@@ -196,9 +198,7 @@ describe('GitPanel extensions', () => {
 
     renderPanel('D:\\commit-draft');
 
-    expect(
-      await screen.findByDisplayValue(draft)
-    ).toBeInTheDocument();
+    expect(await screen.findByDisplayValue(draft)).toBeInTheDocument();
   });
 
   it('warns when Windows reserved repo files are present', async () => {
@@ -217,9 +217,7 @@ describe('GitPanel extensions', () => {
 
     renderPanel('D:\\reserved-warning');
 
-    expect(
-      await screen.findByText(/无法加入 Git|Cannot add to Git/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/无法加入 Git|Cannot add to Git/i)).toBeInTheDocument();
     expect(
       screen.getByText(/Windows 保留文件名|Windows reserved device name/i)
     ).toBeInTheDocument();
@@ -440,9 +438,6 @@ describe('GitPanel extensions', () => {
     const confirmButtons = screen.getAllByRole('button', { name: /^确定$|^OK$/i });
     await user.click(confirmButtons[confirmButtons.length - 1]);
 
-    expect(invokeMock).not.toHaveBeenCalledWith(
-      'git_workspace_create_branch',
-      expect.anything()
-    );
+    expect(invokeMock).not.toHaveBeenCalledWith('git_workspace_create_branch', expect.anything());
   });
 });

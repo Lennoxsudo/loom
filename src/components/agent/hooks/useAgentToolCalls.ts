@@ -1,9 +1,6 @@
 import { useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  type Agent,
-  type AIProvider,
-} from '../../../utils/agentPersistence';
+import { type Agent, type AIProvider } from '../../../utils/agentPersistence';
 import {
   executeToolCall,
   normalizeToolArgs,
@@ -19,10 +16,7 @@ import {
   WRITE_TOOLS,
 } from '../../../utils/agentTools';
 import type { AgentAccessMode } from '../../../types/settings';
-import {
-  shouldBlockTool,
-  shouldRequestApproval,
-} from '../../../utils/agentAccessMode';
+import { shouldBlockTool, shouldRequestApproval } from '../../../utils/agentAccessMode';
 import { requiresConfirmation } from '../../../utils/toolGuard';
 import { beginSandboxExecution, endSandboxExecution } from '../../../utils/agentSandbox';
 import type { QuestionInput, UserAnswer } from '../../../features/agent-engine/toolArgs';
@@ -57,7 +51,10 @@ import { buildAgentRequestContext } from '../contextUsage';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useTranslation } from '../../../i18n';
 import { logDebug } from '../../../utils/errorHandling';
-import { bootstrapSubagentFromToolArgs, isSubagentsEnabled } from '../../../utils/subagents/bootstrap';
+import {
+  bootstrapSubagentFromToolArgs,
+  isSubagentsEnabled,
+} from '../../../utils/subagents/bootstrap';
 import { isRunCommandToolName } from '../../../utils/parseCommandExecOutput';
 import { useCommandExecProgress } from '../../../hooks/useCommandExecProgress';
 import {
@@ -129,7 +126,9 @@ export interface UseAgentToolCallsOptions {
   getAgentToolDefinitions: (currentAgentId?: string) => ToolDefinition[];
   getAppDataPath: () => Promise<string | null>;
   onFilesChangedRef: React.MutableRefObject<((paths: string[]) => void) | undefined>;
-  onSetPendingChangesBySession: React.Dispatch<React.SetStateAction<Record<string, PendingFileChange[]>>>;
+  onSetPendingChangesBySession: React.Dispatch<
+    React.SetStateAction<Record<string, PendingFileChange[]>>
+  >;
   onAskUserQuestion: (agentId: string, questions: QuestionInput[]) => Promise<UserAnswer[]>;
   onExitPlanMode?: (req: {
     conversationId: string;
@@ -299,9 +298,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
     try {
       const currentState = conversationStateRef.current;
-      const currentConversation = currentState.conversations.find(
-        (c) => c.id === conversationId
-      );
+      const currentConversation = currentState.conversations.find((c) => c.id === conversationId);
       const baseMessages = [...(currentConversation?.messages ?? [])].filter(
         (msg) => msg.id !== newAssistantMessageId
       );
@@ -396,10 +393,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             conv.id === conversationId
               ? {
                   ...conv,
-                  messages: [
-                    ...compactedMessages,
-                    ...conv.messages.filter((m) => m.isStreaming),
-                  ],
+                  messages: [...compactedMessages, ...conv.messages.filter((m) => m.isStreaming)],
                   compactState,
                   updatedAt: Date.now(),
                 }
@@ -568,512 +562,524 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     });
 
     try {
-    for (const toolCall of toolCalls) {
-      if (isStopRequested(sessionKey)) {
-        break;
-      }
-      if (endTurnAfterPlan) {
-        toolMessages.push({
-          id: buildAgentToolMessageId(toolCall.id),
-          role: 'tool',
-          text: 'Skipped: turn ended after exit_plan_mode (waiting for human plan review).',
-          tool_call_id: toolCall.id,
-          tool_name: toolCall.function.name,
-          createdAt: Date.now(),
-        });
-        continue;
-      }
-
-      let parsedArgs: Record<string, unknown> = {};
-
-      try {
-        logDebug(`执行工具: ${toolCall.function.name}`, 'Agent');
-
-        try {
-          parsedArgs = JSON.parse(toolCall.function.arguments || '{}');
-        } catch {
-          // ignore parse errors
+      for (const toolCall of toolCalls) {
+        if (isStopRequested(sessionKey)) {
+          break;
         }
-        parsedArgs = normalizeToolArgs(parsedArgs, toolCall.function.name) as Record<string, unknown>;
-        if (shouldBlockTool(agentAccessMode, toolCall.function.name)) {
+        if (endTurnAfterPlan) {
           toolMessages.push({
-            id: `${Date.now()}-tool-${toolCall.id}`,
+            id: buildAgentToolMessageId(toolCall.id),
             role: 'tool',
-            text: t.settingsAgent.commandExecution.blockedByPolicy,
+            text: 'Skipped: turn ended after exit_plan_mode (waiting for human plan review).',
             tool_call_id: toolCall.id,
-            tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
-            tool_args: parsedArgs,
+            tool_name: toolCall.function.name,
             createdAt: Date.now(),
           });
           continue;
         }
 
-        const underlyingToolName = resolveUnderlyingToolName(toolCall.function.name, parsedArgs);
-        const summary = buildApprovalSummary(
-          toolCall,
-          parsedArgs,
-          underlyingToolName,
-          undefined,
-          undefined,
-          t.settingsAgent.chatToolApproval
-        );
-        const needsApproval =
-          shouldRequestApproval(agentAccessMode, toolCall.function.name) ||
-          requiresConfirmation(toolCall.function.name, parsedArgs, agentAccessMode) ||
-          (summary !== null && needsAgentApproval(agentAccessMode, toolCall, parsedArgs, summary));
+        let parsedArgs: Record<string, unknown> = {};
 
-        if (needsApproval) {
-          const approvalSummary =
-            summary ??
-            ({
-              type: 'command',
-              toolName: toolCall.function.name,
-              label: t.settingsAgent.chatToolApproval.commandType,
-              detail:
-                typeof parsedArgs.command === 'string'
-                  ? parsedArgs.command
-                  : typeof parsedArgs.path === 'string'
-                    ? parsedArgs.path
-                    : toolCall.function.name,
-            } satisfies ChatApprovalSummary);
+        try {
+          logDebug(`执行工具: ${toolCall.function.name}`, 'Agent');
 
-          const toolMessageId = buildAgentToolMessageId(toolCall.id);
-          const pendingMsg: ChatMessage = {
-            id: toolMessageId,
-            role: 'tool',
-            text: '',
-            tool_call_id: toolCall.id,
-            tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
-            tool_args: parsedArgs,
-            approvalStatus: 'pending',
-            approvalSummary,
-            createdAt: Date.now(),
-          };
-          upsertAgentToolMessage(conversationId, pendingMsg, setConversationState);
-
-          const approved = await onRequestApproval({
-            messageId: toolMessageId,
-            summary: approvalSummary,
-          });
-
-          if (!approved) {
-            const rejectedMsg: ChatMessage = {
-              ...pendingMsg,
-              approvalStatus: 'rejected',
-              text: buildToolApprovalRejectionText(
-                pendingMsg.tool_name || toolCall.function.name,
-                parsedArgs,
-                t.agent.approvalDialog
-              ),
-              isError: true,
-            };
-            upsertAgentToolMessage(conversationId, rejectedMsg, setConversationState);
-            toolMessages.push(rejectedMsg);
+          try {
+            parsedArgs = JSON.parse(toolCall.function.arguments || '{}');
+          } catch {
+            // ignore parse errors
+          }
+          parsedArgs = normalizeToolArgs(parsedArgs, toolCall.function.name) as Record<
+            string,
+            unknown
+          >;
+          if (shouldBlockTool(agentAccessMode, toolCall.function.name)) {
+            toolMessages.push({
+              id: `${Date.now()}-tool-${toolCall.id}`,
+              role: 'tool',
+              text: t.settingsAgent.commandExecution.blockedByPolicy,
+              tool_call_id: toolCall.id,
+              tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
+              tool_args: parsedArgs,
+              createdAt: Date.now(),
+            });
             continue;
           }
 
-          upsertAgentToolMessage(
-            conversationId,
-            {
-              ...pendingMsg,
-              approvalStatus: 'approved',
-            },
-            setConversationState
+          const underlyingToolName = resolveUnderlyingToolName(toolCall.function.name, parsedArgs);
+          const summary = buildApprovalSummary(
+            toolCall,
+            parsedArgs,
+            underlyingToolName,
+            undefined,
+            undefined,
+            t.settingsAgent.chatToolApproval
           );
-        }
+          const needsApproval =
+            shouldRequestApproval(agentAccessMode, toolCall.function.name) ||
+            requiresConfirmation(toolCall.function.name, parsedArgs, agentAccessMode) ||
+            (summary !== null &&
+              needsAgentApproval(agentAccessMode, toolCall, parsedArgs, summary));
 
-        // Capability check
-        const capabilityForCheck = agent.capabilities
-          ? { ...agent.capabilities, canExecuteCommands: true }
-          : agent.capabilities;
-        const blockedBy = getToolBlockedByCapability(toolCall.function.name, capabilityForCheck);
-        if (blockedBy) {
-          toolMessages.push({
-            id: `${Date.now()}-tool-${toolCall.id}`,
-            role: 'tool',
-            text: `${t.errors.permissionDeniedAction}: ${toolCall.function.name}`,
-            tool_call_id: toolCall.id,
-            tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
-            tool_args: parsedArgs,
-            createdAt: Date.now(),
-          });
-          continue;
-        }
+          if (needsApproval) {
+            const approvalSummary =
+              summary ??
+              ({
+                type: 'command',
+                toolName: toolCall.function.name,
+                label: t.settingsAgent.chatToolApproval.commandType,
+                detail:
+                  typeof parsedArgs.command === 'string'
+                    ? parsedArgs.command
+                    : typeof parsedArgs.path === 'string'
+                      ? parsedArgs.path
+                      : toolCall.function.name,
+              } satisfies ChatApprovalSummary);
 
-        // Plan mode check (exit_plan_mode itself is never blocked)
-        const isAgentPlanMode =
-          (agentModesRef.current[agent.id] ?? 'always-allow') === 'plan';
-        if (
-          isAgentPlanMode &&
-          toolCall.function.name !== 'exit_plan_mode' &&
-          toolCall.function.name !== 'update_plan' &&
-          isToolBlockedInPlanMode(toolCall.function.name)
-        ) {
-          toolMessages.push({
-            id: `${Date.now()}-tool-${toolCall.id}`,
-            role: 'tool',
-            text: `${t.agent.planModeBlocked}: ${toolCall.function.name}`,
-            tool_call_id: toolCall.id,
-            tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
-            tool_args: parsedArgs,
-            createdAt: Date.now(),
-          });
-          continue;
-        }
-
-        // For write tools, capture before-content before execution
-        const isWriteTool = WRITE_TOOLS.has(toolCall.function.name);
-        const shouldCheckpoint = isCheckpointMutatingTool(toolCall.function.name);
-        let beforeContent: string | null = null;
-        let existedBefore = false;
-        const changedFilePath = isWriteTool
-          ? ((parsedArgs.file_path ?? parsedArgs.file ?? parsedArgs.path ?? '') as string)
-          : '';
-        /** 与 fileHandlers 内 resolvePathWithBaseDir 一致，保证快照路径与 files_changed 一致 */
-        let resolvedWriteTargetPath = '';
-        const baseDir = projectPathRef.current?.trim() || undefined;
-        if (isWriteTool && changedFilePath) {
-          resolvedWriteTargetPath = baseDir
-            ? resolvePathWithBaseDir(String(changedFilePath).trim(), baseDir)
-            : String(changedFilePath).trim();
-
-          try {
-            const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
-              path: resolvedWriteTargetPath,
-            });
-            existedBefore = fileInfo?.exists === true;
-          } catch {
-            // Best-effort existence check only
-          }
-          try {
-            beforeContent = await invoke<string>('read_file_content', {
-              filePath: resolvedWriteTargetPath,
-            });
-            existedBefore = true;
-          } catch {
-            // File doesn't exist yet — beforeContent stays null (new file)
-          }
-        }
-
-        // Action-granularity checkpoint (pre-tool) for time-travel restore
-        if (shouldCheckpoint && baseDir) {
-          const argPaths = collectPathsFromToolArgs(
-            toolCall.function.name,
-            parsedArgs as Record<string, unknown>
-          );
-          const resolvedPaths = argPaths.map((p) =>
-            resolvePathWithBaseDir(String(p).trim(), baseDir)
-          );
-          // Prefer already-read write-tool snapshot when paths match
-          const snapshots: CheckpointFileSnapshot[] = [];
-          for (const resolvedPath of resolvedPaths) {
-            if (!resolvedPath) continue;
-            const matchesWriteTarget =
-              resolvedWriteTargetPath &&
-              normalizePathForCompare(resolvedPath).toLowerCase() ===
-                normalizePathForCompare(resolvedWriteTargetPath).toLowerCase();
-            if (matchesWriteTarget) {
-              snapshots.push({
-                path: resolvedWriteTargetPath,
-                existed: existedBefore,
-                content: beforeContent,
-              });
-              continue;
-            }
-            let existed = false;
-            let content: string | null = null;
-            try {
-              const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
-                path: resolvedPath,
-              });
-              existed = fileInfo?.exists === true;
-            } catch {
-              // ignore
-            }
-            try {
-              content = await invoke<string>('read_file_content', { filePath: resolvedPath });
-              existed = true;
-            } catch {
-              content = null;
-            }
-            snapshots.push({ path: resolvedPath, existed, content });
-          }
-
-          if (snapshots.length > 0) {
-            const sessionKey = buildPendingSessionKey(
-              activeProjectKeyRef.current,
-              conversationId
-            );
-            const convMessages =
-              conversationStateRef.current.conversations.find((c) => c.id === conversationId)
-                ?.messages ?? [];
-            let lastUserMessageId: string | undefined;
-            for (let i = convMessages.length - 1; i >= 0; i--) {
-              if (convMessages[i]?.role === 'user') {
-                lastUserMessageId = convMessages[i].id;
-                break;
-              }
-            }
-            void useCheckpointStore.getState().addCheckpoint({
-              sessionKey,
-              projectPath: baseDir,
-              toolCallId: toolCall.id,
-              userMessageId: lastUserMessageId,
-              toolName: toolCall.function.name,
-              label: buildCheckpointLabel(
-                toolCall.function.name,
-                snapshots.map((s) => s.path)
-              ),
-              files: snapshots,
-            });
-          }
-        }
-
-        // Execute the tool
-        const isGenerateImage = toolCall.function.name === 'generate_image';
-        const isRunCommand = isRunCommandToolName(toolCall.function.name, parsedArgs);
-        const isRunSubagent = toolCall.function.name === 'run_subagent';
-        const isRunSubagents = toolCall.function.name === 'run_subagents';
-        const isAgentTool = toolCall.function.name === 'Agent' || toolCall.function.name === 'Task';
-        const isSubagentTool = isRunSubagent || isRunSubagents || isAgentTool;
-        const subagentsEnabled = isSubagentsEnabled();
-        const toolMessageId = buildAgentToolMessageId(toolCall.id);
-        const resolvedToolName = isRunCommand
-          ? 'run_command'
-          : resolveUnderlyingToolName(toolCall.function.name, parsedArgs);
-
-        if (isGenerateImage || isRunCommand || (subagentsEnabled && isSubagentTool)) {
-          if (subagentsEnabled && isSubagentTool) {
-            bootstrapSubagentFromToolArgs(toolCall.id, parsedArgs);
-          }
-          if (isRunCommand) {
-            activeCommandStreamsRef.current.set(toolCall.id, {
-              agentId,
-              conversationId,
-              toolMessageId,
-            });
-          }
-          upsertAgentToolMessage(
-            conversationId,
-            {
+            const toolMessageId = buildAgentToolMessageId(toolCall.id);
+            const pendingMsg: ChatMessage = {
               id: toolMessageId,
               role: 'tool',
               text: '',
-              isStreaming: true,
               tool_call_id: toolCall.id,
-              tool_name: resolvedToolName,
+              tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
+              tool_args: parsedArgs,
+              approvalStatus: 'pending',
+              approvalSummary,
+              createdAt: Date.now(),
+            };
+            upsertAgentToolMessage(conversationId, pendingMsg, setConversationState);
+
+            const approved = await onRequestApproval({
+              messageId: toolMessageId,
+              summary: approvalSummary,
+            });
+
+            if (!approved) {
+              const rejectedMsg: ChatMessage = {
+                ...pendingMsg,
+                approvalStatus: 'rejected',
+                text: buildToolApprovalRejectionText(
+                  pendingMsg.tool_name || toolCall.function.name,
+                  parsedArgs,
+                  t.agent.approvalDialog
+                ),
+                isError: true,
+              };
+              upsertAgentToolMessage(conversationId, rejectedMsg, setConversationState);
+              toolMessages.push(rejectedMsg);
+              continue;
+            }
+
+            upsertAgentToolMessage(
+              conversationId,
+              {
+                ...pendingMsg,
+                approvalStatus: 'approved',
+              },
+              setConversationState
+            );
+          }
+
+          // Capability check
+          const capabilityForCheck = agent.capabilities
+            ? { ...agent.capabilities, canExecuteCommands: true }
+            : agent.capabilities;
+          const blockedBy = getToolBlockedByCapability(toolCall.function.name, capabilityForCheck);
+          if (blockedBy) {
+            toolMessages.push({
+              id: `${Date.now()}-tool-${toolCall.id}`,
+              role: 'tool',
+              text: `${t.errors.permissionDeniedAction}: ${toolCall.function.name}`,
+              tool_call_id: toolCall.id,
+              tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
               tool_args: parsedArgs,
               createdAt: Date.now(),
-            },
-            setConversationState
-          );
-        }
-
-        const mcpToolsForCall = mcpTools;
-
-        const result = await executeToolCall(toolCall, {
-          baseDir: projectPathRef.current || undefined,
-          agentId,
-          conversationId,
-          toolCallId: toolCall.id,
-          parentProvider,
-          parentModel,
-          profileId,
-          maxContextTokens: agent.maxContextTokens,
-          parentToolNames,
-          parentMcpTools: mcpToolsForCall,
-          parentMessages,
-          subagentDepth: 0,
-          onAskUserQuestion,
-          onExitPlanMode,
-          onRequestToolApproval: async (req) => {
-            return new Promise<'approve' | 'reject'>((resolve) => {
-              useSubagentStore.getState().setPendingApproval(req.taskId, {
-                toolName: req.toolName,
-                detailPreview: req.detailPreview,
-                resolve: (choice) => {
-                  useSubagentStore.getState().clearPendingApproval(req.taskId);
-                  resolve(choice);
-                },
-              });
             });
-          },
-        });
+            continue;
+          }
 
-        if (result.files_changed && result.files_changed.length > 0) {
-          changedFiles.push(...result.files_changed.filter((p) => typeof p === 'string' && p.trim()));
-        }
+          // Plan mode check (exit_plan_mode itself is never blocked)
+          const isAgentPlanMode = (agentModesRef.current[agent.id] ?? 'always-allow') === 'plan';
+          if (
+            isAgentPlanMode &&
+            toolCall.function.name !== 'exit_plan_mode' &&
+            toolCall.function.name !== 'update_plan' &&
+            isToolBlockedInPlanMode(toolCall.function.name)
+          ) {
+            toolMessages.push({
+              id: `${Date.now()}-tool-${toolCall.id}`,
+              role: 'tool',
+              text: `${t.agent.planModeBlocked}: ${toolCall.function.name}`,
+              tool_call_id: toolCall.id,
+              tool_name: resolveUnderlyingToolName(toolCall.function.name, parsedArgs),
+              tool_args: parsedArgs,
+              createdAt: Date.now(),
+            });
+            continue;
+          }
 
-        // For write tools, create pending change entry
-        if (isWriteTool && result.files_changed && result.files_changed.length > 0 && !result.error) {
-          for (const filePath of result.files_changed) {
-            if (typeof filePath !== 'string' || !filePath.trim()) continue;
+          // For write tools, capture before-content before execution
+          const isWriteTool = WRITE_TOOLS.has(toolCall.function.name);
+          const shouldCheckpoint = isCheckpointMutatingTool(toolCall.function.name);
+          let beforeContent: string | null = null;
+          let existedBefore = false;
+          const changedFilePath = isWriteTool
+            ? ((parsedArgs.file_path ?? parsedArgs.file ?? parsedArgs.path ?? '') as string)
+            : '';
+          /** 与 fileHandlers 内 resolvePathWithBaseDir 一致，保证快照路径与 files_changed 一致 */
+          let resolvedWriteTargetPath = '';
+          const baseDir = projectPathRef.current?.trim() || undefined;
+          if (isWriteTool && changedFilePath) {
+            resolvedWriteTargetPath = baseDir
+              ? resolvePathWithBaseDir(String(changedFilePath).trim(), baseDir)
+              : String(changedFilePath).trim();
+
             try {
-              const afterContent: string = await invoke('read_file_content', { filePath });
-              const normalizedChanged = normalizePathForCompare(filePath).toLowerCase();
-              const normalizedResolved = normalizePathForCompare(
-                resolvedWriteTargetPath || changedFilePath
-              ).toLowerCase();
-              const normalizedArg = normalizePathForCompare(changedFilePath).toLowerCase();
-              const pathsMatch =
-                normalizedChanged === normalizedResolved ||
-                normalizedChanged === normalizedArg ||
-                normalizedResolved.endsWith(`\\${normalizedChanged}`) ||
-                normalizedResolved.endsWith(`/${normalizedChanged}`);
-              const before = pathsMatch ? beforeContent : null;
-              const now = Date.now();
-              const sessionKey = buildPendingSessionKey(activeProjectKeyRef.current, conversationId);
-              const normalizedFilePath = normalizePathForCompare(filePath).toLowerCase();
-              const nextOldSnippet =
-                typeof parsedArgs.old_string === 'string' || typeof parsedArgs.old === 'string'
-                  ? (parsedArgs.old_string ?? parsedArgs.old) as string
-                  : undefined;
-              const nextNewSnippet =
-                typeof parsedArgs.new_string === 'string' || typeof parsedArgs.new === 'string'
-                  ? (parsedArgs.new_string ?? parsedArgs.new) as string
-                  : undefined;
-              onSetPendingChangesBySession((prev) => {
-                const existing = prev[sessionKey] ?? [];
-                const existingChange = existing.find(
-                  (c) => normalizePathForCompare(c.filePath).toLowerCase() === normalizedFilePath
-                );
-                const pendingChange: PendingFileChange = {
-                  id:
-                    existingChange?.id ??
-                    `pc-${now}-${filePath.replace(/[^a-zA-Z0-9]/g, '_')}`,
-                  agentId: activeProjectKeyRef.current,
-                  conversationId,
-                  filePath,
-                  existedBefore: existingChange?.existedBefore ?? existedBefore,
-                  beforeContent:
-                    existingChange?.beforeContent !== undefined
-                      ? existingChange.beforeContent
-                      : before,
-                  afterContent,
-                  toolName: toolCall.function.name,
-                  oldSnippet: nextOldSnippet,
-                  newSnippet: nextNewSnippet,
-                  createdAt: existingChange?.createdAt ?? now,
-                  updatedAt: now,
-                };
-                const next = existing.filter(
-                  (c) => normalizePathForCompare(c.filePath).toLowerCase() !== normalizedFilePath
-                );
-                return { ...prev, [sessionKey]: [...next, pendingChange] };
+              const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
+                path: resolvedWriteTargetPath,
               });
-
-              // Add preview history entry
-              setConversationState((prev) => {
-                const conversations = prev.conversations.map((conv) => {
-                  if (conv.id !== conversationId) return conv;
-                  const existingEntry = conv.previewHistory.find(
-                    (e) =>
-                      normalizePathForCompare(e.filePath).toLowerCase() === normalizedFilePath
-                  );
-                  const entry = {
-                    filePath,
-                    content: afterContent,
-                    originalContent: existingEntry?.originalContent ?? before ?? '',
-                    modifiedContent: afterContent,
-                  };
-                  const merged = [...conv.previewHistory];
-                  const idx = merged.findIndex(
-                    (e) =>
-                      normalizePathForCompare(e.filePath).toLowerCase() === normalizedFilePath
-                  );
-                  if (idx >= 0) {
-                    merged[idx] = entry;
-                  } else {
-                    merged.push(entry);
-                  }
-                  if (merged.length > MAX_PREVIEW_HISTORY) {
-                    merged.splice(0, merged.length - MAX_PREVIEW_HISTORY);
-                  }
-                  return {
-                    ...conv,
-                    previewHistory: merged,
-                    currentPreviewIndex: merged.length - 1,
-                  };
-                });
-                return { ...prev, conversations };
-              });
+              existedBefore = fileInfo?.exists === true;
             } catch {
-              // File may be inaccessible — skip pending change
+              // Best-effort existence check only
             }
+            try {
+              beforeContent = await invoke<string>('read_file_content', {
+                filePath: resolvedWriteTargetPath,
+              });
+              existedBefore = true;
+            } catch {
+              // File doesn't exist yet — beforeContent stays null (new file)
+            }
+          }
+
+          // Action-granularity checkpoint (pre-tool) for time-travel restore
+          if (shouldCheckpoint && baseDir) {
+            const argPaths = collectPathsFromToolArgs(
+              toolCall.function.name,
+              parsedArgs as Record<string, unknown>
+            );
+            const resolvedPaths = argPaths.map((p) =>
+              resolvePathWithBaseDir(String(p).trim(), baseDir)
+            );
+            // Prefer already-read write-tool snapshot when paths match
+            const snapshots: CheckpointFileSnapshot[] = [];
+            for (const resolvedPath of resolvedPaths) {
+              if (!resolvedPath) continue;
+              const matchesWriteTarget =
+                resolvedWriteTargetPath &&
+                normalizePathForCompare(resolvedPath).toLowerCase() ===
+                  normalizePathForCompare(resolvedWriteTargetPath).toLowerCase();
+              if (matchesWriteTarget) {
+                snapshots.push({
+                  path: resolvedWriteTargetPath,
+                  existed: existedBefore,
+                  content: beforeContent,
+                });
+                continue;
+              }
+              let existed = false;
+              let content: string | null = null;
+              try {
+                const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
+                  path: resolvedPath,
+                });
+                existed = fileInfo?.exists === true;
+              } catch {
+                // ignore
+              }
+              try {
+                content = await invoke<string>('read_file_content', { filePath: resolvedPath });
+                existed = true;
+              } catch {
+                content = null;
+              }
+              snapshots.push({ path: resolvedPath, existed, content });
+            }
+
+            if (snapshots.length > 0) {
+              const sessionKey = buildPendingSessionKey(
+                activeProjectKeyRef.current,
+                conversationId
+              );
+              const convMessages =
+                conversationStateRef.current.conversations.find((c) => c.id === conversationId)
+                  ?.messages ?? [];
+              let lastUserMessageId: string | undefined;
+              for (let i = convMessages.length - 1; i >= 0; i--) {
+                if (convMessages[i]?.role === 'user') {
+                  lastUserMessageId = convMessages[i].id;
+                  break;
+                }
+              }
+              void useCheckpointStore.getState().addCheckpoint({
+                sessionKey,
+                projectPath: baseDir,
+                toolCallId: toolCall.id,
+                userMessageId: lastUserMessageId,
+                toolName: toolCall.function.name,
+                label: buildCheckpointLabel(
+                  toolCall.function.name,
+                  snapshots.map((s) => s.path)
+                ),
+                files: snapshots,
+              });
+            }
+          }
+
+          // Execute the tool
+          const isGenerateImage = toolCall.function.name === 'generate_image';
+          const isRunCommand = isRunCommandToolName(toolCall.function.name, parsedArgs);
+          const isRunSubagent = toolCall.function.name === 'run_subagent';
+          const isRunSubagents = toolCall.function.name === 'run_subagents';
+          const isAgentTool =
+            toolCall.function.name === 'Agent' || toolCall.function.name === 'Task';
+          const isSubagentTool = isRunSubagent || isRunSubagents || isAgentTool;
+          const subagentsEnabled = isSubagentsEnabled();
+          const toolMessageId = buildAgentToolMessageId(toolCall.id);
+          const resolvedToolName = isRunCommand
+            ? 'run_command'
+            : resolveUnderlyingToolName(toolCall.function.name, parsedArgs);
+
+          if (isGenerateImage || isRunCommand || (subagentsEnabled && isSubagentTool)) {
+            if (subagentsEnabled && isSubagentTool) {
+              bootstrapSubagentFromToolArgs(toolCall.id, parsedArgs);
+            }
+            if (isRunCommand) {
+              activeCommandStreamsRef.current.set(toolCall.id, {
+                agentId,
+                conversationId,
+                toolMessageId,
+              });
+            }
+            upsertAgentToolMessage(
+              conversationId,
+              {
+                id: toolMessageId,
+                role: 'tool',
+                text: '',
+                isStreaming: true,
+                tool_call_id: toolCall.id,
+                tool_name: resolvedToolName,
+                tool_args: parsedArgs,
+                createdAt: Date.now(),
+              },
+              setConversationState
+            );
+          }
+
+          const mcpToolsForCall = mcpTools;
+
+          const result = await executeToolCall(toolCall, {
+            baseDir: projectPathRef.current || undefined,
+            agentId,
+            conversationId,
+            toolCallId: toolCall.id,
+            parentProvider,
+            parentModel,
+            profileId,
+            maxContextTokens: agent.maxContextTokens,
+            parentToolNames,
+            parentMcpTools: mcpToolsForCall,
+            parentMessages,
+            subagentDepth: 0,
+            onAskUserQuestion,
+            onExitPlanMode,
+            onRequestToolApproval: async (req) => {
+              return new Promise<'approve' | 'reject'>((resolve) => {
+                useSubagentStore.getState().setPendingApproval(req.taskId, {
+                  toolName: req.toolName,
+                  detailPreview: req.detailPreview,
+                  resolve: (choice) => {
+                    useSubagentStore.getState().clearPendingApproval(req.taskId);
+                    resolve(choice);
+                  },
+                });
+              });
+            },
+          });
+
+          if (result.files_changed && result.files_changed.length > 0) {
+            changedFiles.push(
+              ...result.files_changed.filter((p) => typeof p === 'string' && p.trim())
+            );
+          }
+
+          // For write tools, create pending change entry
+          if (
+            isWriteTool &&
+            result.files_changed &&
+            result.files_changed.length > 0 &&
+            !result.error
+          ) {
+            for (const filePath of result.files_changed) {
+              if (typeof filePath !== 'string' || !filePath.trim()) continue;
+              try {
+                const afterContent: string = await invoke('read_file_content', { filePath });
+                const normalizedChanged = normalizePathForCompare(filePath).toLowerCase();
+                const normalizedResolved = normalizePathForCompare(
+                  resolvedWriteTargetPath || changedFilePath
+                ).toLowerCase();
+                const normalizedArg = normalizePathForCompare(changedFilePath).toLowerCase();
+                const pathsMatch =
+                  normalizedChanged === normalizedResolved ||
+                  normalizedChanged === normalizedArg ||
+                  normalizedResolved.endsWith(`\\${normalizedChanged}`) ||
+                  normalizedResolved.endsWith(`/${normalizedChanged}`);
+                const before = pathsMatch ? beforeContent : null;
+                const now = Date.now();
+                const sessionKey = buildPendingSessionKey(
+                  activeProjectKeyRef.current,
+                  conversationId
+                );
+                const normalizedFilePath = normalizePathForCompare(filePath).toLowerCase();
+                const nextOldSnippet =
+                  typeof parsedArgs.old_string === 'string' || typeof parsedArgs.old === 'string'
+                    ? ((parsedArgs.old_string ?? parsedArgs.old) as string)
+                    : undefined;
+                const nextNewSnippet =
+                  typeof parsedArgs.new_string === 'string' || typeof parsedArgs.new === 'string'
+                    ? ((parsedArgs.new_string ?? parsedArgs.new) as string)
+                    : undefined;
+                onSetPendingChangesBySession((prev) => {
+                  const existing = prev[sessionKey] ?? [];
+                  const existingChange = existing.find(
+                    (c) => normalizePathForCompare(c.filePath).toLowerCase() === normalizedFilePath
+                  );
+                  const pendingChange: PendingFileChange = {
+                    id: existingChange?.id ?? `pc-${now}-${filePath.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                    agentId: activeProjectKeyRef.current,
+                    conversationId,
+                    filePath,
+                    existedBefore: existingChange?.existedBefore ?? existedBefore,
+                    beforeContent:
+                      existingChange?.beforeContent !== undefined
+                        ? existingChange.beforeContent
+                        : before,
+                    afterContent,
+                    toolName: toolCall.function.name,
+                    oldSnippet: nextOldSnippet,
+                    newSnippet: nextNewSnippet,
+                    createdAt: existingChange?.createdAt ?? now,
+                    updatedAt: now,
+                  };
+                  const next = existing.filter(
+                    (c) => normalizePathForCompare(c.filePath).toLowerCase() !== normalizedFilePath
+                  );
+                  return { ...prev, [sessionKey]: [...next, pendingChange] };
+                });
+
+                // Add preview history entry
+                setConversationState((prev) => {
+                  const conversations = prev.conversations.map((conv) => {
+                    if (conv.id !== conversationId) return conv;
+                    const existingEntry = conv.previewHistory.find(
+                      (e) =>
+                        normalizePathForCompare(e.filePath).toLowerCase() === normalizedFilePath
+                    );
+                    const entry = {
+                      filePath,
+                      content: afterContent,
+                      originalContent: existingEntry?.originalContent ?? before ?? '',
+                      modifiedContent: afterContent,
+                    };
+                    const merged = [...conv.previewHistory];
+                    const idx = merged.findIndex(
+                      (e) =>
+                        normalizePathForCompare(e.filePath).toLowerCase() === normalizedFilePath
+                    );
+                    if (idx >= 0) {
+                      merged[idx] = entry;
+                    } else {
+                      merged.push(entry);
+                    }
+                    if (merged.length > MAX_PREVIEW_HISTORY) {
+                      merged.splice(0, merged.length - MAX_PREVIEW_HISTORY);
+                    }
+                    return {
+                      ...conv,
+                      previewHistory: merged,
+                      currentPreviewIndex: merged.length - 1,
+                    };
+                  });
+                  return { ...prev, conversations };
+                });
+              } catch {
+                // File may be inaccessible — skip pending change
+              }
+            }
+          }
+
+          let completedToolMessage: ChatMessage = {
+            id: toolMessageId,
+            role: 'tool',
+            text: result.error || result.output,
+            tool_call_id: toolCall.id,
+            tool_name: resolvedToolName,
+            tool_args: parsedArgs,
+            createdAt: Date.now(),
+            isError: !!result.error,
+            isStreaming: false,
+          };
+          if (subagentsEnabled && isSubagentTool) {
+            completedToolMessage = attachSubagentRunsSnapshot(
+              completedToolMessage,
+              toolCall.id,
+              toolCall.function.name
+            );
+          }
+          toolMessages.push(completedToolMessage);
+
+          activeCommandStreamsRef.current.delete(toolCall.id);
+
+          if (
+            toolCall.function.name === 'exit_plan_mode' ||
+            resolvedToolName === 'exit_plan_mode'
+          ) {
+            endTurnAfterPlan = true;
+          }
+
+          // Persist tool result immediately (including exit_plan_mode end-of-turn).
+          upsertAgentToolMessage(conversationId, completedToolMessage, setConversationState);
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          let failedToolMessage: ChatMessage = {
+            id: buildAgentToolMessageId(toolCall.id),
+            role: 'tool',
+            text: `工具执行错误: ${errorMsg}`,
+            tool_call_id: toolCall.id,
+            tool_name: toolCall.function.name,
+            createdAt: Date.now(),
+            isError: true,
+            isStreaming: false,
+          };
+          const failedIsSubagentTool =
+            isSubagentsEnabled() &&
+            (toolCall.function.name === 'run_subagent' ||
+              toolCall.function.name === 'run_subagents' ||
+              toolCall.function.name === 'Agent' ||
+              toolCall.function.name === 'Task');
+          if (failedIsSubagentTool) {
+            failedToolMessage = attachSubagentRunsSnapshot(
+              failedToolMessage,
+              toolCall.id,
+              toolCall.function.name
+            );
+          }
+          toolMessages.push(failedToolMessage);
+          activeCommandStreamsRef.current.delete(toolCall.id);
+          if (
+            toolCall.function.name === 'generate_image' ||
+            isRunCommandToolName(toolCall.function.name, parsedArgs) ||
+            failedIsSubagentTool
+          ) {
+            upsertAgentToolMessage(conversationId, failedToolMessage, setConversationState);
           }
         }
 
-        let completedToolMessage: ChatMessage = {
-          id: toolMessageId,
-          role: 'tool',
-          text: result.error || result.output,
-          tool_call_id: toolCall.id,
-          tool_name: resolvedToolName,
-          tool_args: parsedArgs,
-          createdAt: Date.now(),
-          isError: !!result.error,
-          isStreaming: false,
-        };
-        if (subagentsEnabled && isSubagentTool) {
-          completedToolMessage = attachSubagentRunsSnapshot(
-            completedToolMessage,
-            toolCall.id,
-            toolCall.function.name
-          );
-        }
-        toolMessages.push(completedToolMessage);
-
-        activeCommandStreamsRef.current.delete(toolCall.id);
-
-        if (
-          toolCall.function.name === 'exit_plan_mode' ||
-          resolvedToolName === 'exit_plan_mode'
-        ) {
-          endTurnAfterPlan = true;
-        }
-
-        // Persist tool result immediately (including exit_plan_mode end-of-turn).
-        upsertAgentToolMessage(conversationId, completedToolMessage, setConversationState);
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        let failedToolMessage: ChatMessage = {
-          id: buildAgentToolMessageId(toolCall.id),
-          role: 'tool',
-          text: `工具执行错误: ${errorMsg}`,
-          tool_call_id: toolCall.id,
-          tool_name: toolCall.function.name,
-          createdAt: Date.now(),
-          isError: true,
-          isStreaming: false,
-        };
-        const failedIsSubagentTool =
-          isSubagentsEnabled() &&
-          (toolCall.function.name === 'run_subagent' ||
-            toolCall.function.name === 'run_subagents' ||
-            toolCall.function.name === 'Agent' ||
-            toolCall.function.name === 'Task');
-        if (failedIsSubagentTool) {
-          failedToolMessage = attachSubagentRunsSnapshot(
-            failedToolMessage,
-            toolCall.id,
-            toolCall.function.name
-          );
-        }
-        toolMessages.push(failedToolMessage);
-        activeCommandStreamsRef.current.delete(toolCall.id);
-        if (
-          toolCall.function.name === 'generate_image' ||
-          isRunCommandToolName(toolCall.function.name, parsedArgs) ||
-          failedIsSubagentTool
-        ) {
-          upsertAgentToolMessage(conversationId, failedToolMessage, setConversationState);
+        if (isStopRequested(sessionKey)) {
+          break;
         }
       }
-
-      if (isStopRequested(sessionKey)) {
-        break;
-      }
-    }
     } finally {
       await endSandboxExecution(executionId);
     }

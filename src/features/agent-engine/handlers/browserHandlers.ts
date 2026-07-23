@@ -52,9 +52,7 @@ function formatCdpResult(result: CdpActionResult): string {
   if (result.value !== undefined && result.value !== null) {
     parts.push('Value:');
     parts.push(
-      typeof result.value === 'string'
-        ? result.value
-        : JSON.stringify(result.value, null, 2),
+      typeof result.value === 'string' ? result.value : JSON.stringify(result.value, null, 2)
     );
   }
   if (result.screenshotBase64) {
@@ -63,10 +61,7 @@ function formatCdpResult(result: CdpActionResult): string {
   return parts.join('\n');
 }
 
-async function invokeCdp(
-  command: string,
-  args: Record<string, unknown> = {},
-): Promise<ToolResult> {
+async function invokeCdp(command: string, args: Record<string, unknown> = {}): Promise<ToolResult> {
   if (!isTauri()) {
     return {
       tool_call_id: '',
@@ -225,7 +220,16 @@ class FetchWebContentHandler implements ToolHandler<'fetch'> {
       // 2. 查 LRU 缓存
       const cached = getCachedContent(url);
       if (cached) {
-        return { tool_call_id: '', output: this.formatContentOutput(cached.content, cached.bytes, cached.code, cached.codeText, url) };
+        return {
+          tool_call_id: '',
+          output: this.formatContentOutput(
+            cached.content,
+            cached.bytes,
+            cached.code,
+            cached.codeText,
+            url
+          ),
+        };
       }
 
       // 3. 权限检查（白名单→deny→allow→默认 allow）
@@ -312,17 +316,28 @@ class FetchWebContentHandler implements ToolHandler<'fetch'> {
     }
   }
 
-  private formatContentOutput(content: string, bytes: number, code: number, codeText: string, url: string): string {
+  private formatContentOutput(
+    content: string,
+    bytes: number,
+    code: number,
+    codeText: string,
+    url: string
+  ): string {
     return `来源: ${url}\n状态: ${code} ${codeText}\n大小: ${bytes} bytes\n\n---\n${content}`;
   }
 
   private redirectStatusText(code: number): string {
     switch (code) {
-      case 301: return 'Moved Permanently';
-      case 302: return 'Found';
-      case 307: return 'Temporary Redirect';
-      case 308: return 'Permanent Redirect';
-      default: return String(code);
+      case 301:
+        return 'Moved Permanently';
+      case 302:
+        return 'Found';
+      case 307:
+        return 'Temporary Redirect';
+      case 308:
+        return 'Permanent Redirect';
+      default:
+        return String(code);
     }
   }
 }

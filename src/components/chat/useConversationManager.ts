@@ -3,7 +3,13 @@ import { invoke } from '@tauri-apps/api/core';
 import { logDebug } from '../../utils/errorHandling';
 import { normalizeGeneratedTitle } from '../agent/utils';
 import type { AIProvider } from '../../utils/visionCapabilities';
-import type { Message, Conversation, ConversationMeta, PendingFileChange, ChatProtocolSelection } from './types';
+import type {
+  Message,
+  Conversation,
+  ConversationMeta,
+  PendingFileChange,
+  ChatProtocolSelection,
+} from './types';
 import { buildConversationPayload } from './conversationPersist';
 import type { ChatRuntimeSnapshot } from './chatRoutingRuntime';
 import { CHAT_LAST_CONVERSATION_STORAGE_KEY } from '../../types/chat';
@@ -32,7 +38,9 @@ export interface UseConversationManagerOptions {
   chatRuntimeRef: React.MutableRefObject<ChatRuntimeSnapshot>;
   setAttachedFiles: React.Dispatch<React.SetStateAction<import('./types').AttachedFile[]>>;
   clearAttachedImages: () => void;
-  setAttachedImages: React.Dispatch<React.SetStateAction<import('./types').PendingImageAttachment[]>>;
+  setAttachedImages: React.Dispatch<
+    React.SetStateAction<import('./types').PendingImageAttachment[]>
+  >;
   pendingChangesRef: React.MutableRefObject<PendingFileChange[]>;
   setPendingChanges: React.Dispatch<React.SetStateAction<PendingFileChange[]>>;
 }
@@ -200,11 +208,15 @@ export function useConversationManager({
     }
 
     try {
-      logDebug('保存对话: 开始保存 ' + JSON.stringify({
-        conversationId: conv.id,
-        title: conv.title,
-        messageCount: msgs.length,
-      }), 'ChatPanel');
+      logDebug(
+        '保存对话: 开始保存 ' +
+          JSON.stringify({
+            conversationId: conv.id,
+            title: conv.title,
+            messageCount: msgs.length,
+          }),
+        'ChatPanel'
+      );
 
       // Always persist the live message list (including tool_calls / tool results).
       // Never fall back to conv.messages alone — it lags behind React state and
@@ -213,7 +225,7 @@ export function useConversationManager({
         conv,
         msgs,
         conv.compactState,
-        pendingChangesRef.current,
+        pendingChangesRef.current
       );
 
       await invoke('save_conversation', { conversation: updatedConv });
@@ -287,7 +299,17 @@ export function useConversationManager({
     setError(null);
     setIsConversationDropdownOpen(false);
     chatRulesInjectedRef.current = false;
-  }, [isLoading, isStopping, setMessages, setPendingChanges, setAttachedFiles, setAttachedImages, setTotalTokens, setError, setIsConversationDropdownOpen]);
+  }, [
+    isLoading,
+    isStopping,
+    setMessages,
+    setPendingChanges,
+    setAttachedFiles,
+    setAttachedImages,
+    setTotalTokens,
+    setError,
+    setIsConversationDropdownOpen,
+  ]);
 
   const handleStartRename = (e?: React.MouseEvent, conv?: ConversationMeta) => {
     e?.stopPropagation();
@@ -356,9 +378,7 @@ export function useConversationManager({
     try {
       const deletedId =
         pendingDelete.id ||
-        (currentConversation?.filename === pendingDelete.filename
-          ? currentConversation.id
-          : '');
+        (currentConversation?.filename === pendingDelete.filename ? currentConversation.id : '');
 
       await invoke('delete_conversation', { filename: pendingDelete.filename });
 
@@ -455,7 +475,7 @@ export function useConversationManager({
           isStreaming: false,
         })),
         latestConversation.compactState,
-        pendingChangesRef.current,
+        pendingChangesRef.current
       );
 
       await invoke('save_conversation', { conversation: updatedConversation });

@@ -81,10 +81,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
   }, [pendingChanges, previewChangeId]);
 
   useEffect(() => {
-    if (
-      selectedCheckpointId &&
-      !checkpoints.some((c) => c.id === selectedCheckpointId)
-    ) {
+    if (selectedCheckpointId && !checkpoints.some((c) => c.id === selectedCheckpointId)) {
       setSelectedCheckpointId(null);
     }
   }, [checkpoints, selectedCheckpointId]);
@@ -141,10 +138,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [collapsed]);
 
-  const titleCount =
-    activeTab === 'files'
-      ? pendingChanges.length
-      : checkpoints.length;
+  const titleCount = activeTab === 'files' ? pendingChanges.length : checkpoints.length;
 
   if (collapsed) {
     return (
@@ -158,7 +152,10 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
           transform: showButton ? 'translateX(0)' : 'translateX(4px)',
         }}
       >
-        <aside className={`${styles.panel} ${styles.panelCollapsed}`} data-testid="change-review-panel">
+        <aside
+          className={`${styles.panel} ${styles.panelCollapsed}`}
+          data-testid="change-review-panel"
+        >
           <button
             type="button"
             className={styles.toggleButton}

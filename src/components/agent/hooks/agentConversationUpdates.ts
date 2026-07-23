@@ -1,8 +1,4 @@
-import type {
-  AgentConversation,
-  AgentConversationState,
-  ChatMessage,
-} from '../../../types/chat';
+import type { AgentConversation, AgentConversationState, ChatMessage } from '../../../types/chat';
 
 /**
  * Immutably update a single message inside a conversation.

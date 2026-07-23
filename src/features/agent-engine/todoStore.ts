@@ -120,9 +120,7 @@ export function peekTodos(conversationId: string): TodoItem[] {
 
 function notifyTodosUpdated(conversationId: string): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(
-    new CustomEvent(TODO_UPDATED_EVENT, { detail: { conversationId } }),
-  );
+  window.dispatchEvent(new CustomEvent(TODO_UPDATED_EVENT, { detail: { conversationId } }));
 }
 
 /**

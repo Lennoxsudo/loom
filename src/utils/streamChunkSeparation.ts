@@ -34,20 +34,19 @@ export interface TrustedStreamSeparationResult {
 function needsInlineTagFallback(
   rawContent: string,
   rawThinking: string,
-  receivedThinkingChunks: boolean,
+  receivedThinkingChunks: boolean
 ): boolean {
   if (receivedThinkingChunks) return false;
   if ((rawThinking || '').trim().length > 0) return false;
   return hasInlineThinkTags(rawContent);
 }
 
-
 /**
  * Trust backend chunk_type during streaming; only apply tag-only fallback when
  * the provider never emitted a separate thinking stream but left tags in content.
  */
 export function applyTrustedStreamSeparation(
-  input: TrustedStreamSeparationInput,
+  input: TrustedStreamSeparationInput
 ): TrustedStreamSeparationResult {
   const {
     rawContent,
@@ -61,8 +60,7 @@ export function applyTrustedStreamSeparation(
   let thinkingStartedAt = input.thinkingStartedAt;
   let thinkingEndedAt = input.thinkingEndedAt;
   let firstContentTime = input.firstContentTime;
-  const nextReceivedThinkingChunks =
-    receivedThinkingChunks || chunk_type === 'thinking';
+  const nextReceivedThinkingChunks = receivedThinkingChunks || chunk_type === 'thinking';
 
   if (chunk_type === 'thinking' && !thinkingStartedAt) {
     thinkingStartedAt = chunkTime;
@@ -84,16 +82,19 @@ export function applyTrustedStreamSeparation(
 
   if (needsInlineTagFallback(rawContent, rawThinking, nextReceivedThinkingChunks)) {
     const inline = parseInlineThinkingFromContent(rawContent);
-    const hasClosingTag =
-      /<\/think(?:ing)?>/i.test(rawContent) || rawContent.includes('思考结束');
+    const hasClosingTag = /<\/think(?:ing)?>/i.test(rawContent) || rawContent.includes('思考结束');
     const isThinking =
-      !(inline.text || '').trim() &&
-      (!hasClosingTag || Boolean((inline.thinking || '').trim()));
+      !(inline.text || '').trim() && (!hasClosingTag || Boolean((inline.thinking || '').trim()));
 
     if (inline.thinking && !thinkingStartedAt) {
       thinkingStartedAt = chunkTime;
     }
-    if (inline.text.trim() && hadThinkingBeforeChunk === false && inline.thinking && !thinkingEndedAt) {
+    if (
+      inline.text.trim() &&
+      hadThinkingBeforeChunk === false &&
+      inline.thinking &&
+      !thinkingEndedAt
+    ) {
       thinkingEndedAt = chunkTime;
     }
     if (inline.text.trim() && !firstContentTime) {
@@ -135,8 +136,7 @@ export function applyTrustedStreamSeparation(
   thinking = sanitized.thinking;
 
   const isThinking =
-    !(content || '').trim() &&
-    (chunk_type === 'thinking' || Boolean((thinking || '').trim()));
+    !(content || '').trim() && (chunk_type === 'thinking' || Boolean((thinking || '').trim()));
 
   return {
     content,
@@ -168,7 +168,7 @@ export interface FinalizeStreamMessageResult {
  * light cleanup when the provider never split thinking/content.
  */
 export function finalizeStreamMessage(
-  input: FinalizeStreamMessageInput,
+  input: FinalizeStreamMessageInput
 ): FinalizeStreamMessageResult {
   const rawContent = (input.rawContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const rawThinking = (input.rawThinking || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');

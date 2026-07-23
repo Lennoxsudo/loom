@@ -47,13 +47,12 @@ describe('Feature: agent-rules, Property 10: 模板选择填充 Agent Rules', ()
     fc.assert(
       fc.property(ruleItemArb, (template: RuleItem) => {
         // Simulate the wizard's template selection handler
-        let rules = '';
-        rules = template.content; // equivalent to setRules(template.content)
+        const rules = template.content; // equivalent to setRules(template.content)
 
         // Property: rules must equal the selected template's content
         expect(rules).toBe(template.content);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -70,7 +69,7 @@ describe('Feature: agent-rules, Property 10: 模板选择填充 Agent Rules', ()
           const uniqueTemplates = templates.map((t, i) => ({ ...t, id: `${t.id}-${i}` }));
           return fc.tuple(
             fc.constant(uniqueTemplates),
-            fc.integer({ min: 0, max: uniqueTemplates.length - 1 }),
+            fc.integer({ min: 0, max: uniqueTemplates.length - 1 })
           );
         }),
         ([templates, selectedIndex]) => {
@@ -89,9 +88,9 @@ describe('Feature: agent-rules, Property 10: 模板选择填充 Agent Rules', ()
               expect(rules).not.toBe(t.content);
             }
           });
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

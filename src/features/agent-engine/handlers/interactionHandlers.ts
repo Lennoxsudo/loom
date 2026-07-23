@@ -34,10 +34,7 @@ function validateOptions(options: unknown): { valid: boolean; error?: string } {
 class AskUserQuestionHandler implements ToolHandler<'ask'> {
   name = 'ask' as const;
 
-  async execute(
-    args: AskUserQuestionArgs,
-    context?: ToolContext
-  ): Promise<ToolResult> {
+  async execute(args: AskUserQuestionArgs, context?: ToolContext): Promise<ToolResult> {
     try {
       // 验证 questions 参数
       if (!Array.isArray(args.questions)) {
@@ -51,7 +48,13 @@ class AskUserQuestionHandler implements ToolHandler<'ask'> {
       }
 
       // 验证每个问题
-      const warnings: Array<{ field: string; original_value: string; original_length: number; max_length: number; applied_value: string }> = [];
+      const warnings: Array<{
+        field: string;
+        original_value: string;
+        original_length: number;
+        max_length: number;
+        applied_value: string;
+      }> = [];
       for (let i = 0; i < args.questions.length; i++) {
         const q = args.questions[i];
         if (!q || typeof q !== 'object') {
@@ -75,10 +78,13 @@ class AskUserQuestionHandler implements ToolHandler<'ask'> {
         if (typeof q.question !== 'string' || q.question.trim().length === 0) {
           throw ToolError.invalidParam(`questions[${i}].question`, '必须是非空字符串');
         }
-        
+
         const optionsValidation = validateOptions(q.options);
         if (!optionsValidation.valid) {
-          throw ToolError.invalidParam(`questions[${i}].options`, optionsValidation.error || '无效');
+          throw ToolError.invalidParam(
+            `questions[${i}].options`,
+            optionsValidation.error || '无效'
+          );
         }
       }
 
@@ -98,7 +104,7 @@ class AskUserQuestionHandler implements ToolHandler<'ask'> {
       const outputLines = ['用户已回答问题：'];
       for (let i = 0; i < args.questions.length; i++) {
         const q = args.questions[i];
-        const answer = answers.find(a => a.questionIndex === i);
+        const answer = answers.find((a) => a.questionIndex === i);
         if (answer) {
           outputLines.push(`\n问题 ${i + 1} [${q.header}]: ${q.question}`);
           outputLines.push(`回答: ${answer.selected.join(', ')}`);
@@ -107,7 +113,9 @@ class AskUserQuestionHandler implements ToolHandler<'ask'> {
       if (warnings.length > 0) {
         outputLines.push('\n⚠️ warnings:');
         outputLines.push(JSON.stringify(warnings));
-        outputLines.push('提示：header 最多12字符，建议使用2-6字的简短标签如"框架"、"样式"、"部署"');
+        outputLines.push(
+          '提示：header 最多12字符，建议使用2-6字的简短标签如"框架"、"样式"、"部署"'
+        );
       }
 
       return {

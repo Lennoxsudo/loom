@@ -33,7 +33,6 @@ export interface ChatVirtuosoListProps {
   planSlot?: ReactNode;
 }
 
-
 function ChatVirtuosoList({
   grouped,
   virtuosoRef,
@@ -106,7 +105,7 @@ function ChatVirtuosoList({
 
   const ListFooter = useCallback(
     () => <div aria-hidden style={{ height: Math.max(0, bottomInset), flexShrink: 0 }} />,
-    [bottomInset],
+    [bottomInset]
   );
 
   const virtuosoComponentsWithFooter = useMemo(

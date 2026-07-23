@@ -24,7 +24,12 @@ import {
 import { canForkAtDepth, canSpawnSubagent } from './nesting';
 import { runSubagentHooks } from './hooks';
 import type { SpawnSubagentOptions, SubagentDefinition, SubagentPermissionMode } from './types';
-import { bootstrapSubagentFromToolArgs, buildSubagentTaskFromToolArgs, buildSubagentDisabledResult, isSubagentsEnabled } from './bootstrap';
+import {
+  bootstrapSubagentFromToolArgs,
+  buildSubagentTaskFromToolArgs,
+  buildSubagentDisabledResult,
+  isSubagentsEnabled,
+} from './bootstrap';
 import {
   resolveSubagentContextTokensForLoop,
   resolveSubagentContextTruncationBudget,
@@ -79,7 +84,8 @@ async function resolveProviderAndModel(
 function mapPermissionMode(mode?: SubagentPermissionMode): AgentAccessMode | undefined {
   if (!mode || mode === 'default') return undefined;
   if (mode === 'plan' || mode === 'dontAsk') return 'read_only';
-  if (mode === 'bypassPermissions' || mode === 'acceptEdits' || mode === 'auto') return 'full_access';
+  if (mode === 'bypassPermissions' || mode === 'acceptEdits' || mode === 'auto')
+    return 'full_access';
   return undefined;
 }
 
@@ -98,7 +104,10 @@ async function resolveWorktreeBaseDir(
   }
 }
 
-async function cleanupWorktree(worktreePath: string | undefined, hadChanges: boolean): Promise<void> {
+async function cleanupWorktree(
+  worktreePath: string | undefined,
+  hadChanges: boolean
+): Promise<void> {
   if (!worktreePath) return;
   try {
     await invoke('cleanup_subagent_worktree', { worktreePath, hadChanges });
@@ -237,11 +246,10 @@ async function runOneSubagentWithDefinition(
   const filteredTools = filterToolsForSubagentType(resolvedTools, def.name);
 
   const modelToResolve = options.model || def.model || 'inherit';
-  let { provider, model, warning } = await resolveProviderAndModel(
-    modelToResolve,
-    parentProvider,
-    parentModel
-  );
+  const resolvedModel = await resolveProviderAndModel(modelToResolve, parentProvider, parentModel);
+  let provider = resolvedModel.provider;
+  let model = resolvedModel.model;
+  const warning = resolvedModel.warning;
 
   let resolvedProfileId = options.parentContext?.profileId;
   try {
@@ -262,9 +270,7 @@ async function runOneSubagentWithDefinition(
   }
 
   if (!model) {
-    throw new Error(
-      '无法确定子代理模型：主聊天未提供当前模型，且未指定有效 model。'
-    );
+    throw new Error('无法确定子代理模型：主聊天未提供当前模型，且未指定有效 model。');
   }
 
   const truncationBudget = resolveSubagentContextTruncationBudget({
@@ -293,7 +299,9 @@ async function runOneSubagentWithDefinition(
           high = mid - 1;
         }
       }
-      finalContext = finalContext.substring(0, bestLen) + '\n... [上下文已按预算截断 / Context truncated by budget]';
+      finalContext =
+        finalContext.substring(0, bestLen) +
+        '\n... [上下文已按预算截断 / Context truncated by budget]';
     }
   }
 
@@ -302,9 +310,9 @@ async function runOneSubagentWithDefinition(
   }
 
   const initialUserMessage = finalContext
-    ? (contextTruncated
-        ? `${description}\n\n[WARNING: 上下文已按预算截断 / Context truncated by budget]\n\n上下文背景：\n${finalContext}`
-        : `${description}\n\n上下文背景：\n${finalContext}`)
+    ? contextTruncated
+      ? `${description}\n\n[WARNING: 上下文已按预算截断 / Context truncated by budget]\n\n上下文背景：\n${finalContext}`
+      : `${description}\n\n上下文背景：\n${finalContext}`
     : description;
 
   const maxRounds = resolveSubagentMaxRounds(options, def);
@@ -411,7 +419,11 @@ async function runOneSubagentWithDefinition(
       };
       store.updateSubagentStatus(options.taskId, 'failed', loopResult.steps);
       store.finishSubagent(options.taskId, result);
-      await runSubagentHooks('SubagentStop', { taskId: options.taskId, subagentType: typeName, status: 'failed' });
+      await runSubagentHooks('SubagentStop', {
+        taskId: options.taskId,
+        subagentType: typeName,
+        status: 'failed',
+      });
       await cleanupWorktree(worktreePath, true);
       return result;
     }
@@ -429,7 +441,11 @@ async function runOneSubagentWithDefinition(
     };
     store.updateSubagentStatus(options.taskId, 'succeeded', loopResult.steps);
     store.finishSubagent(options.taskId, result);
-    await runSubagentHooks('SubagentStop', { taskId: options.taskId, subagentType: typeName, status: 'succeeded' });
+    await runSubagentHooks('SubagentStop', {
+      taskId: options.taskId,
+      subagentType: typeName,
+      status: 'succeeded',
+    });
     await cleanupWorktree(worktreePath, !!parsed.artifacts?.length);
     return result;
   } catch (loopError) {
@@ -459,7 +475,11 @@ async function runOneSubagentWithDefinition(
       };
       store.updateSubagentStatus(options.taskId, 'cancelled', steps);
       store.finishSubagent(options.taskId, result);
-      await runSubagentHooks('SubagentStop', { taskId: options.taskId, subagentType: typeName, status: 'cancelled' });
+      await runSubagentHooks('SubagentStop', {
+        taskId: options.taskId,
+        subagentType: typeName,
+        status: 'cancelled',
+      });
       await cleanupWorktree(worktreePath, false);
       return result;
     }
@@ -474,7 +494,11 @@ async function runOneSubagentWithDefinition(
     };
     store.updateSubagentStatus(options.taskId, 'failed', steps);
     store.finishSubagent(options.taskId, result);
-    await runSubagentHooks('SubagentStop', { taskId: options.taskId, subagentType: typeName, status: 'failed' });
+    await runSubagentHooks('SubagentStop', {
+      taskId: options.taskId,
+      subagentType: typeName,
+      status: 'failed',
+    });
     await cleanupWorktree(worktreePath, false);
     return result;
   }

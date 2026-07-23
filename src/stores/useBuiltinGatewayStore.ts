@@ -65,9 +65,7 @@ function parseStored(raw: string): BuiltinGatewayState {
       installId: typeof data.installId === 'string' ? data.installId : '',
       apiKey: typeof data.apiKey === 'string' && data.apiKey ? data.apiKey : null,
       clientSecret:
-        typeof data.clientSecret === 'string' && data.clientSecret
-          ? data.clientSecret
-          : null,
+        typeof data.clientSecret === 'string' && data.clientSecret ? data.clientSecret : null,
       clientId: typeof data.clientId === 'string' ? data.clientId : null,
       activatedAt: typeof data.activatedAt === 'string' ? data.activatedAt : null,
       lastQuotas:
@@ -131,8 +129,7 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
       quotaStatus: null,
       hydrated: false,
 
-      isActivated: () =>
-        Boolean(get().apiKey?.trim() && get().clientSecret?.trim()),
+      isActivated: () => Boolean(get().apiKey?.trim() && get().clientSecret?.trim()),
 
       getKeyPrefix: () => keyPrefix(get().apiKey),
 
@@ -294,7 +291,8 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
             quotaStatus: status,
             lastQuotas: status.quotas,
             error: get().error === 'UNAUTHORIZED' ? null : get().error,
-            status: get().status === 'error' && get().error === 'UNAUTHORIZED' ? 'active' : get().status,
+            status:
+              get().status === 'error' && get().error === 'UNAUTHORIZED' ? 'active' : get().status,
           });
           // Persist limit snapshot only (usage/remaining stay in memory).
           const { installId, clientId, clientSecret, activatedAt } = get();
@@ -332,7 +330,8 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
           const openai = (merged.profiles as { openai?: { items?: unknown[] } })?.openai;
           const items = openai?.items ?? [];
           const has = items.some(
-            (it) => it && typeof it === 'object' && (it as { id?: string }).id === BUILTIN_PROFILE_ID
+            (it) =>
+              it && typeof it === 'object' && (it as { id?: string }).id === BUILTIN_PROFILE_ID
           );
           if (!has) {
             // merge should have added it

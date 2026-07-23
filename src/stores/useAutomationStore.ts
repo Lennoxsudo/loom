@@ -74,7 +74,10 @@ export const useAutomationStore = create<AutomationStore>()(
       },
 
       setEnabled: async (id, enabled) => {
-        const updated = await invoke<AutomationTask>('agent_automation_set_enabled', { id, enabled });
+        const updated = await invoke<AutomationTask>('agent_automation_set_enabled', {
+          id,
+          enabled,
+        });
         set((state) => ({
           tasks: state.tasks.map((t) => (t.id === id ? updated : t)),
         }));
@@ -137,7 +140,7 @@ export function generateAutomationId(): string {
 export function computeNextRunAt(
   trigger: AutomationTrigger,
   lastRunAt?: string,
-  backendNextRunAt?: string,
+  backendNextRunAt?: string
 ): string | undefined {
   if (trigger.type === 'interval') {
     const base = lastRunAt ? new Date(lastRunAt).getTime() : Date.now();

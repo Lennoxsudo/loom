@@ -6,10 +6,7 @@ import {
   DEFAULT_VISION_CAPABILITIES,
   extractVisionCapabilities,
 } from '../../utils/visionCapabilities';
-import {
-  BUILTIN_PROFILE_ID,
-  isBuiltinProtocol,
-} from '../../utils/builtinGateway';
+import { BUILTIN_PROFILE_ID, isBuiltinProtocol } from '../../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../../stores/useBuiltinGatewayStore';
 import type { ChatPanelProvider, ChatProtocolSelection } from './types';
 

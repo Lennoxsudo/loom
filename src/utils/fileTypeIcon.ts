@@ -95,23 +95,15 @@ function resolveDirectoryIconName(name: string, isExpanded: boolean): MaterialIc
   return 'folder-open';
 }
 
-export function getFileTypeIconUrl(
-  name: string,
-  isDir: boolean,
-  isExpanded = false,
-): string {
-  const iconName = isDir
-    ? resolveDirectoryIconName(name, isExpanded)
-    : resolveFileIconName(name);
+export function getFileTypeIconUrl(name: string, isDir: boolean, isExpanded = false): string {
+  const iconName = isDir ? resolveDirectoryIconName(name, isExpanded) : resolveFileIconName(name);
   return getIconUrlByName(iconName, MATERIAL_ICONS_BASE_URL);
 }
 
 export function getFileTypeIconName(
   name: string,
   isDir: boolean,
-  isExpanded = false,
+  isExpanded = false
 ): MaterialIcon {
-  return isDir
-    ? resolveDirectoryIconName(name, isExpanded)
-    : resolveFileIconName(name);
+  return isDir ? resolveDirectoryIconName(name, isExpanded) : resolveFileIconName(name);
 }

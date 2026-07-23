@@ -63,7 +63,8 @@ function looksLikeNaturalLanguage(content: string): boolean {
   const hasTreeLine = lines.some((line) => {
     const t = line.trim();
     if (/[├└│─┌┬┤┴┼]/.test(t)) return true;
-    if (/\|[-—~_]{2,}/.test(t) || /^[|\s]*[-—~_]{2,}/.test(t) || /\\[-—~_]{2,}/.test(t)) return true;
+    if (/\|[-—~_]{2,}/.test(t) || /^[|\s]*[-—~_]{2,}/.test(t) || /\\[-—~_]{2,}/.test(t))
+      return true;
     return false;
   });
   if (hasTreeLine) {

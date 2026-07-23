@@ -22,9 +22,9 @@ describe('parsePlanToolOutput', () => {
   test('extracts plan metadata', () => {
     const meta = parsePlanToolOutput(
       'Plan document updated in the editable plan panel.\n' +
-      'Title: React 19 changelog\n' +
-      'Length: 1200 chars\n' +
-      'Continue researching, call update_plan again to revise, or call exit_plan_mode when ready for user review.',
+        'Title: React 19 changelog\n' +
+        'Length: 1200 chars\n' +
+        'Continue researching, call update_plan again to revise, or call exit_plan_mode when ready for user review.'
     );
 
     expect(meta?.title).toBe('React 19 changelog');

@@ -26,10 +26,7 @@ export function rebuildChatUserMessageContent(prefix: string, body: string): str
   return `${prefix}${body}`;
 }
 
-export function buildChatCheckpointSessionKey(
-  projectPath: string,
-  conversationId: string
-): string {
+export function buildChatCheckpointSessionKey(projectPath: string, conversationId: string): string {
   const projectKey = projectPath.trim().replace(/\\/g, '/').toLowerCase() || 'no-project';
   return `${projectKey}::${conversationId}`;
 }

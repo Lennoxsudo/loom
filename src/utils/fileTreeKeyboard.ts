@@ -16,11 +16,7 @@ function collectKeyboardTargetElements(target: EventTarget | null): HTMLElement[
 }
 
 function isStandardTextInput(element: HTMLElement): boolean {
-  return (
-    element.tagName === 'INPUT' ||
-    element.tagName === 'TEXTAREA' ||
-    element.isContentEditable
-  );
+  return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.isContentEditable;
 }
 
 function isInsideMonacoEditorDom(element: HTMLElement): boolean {

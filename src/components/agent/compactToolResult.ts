@@ -5,7 +5,10 @@ export type CompactToolPlanMeta = {
 };
 
 export function parsePlanToolOutput(text: string): CompactToolPlanMeta | null {
-  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
   if (lines.length === 0) return null;
 
   const titleLine = lines.find((line) => /^Title:\s*/i.test(line));
@@ -23,7 +26,7 @@ export function parsePlanToolOutput(text: string): CompactToolPlanMeta | null {
 export function resolveCompactToolLabel(
   toolName: string | undefined,
   labels: Record<string, string | undefined>,
-  fallback: string,
+  fallback: string
 ): string {
   const key = (toolName || '').trim();
   if (!key) return fallback;

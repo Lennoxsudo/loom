@@ -101,12 +101,7 @@ export function findPinnedChatUserMessage(
     if (!cached) continue;
 
     if (
-      qualifiesAsPinnedCachedLayout(
-        cached.offsetTop,
-        cached.height,
-        scrollTop,
-        isCurrentPinned
-      ) &&
+      qualifiesAsPinnedCachedLayout(cached.offsetTop, cached.height, scrollTop, isCurrentPinned) &&
       cached.offsetTop > pinnedOffset
     ) {
       pinnedOffset = cached.offsetTop;
@@ -118,10 +113,7 @@ export function findPinnedChatUserMessage(
 }
 
 /** Show in-scroller pin only after the source bubble has left the viewport. */
-export function shouldShowChatStickyOverlay(
-  pinned: Message,
-  container: HTMLElement
-): boolean {
+export function shouldShowChatStickyOverlay(pinned: Message, container: HTMLElement): boolean {
   const target = container.querySelector<HTMLElement>(`#msg-${CSS.escape(pinned.id)}`);
   if (!target) return true;
 

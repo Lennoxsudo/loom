@@ -56,7 +56,9 @@
 
 .serverCard {
   border-bottom: 1px solid var(--border-subtle);
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .serverCard:last-child {
@@ -92,7 +94,11 @@
 .serverMeta {
   margin-top: 3px;
   font-size: 11px;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
   white-space: nowrap;
   overflow: hidden;

@@ -17,7 +17,7 @@ describe('schema validation', () => {
         timeout: 30000,
         description: 'List files',
       };
-      
+
       const result1 = validateToolParameters('terminal', validTerminal);
       expect(result1.success).toBe(true);
       expect(result1.success ? result1.data : null).toEqual(validTerminal);
@@ -27,7 +27,7 @@ describe('schema validation', () => {
         action: 'run',
         working_dir: '/home/user',
       };
-      
+
       const result2 = validateToolParameters('terminal', invalidTerminal);
       expect(result2.success).toBe(false);
       expect(result2.success ? null : result2.error).toContain('Validation failed');
@@ -41,7 +41,7 @@ describe('schema validation', () => {
         new_string: 'new content',
         replace_all: true,
       };
-      
+
       const result1 = validateToolParameters('edit_file', validEdit);
       expect(result1.success).toBe(true);
       expect(result1.success ? result1.data : null).toEqual(validEdit);
@@ -52,7 +52,7 @@ describe('schema validation', () => {
         old_string: '   ',
         new_string: 'new content',
       };
-      
+
       const result2 = validateToolParameters('edit_file', invalidEdit);
       expect(result2.success).toBe(false);
       expect(result2.success ? null : result2.error).toContain('Validation failed');
@@ -65,7 +65,7 @@ describe('schema validation', () => {
         start_line: 10,
         max_lines: 50,
       };
-      
+
       const result = validateToolParameters('read_file', validRead);
       expect(result.success).toBe(true);
       expect(result.success ? result.data : null).toEqual(validRead);
@@ -75,7 +75,7 @@ describe('schema validation', () => {
         path: '/test/file.txt',
         start_line: -1,
       };
-      
+
       const result2 = validateToolParameters('read_file', invalidRead);
       expect(result2.success).toBe(false);
     });
@@ -86,7 +86,7 @@ describe('schema validation', () => {
         path: '/test/file.txt',
         content: 'file content',
       };
-      
+
       const result = validateToolParameters('write_file', validWrite);
       expect(result.success).toBe(true);
 
@@ -94,7 +94,7 @@ describe('schema validation', () => {
       const invalidWrite = {
         path: '/test/file.txt',
       };
-      
+
       const result2 = validateToolParameters('write_file', invalidWrite);
       expect(result2.success).toBe(false);
     });
@@ -106,7 +106,7 @@ describe('schema validation', () => {
         url: 'https://example.com',
         title: 'Example',
       };
-      
+
       const result1 = validateToolParameters('control_browser', validBrowserOpen);
       expect(result1.success).toBe(true);
 
@@ -114,7 +114,7 @@ describe('schema validation', () => {
       const validBrowserClose = {
         action: 'close',
       };
-      
+
       const result2 = validateToolParameters('control_browser', validBrowserClose);
       expect(result2.success).toBe(true);
 
@@ -123,7 +123,7 @@ describe('schema validation', () => {
         action: 'open',
         title: 'Example',
       };
-      
+
       const result3 = validateToolParameters('control_browser', invalidBrowser);
       expect(result3.success).toBe(false);
       expect(result3.success ? null : result3.error).toContain('Validation failed');
@@ -134,7 +134,7 @@ describe('schema validation', () => {
       const validFetch = {
         url: 'https://example.com',
       };
-      
+
       const result1 = validateToolParameters('fetch_web_content', validFetch);
       expect(result1.success).toBe(true);
 
@@ -142,7 +142,7 @@ describe('schema validation', () => {
       const invalidFetch = {
         url: 'not-a-url',
       };
-      
+
       const result2 = validateToolParameters('fetch_web_content', invalidFetch);
       expect(result2.success).toBe(false);
     });
@@ -179,7 +179,7 @@ describe('schema validation', () => {
           },
         ],
       };
-      
+
       const result1 = validateToolParameters('ask_user_question', validQuestion);
       expect(result1.success).toBe(true);
 
@@ -187,7 +187,7 @@ describe('schema validation', () => {
       const invalidQuestion = {
         questions: [],
       };
-      
+
       const result2 = validateToolParameters('ask_user_question', invalidQuestion);
       expect(result2.success).toBe(false);
     });
@@ -208,7 +208,7 @@ describe('schema validation', () => {
           },
         ],
       };
-      
+
       const result1 = validateToolParameters('TodoWrite', validTodo);
       expect(result1.success).toBe(true);
 
@@ -216,7 +216,7 @@ describe('schema validation', () => {
       const invalidTodo = {
         todos: [],
       };
-      
+
       const result2 = validateToolParameters('TodoWrite', invalidTodo);
       expect(result2.success).toBe(false);
     });
@@ -227,7 +227,7 @@ describe('schema validation', () => {
         path: '/test/file.txt',
         timeout: 5000,
       };
-      
+
       const result = validateToolParameters('unknown_tool', params);
       expect(result.success).toBe(true);
       expect(result.success ? result.data : null).toEqual(params);
@@ -240,7 +240,7 @@ describe('schema validation', () => {
         command: 'ls',
         timeout: '5000', // string, should be number
       };
-      
+
       const result = validateToolParameters('terminal', invalidParams);
       expect(result.success).toBe(false);
     });
@@ -252,7 +252,7 @@ describe('schema validation', () => {
         command: 'ls',
         timeout: 1000000, // exceeds max
       };
-      
+
       const result = validateToolParameters('terminal', invalidParams);
       expect(result.success).toBe(false);
     });
@@ -316,7 +316,7 @@ describe('schema validation', () => {
     it('allows graph_query search with regex boolean after normalize', () => {
       const normalized = normalizeToolArgs(
         { action: 'search', name_pattern: '.*Auth.*', regex: true, repo_path: 'D:/proj' },
-        'graph_query',
+        'graph_query'
       );
       const result = validateToolParameters('graph_query', normalized);
       expect(result.success).toBe(true);

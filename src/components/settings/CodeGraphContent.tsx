@@ -11,11 +11,7 @@ import {
 } from '../../stores';
 import { useTranslation } from '../../i18n';
 import { useNotification } from '../../contexts/NotificationContext';
-import {
-  useCbmGraphReady,
-  useCbmProjects,
-  useCbmSidecarState,
-} from '../../stores/useCbmStore';
+import { useCbmGraphReady, useCbmProjects, useCbmSidecarState } from '../../stores/useCbmStore';
 import { CBM_DEFAULT_AUTO_INDEX_MAX_FILES, CBM_UI_URL, formatBytes } from '../../config/cbm';
 import {
   deleteCbmWorkspaceIndex,
@@ -95,7 +91,11 @@ export function CodeGraphContent() {
   const updateEnableCodeGraph = useUpdateEnableCodeGraph();
   const updateGraphAutoIndexOnOpen = useUpdateGraphAutoIndexOnOpen();
   const updateGraphAutoIndexMaxFiles = useUpdateGraphAutoIndexMaxFiles();
-  const { available: cbmSidecarAvailable, checked: cbmChecked, versionMismatch: cbmVersionMismatch } = useCbmSidecarState();
+  const {
+    available: cbmSidecarAvailable,
+    checked: cbmChecked,
+    versionMismatch: cbmVersionMismatch,
+  } = useCbmSidecarState();
   const cbmGraphEnabled = useCbmGraphReady(enableCodeGraph);
   const {
     projects,
@@ -201,8 +201,7 @@ export function CodeGraphContent() {
     ? projects.some(
         (project) =>
           normalizePathForCompare(project.repo_path) ===
-            normalizePathForCompare(normalizedProjectPath) &&
-          project.index_status === 'indexing',
+            normalizePathForCompare(normalizedProjectPath) && project.index_status === 'indexing'
       )
     : false;
 
@@ -243,10 +242,7 @@ export function CodeGraphContent() {
   };
 
   const reindexDisabled =
-    !cbmGraphEnabled ||
-    !normalizedProjectPath ||
-    isReindexing ||
-    currentProjectIndexing;
+    !cbmGraphEnabled || !normalizedProjectPath || isReindexing || currentProjectIndexing;
 
   const sidecarStatusText = !cbmChecked
     ? t.common.loading
@@ -266,7 +262,7 @@ export function CodeGraphContent() {
     storageInfo &&
     (t.graph.storageUsage.split(' · ')[0] ?? t.graph.storageUsage).replace(
       '{size}',
-      formatBytes(storageInfo.totalBytes),
+      formatBytes(storageInfo.totalBytes)
     );
 
   return (
@@ -367,7 +363,7 @@ export function CodeGraphContent() {
                 '{count}',
                 graphAutoIndexMaxFiles > 0
                   ? graphAutoIndexMaxFiles.toLocaleString()
-                  : t.graph.maxFilesUnlimited,
+                  : t.graph.maxFilesUnlimited
               )}
               {graphAutoIndexMaxFiles === 0
                 ? ''
@@ -390,9 +386,7 @@ export function CodeGraphContent() {
                     t.graph.storageUnavailable
                   )}
                 </p>
-                {storageInfo && (
-                  <p className={styles.infoMeta}>{storageInfo.cacheDir}</p>
-                )}
+                {storageInfo && <p className={styles.infoMeta}>{storageInfo.cacheDir}</p>}
               </div>
               <button
                 type="button"
@@ -477,11 +471,20 @@ export function CodeGraphContent() {
             {projects.map((project, index) => {
               const badge =
                 project.index_status === 'indexing'
-                  ? { label: t.graph.indexedProjectsIndexing, className: styles.projectBadgeIndexing }
+                  ? {
+                      label: t.graph.indexedProjectsIndexing,
+                      className: styles.projectBadgeIndexing,
+                    }
                   : project.path_status !== 'ok'
-                    ? { label: t.graph.indexedProjectsStaleShort, className: styles.projectBadgeStale }
+                    ? {
+                        label: t.graph.indexedProjectsStaleShort,
+                        className: styles.projectBadgeStale,
+                      }
                     : project.is_stale
-                      ? { label: t.graph.indexedProjectsStaleUnused, className: styles.projectBadgeStale }
+                      ? {
+                          label: t.graph.indexedProjectsStaleUnused,
+                          className: styles.projectBadgeStale,
+                        }
                       : project.node_count != null
                         ? {
                             label: t.graph.nodeCount.replace('{count}', String(project.node_count)),
@@ -494,9 +497,7 @@ export function CodeGraphContent() {
                   <div className={styles.projectInfo}>
                     <div className={styles.projectNameRow}>
                       <span className={styles.projectName}>{project.display_name}</span>
-                      {badge ? (
-                        <span className={badge.className}>{badge.label}</span>
-                      ) : null}
+                      {badge ? <span className={badge.className}>{badge.label}</span> : null}
                     </div>
                     <div className={styles.projectPath} title={project.repo_path}>
                       {project.repo_path}

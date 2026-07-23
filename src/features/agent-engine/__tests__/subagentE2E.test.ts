@@ -14,7 +14,7 @@ const runAgentLoopMock = vi.fn();
 vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
   buildForkMessages: (messages: any) => messages ?? [],
-  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
+  filterToolsForSubagentType: <T>(tools: T[]) => tools,
 }));
 
 describe('Subagent E2E Smoke Tests', () => {
@@ -33,9 +33,7 @@ describe('Subagent E2E Smoke Tests', () => {
 
   it('should run two parallel subagents to completion with metrics', async () => {
     // Setup: mock agent config
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
-    ];
+    const mockAgents = [{ id: 'parent-id', provider: 'openai', model: 'gpt-4o' }];
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
@@ -72,10 +70,7 @@ describe('Subagent E2E Smoke Tests', () => {
       };
     });
 
-    const tasks = [
-      { task: 'Research topic A' },
-      { task: 'Research topic B' },
-    ];
+    const tasks = [{ task: 'Research topic A' }, { task: 'Research topic B' }];
 
     const result = await handler.execute(
       { tasks },
@@ -118,9 +113,7 @@ describe('Subagent E2E Smoke Tests', () => {
   });
 
   it('should write partial metrics on cancellation', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
-    ];
+    const mockAgents = [{ id: 'parent-id', provider: 'openai', model: 'gpt-4o' }];
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
@@ -133,7 +126,12 @@ describe('Subagent E2E Smoke Tests', () => {
       .mockImplementationOnce(async (opts: any) => {
         // Simulate partial streaming then abort
         if (opts.onEvent) {
-          opts.onEvent({ type: 'chunk', messageId: 'sub-msg', chunk: 'partial output', chunkType: 'content' });
+          opts.onEvent({
+            type: 'chunk',
+            messageId: 'sub-msg',
+            chunk: 'partial output',
+            chunkType: 'content',
+          });
         }
         // Wait a bit then simulate abort
         await new Promise((resolve) => setTimeout(resolve, 30));
@@ -150,10 +148,7 @@ describe('Subagent E2E Smoke Tests', () => {
         };
       });
 
-    const tasks = [
-      { task: 'Long running task' },
-      { task: 'Quick task' },
-    ];
+    const tasks = [{ task: 'Long running task' }, { task: 'Quick task' }];
 
     const result = await handler.execute(
       { tasks },
@@ -180,9 +175,7 @@ describe('Subagent E2E Smoke Tests', () => {
   });
 
   it('should write metrics on failure (error in loop)', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
-    ];
+    const mockAgents = [{ id: 'parent-id', provider: 'openai', model: 'gpt-4o' }];
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;
@@ -194,10 +187,7 @@ describe('Subagent E2E Smoke Tests', () => {
 
     const tasks = [{ task: 'Failing task' }];
 
-    await handler.execute(
-      { tasks },
-      { agentId: 'parent-id', toolCallId: 'e2e-fail-test' }
-    );
+    await handler.execute({ tasks }, { agentId: 'parent-id', toolCallId: 'e2e-fail-test' });
 
     const runs = useSubagentStore.getState().runs;
     const runKeys = Object.keys(runs);
@@ -213,9 +203,7 @@ describe('Subagent E2E Smoke Tests', () => {
   });
 
   it('should clear pendingApproval after approval and write metrics', async () => {
-    const mockAgents = [
-      { id: 'parent-id', provider: 'openai', model: 'gpt-4o' },
-    ];
+    const mockAgents = [{ id: 'parent-id', provider: 'openai', model: 'gpt-4o' }];
     vi.mocked(invoke).mockImplementation(async (cmd) => {
       if (cmd === 'get_agent') return mockAgents[0];
       if (cmd === 'get_agents') return mockAgents;

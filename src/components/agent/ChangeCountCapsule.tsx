@@ -15,10 +15,7 @@ const ChangeCountCapsule = memo(function ChangeCountCapsule({
 }: ChangeCountCapsuleProps) {
   const t = useTranslation();
 
-  const stats = useMemo(
-    () => sumPendingChangeLineStats(pendingChanges),
-    [pendingChanges]
-  );
+  const stats = useMemo(() => sumPendingChangeLineStats(pendingChanges), [pendingChanges]);
 
   if (pendingChanges.length === 0) {
     return null;

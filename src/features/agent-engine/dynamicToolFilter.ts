@@ -9,7 +9,13 @@ type DynamicFilterContext = {
 };
 
 const GIT_TOOLS = new Set(['git', 'get_git_diff', 'undo_changes']);
-const BROWSER_TOOLS = new Set(['browser', 'fetch', 'web_search', 'control_browser', 'fetch_web_content']);
+const BROWSER_TOOLS = new Set([
+  'browser',
+  'fetch',
+  'web_search',
+  'control_browser',
+  'fetch_web_content',
+]);
 
 export function filterToolsByContext(
   tools: ToolDefinition[],
@@ -52,7 +58,7 @@ type MessageWithToolCalls = {
  */
 export function extractRecentlyUsedToolNames(
   messages: MessageWithToolCalls[],
-  lookbackCount = 10,
+  lookbackCount = 10
 ): Set<string> {
   const names = new Set<string>();
   const tail = messages.slice(-lookbackCount);

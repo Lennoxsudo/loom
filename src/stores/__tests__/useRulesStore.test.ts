@@ -39,10 +39,22 @@ describe('useRulesStore', () => {
     it('should load rules from persistence and set loaded flag', async () => {
       const config: RulesConfig = {
         chatRules: [
-          { id: '1', name: 'Rule 1', content: 'Content 1', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: '1',
+            name: 'Rule 1',
+            content: 'Content 1',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
         rulesTemplates: [
-          { id: '2', name: 'Template 1', content: 'Template Content', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: '2',
+            name: 'Template 1',
+            content: 'Template Content',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
       };
       mockedLoad.mockResolvedValue(config);
@@ -73,17 +85,17 @@ describe('useRulesStore', () => {
     });
 
     it('should reject empty name', async () => {
-      await expect(
-        useRulesStore.getState().addChatRule('', 'Content')
-      ).rejects.toThrow('Name and content must not be empty');
+      await expect(useRulesStore.getState().addChatRule('', 'Content')).rejects.toThrow(
+        'Name and content must not be empty'
+      );
       expect(useRulesStore.getState().chatRules).toHaveLength(0);
       expect(mockedSave).not.toHaveBeenCalled();
     });
 
     it('should reject whitespace-only content', async () => {
-      await expect(
-        useRulesStore.getState().addChatRule('Name', '   ')
-      ).rejects.toThrow('Name and content must not be empty');
+      await expect(useRulesStore.getState().addChatRule('Name', '   ')).rejects.toThrow(
+        'Name and content must not be empty'
+      );
       expect(useRulesStore.getState().chatRules).toHaveLength(0);
       expect(mockedSave).not.toHaveBeenCalled();
     });
@@ -94,7 +106,13 @@ describe('useRulesStore', () => {
       // Seed a rule
       useRulesStore.setState({
         chatRules: [
-          { id: 'r1', name: 'Old', content: 'Old Content', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: 'r1',
+            name: 'Old',
+            content: 'Old Content',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
       });
 
@@ -113,13 +131,19 @@ describe('useRulesStore', () => {
     it('should reject empty name on update', async () => {
       useRulesStore.setState({
         chatRules: [
-          { id: 'r1', name: 'Old', content: 'Old Content', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: 'r1',
+            name: 'Old',
+            content: 'Old Content',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
       });
 
-      await expect(
-        useRulesStore.getState().updateChatRule('r1', '  ', 'Content')
-      ).rejects.toThrow('Name and content must not be empty');
+      await expect(useRulesStore.getState().updateChatRule('r1', '  ', 'Content')).rejects.toThrow(
+        'Name and content must not be empty'
+      );
       expect(mockedSave).not.toHaveBeenCalled();
     });
   });
@@ -128,8 +152,20 @@ describe('useRulesStore', () => {
     it('should remove a chat rule and persist', async () => {
       useRulesStore.setState({
         chatRules: [
-          { id: 'r1', name: 'Rule 1', content: 'C1', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
-          { id: 'r2', name: 'Rule 2', content: 'C2', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: 'r1',
+            name: 'Rule 1',
+            content: 'C1',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'r2',
+            name: 'Rule 2',
+            content: 'C2',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
       });
 
@@ -157,9 +193,9 @@ describe('useRulesStore', () => {
     });
 
     it('should reject empty content', async () => {
-      await expect(
-        useRulesStore.getState().addTemplate('Name', '')
-      ).rejects.toThrow('Name and content must not be empty');
+      await expect(useRulesStore.getState().addTemplate('Name', '')).rejects.toThrow(
+        'Name and content must not be empty'
+      );
       expect(useRulesStore.getState().rulesTemplates).toHaveLength(0);
     });
   });
@@ -168,7 +204,13 @@ describe('useRulesStore', () => {
     it('should update an existing template and persist', async () => {
       useRulesStore.setState({
         rulesTemplates: [
-          { id: 't1', name: 'Old Tmpl', content: 'Old', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: 't1',
+            name: 'Old Tmpl',
+            content: 'Old',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
       });
 
@@ -187,7 +229,13 @@ describe('useRulesStore', () => {
     it('should remove a template and persist', async () => {
       useRulesStore.setState({
         rulesTemplates: [
-          { id: 't1', name: 'T1', content: 'C1', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+          {
+            id: 't1',
+            name: 'T1',
+            content: 'C1',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
         ],
       });
 
@@ -200,7 +248,6 @@ describe('useRulesStore', () => {
     });
   });
 });
-
 
 /**
  * Property-based tests for useRulesStore input validation
@@ -216,11 +263,15 @@ import fc from 'fast-check';
  */
 const emptyOrWhitespaceArb = fc.oneof(
   fc.constant(''),
-  fc.array(fc.constantFrom(' ', '\t', '\n', '\r'), { minLength: 1, maxLength: 20 }).map((arr) => arr.join('')),
+  fc
+    .array(fc.constantFrom(' ', '\t', '\n', '\r'), { minLength: 1, maxLength: 20 })
+    .map((arr) => arr.join(''))
 );
 
 /** Arbitrary for a non-empty, non-whitespace string (valid input). */
-const validStringArb = fc.string({ minLength: 1, maxLength: 100 }).filter((s) => s.trim().length > 0);
+const validStringArb = fc
+  .string({ minLength: 1, maxLength: 100 })
+  .filter((s) => s.trim().length > 0);
 
 describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
   beforeEach(() => {
@@ -243,14 +294,14 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
         vi.clearAllMocks();
 
         const before = useRulesStore.getState().chatRules.length;
-        await expect(
-          useRulesStore.getState().addChatRule(emptyName, validContent),
-        ).rejects.toThrow('Name and content must not be empty');
+        await expect(useRulesStore.getState().addChatRule(emptyName, validContent)).rejects.toThrow(
+          'Name and content must not be empty'
+        );
 
         expect(useRulesStore.getState().chatRules.length).toBe(before);
         expect(mockedSave).not.toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -261,14 +312,14 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
         vi.clearAllMocks();
 
         const before = useRulesStore.getState().chatRules.length;
-        await expect(
-          useRulesStore.getState().addChatRule(validName, emptyContent),
-        ).rejects.toThrow('Name and content must not be empty');
+        await expect(useRulesStore.getState().addChatRule(validName, emptyContent)).rejects.toThrow(
+          'Name and content must not be empty'
+        );
 
         expect(useRulesStore.getState().chatRules.length).toBe(before);
         expect(mockedSave).not.toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -279,14 +330,14 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
         vi.clearAllMocks();
 
         const before = useRulesStore.getState().rulesTemplates.length;
-        await expect(
-          useRulesStore.getState().addTemplate(emptyName, validContent),
-        ).rejects.toThrow('Name and content must not be empty');
+        await expect(useRulesStore.getState().addTemplate(emptyName, validContent)).rejects.toThrow(
+          'Name and content must not be empty'
+        );
 
         expect(useRulesStore.getState().rulesTemplates.length).toBe(before);
         expect(mockedSave).not.toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -297,14 +348,14 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
         vi.clearAllMocks();
 
         const before = useRulesStore.getState().rulesTemplates.length;
-        await expect(
-          useRulesStore.getState().addTemplate(validName, emptyContent),
-        ).rejects.toThrow('Name and content must not be empty');
+        await expect(useRulesStore.getState().addTemplate(validName, emptyContent)).rejects.toThrow(
+          'Name and content must not be empty'
+        );
 
         expect(useRulesStore.getState().rulesTemplates.length).toBe(before);
         expect(mockedSave).not.toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -312,14 +363,17 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
     await fc.assert(
       fc.asyncProperty(emptyOrWhitespaceArb, validStringArb, async (emptyName, validContent) => {
         const seedRule = {
-          id: 'r1', name: 'Original', content: 'Original Content',
-          createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+          id: 'r1',
+          name: 'Original',
+          content: 'Original Content',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
         };
         useRulesStore.setState({ chatRules: [seedRule], rulesTemplates: [], loaded: true });
         vi.clearAllMocks();
 
         await expect(
-          useRulesStore.getState().updateChatRule('r1', emptyName, validContent),
+          useRulesStore.getState().updateChatRule('r1', emptyName, validContent)
         ).rejects.toThrow('Name and content must not be empty');
 
         const rule = useRulesStore.getState().chatRules[0];
@@ -327,7 +381,7 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
         expect(rule.content).toBe('Original Content');
         expect(mockedSave).not.toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -335,14 +389,17 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
     await fc.assert(
       fc.asyncProperty(validStringArb, emptyOrWhitespaceArb, async (validName, emptyContent) => {
         const seedTemplate = {
-          id: 't1', name: 'Original Tmpl', content: 'Original Tmpl Content',
-          createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+          id: 't1',
+          name: 'Original Tmpl',
+          content: 'Original Tmpl Content',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
         };
         useRulesStore.setState({ chatRules: [], rulesTemplates: [seedTemplate], loaded: true });
         vi.clearAllMocks();
 
         await expect(
-          useRulesStore.getState().updateTemplate('t1', validName, emptyContent),
+          useRulesStore.getState().updateTemplate('t1', validName, emptyContent)
         ).rejects.toThrow('Name and content must not be empty');
 
         const tmpl = useRulesStore.getState().rulesTemplates[0];
@@ -350,11 +407,10 @@ describe('Feature: agent-rules, Property 8: 空输入验证拒绝', () => {
         expect(tmpl.content).toBe('Original Tmpl Content');
         expect(mockedSave).not.toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
-
 
 /**
  * Property-based tests for useRulesStore delete operations
@@ -376,13 +432,11 @@ const ruleItemArb = fc.record({
  * Arbitrary that produces a non-empty array of RuleItems with unique ids,
  * paired with a valid index into that array.
  */
-const rulesWithIndexArb = fc
-  .array(ruleItemArb, { minLength: 1, maxLength: 20 })
-  .chain((rules) => {
-    // Ensure unique ids by appending index suffix
-    const uniqueRules = rules.map((r, i) => ({ ...r, id: `${r.id}-${i}` }));
-    return fc.tuple(fc.constant(uniqueRules), fc.integer({ min: 0, max: uniqueRules.length - 1 }));
-  });
+const rulesWithIndexArb = fc.array(ruleItemArb, { minLength: 1, maxLength: 20 }).chain((rules) => {
+  // Ensure unique ids by appending index suffix
+  const uniqueRules = rules.map((r, i) => ({ ...r, id: `${r.id}-${i}` }));
+  return fc.tuple(fc.constant(uniqueRules), fc.integer({ min: 0, max: uniqueRules.length - 1 }));
+});
 
 describe('Feature: agent-rules, Property 9: 删除操作移除 Rule', () => {
   beforeEach(() => {
@@ -421,7 +475,7 @@ describe('Feature: agent-rules, Property 9: 删除操作移除 Rule', () => {
         // saveRulesConfig was called
         expect(mockedSave).toHaveBeenCalledTimes(1);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 
@@ -448,7 +502,7 @@ describe('Feature: agent-rules, Property 9: 删除操作移除 Rule', () => {
         // saveRulesConfig was called
         expect(mockedSave).toHaveBeenCalledTimes(1);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

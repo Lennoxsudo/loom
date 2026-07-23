@@ -16,9 +16,7 @@ type BackendRestoreResult = {
   message: string;
 };
 
-export async function createCheckpoint(
-  input: CheckpointCreateInput
-): Promise<AgentCheckpoint> {
+export async function createCheckpoint(input: CheckpointCreateInput): Promise<AgentCheckpoint> {
   return invoke<BackendCheckpoint>('checkpoint_create', {
     request: {
       sessionKey: input.sessionKey,

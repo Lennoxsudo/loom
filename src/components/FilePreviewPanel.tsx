@@ -70,7 +70,16 @@ function DiffIcon() {
 
 function MarkdownIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M14 3v4a1 1 0 0 0 1 1h4" />
       <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" />
       <path d="M9 15v-2l2 2 2-2v2" />
@@ -80,7 +89,16 @@ function MarkdownIcon() {
 
 function CodeIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="16 18 22 12 16 6" />
       <polyline points="8 6 2 12 8 18" />
     </svg>
@@ -95,7 +113,13 @@ interface MdCodeBlockProps {
   ref?: unknown;
 }
 
-const MdCodeBlock = ({ children, className, node: _node, ref: _ref, ...rest }: MdCodeBlockProps) => {
+const MdCodeBlock = ({
+  children,
+  className,
+  node: _node,
+  ref: _ref,
+  ...rest
+}: MdCodeBlockProps) => {
   const match = /language-(\w+)/.exec(className || '');
   const isInline = !match && !String(children).includes('\n');
 
@@ -117,8 +141,27 @@ const MdCodeBlock = ({ children, className, node: _node, ref: _ref, ...rest }: M
   }
 
   return (
-    <div style={{ margin: '10px 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 12px', backgroundColor: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#999', fontSize: '11px' }}>
+    <div
+      style={{
+        margin: '10px 0',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '4px 12px',
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          color: '#999',
+          fontSize: '11px',
+        }}
+      >
         <span style={{ fontWeight: 600 }}>{match?.[1] || 'text'}</span>
       </div>
       <SyntaxHighlighter
@@ -127,7 +170,12 @@ const MdCodeBlock = ({ children, className, node: _node, ref: _ref, ...rest }: M
         children={String(children).replace(/\n$/, '')}
         language={match ? match[1] : 'text'}
         style={vscDarkPlus}
-        customStyle={{ margin: 0, padding: '12px', fontSize: '12px', backgroundColor: 'transparent' }}
+        customStyle={{
+          margin: 0,
+          padding: '12px',
+          fontSize: '12px',
+          backgroundColor: 'transparent',
+        }}
       />
     </div>
   );
@@ -454,11 +502,7 @@ export default function FilePreviewPanel({
       </style>
       {/* 多文件列表 */}
       {files.length > 1 && (
-        <div
-          ref={tabScrollRef}
-          style={fileListStyle}
-          data-preview-tabs="true"
-        >
+        <div ref={tabScrollRef} style={fileListStyle} data-preview-tabs="true">
           {files.map((file, idx) => (
             <div
               key={file.filePath}
@@ -476,11 +520,7 @@ export default function FilePreviewPanel({
       {/* 头部 */}
       <div style={headerStyle}>
         <div style={titleSectionStyle}>
-          {mode === 'preview' ? (
-            <FileTypeIcon name={fileName || 'file'} size={14} />
-          ) : (
-            <DiffIcon />
-          )}
+          {mode === 'preview' ? <FileTypeIcon name={fileName || 'file'} size={14} /> : <DiffIcon />}
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
             <span style={fileNameStyle} title={activeFile.filePath}>
               {fileName || t.preview.noFile}
@@ -587,49 +627,189 @@ export default function FilePreviewPanel({
               fontSize: '14px',
               lineHeight: '1.7',
               color: '#d4d4d4',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
             }}
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 code: MdCodeBlock,
-                p: ({ children }) => <div style={{ margin: '6px 0', lineHeight: '1.7' }}>{children}</div>,
-                ul: ({ children }) => <ul style={{ margin: '6px 0', paddingLeft: '20px', listStyleType: 'disc' }}>{children}</ul>,
-                ol: ({ children }) => <ol style={{ margin: '6px 0', paddingLeft: '20px', listStyleType: 'decimal' }}>{children}</ol>,
-                li: ({ children }) => <li style={{ paddingLeft: '2px', marginBottom: '2px' }}>{children}</li>,
-                h1: ({ children }) => <div style={{ fontSize: '1.6em', fontWeight: 700, margin: '16px 0 8px', color: '#e8e8e8', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '6px' }}>{children}</div>,
-                h2: ({ children }) => <div style={{ fontSize: '1.35em', fontWeight: 600, margin: '14px 0 6px', color: '#e8e8e8', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '4px' }}>{children}</div>,
-                h3: ({ children }) => <div style={{ fontSize: '1.15em', fontWeight: 600, margin: '12px 0 4px', color: '#e8e8e8' }}>{children}</div>,
-                h4: ({ children }) => <div style={{ fontSize: '1.05em', fontWeight: 600, margin: '10px 0 4px', color: '#d0d0d0' }}>{children}</div>,
-                h5: ({ children }) => <div style={{ fontSize: '0.95em', fontWeight: 600, margin: '8px 0 4px', color: '#c0c0c0' }}>{children}</div>,
-                h6: ({ children }) => <div style={{ fontSize: '0.9em', fontWeight: 600, margin: '8px 0 4px', color: '#b0b0b0' }}>{children}</div>,
-                strong: ({ children }) => <strong style={{ fontWeight: 600, color: '#e8e8e8' }}>{children}</strong>,
-                blockquote: ({ children }) => <blockquote style={{ margin: '8px 0', paddingLeft: '14px', borderLeft: '3px solid rgba(0,122,204,0.5)', color: '#aaa', fontStyle: 'italic' }}>{children}</blockquote>,
+                p: ({ children }) => (
+                  <div style={{ margin: '6px 0', lineHeight: '1.7' }}>{children}</div>
+                ),
+                ul: ({ children }) => (
+                  <ul style={{ margin: '6px 0', paddingLeft: '20px', listStyleType: 'disc' }}>
+                    {children}
+                  </ul>
+                ),
+                ol: ({ children }) => (
+                  <ol style={{ margin: '6px 0', paddingLeft: '20px', listStyleType: 'decimal' }}>
+                    {children}
+                  </ol>
+                ),
+                li: ({ children }) => (
+                  <li style={{ paddingLeft: '2px', marginBottom: '2px' }}>{children}</li>
+                ),
+                h1: ({ children }) => (
+                  <div
+                    style={{
+                      fontSize: '1.6em',
+                      fontWeight: 700,
+                      margin: '16px 0 8px',
+                      color: '#e8e8e8',
+                      borderBottom: '1px solid rgba(255,255,255,0.1)',
+                      paddingBottom: '6px',
+                    }}
+                  >
+                    {children}
+                  </div>
+                ),
+                h2: ({ children }) => (
+                  <div
+                    style={{
+                      fontSize: '1.35em',
+                      fontWeight: 600,
+                      margin: '14px 0 6px',
+                      color: '#e8e8e8',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      paddingBottom: '4px',
+                    }}
+                  >
+                    {children}
+                  </div>
+                ),
+                h3: ({ children }) => (
+                  <div
+                    style={{
+                      fontSize: '1.15em',
+                      fontWeight: 600,
+                      margin: '12px 0 4px',
+                      color: '#e8e8e8',
+                    }}
+                  >
+                    {children}
+                  </div>
+                ),
+                h4: ({ children }) => (
+                  <div
+                    style={{
+                      fontSize: '1.05em',
+                      fontWeight: 600,
+                      margin: '10px 0 4px',
+                      color: '#d0d0d0',
+                    }}
+                  >
+                    {children}
+                  </div>
+                ),
+                h5: ({ children }) => (
+                  <div
+                    style={{
+                      fontSize: '0.95em',
+                      fontWeight: 600,
+                      margin: '8px 0 4px',
+                      color: '#c0c0c0',
+                    }}
+                  >
+                    {children}
+                  </div>
+                ),
+                h6: ({ children }) => (
+                  <div
+                    style={{
+                      fontSize: '0.9em',
+                      fontWeight: 600,
+                      margin: '8px 0 4px',
+                      color: '#b0b0b0',
+                    }}
+                  >
+                    {children}
+                  </div>
+                ),
+                strong: ({ children }) => (
+                  <strong style={{ fontWeight: 600, color: '#e8e8e8' }}>{children}</strong>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote
+                    style={{
+                      margin: '8px 0',
+                      paddingLeft: '14px',
+                      borderLeft: '3px solid rgba(0,122,204,0.5)',
+                      color: '#aaa',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {children}
+                  </blockquote>
+                ),
                 a: ({ href, children }) => (
-                <a
-                  href={href}
-                  style={{ color: '#4fc1ff', textDecoration: 'none', cursor: 'pointer' }}
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    if (href) {
-                      try {
-                        await openUrl(href);
-                      } catch (err) {
-                        console.error('Failed to open URL:', err);
+                  <a
+                    href={href}
+                    style={{ color: '#4fc1ff', textDecoration: 'none', cursor: 'pointer' }}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      if (href) {
+                        try {
+                          await openUrl(href);
+                        } catch (err) {
+                          console.error('Failed to open URL:', err);
+                        }
                       }
-                    }
-                  }}
-                >
-                  {children}
-                </a>
-              ),
-              hr: () => <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '16px 0' }} />,
-                table: ({ children }) => <table style={{ borderCollapse: 'collapse', width: '100%', margin: '10px 0', fontSize: '13px' }}>{children}</table>,
-                thead: ({ children }) => <thead style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>{children}</thead>,
-                th: ({ children }) => <th style={{ padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', fontWeight: 600, color: '#e0e0e0' }}>{children}</th>,
-                td: ({ children }) => <td style={{ padding: '6px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>{children}</td>,
-                img: ({ src, alt }) => <img src={src} alt={alt} style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }} />,
+                    }}
+                  >
+                    {children}
+                  </a>
+                ),
+                hr: () => (
+                  <hr
+                    style={{
+                      border: 'none',
+                      borderTop: '1px solid rgba(255,255,255,0.1)',
+                      margin: '16px 0',
+                    }}
+                  />
+                ),
+                table: ({ children }) => (
+                  <table
+                    style={{
+                      borderCollapse: 'collapse',
+                      width: '100%',
+                      margin: '10px 0',
+                      fontSize: '13px',
+                    }}
+                  >
+                    {children}
+                  </table>
+                ),
+                thead: ({ children }) => (
+                  <thead style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>{children}</thead>
+                ),
+                th: ({ children }) => (
+                  <th
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      textAlign: 'left',
+                      fontWeight: 600,
+                      color: '#e0e0e0',
+                    }}
+                  >
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td style={{ padding: '6px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    {children}
+                  </td>
+                ),
+                img: ({ src, alt }) => (
+                  <img
+                    src={src}
+                    alt={alt}
+                    style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }}
+                  />
+                ),
               }}
             >
               {activeFile.content || ''}
@@ -643,23 +823,23 @@ export default function FilePreviewPanel({
               </div>
             )}
             <MonacoHost
-            key={`${activeFile.filePath}-preview`}
-            modelUri={`inmemory://preview/${encodeURIComponent(activeFile.filePath)}`}
-            language={detectedLanguage}
-            value={activeFile.content || ''}
-            groupId="preview"
-            filePath={activeFile.filePath}
-            fontSize={13}
-            wordWrap={true}
-            lineNumbers={true}
-            minimap={false}
-            cursorStyle="line"
-            cursorBlinking="blink"
-            tabSize={4}
-            themeMode={themeMode}
-            onChange={() => {}}
-            onMount={(editor) => setMonacoEditor(editor)}
-          />
+              key={`${activeFile.filePath}-preview`}
+              modelUri={`inmemory://preview/${encodeURIComponent(activeFile.filePath)}`}
+              language={detectedLanguage}
+              value={activeFile.content || ''}
+              groupId="preview"
+              filePath={activeFile.filePath}
+              fontSize={13}
+              wordWrap={true}
+              lineNumbers={true}
+              minimap={false}
+              cursorStyle="line"
+              cursorBlinking="blink"
+              tabSize={4}
+              themeMode={themeMode}
+              onChange={() => {}}
+              onMount={(editor) => setMonacoEditor(editor)}
+            />
           </>
         ) : mode === 'diff' ? (
           <MonacoDiffHost

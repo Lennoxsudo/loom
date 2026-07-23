@@ -4,7 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { I18nProvider } from '../i18n';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import { AGENT_CHAT_CONVERSATIONS_STORAGE_KEY, AGENT_SESSION_EXTRAS_STORAGE_KEY, PENDING_CHANGES_STORAGE_KEY } from '../types/chat';
+import {
+  AGENT_CHAT_CONVERSATIONS_STORAGE_KEY,
+  AGENT_SESSION_EXTRAS_STORAGE_KEY,
+  PENDING_CHANGES_STORAGE_KEY,
+} from '../types/chat';
 import { _resetPendingLocks } from '../hooks/useContextInjectionState';
 import { normalizeProjectPath } from './agent/utils';
 import AgentPanel from './AgentPanel';

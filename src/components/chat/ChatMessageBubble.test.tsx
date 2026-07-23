@@ -61,7 +61,7 @@ describe('ChatMessageBubble', () => {
       content:
         '已在文件末尾新增了一个 `power`函数，用于计算幂运算。修改内容如下：\n```diff\n+export function power(base: number, exponent: number): number {\n+  return Math.pow(base, exponent);\n+}\n```',
       thinking:
-        "I added a new function `power` to the file. Let me confirm the change was applied correctly.",
+        'I added a new function `power` to the file. Let me confirm the change was applied correctly.',
       timestamp: Date.now(),
       isStreaming: false,
       thinkingEndedAt: Date.now(),
@@ -69,7 +69,9 @@ describe('ChatMessageBubble', () => {
 
     expect(screen.getByText(/I added a new function/i)).toBeInTheDocument();
     expect(screen.getByText(/已在文件末尾新增了一个/)).toBeInTheDocument();
-    expect(screen.queryByText(/I added a new function[\s\S]*已在文件末尾新增了一个/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/I added a new function[\s\S]*已在文件末尾新增了一个/)
+    ).not.toBeInTheDocument();
   });
 
   test('moves leaked markdown result content out of thinking even when assistant text already exists', () => {
@@ -86,7 +88,9 @@ describe('ChatMessageBubble', () => {
     });
 
     expect(
-      screen.getByText(/I added a new function `power` to the file\. Let me confirm the change was applied correctly\./i)
+      screen.getByText(
+        /I added a new function `power` to the file\. Let me confirm the change was applied correctly\./i
+      )
     ).toBeInTheDocument();
     expect(screen.getByText(/已在文件末尾新增了一个/)).toBeInTheDocument();
     expect(screen.queryByText(/Let me confirm[\s\S]*测试结果/)).not.toBeInTheDocument();
@@ -136,7 +140,8 @@ describe('ChatMessageBubble', () => {
       id: 'assistant-thinking-code',
       role: 'assistant',
       content: '已在文件末尾新增函数，详见正文。',
-      thinking: '示例实现：\n```ts\nexport function power(a: number, b: number) {\n  return a ** b;\n}\n```',
+      thinking:
+        '示例实现：\n```ts\nexport function power(a: number, b: number) {\n  return a ** b;\n}\n```',
       timestamp: Date.now(),
       isStreaming: false,
       thinkingEndedAt: Date.now(),
@@ -144,7 +149,9 @@ describe('ChatMessageBubble', () => {
 
     expect(screen.getByText(/export function power/)).toBeInTheDocument();
     expect(screen.getByText(/已在文件末尾新增函数/)).toBeInTheDocument();
-    expect(screen.queryByText(/export function power[\s\S]*已在文件末尾新增函数/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/export function power[\s\S]*已在文件末尾新增函数/)
+    ).not.toBeInTheDocument();
   });
 
   test('shows edit button and resends edited user text', async () => {

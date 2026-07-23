@@ -49,7 +49,8 @@ export class RunSubagentHandler implements ToolHandler<'run_subagent'> {
 
       const { provider, model } = await resolveParentContext(context);
       const taskId =
-        context?.toolCallId || `sub-task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        context?.toolCallId ||
+        `sub-task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
       const subagentType = resolveSubagentTypeName(
         args.subagent_type || args.preset || 'general-purpose'

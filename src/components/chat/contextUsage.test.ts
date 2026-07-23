@@ -11,7 +11,9 @@ import { loadSkillsContext } from '../../utils/skills';
 
 describe('buildChatContextUsage', () => {
   beforeEach(() => {
-    vi.mocked(loadSkillsContext).mockResolvedValue('<available_skills>\n"review": code review\n</available_skills>');
+    vi.mocked(loadSkillsContext).mockResolvedValue(
+      '<available_skills>\n"review": code review\n</available_skills>'
+    );
   });
 
   it('includes injected rules, plan prompt, skills, and tool definitions in usage', async () => {
@@ -46,7 +48,7 @@ describe('buildChatContextUsage', () => {
 
     expect(result.maxContextTokens).toBe(DEFAULT_CONTEXT_WINDOW);
     expect(result.availableContextTokens).toBe(
-      DEFAULT_CONTEXT_WINDOW - CHAT_CONTEXT_RESERVE_TOKENS,
+      DEFAULT_CONTEXT_WINDOW - CHAT_CONTEXT_RESERVE_TOKENS
     );
     expect(result.toolTokens).toBe(estimateToolsTokens(tools));
     expect(result.usedTokens).toBe(result.messageTokens + result.toolTokens);
@@ -60,7 +62,7 @@ describe('buildChatContextUsage', () => {
         'role' in message &&
         'content' in message &&
         (message as { role?: string }).role === 'user' &&
-        typeof (message as { content?: unknown }).content === 'string',
+        typeof (message as { content?: unknown }).content === 'string'
     );
     const firstUserText = userMessages[0]?.content ?? '';
 
@@ -75,7 +77,7 @@ describe('buildChatContextUsage', () => {
         'role' in message &&
         'content' in message &&
         (message as { role?: string }).role === 'system' &&
-        typeof (message as { content?: unknown }).content === 'string',
+        typeof (message as { content?: unknown }).content === 'string'
     );
     const systemText = systemMessages.map((message) => message.content).join('\n\n');
 
@@ -113,7 +115,7 @@ describe('buildChatContextUsage', () => {
           'role' in message &&
           'content' in message &&
           (message as { role?: string }).role === 'system' &&
-          typeof (message as { content?: unknown }).content === 'string',
+          typeof (message as { content?: unknown }).content === 'string'
       )
       .map((message) => message.content)
       .join('\n\n');

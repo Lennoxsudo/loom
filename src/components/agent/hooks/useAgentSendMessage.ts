@@ -1,16 +1,9 @@
 import { useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  type Agent,
-  type AIProvider,
-} from '../../../utils/agentPersistence';
+import { type Agent, type AIProvider } from '../../../utils/agentPersistence';
 import { DEFAULT_VISION_CAPABILITIES } from '../../../utils/visionCapabilities';
 import type { FileAttachment, PendingImageAttachment } from '../../../types/chat';
-import type {
-  ChatMessage,
-  AgentConversationState,
-  StreamMeta,
-} from '../../../types/chat';
+import type { ChatMessage, AgentConversationState, StreamMeta } from '../../../types/chat';
 import {
   isManualCancelError,
   createAgentConversation,
@@ -25,10 +18,7 @@ import {
   shouldAutoGenerateAgentTitle,
 } from './autoGenerateAgentConversationTitle';
 import { getLanguage } from '../../../utils/editorUtils';
-import {
-  shouldInjectRules,
-  getRulesContentHash,
-} from '../../../utils/rulesInjector';
+import { shouldInjectRules, getRulesContentHash } from '../../../utils/rulesInjector';
 import {
   shouldInjectProjectPath as checkShouldInjectProjectPath,
   markInjectionPending,
@@ -38,7 +28,12 @@ import {
 import { listSubagentDefinitions } from '../../../utils/subagents/registry';
 import { buildSubagentCatalogBlock } from '../../../utils/subagents/catalog';
 import { buildAgentRequestContext } from '../contextUsage';
-import { reconcileRuntimeForAgentRequest, resolveAgentRequestRuntime, syncReconciledRuntimeIfChanged, type AgentRuntimeSnapshot } from '../utils';
+import {
+  reconcileRuntimeForAgentRequest,
+  resolveAgentRequestRuntime,
+  syncReconciledRuntimeIfChanged,
+  type AgentRuntimeSnapshot,
+} from '../utils';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useTranslation } from '../../../i18n';
 import { updateAgentConversationById } from './agentConversationUpdates';
@@ -48,13 +43,13 @@ import {
   findEarliestCheckpointForUserTurns,
 } from '../../../utils/checkpointTimeline';
 import type { PendingFileChange } from '../utils';
-import {
-  buildTransportInvokeArgs,
-  isBuiltinProtocol,
-} from '../../../utils/builtinGateway';
+import { buildTransportInvokeArgs, isBuiltinProtocol } from '../../../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../../../stores/useBuiltinGatewayStore';
 
-async function ensureBuiltinReadyForAgent(setError: (msg: string | null) => void, notActivated: string) {
+async function ensureBuiltinReadyForAgent(
+  setError: (msg: string | null) => void,
+  notActivated: string
+) {
   const store = useBuiltinGatewayStore.getState();
   if (!store.hydrated) {
     await store.hydrate();
@@ -82,7 +77,9 @@ export interface UseAgentSendMessageOptions {
   selectedConversationId: string | null;
   isSelectedSessionBusy: boolean;
   projectBranchNameRef: React.MutableRefObject<string | null>;
-  threadSettingsRef: React.MutableRefObject<import('../../../types/chat').AgentThreadSettings | undefined>;
+  threadSettingsRef: React.MutableRefObject<
+    import('../../../types/chat').AgentThreadSettings | undefined
+  >;
   agentRuntimeRef: React.MutableRefObject<AgentRuntimeSnapshot>;
   attachedImages: PendingImageAttachment[];
   attachedFiles: { id: string; path: string; name: string }[];
@@ -266,10 +263,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     // Drop streaming stubs after the user message
     const cleanedKept = keptMessages.filter((m) => !(m.isStreaming && m.role === 'assistant'));
 
-    const resolvedRuntime = resolveAgentRequestRuntime(
-      selectedAgent,
-      agentRuntimeRef.current
-    );
+    const resolvedRuntime = resolveAgentRequestRuntime(selectedAgent, agentRuntimeRef.current);
     let provider = resolvedRuntime.provider;
     let runtimeModel = resolvedRuntime.model;
     let profileId = resolvedRuntime.profileId;
@@ -347,11 +341,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       sessionKey,
     });
 
-    const messagesForState = [
-      ...cleanedKept.slice(0, -1),
-      userMessage,
-      assistantMessage,
-    ];
+    const messagesForState = [...cleanedKept.slice(0, -1), userMessage, assistantMessage];
 
     setConversationState((prev) =>
       updateAgentConversationById(prev, selectedConversationId, (c) => ({
@@ -375,10 +365,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       const previousMessages = messagesForState.filter((msg) => !msg.isStreaming);
       const allMessages = previousMessages;
 
-      needsInjection = checkShouldInjectProjectPath(
-        streamConversation,
-        projectPathRef.current
-      );
+      needsInjection = checkShouldInjectProjectPath(streamConversation, projectPathRef.current);
       if (needsInjection) {
         markInjectionPending(activeConversationId, mainRequestId);
       }
@@ -440,10 +427,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         setConversationState((prev) =>
           updateAgentConversationById(prev, activeConversationId, (c) => ({
             ...c,
-            messages: [
-              ...compactedMessages,
-              ...c.messages.filter((m) => m.isStreaming),
-            ],
+            messages: [...compactedMessages, ...c.messages.filter((m) => m.isStreaming)],
             compactState,
             updatedAt: Date.now(),
           }))
@@ -511,9 +495,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
   const sendMessage = async (overrides?: SendMessageOverrides) => {
     const rawDraft = (overrides?.draftMessage ?? draftMessage).trim();
     if (
-      (!rawDraft &&
-        attachedImages.length === 0 &&
-        attachedFiles.length === 0) ||
+      (!rawDraft && attachedImages.length === 0 && attachedFiles.length === 0) ||
       !selectedAgentId ||
       !selectedAgent ||
       isSelectedSessionBusy
@@ -527,10 +509,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     const text = resolved.text;
     const slashCommand = resolved.slashCommand;
 
-    const resolvedRuntime = resolveAgentRequestRuntime(
-      selectedAgent,
-      agentRuntimeRef.current
-    );
+    const resolvedRuntime = resolveAgentRequestRuntime(selectedAgent, agentRuntimeRef.current);
     let provider = resolvedRuntime.provider;
     let runtimeModel = resolvedRuntime.model;
     let profileId = resolvedRuntime.profileId;
@@ -773,7 +752,10 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       );
       const allMessages = [...previousMessages, userMessage];
 
-      needsInjection = checkShouldInjectProjectPath(streamConversation ?? undefined, projectPathRef.current);
+      needsInjection = checkShouldInjectProjectPath(
+        streamConversation ?? undefined,
+        projectPathRef.current
+      );
       if (needsInjection) {
         markInjectionPending(activeConversationId, mainRequestId);
       }
@@ -789,7 +771,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       const needsRulesInjection = shouldInjectRules(
         selectedAgent.rules ?? '',
         !!streamConversation?.contextInjected?.rules?.injected,
-        streamConversation?.contextInjected?.rules?.contentHash,
+        streamConversation?.contextInjected?.rules?.contentHash
       );
 
       let subagentCatalog: string | undefined;
@@ -835,10 +817,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         setConversationState((prev) =>
           updateAgentConversationById(prev, activeConversationId, (c) => ({
             ...c,
-            messages: [
-              ...compactedMessages,
-              ...c.messages.filter((m) => m.isStreaming),
-            ],
+            messages: [...compactedMessages, ...c.messages.filter((m) => m.isStreaming)],
             compactState,
             updatedAt: Date.now(),
           }))

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  collectProjectPathsFromState,
-  groupThreadsByProject,
-  normalizeProjectPath,
-} from './utils';
+import { collectProjectPathsFromState, groupThreadsByProject, normalizeProjectPath } from './utils';
 import type { AgentConversationState } from '../../types/chat';
 
 const PROJECT_A = 'D:\\test\\project';

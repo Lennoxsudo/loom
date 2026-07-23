@@ -4,7 +4,7 @@ export const AI_TOOLS: ToolDefinition[] = [
   {
     name: 'term',
     description:
-      'Execute terminal commands on the user\'s system. Actions: ' +
+      "Execute terminal commands on the user's system. Actions: " +
       'run - execute a command and wait for output with structured result (exit_code, duration_ms); ' +
       'read_output - check the output of a background command (pass the task ID as tid); ' +
       'list_bg - list all running and completed background tasks; ' +
@@ -23,11 +23,13 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         command: {
           type: 'string',
-          description: 'The command to execute. Required for the run action. Ignored for other actions.',
+          description:
+            'The command to execute. Required for the run action. Ignored for other actions.',
         },
         tid: {
           type: 'string',
-          description: 'The task ID for read_output or kill, returned by a background command (bg=true).',
+          description:
+            'The task ID for read_output or kill, returned by a background command (bg=true).',
         },
         cwd: {
           type: 'string',
@@ -92,15 +94,18 @@ export const AI_TOOLS: ToolDefinition[] = [
         path: { type: 'string', description: 'Absolute path to the file to edit.' },
         old: {
           type: 'string',
-          description: 'The exact text to find and replace. Must match the file content exactly, including whitespace and newlines.',
+          description:
+            'The exact text to find and replace. Must match the file content exactly, including whitespace and newlines.',
         },
         new: {
           type: 'string',
-          description: 'The text to replace old with. Use an empty string to delete the matched text.',
+          description:
+            'The text to replace old with. Use an empty string to delete the matched text.',
         },
         all: {
           type: 'boolean',
-          description: 'If true, replace all occurrences of old. If false or omitted, only the first occurrence is replaced.',
+          description:
+            'If true, replace all occurrences of old. If false or omitted, only the first occurrence is replaced.',
         },
       },
       required: ['path', 'old', 'new'],
@@ -124,19 +129,23 @@ export const AI_TOOLS: ToolDefinition[] = [
       properties: {
         path: {
           type: 'string',
-          description: 'Absolute path to the file to read. Can also be an array of paths for batch reading.',
+          description:
+            'Absolute path to the file to read. Can also be an array of paths for batch reading.',
         },
         from: {
           type: 'number',
-          description: 'The 1-based line number to start reading from. If omitted, reading starts from the beginning of the file.',
+          description:
+            'The 1-based line number to start reading from. If omitted, reading starts from the beginning of the file.',
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of lines to read. If omitted, reads to the end of the file (subject to maxb).',
+          description:
+            'Maximum number of lines to read. If omitted, reads to the end of the file (subject to maxb).',
         },
         maxb: {
           type: 'number',
-          description: 'Maximum number of bytes to read. Useful for very large files to limit memory usage.',
+          description:
+            'Maximum number of bytes to read. Useful for very large files to limit memory usage.',
         },
         encoding: {
           type: 'string',
@@ -179,22 +188,30 @@ export const AI_TOOLS: ToolDefinition[] = [
       type: 'object',
       properties: {
         path: { type: 'string', description: 'Absolute path to the file to write.' },
-        content: { type: 'string', description: 'The content to write to the file. Supports {{key}} template placeholders when template_vars is provided.' },
+        content: {
+          type: 'string',
+          description:
+            'The content to write to the file. Supports {{key}} template placeholders when template_vars is provided.',
+        },
         append: {
           type: 'boolean',
-          description: 'If true, append content to the end of the file instead of overwriting. Default is false (overwrite).',
+          description:
+            'If true, append content to the end of the file instead of overwriting. Default is false (overwrite).',
         },
         prepend: {
           type: 'boolean',
-          description: 'If true, insert content at the beginning of the file. Cannot be used together with append.',
+          description:
+            'If true, insert content at the beginning of the file. Cannot be used together with append.',
         },
         if_not_exists: {
           type: 'boolean',
-          description: 'If true, skip writing if the file already exists. Prevents accidental overwrite of important files.',
+          description:
+            'If true, skip writing if the file already exists. Prevents accidental overwrite of important files.',
         },
         template_vars: {
           type: 'object',
-          description: 'Key-value pairs for template variable substitution. {{key}} in content will be replaced with the corresponding value.',
+          description:
+            'Key-value pairs for template variable substitution. {{key}} in content will be replaced with the corresponding value.',
           properties: {},
           additionalProperties: { type: 'string' },
         },
@@ -245,15 +262,18 @@ export const AI_TOOLS: ToolDefinition[] = [
         type: {
           type: 'string',
           enum: ['files', 'content', 'both'],
-          description: 'The type of search to perform: "files" for glob pattern search, "content" for text/regex search, "both" for combined filename+content search.',
+          description:
+            'The type of search to perform: "files" for glob pattern search, "content" for text/regex search, "both" for combined filename+content search.',
         },
         pattern: {
           type: 'string',
-          description: 'Glob pattern for file search (used when type=files), or text/regex pattern (used when type=both). Examples: "**/*.ts", "src/**/*.css".',
+          description:
+            'Glob pattern for file search (used when type=files), or text/regex pattern (used when type=both). Examples: "**/*.ts", "src/**/*.css".',
         },
         query: {
           type: 'string',
-          description: 'Text or regex pattern to search for within file contents (used when type=content or type=both).',
+          description:
+            'Text or regex pattern to search for within file contents (used when type=content or type=both).',
         },
         dir: {
           type: 'string',
@@ -261,31 +281,37 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         cs: {
           type: 'boolean',
-          description: 'If true, the search is case-sensitive. Default is false (case-insensitive).',
+          description:
+            'If true, the search is case-sensitive. Default is false (case-insensitive).',
         },
         regex: {
           type: 'boolean',
-          description: 'If true, treat the query as a regular expression. Default is false (plain text search).',
+          description:
+            'If true, treat the query as a regular expression. Default is false (plain text search).',
         },
         glob: {
           type: 'string',
-          description: 'Comma-separated glob patterns to filter which files to search (used with type=content or type=both). ' +
+          description:
+            'Comma-separated glob patterns to filter which files to search (used with type=content or type=both). ' +
             'Examples: "*.ts,*.tsx", "**/*.rs", "src/**/*.{js,jsx}". Only matching files will be searched.',
         },
         exclude: {
           type: 'string',
-          description: 'Comma-separated names or glob patterns to exclude from search, in addition to the defaults ' +
+          description:
+            'Comma-separated names or glob patterns to exclude from search, in addition to the defaults ' +
             '(node_modules, .git, dist, build, target, vendor, __pycache__, etc.). ' +
             'Supports glob patterns like "*.vue", "test_*", and path patterns like "**/App.vue". ' +
             'Examples: "test,fixtures,*.log,**/App.vue".',
         },
         context_lines: {
           type: 'number',
-          description: 'Number of lines of context to include before and after each match (like grep -C). Default is 0 (no context).',
+          description:
+            'Number of lines of context to include before and after each match (like grep -C). Default is 0 (no context).',
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of results to return. Default is 20. Useful for limiting output when searching large codebases.',
+          description:
+            'Maximum number of results to return. Default is 20. Useful for limiting output when searching large codebases.',
         },
       },
       required: ['type'],
@@ -308,7 +334,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         path: {
           type: 'string',
-          description: 'Path to the file or directory. Required for list and info actions. Defaults to project root if omitted for tree.',
+          description:
+            'Path to the file or directory. Required for list and info actions. Defaults to project root if omitted for tree.',
         },
         root_path: {
           type: 'string',
@@ -320,7 +347,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         dirs_only: {
           type: 'boolean',
-          description: 'If true, only directories are included in the output. Works for both list and tree actions. Default is false.',
+          description:
+            'If true, only directories are included in the output. Works for both list and tree actions. Default is false.',
         },
       },
       required: ['action'],
@@ -346,7 +374,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         file: {
           type: 'string',
-          description: 'Path to a specific file to diff or undo. If omitted, operates on all changed files.',
+          description:
+            'Path to a specific file to diff or undo. If omitted, operates on all changed files.',
         },
         paths: {
           type: 'array',
@@ -386,7 +415,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         line: {
           type: 'number',
-          description: 'Optional line number hint for disambiguating symbols with the same name in different scopes.',
+          description:
+            'Optional line number hint for disambiguating symbols with the same name in different scopes.',
         },
       },
       required: ['path', 'name'],
@@ -509,7 +539,8 @@ export const AI_TOOLS: ToolDefinition[] = [
               },
               multiSelect: {
                 type: 'boolean',
-                description: 'If true, the user can select multiple options. Default is false (single selection).',
+                description:
+                  'If true, the user can select multiple options. Default is false (single selection).',
               },
             },
             required: ['header', 'question', 'options'],
@@ -533,7 +564,8 @@ export const AI_TOOLS: ToolDefinition[] = [
       properties: {
         url: {
           type: 'string',
-          description: 'The URL to fetch. Must be publicly accessible (http/https). HTTP is auto-upgraded to HTTPS.',
+          description:
+            'The URL to fetch. Must be publicly accessible (http/https). HTTP is auto-upgraded to HTTPS.',
         },
         method: {
           type: 'string',
@@ -542,7 +574,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         headers: {
           type: 'object',
-          description: 'Custom request headers as key-value pairs. E.g., {"Authorization": "Bearer token", "Cookie": "session=abc"}',
+          description:
+            'Custom request headers as key-value pairs. E.g., {"Authorization": "Bearer token", "Cookie": "session=abc"}',
         },
         body: {
           type: 'string',
@@ -554,11 +587,13 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         follow_redirects: {
           type: 'boolean',
-          description: 'Whether to follow HTTP redirects. Default is true. Set false to debug redirect chains.',
+          description:
+            'Whether to follow HTTP redirects. Default is true. Set false to debug redirect chains.',
         },
         extract_links: {
           type: 'boolean',
-          description: 'Whether to extract and list all links from HTML pages. Default false. Useful for crawling multi-page content.',
+          description:
+            'Whether to extract and list all links from HTML pages. Default false. Useful for crawling multi-page content.',
         },
       },
       required: ['url'],
@@ -576,7 +611,8 @@ export const AI_TOOLS: ToolDefinition[] = [
       properties: {
         query: {
           type: 'string',
-          description: 'Search query keywords. Be specific (e.g. "React 19 useEffect cleanup changelog").',
+          description:
+            'Search query keywords. Be specific (e.g. "React 19 useEffect cleanup changelog").',
         },
         num_results: {
           type: 'number',
@@ -685,14 +721,16 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         context: {
           type: 'string',
-          description: 'Optional critical background context that the subagent cannot retrieve on its own.',
+          description:
+            'Optional critical background context that the subagent cannot retrieve on its own.',
         },
         allowed_tools: {
           type: 'array',
           items: {
             type: 'string',
           },
-          description: 'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
+          description:
+            'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
         },
         max_tool_rounds: {
           type: 'number',
@@ -700,19 +738,23 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         context_budget: {
           type: 'number',
-          description: 'Optional context token budget. When set, background context may be truncated to fit.',
+          description:
+            'Optional context token budget. When set, background context may be truncated to fit.',
         },
         model: {
           type: 'string',
-          description: 'Optional model selection. Can be "inherit" or a specific provider/model ID.',
+          description:
+            'Optional model selection. Can be "inherit" or a specific provider/model ID.',
         },
         preset: {
           type: 'string',
-          description: 'Optional built-in preset ID (e.g. "research", "parallel-exec") that provides default prompts and allowed tools.',
+          description:
+            'Optional built-in preset ID (e.g. "research", "parallel-exec") that provides default prompts and allowed tools.',
         },
         async: {
           type: 'boolean',
-          description: 'Optional. If true, start the subagent in the background and return immediately. Default is false.',
+          description:
+            'Optional. If true, start the subagent in the background and return immediately. Default is false.',
         },
       },
       required: ['task'],
@@ -734,18 +776,21 @@ export const AI_TOOLS: ToolDefinition[] = [
             properties: {
               task: {
                 type: 'string',
-                description: 'A self-contained description of the task to be performed by the subagent.',
+                description:
+                  'A self-contained description of the task to be performed by the subagent.',
               },
               context: {
                 type: 'string',
-                description: 'Optional critical background context that the subagent cannot retrieve on its own.',
+                description:
+                  'Optional critical background context that the subagent cannot retrieve on its own.',
               },
               allowed_tools: {
                 type: 'array',
                 items: {
                   type: 'string',
                 },
-                description: 'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
+                description:
+                  'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
               },
               max_tool_rounds: {
                 type: 'number',
@@ -753,15 +798,18 @@ export const AI_TOOLS: ToolDefinition[] = [
               },
               context_budget: {
                 type: 'number',
-                description: 'Optional context token budget. When set, background context may be truncated to fit.',
+                description:
+                  'Optional context token budget. When set, background context may be truncated to fit.',
               },
               model: {
                 type: 'string',
-                description: 'Optional model selection. Can be "inherit" or a specific provider/model ID.',
+                description:
+                  'Optional model selection. Can be "inherit" or a specific provider/model ID.',
               },
               preset: {
                 type: 'string',
-                description: 'Optional built-in preset ID (e.g. "research", "parallel-exec") that provides default prompts and allowed tools.',
+                description:
+                  'Optional built-in preset ID (e.g. "research", "parallel-exec") that provides default prompts and allowed tools.',
               },
             },
             required: ['task'],
@@ -827,7 +875,7 @@ export const AI_TOOLS: ToolDefinition[] = [
       '\n' +
       'Pick ONE action — typical scenarios:\n' +
       '  search  — Find symbol definitions by name. Scenario: "where is AuthService defined?" / Go-to-Symbol.\n' +
-      '  snippet — Read one symbol\'s source code. Scenario: after search, view the function body.\n' +
+      "  snippet — Read one symbol's source code. Scenario: after search, view the function body.\n" +
       '  code    — Grep text inside symbol bodies. Scenario: "which functions mention TODO or use deprecated API?"\n' +
       '  schema  — List graph entity types (labels, edge types). Scenario: before writing a Cypher query, learn what exists.\n' +
       '  query   — Custom Cypher graph query. Scenario: multi-hop or cross-type questions search/trace cannot answer.\n' +
@@ -840,7 +888,7 @@ export const AI_TOOLS: ToolDefinition[] = [
       'Parameter priority (only pass params for your action):\n' +
       '  1. action (required)\n' +
       '  2. action-specific: search→name_pattern,qualified_name,label,file_pattern | snippet→qualified_name OR name_pattern | code→pattern (+optional name_pattern to scope symbols) | query→query | schema→none\n' +
-      '  3. repo_path (optional, default workspace) — ignore other actions\' params\n' +
+      "  3. repo_path (optional, default workspace) — ignore other actions' params\n" +
       '\n' +
       'action=search filter logic: name_pattern + label + file_pattern are ANDed (all provided filters must match). Omit a filter = no restriction on that axis.\n' +
       'action=search exact symbol: pass qualified_name (mapped to CBM qn_pattern). Use regex=true when name_pattern/qn_pattern is already a regex.\n' +
@@ -853,11 +901,13 @@ export const AI_TOOLS: ToolDefinition[] = [
         action: { type: 'string', enum: ['search', 'snippet', 'query', 'schema', 'code', 'list'] },
         repo_path: {
           type: 'string',
-          description: 'Project root path. Default: current workspace. Preferred over project slug.',
+          description:
+            'Project root path. Default: current workspace. Preferred over project slug.',
         },
         project: {
           type: 'string',
-          description: 'CBM slug from graph_index list (rare). Omit — repo_path is auto-resolved to slug.',
+          description:
+            'CBM slug from graph_index list (rare). Omit — repo_path is auto-resolved to slug.',
         },
         name_pattern: {
           type: 'string',
@@ -873,11 +923,13 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         qn_pattern: {
           type: 'string',
-          description: 'action=search only: advanced — regex on qualified_name (usually use qualified_name instead).',
+          description:
+            'action=search only: advanced — regex on qualified_name (usually use qualified_name instead).',
         },
         label: {
           type: 'string',
-          description: 'action=search only: node type filter (AND with name_pattern/file_pattern). E.g. Function, Class, Route.',
+          description:
+            'action=search only: node type filter (AND with name_pattern/file_pattern). E.g. Function, Class, Route.',
         },
         file_pattern: {
           type: 'string',
@@ -901,7 +953,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         pattern: {
           type: 'string',
-          description: 'action=code only: text/regex inside symbol bodies (param: pattern; aliases: code, text). Not for symbol name lookup (use name_pattern).',
+          description:
+            'action=code only: text/regex inside symbol bodies (param: pattern; aliases: code, text). Not for symbol name lookup (use name_pattern).',
         },
       },
       required: ['action'],
@@ -956,7 +1009,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         depth: {
           type: 'number',
-          description: 'action=trace only. Traversal hops 1-5 (default 3). Ignored by architecture/changes.',
+          description:
+            'action=trace only. Traversal hops 1-5 (default 3). Ignored by architecture/changes.',
         },
       },
       required: ['action'],
@@ -994,7 +1048,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         allowed_tools: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
+          description:
+            'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
         },
         max_tool_rounds: {
           type: 'number',
@@ -1002,7 +1057,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         context_budget: {
           type: 'number',
-          description: 'Optional context token budget. When set, background context may be truncated to fit.',
+          description:
+            'Optional context token budget. When set, background context may be truncated to fit.',
         },
         run_in_background: {
           type: 'boolean',
@@ -1018,8 +1074,7 @@ export const AI_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'Task',
-    description:
-      'Alias for Agent tool. Launch a specialized subagent to handle a delegated task.',
+    description: 'Alias for Agent tool. Launch a specialized subagent to handle a delegated task.',
     parameters: {
       type: 'object',
       properties: {
@@ -1031,7 +1086,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         allowed_tools: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
+          description:
+            'Optional list of allowed tools. If omitted, inherits the full parent agent tool set.',
         },
         max_tool_rounds: { type: 'number', description: 'Optional maximum tool execution rounds.' },
         context_budget: { type: 'number', description: 'Optional context token budget.' },
@@ -1042,4 +1098,3 @@ export const AI_TOOLS: ToolDefinition[] = [
     },
   },
 ];
-

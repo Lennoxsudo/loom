@@ -22,10 +22,7 @@ import type {
   ConversationMeta,
   ChatProtocolSelection,
 } from './types';
-import {
-  expandSkillSlashCommand,
-  formatSlashCommandDisplay,
-} from '../../utils/skillSlashCommand';
+import { expandSkillSlashCommand, formatSlashCommandDisplay } from '../../utils/skillSlashCommand';
 import type { AIProvider } from '../../utils/visionCapabilities';
 import type { VisionCapability } from '../../utils/visionCapabilities';
 import {
@@ -106,7 +103,7 @@ export interface UseSendMessageOptions {
     provider: AIProvider,
     model: string,
     text: string,
-    names: string[],
+    names: string[]
   ) => Promise<void>;
   getProviderToolsForChat: (provider: AIProvider) => unknown[] | undefined;
   getAppDataPath: () => Promise<string | null>;
@@ -350,11 +347,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         showInfo(t.chat.contextCompressionHint);
         const streamingTail = messagesForState.filter((m) => m.isStreaming);
         opts.setMessages([...compactedMessages, ...streamingTail]);
-        const updatedConv = buildConversationPayload(
-          conversation,
-          compactedMessages,
-          compactState
-        );
+        const updatedConv = buildConversationPayload(conversation, compactedMessages, compactState);
         opts.setCurrentConversation(updatedConv);
         await invoke('save_conversation', { conversation: updatedConv });
       }
@@ -383,8 +376,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       const errText = String(error);
       const { message: displayError, unauthorized } = resolveBuiltinStreamError(
         errText,
-        opts.t.settingsBuiltin?.unauthorized ||
-          'Key invalid or revoked — please re-activate',
+        opts.t.settingsBuiltin?.unauthorized || 'Key invalid or revoked — please re-activate',
         { treatAsBuiltin: isBuiltinProtocol(provider) }
       );
       if (unauthorized) {
@@ -477,8 +469,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       { skipUiSync: opts.protocolSelection === 'auto' }
     );
 
-    const capability =
-      opts.visionCapabilities[provider] || opts.currentVisionCapability;
+    const capability = opts.visionCapabilities[provider] || opts.currentVisionCapability;
 
     if (opts.attachedImages.length > 0 && !capability.supportsVision) {
       opts.setError(VISION_UNSUPPORTED_ERROR);
@@ -486,9 +477,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     }
 
     if (opts.attachedImages.length > capability.visionMaxImages) {
-      opts.setError(
-        `当前模型最多支持 ${opts.currentVisionCapability.visionMaxImages} 张图片`,
-      );
+      opts.setError(`当前模型最多支持 ${opts.currentVisionCapability.visionMaxImages} 张图片`);
       return;
     }
 
@@ -503,7 +492,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     const fileNamesForTitle = [
       ...opts.attachedFiles.map((file) => file.name),
       ...opts.attachedImages.map(
-        (image) => image.fileName || image.path.split(/[/\\]/).pop() || '图片',
+        (image) => image.fileName || image.path.split(/[/\\]/).pop() || '图片'
       ),
     ];
 
@@ -532,7 +521,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
           conversation.provider as AIProvider,
           conversation.model,
           userTextForTitle,
-          fileNamesForTitle,
+          fileNamesForTitle
         );
       } catch (error) {
         opts.setError(`创建对话失败: ${error}`);
@@ -557,7 +546,9 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       messageContent += userBody;
     }
 
-    const userAttachments = opts.attachedImages.map(({ previewUrl: _, ...attachment }) => attachment);
+    const userAttachments = opts.attachedImages.map(
+      ({ previewUrl: _, ...attachment }) => attachment
+    );
     const userTimestamp = Date.now();
     const userMessage: Message = {
       id: userTimestamp.toString(),
@@ -574,7 +565,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
             attachments: userAttachments,
             timestamp: userTimestamp,
           },
-        ])[0],
+        ])[0]
       ),
       timestamp: userTimestamp,
     };
@@ -610,7 +601,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       const tools = opts.getProviderToolsForChat(provider);
       logDebug(
         '发送消息，工具启用: ' + String(!!tools) + ' 工具数量: ' + String(tools?.length),
-        'ChatPanel',
+        'ChatPanel'
       );
 
       const previousMessages = opts.messages.filter((message) => !message.isStreaming);
@@ -644,7 +635,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
           const updatedConv = buildConversationPayload(
             opts.currentConversation,
             compactedMessages,
-            compactState,
+            compactState
           );
           opts.setCurrentConversation(updatedConv);
           await invoke('save_conversation', { conversation: updatedConv });
@@ -675,8 +666,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       const errText = String(error);
       const { message: displayError, unauthorized } = resolveBuiltinStreamError(
         errText,
-        opts.t.settingsBuiltin?.unauthorized ||
-          'Key invalid or revoked — please re-activate',
+        opts.t.settingsBuiltin?.unauthorized || 'Key invalid or revoked — please re-activate',
         { treatAsBuiltin: isBuiltinProtocol(provider) }
       );
       if (unauthorized) {

@@ -32,7 +32,8 @@ export function shortenId(id: string, maxLen = 16): string {
 }
 
 function extractQuotedQuery(text: string): string | null {
-  const match = text.match(/未找到匹配\s*"([^"]+)"/) || text.match(/找到\s*\d+\s*个文件包含\s*"([^"]+)"/);
+  const match =
+    text.match(/未找到匹配\s*"([^"]+)"/) || text.match(/找到\s*\d+\s*个文件包含\s*"([^"]+)"/);
   return match?.[1] ?? null;
 }
 

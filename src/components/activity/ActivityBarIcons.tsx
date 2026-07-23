@@ -51,12 +51,7 @@ export function SearchActivityIcon(props: ActivityIconProps) {
   return (
     <ActivityIcon {...props}>
       <circle cx="10.75" cy="10.75" r="6.25" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M15.5 15.5L20 20"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <path d="M15.5 15.5L20 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </ActivityIcon>
   );
 }
@@ -116,12 +111,7 @@ export function TerminalActivityIcon(props: ActivityIconProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path
-        d="M12.5 15.5H16.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <path d="M12.5 15.5H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </ActivityIcon>
   );
 }

@@ -11,10 +11,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  toAnthropicTools,
-  toOpenAITools,
-} from '../converters';
+import { toAnthropicTools, toOpenAITools } from '../converters';
 import type { ToolDefinition } from '../../../types/ai';
 
 // ============================================================================
@@ -322,9 +319,7 @@ describe('toAnthropicTools', () => {
 
   describe('工具数量上限', () => {
     it('超过 128 个工具时截取前 128 个', () => {
-      const tools = Array.from({ length: 150 }, (_, i) =>
-        makeTool({ name: `tool_${i}` })
-      );
+      const tools = Array.from({ length: 150 }, (_, i) => makeTool({ name: `tool_${i}` }));
       const result = toAnthropicTools(tools);
       expect(result.length).toBe(128);
       expect(result[0].name).toBe('tool_0');
@@ -332,9 +327,7 @@ describe('toAnthropicTools', () => {
     });
 
     it('恰好 128 个工具时全部保留', () => {
-      const tools = Array.from({ length: 128 }, (_, i) =>
-        makeTool({ name: `tool_${i}` })
-      );
+      const tools = Array.from({ length: 128 }, (_, i) => makeTool({ name: `tool_${i}` }));
       const result = toAnthropicTools(tools);
       expect(result.length).toBe(128);
     });
@@ -391,9 +384,7 @@ describe('toOpenAITools', () => {
 
   describe('工具数量上限', () => {
     it('超过 128 个工具时截取前 128 个', () => {
-      const tools = Array.from({ length: 200 }, (_, i) =>
-        makeTool({ name: `tool_${i}` })
-      );
+      const tools = Array.from({ length: 200 }, (_, i) => makeTool({ name: `tool_${i}` }));
       const result = toOpenAITools(tools);
       expect(result.length).toBe(128);
     });

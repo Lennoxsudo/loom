@@ -15,7 +15,10 @@ function cssVar(computed: CSSStyleDeclaration, name: string, fallback: string): 
   return v || fallback;
 }
 
-const BYTE = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+const BYTE = (n: number) =>
+  Math.max(0, Math.min(255, Math.round(n)))
+    .toString(16)
+    .padStart(2, '0');
 
 /**
  * Monaco `defineTheme` 对浏览器返回的 rgb()/rgba() 常解析失败，颜色项会被丢弃并回退到 vs 默认
@@ -86,7 +89,11 @@ export function applyMonacoTheme(monaco: typeof Monaco, themeMode: 'system' | 'd
       'editorLineNumber.foreground': monoColor(computed, '--text-secondary', FB.secondary),
       'editorLineNumber.activeForeground': monoColor(computed, '--text-primary', FB.fg),
       'editorCursor.foreground': monoColor(computed, '--text-accent', FB.accent),
-      'editor.selectionBackground': monoColor(computed, '--editor-selection-background', FB.selection),
+      'editor.selectionBackground': monoColor(
+        computed,
+        '--editor-selection-background',
+        FB.selection
+      ),
       'editor.inactiveSelectionBackground': monoColor(
         computed,
         '--editor-selection-inactive-background',
@@ -97,26 +104,82 @@ export function applyMonacoTheme(monaco: typeof Monaco, themeMode: 'system' | 'd
         '--editor-selection-inactive-background',
         FB.selectionInactive
       ),
-      'diffEditor.insertedLineBackground': monoColor(computed, '--editor-diff-inserted-line', FB.diffInsLine),
-      'diffEditor.insertedTextBackground': monoColor(computed, '--editor-diff-inserted-text', FB.diffInsText),
-      'diffEditor.removedLineBackground': monoColor(computed, '--editor-diff-removed-line', FB.diffRmLine),
-      'diffEditor.removedTextBackground': monoColor(computed, '--editor-diff-removed-text', FB.diffRmText),
+      'diffEditor.insertedLineBackground': monoColor(
+        computed,
+        '--editor-diff-inserted-line',
+        FB.diffInsLine
+      ),
+      'diffEditor.insertedTextBackground': monoColor(
+        computed,
+        '--editor-diff-inserted-text',
+        FB.diffInsText
+      ),
+      'diffEditor.removedLineBackground': monoColor(
+        computed,
+        '--editor-diff-removed-line',
+        FB.diffRmLine
+      ),
+      'diffEditor.removedTextBackground': monoColor(
+        computed,
+        '--editor-diff-removed-text',
+        FB.diffRmText
+      ),
       'diffEditor.removedTextBorder': '#00000000',
       'diffEditor.insertedTextBorder': '#00000000',
       'editor.lineHighlightBackground': monoColor(computed, '--editor-line-highlight', FB.lineHi),
-      'editor.lineHighlightBorder': monoColor(computed, '--editor-line-highlight-border', FB.lineHiBorder),
+      'editor.lineHighlightBorder': monoColor(
+        computed,
+        '--editor-line-highlight-border',
+        FB.lineHiBorder
+      ),
       'editor.lineHighlightOnlyWhenFocus': 'true',
       'editorIndentGuide.background1': monoColor(computed, '--border-subtle', FB.borderSubtle),
-      'editorIndentGuide.activeBackground1': monoColor(computed, '--border-strong', FB.borderStrong),
+      'editorIndentGuide.activeBackground1': monoColor(
+        computed,
+        '--border-strong',
+        FB.borderStrong
+      ),
       'editorWhitespace.foreground': monoColor(computed, '--text-secondary', FB.secondary),
-      'editorBracketMatch.background': monoColor(computed, '--editor-bracket-match-background', FB.bracketBg),
-      'editorBracketMatch.border': monoColor(computed, '--editor-bracket-match-border', FB.bracketBorder),
-      'editorBracketHighlight.foreground1': monoColor(computed, '--editor-bracket-fg-1', isDark ? '#79b8ff' : '#0969da'),
-      'editorBracketHighlight.foreground2': monoColor(computed, '--editor-bracket-fg-2', isDark ? '#4dcdb2' : '#087e6c'),
-      'editorBracketHighlight.foreground3': monoColor(computed, '--editor-bracket-fg-3', isDark ? '#cfa8ff' : '#6639ba'),
-      'editorBracketHighlight.foreground4': monoColor(computed, '--editor-bracket-fg-4', isDark ? '#b8e986' : '#1a7f37'),
-      'editorBracketHighlight.foreground5': monoColor(computed, '--editor-bracket-fg-5', isDark ? '#9bdcfe' : '#1f6feb'),
-      'editorBracketHighlight.foreground6': monoColor(computed, '--editor-bracket-fg-6', isDark ? '#87d6ff' : '#0b6899'),
+      'editorBracketMatch.background': monoColor(
+        computed,
+        '--editor-bracket-match-background',
+        FB.bracketBg
+      ),
+      'editorBracketMatch.border': monoColor(
+        computed,
+        '--editor-bracket-match-border',
+        FB.bracketBorder
+      ),
+      'editorBracketHighlight.foreground1': monoColor(
+        computed,
+        '--editor-bracket-fg-1',
+        isDark ? '#79b8ff' : '#0969da'
+      ),
+      'editorBracketHighlight.foreground2': monoColor(
+        computed,
+        '--editor-bracket-fg-2',
+        isDark ? '#4dcdb2' : '#087e6c'
+      ),
+      'editorBracketHighlight.foreground3': monoColor(
+        computed,
+        '--editor-bracket-fg-3',
+        isDark ? '#cfa8ff' : '#6639ba'
+      ),
+      'editorBracketHighlight.foreground4': monoColor(
+        computed,
+        '--editor-bracket-fg-4',
+        isDark ? '#b8e986' : '#1a7f37'
+      ),
+      'editorBracketHighlight.foreground5': monoColor(
+        computed,
+        '--editor-bracket-fg-5',
+        isDark ? '#9bdcfe' : '#1f6feb'
+      ),
+      'editorBracketHighlight.foreground6': monoColor(
+        computed,
+        '--editor-bracket-fg-6',
+        isDark ? '#87d6ff' : '#0b6899'
+      ),
       'editorBracketHighlight.unexpectedBracket.foreground': monoColor(
         computed,
         '--editor-bracket-unexpected-fg',
@@ -131,8 +194,16 @@ export function applyMonacoTheme(monaco: typeof Monaco, themeMode: 'system' | 'd
       'editorGutter.background': monoColor(computed, '--bg-editor', FB.bg),
       'editorOverviewRuler.border': '#00000000',
       'scrollbarSlider.background': monoColor(computed, '--bg-scrollbar-thumb', FB.scrollbar),
-      'scrollbarSlider.hoverBackground': monoColor(computed, '--bg-scrollbar-thumb-hover', FB.scrollbarHover),
-      'scrollbarSlider.activeBackground': monoColor(computed, '--bg-scrollbar-thumb-hover', FB.scrollbarHover),
+      'scrollbarSlider.hoverBackground': monoColor(
+        computed,
+        '--bg-scrollbar-thumb-hover',
+        FB.scrollbarHover
+      ),
+      'scrollbarSlider.activeBackground': monoColor(
+        computed,
+        '--bg-scrollbar-thumb-hover',
+        FB.scrollbarHover
+      ),
       'minimap.background': monoColor(computed, '--bg-editor', FB.bg),
     },
   });

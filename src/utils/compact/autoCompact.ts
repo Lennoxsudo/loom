@@ -74,12 +74,7 @@ export function shouldAutoCompact(opts: AutoCompactCheckOptions): boolean {
 }
 
 export function isProtectedMessage(msg: CompactableMessage): boolean {
-  return Boolean(
-    msg.compactBoundary ||
-      msg.compactSummary ||
-      msg.uiNotice ||
-      msg.isStreaming,
-  );
+  return Boolean(msg.compactBoundary || msg.compactSummary || msg.uiNotice || msg.isStreaming);
 }
 
 export function estimateMessageListTokens(messages: CompactableMessage[]): number {

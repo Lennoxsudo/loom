@@ -14,7 +14,7 @@ describe('planningHandlers plan tools', () => {
     expect(handler).toBeDefined();
     const result = await handler!.execute(
       { plan: '## Goals\n- ship it', title: 'Ship' },
-      { conversationId },
+      { conversationId }
     );
     expect(result.error).toBeUndefined();
     expect(result.output).toContain('Plan document updated');
@@ -36,7 +36,7 @@ describe('planningHandlers plan tools', () => {
 
     const result = await handler!.execute(
       { plan: '1. Do work\n2. Verify', title: 'Accepted plan' },
-      { conversationId, agentId: 'agent-1', onExitPlanMode },
+      { conversationId, agentId: 'agent-1', onExitPlanMode }
     );
 
     expect(onExitPlanMode).toHaveBeenCalledWith(
@@ -44,7 +44,7 @@ describe('planningHandlers plan tools', () => {
         conversationId,
         agentId: 'agent-1',
         plan: '1. Do work\n2. Verify',
-      }),
+      })
     );
     expect(result.error).toBeUndefined();
     expect(result.output).toContain('human review');

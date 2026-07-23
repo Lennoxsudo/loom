@@ -73,9 +73,7 @@ function readLocalSessionExtras(): AgentSessionExtras {
     return {
       version: 1,
       drafts: sanitizeDrafts(parsed.drafts),
-      pendingChanges: sanitizePendingChanges(
-        parsed.pendingChanges ?? parsed.pending_changes
-      ),
+      pendingChanges: sanitizePendingChanges(parsed.pendingChanges ?? parsed.pending_changes),
     };
   } catch {
     return { ...EMPTY_EXTRAS };

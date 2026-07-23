@@ -14,7 +14,7 @@ const runAgentLoopMock = vi.fn();
 vi.mock('../../../utils/runAgentLoop', () => ({
   runAgentLoop: (...args: any[]) => runAgentLoopMock(...args),
   buildForkMessages: (messages: any) => messages ?? [],
-  filterToolsForSubagentType: <T,>(tools: T[]) => tools,
+  filterToolsForSubagentType: <T>(tools: T[]) => tools,
 }));
 
 describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
@@ -111,14 +111,24 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
 
     expect(runAgentLoopMock).toHaveBeenCalled();
     const options = runAgentLoopMock.mock.calls[0][0];
-    expect(options.systemPrompt).toContain('[WARNING: 上下文已按预算截断 / Context truncated by budget]');
-    expect(options.initialUserMessage).toContain('[WARNING: 上下文已按预算截断 / Context truncated by budget]');
-    expect(options.initialUserMessage).toContain('... [上下文已按预算截断 / Context truncated by budget]');
+    expect(options.systemPrompt).toContain(
+      '[WARNING: 上下文已按预算截断 / Context truncated by budget]'
+    );
+    expect(options.initialUserMessage).toContain(
+      '[WARNING: 上下文已按预算截断 / Context truncated by budget]'
+    );
+    expect(options.initialUserMessage).toContain(
+      '... [上下文已按预算截断 / Context truncated by budget]'
+    );
   });
 
   // 3. Max Rounds Truncation
   it('should fail and output truncation message when runAgentLoop exits due to max rounds', async () => {
-    runAgentLoopMock.mockResolvedValue({ finalText: 'Incomplete response', steps: 10, truncated: true });
+    runAgentLoopMock.mockResolvedValue({
+      finalText: 'Incomplete response',
+      steps: 10,
+      truncated: true,
+    });
 
     const result = await handler.execute(
       {
@@ -129,7 +139,7 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
 
     expect(result.error).toBe('Reached maximum tool call rounds');
     expect(result.output).toContain('因达到最大轮次被截断');
-    
+
     const runs = useSubagentStore.getState().runs;
     const run = Object.values(runs)[0];
     expect(run.status).toBe('failed');
@@ -206,7 +216,7 @@ describe('RunSubagentHandler - Presets, Budget, Rounds, and Models', () => {
     const options = runAgentLoopMock.mock.calls[0][0];
     // Should fall back to parent agent's parsed model name (not composite id)
     expect(options.model).toBe('gpt-4o');
-    
+
     // Result output should contain fallback warning
     expect(result.output).toContain('未在已配置的 AI 服务商中找到，已回退到主代理模型');
   });

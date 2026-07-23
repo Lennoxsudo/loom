@@ -37,7 +37,7 @@ export function formatRulesContext(rules: string): string {
 export function shouldInjectRules(
   rules: string,
   alreadyInjected: boolean,
-  prevContentHash?: string,
+  prevContentHash?: string
 ): boolean {
   if (!rules.trim()) return false;
   if (!alreadyInjected) return true;
@@ -87,7 +87,7 @@ export function buildRulesMessage(rules: string): { role: string; content: strin
  */
 export function prependRulesToFirstUserMessage<T extends { role: string; content: unknown }>(
   requestMessages: T[],
-  rules: string,
+  rules: string
 ): boolean {
   const rulesText = formatRulesContext(rules);
   if (!rulesText) return false;
@@ -96,8 +96,7 @@ export function prependRulesToFirstUserMessage<T extends { role: string; content
   if (firstUserIdx < 0) return false;
 
   const firstUser = requestMessages[firstUserIdx];
-  const originalContent =
-    typeof firstUser.content === 'string' ? firstUser.content : '';
+  const originalContent = typeof firstUser.content === 'string' ? firstUser.content : '';
   requestMessages[firstUserIdx] = {
     ...firstUser,
     content: `${rulesText}\n\n${originalContent}`,

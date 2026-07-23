@@ -12,9 +12,9 @@ describe('buildToolApprovalRejectionText', () => {
   });
 
   it('includes target path when available', () => {
-    expect(
-      buildToolApprovalRejectionText('delete_file', { path: 'src/foo.ts' }, labels)
-    ).toBe('DENIED:delete_file:src/foo.ts');
+    expect(buildToolApprovalRejectionText('delete_file', { path: 'src/foo.ts' }, labels)).toBe(
+      'DENIED:delete_file:src/foo.ts'
+    );
   });
 
   it('strips mcp prefix from tool name', () => {

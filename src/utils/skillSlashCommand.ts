@@ -51,9 +51,7 @@ export function formatSlashCommandDisplay(name: string, args: string): string {
  */
 export function formatSkillLinkMessage(name: string, args: string): string {
   const display = formatSlashCommandDisplay(name, args);
-  const argLine = args.trim()
-    ? `User arguments: ${args.trim()}`
-    : 'User arguments: (none)';
+  const argLine = args.trim() ? `User arguments: ${args.trim()}` : 'User arguments: (none)';
   return [
     display,
     '',
@@ -79,10 +77,7 @@ export function parseSlashSkillInvocation(text: string): SlashSkillInvocation | 
  * Only triggers when the token starts after start-of-string or whitespace
  * and the cursor is at the end of that token.
  */
-export function parseLeadingSlashToken(
-  value: string,
-  cursor: number
-): SlashTokenAtCursor | null {
+export function parseLeadingSlashToken(value: string, cursor: number): SlashTokenAtCursor | null {
   if (cursor < 0 || cursor > value.length) return null;
   const before = value.slice(0, cursor);
   const match = before.match(SLASH_TOKEN_RE);
@@ -96,17 +91,12 @@ export function parseLeadingSlashToken(
   };
 }
 
-export function filterSkillsForSlashQuery(
-  skills: SkillEntry[],
-  query: string
-): SkillEntry[] {
+export function filterSkillsForSlashQuery(skills: SkillEntry[], query: string): SkillEntry[] {
   const q = query.trim().toLowerCase();
   const invocable = skills.filter((s) => s.userInvocable !== false);
   if (!q) return invocable;
   return invocable.filter(
-    (s) =>
-      s.name.toLowerCase().includes(q) ||
-      s.description.toLowerCase().includes(q)
+    (s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
   );
 }
 

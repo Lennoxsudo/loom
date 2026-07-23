@@ -85,10 +85,9 @@ describe('useBottomDockLayout', () => {
 
   test('watchKey change resets overlayInset and bumps resizeKey', () => {
     const ref = createRef();
-    const { result, rerender } = renderHook(
-      ({ watchKey }) => useBottomDockLayout(ref, watchKey),
-      { initialProps: { watchKey: 'conv-1' as string | null } }
-    );
+    const { result, rerender } = renderHook(({ watchKey }) => useBottomDockLayout(ref, watchKey), {
+      initialProps: { watchKey: 'conv-1' as string | null },
+    });
 
     act(() => {
       result.current.handleOverlayChange({ overlayHeight: 200 });
@@ -122,10 +121,9 @@ describe('useBottomDockLayout', () => {
 
   test('null watchKey works without errors', () => {
     const ref = createRef();
-    const { result, rerender } = renderHook(
-      ({ watchKey }) => useBottomDockLayout(ref, watchKey),
-      { initialProps: { watchKey: null as string | null } }
-    );
+    const { result, rerender } = renderHook(({ watchKey }) => useBottomDockLayout(ref, watchKey), {
+      initialProps: { watchKey: null as string | null },
+    });
 
     act(() => {
       result.current.handleOverlayChange({ overlayHeight: 50 });

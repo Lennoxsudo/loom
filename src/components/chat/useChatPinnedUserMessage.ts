@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  findPinnedChatUserMessage,
-  shouldShowChatStickyOverlay,
-} from './chatPinnedUserMessage';
+import { findPinnedChatUserMessage, shouldShowChatStickyOverlay } from './chatPinnedUserMessage';
 import type { Message } from './types';
 import type { UserMessageLayoutCache } from '../agent/messageScrollUtils';
 

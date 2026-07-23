@@ -2,10 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef, type ReactNode } from
 import type { ChatMessage } from '../../types/chat';
 import { scrollToMessage, type UserMessageLayoutCache } from './messageScrollUtils';
 import AgentMessageRow, { type AgentGroupedItem } from './AgentMessageRow';
-import {
-  findPlanAnchorMessageId,
-  insertAfterMessageAnchor,
-} from '../../utils/planMessageAnchor';
+import { findPlanAnchorMessageId, insertAfterMessageAnchor } from '../../utils/planMessageAnchor';
 
 export interface AgentMessageListHandle {
   scrollToMessageId: (messageId: string, behavior?: ScrollBehavior) => boolean;
@@ -45,12 +42,13 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
       userMessageEditDisabled,
       planSlot,
     },
-    ref,
+    ref
   ) {
     const grouped = useMemo<AgentGroupedItem[]>(() => {
       const fileReadTools = ['read', 'read_file', 'view_file', 'get_file_info', 'finfo'];
       const deleteTools = ['delete_file'];
-      const isFileRead = (m: ChatMessage) => m.role === 'tool' && fileReadTools.includes(m.tool_name || '');
+      const isFileRead = (m: ChatMessage) =>
+        m.role === 'tool' && fileReadTools.includes(m.tool_name || '');
       const isDelete = (m: ChatMessage) =>
         m.role === 'tool' &&
         deleteTools.includes(m.tool_name || '') &&
@@ -77,12 +75,12 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
       }
       if (!planSlot) return result;
       const anchorId = findPlanAnchorMessageId(
-        messages.map((m) => ({ id: m.id, role: m.role, tool_name: m.tool_name })),
+        messages.map((m) => ({ id: m.id, role: m.role, tool_name: m.tool_name }))
       );
       return insertAfterMessageAnchor(
         result,
         { kind: 'plan', id: 'plan-document-panel' },
-        anchorId,
+        anchorId
       );
     }, [messages, planSlot]);
 
@@ -99,7 +97,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
           return scrollToMessage(container, messageId, behavior, getLayoutCache?.());
         },
       }),
-      [getLayoutCache, messagesContainerRef],
+      [getLayoutCache, messagesContainerRef]
     );
 
     if (messages.length === 0) return null;
@@ -113,7 +111,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
                 ? item.message.id
                 : item.kind === 'plan'
                   ? item.id
-                  : item.messages[0]?.id ?? `${item.kind}-${index}`
+                  : (item.messages[0]?.id ?? `${item.kind}-${index}`)
             }
             item={item}
             expandedThinkingIds={expandedThinkingIds}
@@ -130,7 +128,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
         ))}
       </>
     );
-  },
+  }
 );
 
 export default AgentMessageList;

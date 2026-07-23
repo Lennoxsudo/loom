@@ -21,7 +21,7 @@ describe('thinkingExtractor', () => {
 这是最终的答案。`;
 
       const result = extractThinkingContent(text);
-      
+
       expect(result.hasThinkingTag).toBe(true);
       expect(result.thinking).toBe('这是一个思考过程。\n我需要考虑这个问题。');
       expect(result.content).toBe('Before thinking.\n这是最终的答案。');
@@ -36,7 +36,7 @@ describe('thinkingExtractor', () => {
 这是最终的答案。`;
 
       const result = extractThinkingContent(text);
-      
+
       expect(result.hasThinkingTag).toBe(true);
       expect(result.thinking).toBe('这是一个思考过程。\n我需要考虑这个问题。');
       expect(result.content).toBe('思考开始。\n这是最终的答案。');
@@ -51,9 +51,11 @@ describe('thinkingExtractor', () => {
 </thinking>`;
 
       const result = extractThinkingContent(text);
-      
+
       expect(result.hasThinkingTag).toBe(true);
-      expect(result.thinking).toBe('让我先分析一下这个问题。\n用户想要一个简单的计算器程序。\n我需要考虑用户界面和功能。');
+      expect(result.thinking).toBe(
+        '让我先分析一下这个问题。\n用户想要一个简单的计算器程序。\n我需要考虑用户界面和功能。'
+      );
       expect(result.content).toBe('所以，我将创建一个简单的计算器程序，包含基本的加减乘除功能。');
     });
 
@@ -67,10 +69,14 @@ describe('thinkingExtractor', () => {
 更多细节说明。`;
 
       const result = extractThinkingContent(text);
-      
+
       expect(result.hasThinkingTag).toBe(true);
-      expect(result.thinking).toBe('首先，我需要分析这个问题。\n用户想要一个简单的计算器程序。\n接下来，我需要设计用户界面。');
-      expect(result.content).toBe('所以，答案是创建一个包含加减乘除功能的计算器。\n\n更多细节说明。');
+      expect(result.thinking).toBe(
+        '首先，我需要分析这个问题。\n用户想要一个简单的计算器程序。\n接下来，我需要设计用户界面。'
+      );
+      expect(result.content).toBe(
+        '所以，答案是创建一个包含加减乘除功能的计算器。\n\n更多细节说明。'
+      );
     });
 
     test('should handle unclosed thinking tags (streaming)', () => {
@@ -79,7 +85,7 @@ describe('thinkingExtractor', () => {
 还没有结束`;
 
       const result = extractThinkingContent(text);
-      
+
       expect(result.hasThinkingTag).toBe(true);
       expect(result.thinking).toBe('这是一个流式传输中的思考过程。\n还没有结束');
       expect(result.content).toBe('');
@@ -90,7 +96,7 @@ describe('thinkingExtractor', () => {
 直接给出答案。`;
 
       const result = extractThinkingContent(text);
-      
+
       expect(result.hasThinkingTag).toBe(false);
       expect(result.thinking).toBe('');
       expect(result.content).toBe('这是一个普通的回答，没有思考过程。\n直接给出答案。');
@@ -103,7 +109,7 @@ describe('thinkingExtractor', () => {
 然后，我需要设计界面。`;
 
       const result = extractThinkingContent(`<thinking>${thinking}</thinking>`);
-      
+
       expect(result.content).toContain('答案是：创建一个简单的计算器程序。');
       expect(result.thinking).not.toContain('答案是：创建一个简单的计算器程序。');
     });
@@ -115,7 +121,9 @@ This is another long thinking line that should definitely stay in the thinking b
 </thinking>`;
 
       const result = extractThinkingContent(text);
-      expect(result.thinking).toBe('Let me understand the project structure better by examining key files.\nThis is another long thinking line that should definitely stay in the thinking bubble.');
+      expect(result.thinking).toBe(
+        'Let me understand the project structure better by examining key files.\nThis is another long thinking line that should definitely stay in the thinking bubble.'
+      );
       expect(result.content).toBe('');
     });
 
@@ -123,7 +131,9 @@ This is another long thinking line that should definitely stay in the thinking b
       const text = `<thinking>Let me look at the key files to understand this project: README.md, package.json, and some of the main source files. We also have 3.14 as pi.</thinking>`;
       const result = extractThinkingContent(text);
       // Since it only has 2 sentences after refined regex split, it should not trigger 2/3 split and keep everything in thinking
-      expect(result.thinking).toBe('Let me look at the key files to understand this project: README.md, package.json, and some of the main source files. We also have 3.14 as pi.');
+      expect(result.thinking).toBe(
+        'Let me look at the key files to understand this project: README.md, package.json, and some of the main source files. We also have 3.14 as pi.'
+      );
       expect(result.content).toBe('');
     });
 
@@ -138,7 +148,9 @@ This is another long thinking line that should definitely stay in the thinking b
       const text = `<thinking>I will read README.md. Next, I will check package.json. Then, I will update code version to 2.0. This is the final step.</thinking>`;
       const result = extractThinkingContent(text);
       expect(result.thinking).toBe('I will read README.md. Next, I will check package.json.');
-      expect(result.content).toBe('Then, I will update code version to 2.0. This is the final step.');
+      expect(result.content).toBe(
+        'Then, I will update code version to 2.0. This is the final step.'
+      );
     });
   });
 
@@ -148,7 +160,7 @@ This is another long thinking line that should definitely stay in the thinking b
       const thinking = '';
 
       const result = smartMergeThinkingAndContent(text, thinking);
-      
+
       expect(result.finalText).toBe(text);
       expect(result.finalThinking).toBe('');
     });
@@ -159,7 +171,7 @@ This is another long thinking line that should definitely stay in the thinking b
 最后总结一下。`;
 
       const result = smartMergeThinkingAndContent(text, thinking);
-      
+
       // 当正文为空且思考内容包含答案时，整个思考内容可能会被视为答案
       // 因为思考内容看起来像是答案（以"所以"开头）
       expect(result.finalText).toBe(thinking); // 整个思考内容都被当作答案
@@ -171,7 +183,7 @@ This is another long thinking line that should definitely stay in the thinking b
       const thinking = '创建一个计算器程序。\n这是具体的实现细节。';
 
       const result = smartMergeThinkingAndContent(text, thinking);
-      
+
       expect(result.finalText).toBe('创建一个计算器程序。');
       expect(result.finalThinking).toBe('这是具体的实现细节。');
     });
@@ -181,7 +193,7 @@ This is another long thinking line that should definitely stay in the thinking b
       const thinking = '首先，设计一个计算器程序。\n然后实现功能。';
 
       const result = smartMergeThinkingAndContent(text, thinking);
-      
+
       // 实现移除了"计算器程序"，但需要处理中文标点
       expect(result.finalText).toBe('计算器程序');
       // 期望结果是"首先，设计一个\n然后实现功能。"（移除了句号）
@@ -193,7 +205,7 @@ This is another long thinking line that should definitely stay in the thinking b
       const thinking = '所以，答案是创建一个计算器程序。';
 
       const result = smartMergeThinkingAndContent(text, thinking);
-      
+
       expect(result.finalText).toBe('所以，答案是创建一个计算器程序。');
       expect(result.finalThinking).toBe('');
     });
@@ -203,7 +215,7 @@ This is another long thinking line that should definitely stay in the thinking b
     test('should extract thinking from chunk with start and end tags', () => {
       const text = '一些内容<thinking>这是思考内容</thinking>更多内容';
       const result = processStreamingThinkingChunk(text, false);
-      
+
       expect(result.isThinking).toBe(false);
       expect(result.extractedContent).toBe('这是思考内容');
       expect(result.remainingText).toBe('一些内容更多内容');
@@ -212,7 +224,7 @@ This is another long thinking line that should definitely stay in the thinking b
     test('should handle thinking already in progress', () => {
       const text = '继续思考内容</thinking>结束后的内容';
       const result = processStreamingThinkingChunk(text, true);
-      
+
       expect(result.isThinking).toBe(false);
       expect(result.extractedContent).toBe('继续思考内容');
       expect(result.remainingText).toBe('结束后的内容');
@@ -221,7 +233,7 @@ This is another long thinking line that should definitely stay in the thinking b
     test('should handle thinking without end tag', () => {
       const text = '更多思考内容';
       const result = processStreamingThinkingChunk(text, true);
-      
+
       expect(result.isThinking).toBe(true);
       expect(result.extractedContent).toBe('更多思考内容');
       expect(result.remainingText).toBe('');
@@ -232,11 +244,11 @@ This is another long thinking line that should definitely stay in the thinking b
     test('should preserve existing thinking field', () => {
       const message = {
         text: '一些内容',
-        thinking: '现有的思考内容'
+        thinking: '现有的思考内容',
       };
 
       const result = fixThinkingContentSeparation(message);
-      
+
       expect(result.text).toBe('一些内容');
       expect(result.thinking).toBe('现有的思考内容');
     });
@@ -244,11 +256,11 @@ This is another long thinking line that should definitely stay in the thinking b
     test('should extract thinking from text when thinking is empty', () => {
       const message = {
         text: '开始。<thinking>思考过程</thinking>结束。',
-        thinking: ''
+        thinking: '',
       };
 
       const result = fixThinkingContentSeparation(message);
-      
+
       expect(result.text).toBe('开始。结束。');
       expect(result.thinking).toBe('思考过程');
     });
@@ -256,11 +268,11 @@ This is another long thinking line that should definitely stay in the thinking b
     test('should handle complex thinking with answer', () => {
       const message = {
         text: '<thinking>分析问题。\n所以，答案是创建计算器。\n更多细节。</thinking>',
-        thinking: ''
+        thinking: '',
       };
 
       const result = fixThinkingContentSeparation(message);
-      
+
       expect(result.text).toBe('所以，答案是创建计算器。\n更多细节。');
       expect(result.thinking).toBe('分析问题。');
     });
@@ -459,9 +471,7 @@ This is another long thinking line that should definitely stay in the thinking b
 
   describe('sanitizeSeparateReasoningStream', () => {
     test('should move trailing text after closing tag into leakedText', () => {
-      const result = sanitizeSeparateReasoningStream(
-        'reasoning line\n</thinking>\n\nbody leak',
-      );
+      const result = sanitizeSeparateReasoningStream('reasoning line\n</thinking>\n\nbody leak');
       expect(result.thinking.trim()).toBe('reasoning line');
       expect(result.leakedText).toBe('body leak');
     });

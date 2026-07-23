@@ -194,10 +194,7 @@ const McpToolResultCard = memo(function McpToolResultCard({
   const { serverId, toolName } = parseToolIdentity(message.tool_name);
   const isError = looksLikeFailure(message.text);
   const structuredOutput = useMemo(() => parseStructuredOutput(message.text), [message.text]);
-  const summaryEntries = useMemo(
-    () => collectSummaryEntries(structuredOutput),
-    [structuredOutput]
-  );
+  const summaryEntries = useMemo(() => collectSummaryEntries(structuredOutput), [structuredOutput]);
   const argumentEntries = useMemo(
     () => collectArgumentEntries(message.tool_args),
     [message.tool_args]
@@ -216,10 +213,9 @@ const McpToolResultCard = memo(function McpToolResultCard({
   const cardStyle: CSSProperties = {
     borderRadius: '10px',
     overflow: 'hidden',
-    background:
-      isError
-        ? 'linear-gradient(180deg, rgba(244, 135, 113, 0.08) 0%, rgba(30, 30, 30, 0.96) 100%)'
-        : 'linear-gradient(180deg, rgba(0, 122, 204, 0.07) 0%, rgba(30, 30, 30, 0.96) 100%)',
+    background: isError
+      ? 'linear-gradient(180deg, rgba(244, 135, 113, 0.08) 0%, rgba(30, 30, 30, 0.96) 100%)'
+      : 'linear-gradient(180deg, rgba(0, 122, 204, 0.07) 0%, rgba(30, 30, 30, 0.96) 100%)',
     border: '1px solid rgba(255, 255, 255, 0.06)',
     borderLeft: `3px solid ${accent}`,
     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
@@ -310,7 +306,14 @@ const McpToolResultCard = memo(function McpToolResultCard({
               {formatToolDisplayName(toolName)}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: 'var(--text-secondary)',
+            }}
+          >
             {summaryEntries[0] && (
               <span style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
                 {summaryEntries[0].label}: {summaryEntries[0].value}
@@ -358,7 +361,13 @@ const McpToolResultCard = memo(function McpToolResultCard({
                         border: '1px solid rgba(255, 255, 255, 0.05)',
                       }}
                     >
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                          marginBottom: '4px',
+                        }}
+                      >
                         {entry.label}
                       </div>
                       <div

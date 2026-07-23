@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import type { EditorGroupId, EditorGroupState, OpenFilesByPath, SplitDirection } from '../../types/app';
+import type {
+  EditorGroupId,
+  EditorGroupState,
+  OpenFilesByPath,
+  SplitDirection,
+} from '../../types/app';
 import { EditorGroupView } from './EditorGroupView';
-import {
-  SplitRightDropZone,
-  SplitDownDropZone,
-  OpenLeftDropZone,
-} from './DropZones';
+import { SplitRightDropZone, SplitDownDropZone, OpenLeftDropZone } from './DropZones';
 
 export interface EditorSplitViewProps {
   isSplit: boolean;
@@ -175,7 +176,9 @@ export function EditorSplitView({
               width: splitDirection === 'row' ? '4px' : '100%',
               height: splitDirection === 'column' ? '4px' : '100%',
               cursor: splitDirection === 'row' ? 'col-resize' : 'row-resize',
-              backgroundColor: isEditorSplitResizing ? 'var(--panel-resizer-active)' : 'var(--panel-resizer-muted)',
+              backgroundColor: isEditorSplitResizing
+                ? 'var(--panel-resizer-active)'
+                : 'var(--panel-resizer-muted)',
               transition: isEditorSplitResizing ? 'none' : 'background-color 0.1s',
             }}
             onMouseEnter={(e) => {

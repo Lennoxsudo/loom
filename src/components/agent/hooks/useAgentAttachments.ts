@@ -40,7 +40,9 @@ export interface UseAgentAttachmentsResult {
   handleDrop: (e: React.DragEvent) => Promise<void>;
 }
 
-export function useAgentAttachments(options: UseAgentAttachmentsOptions): UseAgentAttachmentsResult {
+export function useAgentAttachments(
+  options: UseAgentAttachmentsOptions
+): UseAgentAttachmentsResult {
   const { selectedAgent, isSelectedAgentBusy, inputCardRef, setError } = options;
 
   const [attachedImages, setAttachedImages] = useState<PendingImageAttachment[]>([]);

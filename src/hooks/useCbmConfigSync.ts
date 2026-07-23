@@ -1,9 +1,5 @@
 import { useEffect } from 'react';
-import {
-  useEnableCodeGraph,
-  useGraphAutoIndexMaxFiles,
-  useGraphAutoIndexOnOpen,
-} from '../stores';
+import { useEnableCodeGraph, useGraphAutoIndexMaxFiles, useGraphAutoIndexOnOpen } from '../stores';
 import { useCbmGraphReady } from '../stores/useCbmStore';
 import { syncCbmConfig } from '../utils/cbmRuntime';
 import { useNotification } from '../contexts/NotificationContext';
@@ -31,5 +27,11 @@ export function useCbmConfigSync(): void {
         showWarning(t.graph.configSyncFailed);
       }
     });
-  }, [cbmReady, graphAutoIndexMaxFiles, graphAutoIndexOnOpen, showWarning, t.graph.configSyncFailed]);
+  }, [
+    cbmReady,
+    graphAutoIndexMaxFiles,
+    graphAutoIndexOnOpen,
+    showWarning,
+    t.graph.configSyncFailed,
+  ]);
 }

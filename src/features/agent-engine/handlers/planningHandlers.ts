@@ -3,12 +3,7 @@ import type { ToolHandler, ToolContext } from '../types';
 import type { ExitPlanModeArgs, TodoWriteArgs, UpdatePlanArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
 import { formatTodos, setTodos, type TodoWriteInputItem } from '../todoStore';
-import {
-  formatPlanDocumentBlock,
-  inferPlanTitle,
-  peekPlan,
-  setPlan,
-} from '../planStore';
+import { formatPlanDocumentBlock, inferPlanTitle, peekPlan, setPlan } from '../planStore';
 
 function isValidTodoStatus(status: unknown): boolean {
   return (
@@ -46,7 +41,10 @@ class TodoWriteHandler implements ToolHandler<'todo'> {
             throw ToolError.invalidParam('todos[].content', 'must be non-empty string');
           }
           if (!isValidTodoStatus(item.status)) {
-            throw ToolError.invalidParam('todos[].status', 'must be pending | in_progress | completed');
+            throw ToolError.invalidParam(
+              'todos[].status',
+              'must be pending | in_progress | completed'
+            );
           }
         }
       }
@@ -81,16 +79,15 @@ class UpdatePlanHandler implements ToolHandler<'update_plan'> {
 
       const conversationId = context?.conversationId || '';
       if (!conversationId) {
-        throw ToolError.invalidParam('conversationId', 'conversationId is required for update_plan');
+        throw ToolError.invalidParam(
+          'conversationId',
+          'conversationId is required for update_plan'
+        );
       }
 
       const existing = peekPlan(conversationId);
       const explicitTitle = typeof args.title === 'string' ? args.title.trim() : '';
-      const title =
-        explicitTitle ||
-        existing.title.trim() ||
-        inferPlanTitle(args.plan) ||
-        '';
+      const title = explicitTitle || existing.title.trim() || inferPlanTitle(args.plan) || '';
 
       const saved = setPlan(conversationId, {
         content: args.plan,
@@ -127,7 +124,10 @@ class ExitPlanModeHandler implements ToolHandler<'exit_plan_mode'> {
     try {
       const conversationId = context?.conversationId || '';
       if (!conversationId) {
-        throw ToolError.invalidParam('conversationId', 'conversationId is required for exit_plan_mode');
+        throw ToolError.invalidParam(
+          'conversationId',
+          'conversationId is required for exit_plan_mode'
+        );
       }
 
       const existing = peekPlan(conversationId);
@@ -136,7 +136,7 @@ class ExitPlanModeHandler implements ToolHandler<'exit_plan_mode'> {
       if (!planContent) {
         throw ToolError.invalidParam(
           'plan',
-          'plan content is required — pass plan= or call update_plan first',
+          'plan content is required — pass plan= or call update_plan first'
         );
       }
 
@@ -161,7 +161,7 @@ class ExitPlanModeHandler implements ToolHandler<'exit_plan_mode'> {
               agentId: context.agentId,
               plan: planContent,
               title: title || undefined,
-            }),
+            })
           ).catch(() => {
             // Host errors must not fail the tool
           });

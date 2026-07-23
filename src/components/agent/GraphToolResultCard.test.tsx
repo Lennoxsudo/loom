@@ -10,7 +10,7 @@ function renderToolResult(message: ChatMessage) {
   render(
     <I18nProvider defaultLocale="en-US">
       <ToolResultMessage message={message} />
-    </I18nProvider>,
+    </I18nProvider>
   );
 }
 
@@ -23,7 +23,7 @@ describe('GraphToolResultCard (Agent)', () => {
     const text = formatGraphOutput(
       'graph_query',
       'search',
-      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}',
+      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}'
     );
 
     renderToolResult({
@@ -46,7 +46,7 @@ describe('GraphToolResultCard (Agent)', () => {
     const text = formatGraphOutput(
       'graph_query',
       'search',
-      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}',
+      '{"results":[{"name":"foo","label":"Function","file":"src/lib.ts","line":10,"qualified_name":"mod::foo"}]}'
     );
 
     renderToolResult({

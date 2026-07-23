@@ -137,7 +137,9 @@
 
 .imageClickable {
   cursor: pointer;
-  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .imageClickable:hover {

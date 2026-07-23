@@ -5,10 +5,7 @@
  * for tracking whether project-path context has been injected into a
  * conversation, with path-hash fingerprinting to detect changes.
  */
-import type {
-  AgentConversation,
-  ProjectPathInjectionState,
-} from '../types/chat';
+import type { AgentConversation, ProjectPathInjectionState } from '../types/chat';
 
 // ── Hashing ──────────────────────────────────────────────────────────
 /**
@@ -44,7 +41,7 @@ const pendingLocks = new Map<string, { requestId: string }>();
  */
 export function shouldInjectProjectPath(
   conversation: AgentConversation | undefined,
-  currentProjectPath: string,
+  currentProjectPath: string
 ): boolean {
   if (!currentProjectPath.trim()) return false;
   if (!conversation) return true; // brand-new conversation
@@ -64,10 +61,7 @@ export function shouldInjectProjectPath(
  * Mark the injection as pending for a given conversation + request.
  * Returns `false` if the lock is already held (concurrent request).
  */
-export function markInjectionPending(
-  conversationId: string,
-  requestId: string,
-): boolean {
+export function markInjectionPending(conversationId: string, requestId: string): boolean {
   if (pendingLocks.has(conversationId)) return false;
   pendingLocks.set(conversationId, { requestId });
   return true;
@@ -83,7 +77,7 @@ export function markInjectionPending(
 export function commitInjection(
   conversationId: string,
   requestId: string,
-  projectPath: string,
+  projectPath: string
 ): ProjectPathInjectionState | undefined {
   const lock = pendingLocks.get(conversationId);
   if (!lock || lock.requestId !== requestId) return undefined;
@@ -98,10 +92,7 @@ export function commitInjection(
 /**
  * Release a pending lock without committing (e.g. on failure / rollback).
  */
-export function rollbackInjection(
-  conversationId: string,
-  requestId: string,
-): void {
+export function rollbackInjection(conversationId: string, requestId: string): void {
   const lock = pendingLocks.get(conversationId);
   if (lock && lock.requestId === requestId) {
     pendingLocks.delete(conversationId);

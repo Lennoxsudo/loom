@@ -32,27 +32,22 @@ const ALL_CAPABILITY_FIELDS: (keyof AgentCapabilities)[] = [
   'canUseMcp',
 ];
 
-const EXECUTE_TOOLS = new Set([
-  'create_terminal',
-  'close_terminal',
-  'run_command',
-]);
+const EXECUTE_TOOLS = new Set(['create_terminal', 'close_terminal', 'run_command']);
 
 /**
  * Arbitrary that generates a random Partial<AgentCapabilities> object.
  * Each field is independently included or omitted, and when included
  * it takes a random boolean value.
  */
-const partialCapabilitiesArb: fc.Arbitrary<Partial<AgentCapabilities>> = fc
-  .record(
-    {
-      canExecuteCommands: fc.boolean(),
-      canAccessBrowser: fc.boolean(),
-      canUseGit: fc.boolean(),
-      canUseMcp: fc.boolean(),
-    },
-    { requiredKeys: [] }
-  );
+const partialCapabilitiesArb: fc.Arbitrary<Partial<AgentCapabilities>> = fc.record(
+  {
+    canExecuteCommands: fc.boolean(),
+    canAccessBrowser: fc.boolean(),
+    canUseGit: fc.boolean(),
+    canUseMcp: fc.boolean(),
+  },
+  { requiredKeys: [] }
+);
 
 /**
  * Arbitrary that generates a random complete AgentCapabilities object.
@@ -194,9 +189,7 @@ describe('Feature: agent-capability-permissions, Property 2: 工具拦截与能�
     expect(getToolBlockedByCapability('sym', caps)).toBeNull();
     expect(getToolBlockedByCapability('get_symbol_definition', caps)).toBeNull();
   });
-
 });
-
 
 // ============================================================================
 // Property 3: MCP 工具前缀拦截

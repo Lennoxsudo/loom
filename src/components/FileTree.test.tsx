@@ -51,7 +51,10 @@ const expandedNodes: FileNode[] = [
 const activeFilePath = 'D:\\demo\\file-18.ts';
 
 describe('FileTree auto reveal', () => {
-  const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
+  const clientHeightDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'clientHeight'
+  );
 
   beforeEach(() => {
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', {

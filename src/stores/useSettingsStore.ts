@@ -1,6 +1,6 @@
 /**
  * Settings Store
- * 
+ *
  * 使用 Zustand 管理设置状态，支持细粒度订阅
  */
 
@@ -27,10 +27,7 @@ import type {
   AgentRuntimeMode,
   RecentWorkspace,
 } from '../types/settings';
-import {
-  DEFAULT_KEY_BINDINGS,
-  migrateLegacyExecutionMode,
-} from '../types/settings';
+import { DEFAULT_KEY_BINDINGS, migrateLegacyExecutionMode } from '../types/settings';
 import { normalizeHexColor } from '../utils/lineHighlightColor';
 
 interface SettingsActions {
@@ -223,11 +220,19 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
     result.agentAccessMode = settings.agentAccessMode as AgentAccessMode;
   }
 
-  if (['deny', 'request', 'always'].includes(settings.agentCommandExecutionMode as string)
-    || ['deny', 'request', 'always'].includes(settings.chatToolApprovalMode as string)) {
+  if (
+    ['deny', 'request', 'always'].includes(settings.agentCommandExecutionMode as string) ||
+    ['deny', 'request', 'always'].includes(settings.chatToolApprovalMode as string)
+  ) {
     // Read legacy fields for migration (not stored in result since they're removed from SettingsState)
-    const legacyMode = (settings.agentCommandExecutionMode ?? settings.chatToolApprovalMode) as string | undefined;
-    if (!result.agentAccessMode && legacyMode && ['deny', 'request', 'always'].includes(legacyMode)) {
+    const legacyMode = (settings.agentCommandExecutionMode ?? settings.chatToolApprovalMode) as
+      | string
+      | undefined;
+    if (
+      !result.agentAccessMode &&
+      legacyMode &&
+      ['deny', 'request', 'always'].includes(legacyMode)
+    ) {
       result.agentAccessMode = migrateLegacyExecutionMode(legacyMode as AgentCommandExecutionMode);
     }
   }
@@ -260,7 +265,10 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
     result.graphAutoIndexOnOpen = settings.graphAutoIndexOnOpen;
   }
 
-  if (typeof settings.graphAutoIndexMaxFiles === 'number' && Number.isFinite(settings.graphAutoIndexMaxFiles)) {
+  if (
+    typeof settings.graphAutoIndexMaxFiles === 'number' &&
+    Number.isFinite(settings.graphAutoIndexMaxFiles)
+  ) {
     result.graphAutoIndexMaxFiles = Math.max(0, Math.floor(settings.graphAutoIndexMaxFiles));
   }
 
@@ -268,7 +276,11 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
     result.enableSpendCap = settings.enableSpendCap;
   }
 
-  if (typeof settings.spendCap === 'number' && Number.isFinite(settings.spendCap) && settings.spendCap >= 0) {
+  if (
+    typeof settings.spendCap === 'number' &&
+    Number.isFinite(settings.spendCap) &&
+    settings.spendCap >= 0
+  ) {
     result.spendCap = settings.spendCap;
   }
 
@@ -626,10 +638,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
               : workspace
           );
         } else {
-          next = [
-            ...current,
-            { path: trimmedPath, name: trimmedName, lastOpenedAt: now },
-          ].slice(-12);
+          next = [...current, { path: trimmedPath, name: trimmedName, lastOpenedAt: now }].slice(
+            -12
+          );
         }
 
         set({ recentWorkspaces: next });
@@ -706,14 +717,19 @@ export const useKeyBindings = () => useSettingsStore((state) => state.keyBinding
 export const useLanguage = () => useSettingsStore((state) => state.language);
 export const useThemeMode = () => useSettingsStore((state) => state.themeMode);
 export const useRenderWhitespace = () => useSettingsStore((state) => state.renderWhitespace);
-export const useCurrentLineHighlight = () => useSettingsStore((state) => state.currentLineHighlight);
-export const useCurrentLineHighlightColor = () => useSettingsStore((state) => state.currentLineHighlightColor);
-export const useBracketPairColorization = () => useSettingsStore((state) => state.bracketPairColorization);
+export const useCurrentLineHighlight = () =>
+  useSettingsStore((state) => state.currentLineHighlight);
+export const useCurrentLineHighlightColor = () =>
+  useSettingsStore((state) => state.currentLineHighlightColor);
+export const useBracketPairColorization = () =>
+  useSettingsStore((state) => state.bracketPairColorization);
 export const useCompactFolders = () => useSettingsStore((state) => state.compactFolders);
-export const useAutoRevealCurrentFile = () => useSettingsStore((state) => state.autoRevealCurrentFile);
+export const useAutoRevealCurrentFile = () =>
+  useSettingsStore((state) => state.autoRevealCurrentFile);
 export const useAgentAccessMode = () => useSettingsStore((state) => state.agentAccessMode);
 export const useToolCallDelay = () => useSettingsStore((state) => state.toolCallDelay);
-export const useThinkingBlockAutoExpand = () => useSettingsStore((state) => state.thinkingBlockAutoExpand);
+export const useThinkingBlockAutoExpand = () =>
+  useSettingsStore((state) => state.thinkingBlockAutoExpand);
 export const useEnableSubagents = () => useSettingsStore((state) => state.enableSubagents);
 export const useReasoningEffort = () => useSettingsStore((state) => state.reasoningEffort);
 export const useAgentRuntimeMode = () => useSettingsStore((state) => state.agentRuntimeMode);
@@ -728,44 +744,65 @@ export const useUpdateWordWrap = () => useSettingsStore((state) => state.updateW
 export const useUpdateLineNumbers = () => useSettingsStore((state) => state.updateLineNumbers);
 export const useUpdateMinimap = () => useSettingsStore((state) => state.updateMinimap);
 export const useUpdateCursorStyle = () => useSettingsStore((state) => state.updateCursorStyle);
-export const useUpdateCursorBlinking = () => useSettingsStore((state) => state.updateCursorBlinking);
+export const useUpdateCursorBlinking = () =>
+  useSettingsStore((state) => state.updateCursorBlinking);
 export const useUpdateFormatOnSave = () => useSettingsStore((state) => state.updateFormatOnSave);
-export const useUpdateStartupBehavior = () => useSettingsStore((state) => state.updateStartupBehavior);
-export const useUpdateExcludePatterns = () => useSettingsStore((state) => state.updateExcludePatterns);
+export const useUpdateStartupBehavior = () =>
+  useSettingsStore((state) => state.updateStartupBehavior);
+export const useUpdateExcludePatterns = () =>
+  useSettingsStore((state) => state.updateExcludePatterns);
 export const useUpdateFileSortBy = () => useSettingsStore((state) => state.updateFileSortBy);
 export const useUpdateFoldersFirst = () => useSettingsStore((state) => state.updateFoldersFirst);
 export const useUpdateLanguage = () => useSettingsStore((state) => state.updateLanguage);
 export const useUpdateThemeMode = () => useSettingsStore((state) => state.updateThemeMode);
-export const useUpdateRenderWhitespace = () => useSettingsStore((state) => state.updateRenderWhitespace);
-export const useUpdateCurrentLineHighlight = () => useSettingsStore((state) => state.updateCurrentLineHighlight);
+export const useUpdateRenderWhitespace = () =>
+  useSettingsStore((state) => state.updateRenderWhitespace);
+export const useUpdateCurrentLineHighlight = () =>
+  useSettingsStore((state) => state.updateCurrentLineHighlight);
 export const useUpdateCurrentLineHighlightColor = () =>
   useSettingsStore((state) => state.updateCurrentLineHighlightColor);
-export const useUpdateBracketPairColorization = () => useSettingsStore((state) => state.updateBracketPairColorization);
-export const useUpdateCompactFolders = () => useSettingsStore((state) => state.updateCompactFolders);
-export const useUpdateAutoRevealCurrentFile = () => useSettingsStore((state) => state.updateAutoRevealCurrentFile);
-export const useUpdateAgentAccessMode = () => useSettingsStore((state) => state.updateAgentAccessMode);
+export const useUpdateBracketPairColorization = () =>
+  useSettingsStore((state) => state.updateBracketPairColorization);
+export const useUpdateCompactFolders = () =>
+  useSettingsStore((state) => state.updateCompactFolders);
+export const useUpdateAutoRevealCurrentFile = () =>
+  useSettingsStore((state) => state.updateAutoRevealCurrentFile);
+export const useUpdateAgentAccessMode = () =>
+  useSettingsStore((state) => state.updateAgentAccessMode);
 export const useUpdateToolCallDelay = () => useSettingsStore((state) => state.updateToolCallDelay);
-export const useUpdateThinkingBlockAutoExpand = () => useSettingsStore((state) => state.updateThinkingBlockAutoExpand);
-export const useUpdateEnableSubagents = () => useSettingsStore((state) => state.updateEnableSubagents);
+export const useUpdateThinkingBlockAutoExpand = () =>
+  useSettingsStore((state) => state.updateThinkingBlockAutoExpand);
+export const useUpdateEnableSubagents = () =>
+  useSettingsStore((state) => state.updateEnableSubagents);
 export const useEnableCodeGraph = () => useSettingsStore((state) => state.enableCodeGraph);
 export const useEnableCdpBrowser = () => useSettingsStore((state) => state.enableCdpBrowser);
 export const useCheckForUpdatesOnStartup = () =>
   useSettingsStore((state) => state.checkForUpdatesOnStartup);
-export const useGraphAutoIndexOnOpen = () => useSettingsStore((state) => state.graphAutoIndexOnOpen);
-export const useGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.graphAutoIndexMaxFiles);
-export const useUpdateEnableCodeGraph = () => useSettingsStore((state) => state.updateEnableCodeGraph);
-export const useUpdateEnableCdpBrowser = () => useSettingsStore((state) => state.updateEnableCdpBrowser);
+export const useGraphAutoIndexOnOpen = () =>
+  useSettingsStore((state) => state.graphAutoIndexOnOpen);
+export const useGraphAutoIndexMaxFiles = () =>
+  useSettingsStore((state) => state.graphAutoIndexMaxFiles);
+export const useUpdateEnableCodeGraph = () =>
+  useSettingsStore((state) => state.updateEnableCodeGraph);
+export const useUpdateEnableCdpBrowser = () =>
+  useSettingsStore((state) => state.updateEnableCdpBrowser);
 export const useUpdateCheckForUpdatesOnStartup = () =>
   useSettingsStore((state) => state.updateCheckForUpdatesOnStartup);
-export const useUpdateGraphAutoIndexOnOpen = () => useSettingsStore((state) => state.updateGraphAutoIndexOnOpen);
-export const useUpdateGraphAutoIndexMaxFiles = () => useSettingsStore((state) => state.updateGraphAutoIndexMaxFiles);
-export const useUpdateReasoningEffort = () => useSettingsStore((state) => state.updateReasoningEffort);
-export const useUpdateAgentRuntimeMode = () => useSettingsStore((state) => state.updateAgentRuntimeMode);
+export const useUpdateGraphAutoIndexOnOpen = () =>
+  useSettingsStore((state) => state.updateGraphAutoIndexOnOpen);
+export const useUpdateGraphAutoIndexMaxFiles = () =>
+  useSettingsStore((state) => state.updateGraphAutoIndexMaxFiles);
+export const useUpdateReasoningEffort = () =>
+  useSettingsStore((state) => state.updateReasoningEffort);
+export const useUpdateAgentRuntimeMode = () =>
+  useSettingsStore((state) => state.updateAgentRuntimeMode);
 export const useEnableSpendCap = () => useSettingsStore((state) => state.enableSpendCap);
 export const useSpendCap = () => useSettingsStore((state) => state.spendCap);
 export const useUpdateSpendCap = () => useSettingsStore((state) => state.updateSpendCap);
 export const useEnableUsageTracking = () => useSettingsStore((state) => state.enableUsageTracking);
 export const useUpdateUsageTracking = () => useSettingsStore((state) => state.updateUsageTracking);
-export const useTouchRecentWorkspace = () => useSettingsStore((state) => state.touchRecentWorkspace);
-export const useRemoveRecentWorkspace = () => useSettingsStore((state) => state.removeRecentWorkspace);
+export const useTouchRecentWorkspace = () =>
+  useSettingsStore((state) => state.touchRecentWorkspace);
+export const useRemoveRecentWorkspace = () =>
+  useSettingsStore((state) => state.removeRecentWorkspace);
 export const useInitializeSettings = () => useSettingsStore((state) => state.initializeSettings);

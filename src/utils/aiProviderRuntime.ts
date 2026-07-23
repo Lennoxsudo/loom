@@ -150,11 +150,7 @@ export function resolveExplicitProfileSelection(
 
   const availableModels = profileRuntime?.models ?? [];
   const resolvedProfileId = profileRuntime?.profileId || profileId || undefined;
-  const resolvedModel = pickModelFromAvailable(
-    preferredModel,
-    availableModels,
-    fallbackModel
-  );
+  const resolvedModel = pickModelFromAvailable(preferredModel, availableModels, fallbackModel);
 
   return {
     model: resolvedModel,
@@ -186,11 +182,7 @@ export function resolveModelSelection(
     }
   }
 
-  const resolvedModel = pickModelFromAvailable(
-    reconciled.model,
-    availableModels,
-    fallbackModel
-  );
+  const resolvedModel = pickModelFromAvailable(reconciled.model, availableModels, fallbackModel);
 
   return {
     model: resolvedModel,
@@ -296,12 +288,7 @@ export function resolveAutoRoutingRequestRuntime(
     return null;
   }
 
-  return reconcileProviderRequest(
-    config,
-    entry.provider,
-    entry.model,
-    entry.profileId
-  );
+  return reconcileProviderRequest(config, entry.provider, entry.model, entry.profileId);
 }
 
 export interface AutoRoutingResolveOptions {
@@ -344,12 +331,7 @@ export function resolveActiveAutoRoutingRuntime(
         (!provider || entry.provider === provider)
     );
     if (matched) {
-      return reconcileProviderRequest(
-        config,
-        matched.provider,
-        matched.model,
-        matched.profileId
-      );
+      return reconcileProviderRequest(config, matched.provider, matched.model, matched.profileId);
     }
   }
 

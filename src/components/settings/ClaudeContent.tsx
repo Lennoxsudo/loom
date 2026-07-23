@@ -50,18 +50,23 @@ function ConfigFormFields({
   const [jsonError, setJsonError] = useState<string | undefined>();
   const jsonEditedRef = useRef(false);
 
-  const configToJson = (cfg: ClaudeConfigFields) => JSON.stringify({
-    env: {
-      ANTHROPIC_AUTH_TOKEN: cfg.apiKey || '',
-      ANTHROPIC_BASE_URL: cfg.endpoint || '',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: cfg.haikuModel || '',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: cfg.opusModel || '',
-      ANTHROPIC_DEFAULT_SONNET_MODEL: cfg.sonnetModel || '',
-      ANTHROPIC_MODEL: cfg.mainModel || '',
-      ANTHROPIC_REASONING_MODEL: cfg.thinkingModel || '',
-    },
-    skipDangerousModePermissionPrompt: true,
-  }, null, 2);
+  const configToJson = (cfg: ClaudeConfigFields) =>
+    JSON.stringify(
+      {
+        env: {
+          ANTHROPIC_AUTH_TOKEN: cfg.apiKey || '',
+          ANTHROPIC_BASE_URL: cfg.endpoint || '',
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: cfg.haikuModel || '',
+          ANTHROPIC_DEFAULT_OPUS_MODEL: cfg.opusModel || '',
+          ANTHROPIC_DEFAULT_SONNET_MODEL: cfg.sonnetModel || '',
+          ANTHROPIC_MODEL: cfg.mainModel || '',
+          ANTHROPIC_REASONING_MODEL: cfg.thinkingModel || '',
+        },
+        skipDangerousModePermissionPrompt: true,
+      },
+      null,
+      2
+    );
 
   useEffect(() => {
     if (!jsonEditedRef.current) {
@@ -195,8 +200,17 @@ function ConfigFormFields({
         </div>
       </div>
       <div style={{ marginTop: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <label className={styles.skillFormLabel} style={{ marginBottom: 0 }}>{t.settingsClaude.configContent}</label>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '6px',
+          }}
+        >
+          <label className={styles.skillFormLabel} style={{ marginBottom: 0 }}>
+            {t.settingsClaude.configContent}
+          </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {jsonError && <span style={{ color: '#f48771', fontSize: '11px' }}>{jsonError}</span>}
             <button
@@ -206,13 +220,21 @@ function ConfigFormFields({
                   const parsed = JSON.parse(jsonText);
                   const formatted = JSON.stringify(parsed, null, 2);
                   handleJsonChange(formatted);
-                } catch { /* ignore */ }
+                } catch {
+                  /* ignore */
+                }
               }}
               style={{
-                padding: '2px 8px', fontSize: '11px', borderRadius: '4px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                borderRadius: '4px',
                 border: '1px solid var(--surface-overlay-border)',
                 backgroundColor: 'var(--surface-overlay-soft)',
-                color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
               }}
             >
               格式化
@@ -224,15 +246,29 @@ function ConfigFormFields({
           onChange={(e) => handleJsonChange(e.target.value)}
           spellCheck={false}
           style={{
-            width: '100%', minHeight: '180px',
-            backgroundColor: 'var(--bg-input)', border: `1px solid ${jsonError ? '#f48771' : 'var(--border-primary)'}`,
-            borderRadius: '6px', padding: '12px', fontSize: '11px',
-            fontFamily: 'Consolas, Monaco, monospace', color: 'var(--text-primary)',
-            resize: 'vertical', outline: 'none', lineHeight: '1.5',
-            boxSizing: 'border-box', tabSize: 2, whiteSpace: 'pre', overflowX: 'auto',
+            width: '100%',
+            minHeight: '180px',
+            backgroundColor: 'var(--bg-input)',
+            border: `1px solid ${jsonError ? '#f48771' : 'var(--border-primary)'}`,
+            borderRadius: '6px',
+            padding: '12px',
+            fontSize: '11px',
+            fontFamily: 'Consolas, Monaco, monospace',
+            color: 'var(--text-primary)',
+            resize: 'vertical',
+            outline: 'none',
+            lineHeight: '1.5',
+            boxSizing: 'border-box',
+            tabSize: 2,
+            whiteSpace: 'pre',
+            overflowX: 'auto',
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = jsonError ? '#f48771' : '#007acc'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = jsonError ? '#f48771' : 'var(--border-primary)'; }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = jsonError ? '#f48771' : '#007acc';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = jsonError ? '#f48771' : 'var(--border-primary)';
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Tab') {
               e.preventDefault();
@@ -241,7 +277,9 @@ function ConfigFormFields({
               const end = ta.selectionEnd;
               const newVal = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
               handleJsonChange(newVal);
-              requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2; });
+              requestAnimationFrame(() => {
+                ta.selectionStart = ta.selectionEnd = start + 2;
+              });
             }
           }}
         />
@@ -268,7 +306,9 @@ function ClaudeConfigCard({
   config: ClaudeConfigItem;
   isEditing: boolean;
   editConfig: Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>;
-  onEditConfigChange: (config: Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>) => void;
+  onEditConfigChange: (
+    config: Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>
+  ) => void;
   onWrite: () => void;
   isWriting: boolean;
   isWritten: boolean;
@@ -279,18 +319,23 @@ function ClaudeConfigCard({
   saving: boolean;
   t: ReturnType<typeof useTranslation>;
 }) {
-  const configToJson = (cfg: typeof editConfig) => JSON.stringify({
-    env: {
-      ANTHROPIC_AUTH_TOKEN: cfg.apiKey || '',
-      ANTHROPIC_BASE_URL: cfg.endpoint || '',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: cfg.haikuModel || '',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: cfg.opusModel || '',
-      ANTHROPIC_DEFAULT_SONNET_MODEL: cfg.sonnetModel || '',
-      ANTHROPIC_MODEL: cfg.mainModel || '',
-      ANTHROPIC_REASONING_MODEL: cfg.thinkingModel || '',
-    },
-    skipDangerousModePermissionPrompt: true,
-  }, null, 2);
+  const configToJson = (cfg: typeof editConfig) =>
+    JSON.stringify(
+      {
+        env: {
+          ANTHROPIC_AUTH_TOKEN: cfg.apiKey || '',
+          ANTHROPIC_BASE_URL: cfg.endpoint || '',
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: cfg.haikuModel || '',
+          ANTHROPIC_DEFAULT_OPUS_MODEL: cfg.opusModel || '',
+          ANTHROPIC_DEFAULT_SONNET_MODEL: cfg.sonnetModel || '',
+          ANTHROPIC_MODEL: cfg.mainModel || '',
+          ANTHROPIC_REASONING_MODEL: cfg.thinkingModel || '',
+        },
+        skipDangerousModePermissionPrompt: true,
+      },
+      null,
+      2
+    );
 
   const [jsonText, setJsonText] = useState(() => configToJson(editConfig));
   const [jsonError, setJsonError] = useState<string | undefined>();
@@ -370,8 +415,14 @@ function ClaudeConfigCard({
             onClick={onWrite}
             disabled={isWriting || isEditing}
             style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              color: isWritten ? '#4ade80' : isWriting ? 'var(--text-secondary)' : 'var(--text-accent)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              color: isWritten
+                ? '#4ade80'
+                : isWriting
+                  ? 'var(--text-secondary)'
+                  : 'var(--text-accent)',
               fontWeight: 500,
               cursor: isWriting || isEditing ? 'not-allowed' : 'pointer',
               opacity: isEditing ? 0.4 : 1,
@@ -380,15 +431,41 @@ function ClaudeConfigCard({
             title="写入配置到 ~/.claude/settings.json"
           >
             {isWriting ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{ animation: 'spin 1s linear infinite' }}
+              >
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
               </svg>
             ) : isWritten ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             ) : (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -417,16 +494,10 @@ function ClaudeConfigCard({
             </>
           ) : (
             <>
-              <button
-                className={styles.skillActionBtn}
-                onClick={onStartEdit}
-              >
+              <button className={styles.skillActionBtn} onClick={onStartEdit}>
                 {t.actions.edit}
               </button>
-              <button
-                className={styles.skillDeleteBtn}
-                onClick={onDelete}
-              >
+              <button className={styles.skillDeleteBtn} onClick={onDelete}>
                 {t.actions.delete}
               </button>
             </>
@@ -524,10 +595,21 @@ function ClaudeConfigCard({
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label className={styles.skillFormLabel} style={{ marginBottom: 0 }}>{t.settingsClaude.configContent}</label>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '6px',
+              }}
+            >
+              <label className={styles.skillFormLabel} style={{ marginBottom: 0 }}>
+                {t.settingsClaude.configContent}
+              </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {jsonError && <span style={{ color: '#f48771', fontSize: '11px' }}>{jsonError}</span>}
+                {jsonError && (
+                  <span style={{ color: '#f48771', fontSize: '11px' }}>{jsonError}</span>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -552,11 +634,26 @@ function ClaudeConfigCard({
                     gap: '4px',
                     transition: 'all 0.15s',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--surface-overlay-soft)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--surface-overlay-soft)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                   title="格式化 JSON"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <polyline points="4 7 4 4 20 4 20 7" />
                     <line x1="9" y1="20" x2="15" y2="20" />
                     <line x1="12" y1="4" x2="12" y2="20" />
@@ -587,8 +684,12 @@ function ClaudeConfigCard({
                 whiteSpace: 'pre',
                 overflowX: 'auto',
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = jsonError ? '#f48771' : '#007acc'; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = jsonError ? '#f48771' : 'var(--border-primary)'; }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = jsonError ? '#f48771' : '#007acc';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = jsonError ? '#f48771' : 'var(--border-primary)';
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Tab') {
                   e.preventDefault();
@@ -623,7 +724,8 @@ export function ClaudeContent() {
         if (Array.isArray(parsed)) {
           return parsed.filter(
             (c: unknown) =>
-              c && typeof c === 'object' &&
+              c &&
+              typeof c === 'object' &&
               typeof (c as Record<string, unknown>).id === 'string' &&
               typeof (c as Record<string, unknown>).name === 'string'
           ) as ClaudeConfigItem[];
@@ -635,9 +737,15 @@ export function ClaudeContent() {
     return [];
   });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editConfig, setEditConfig] = useState<Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>>(defaultClaudeConfig());
+  const [editConfig, setEditConfig] =
+    useState<Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>>(
+      defaultClaudeConfig()
+    );
   const [isCreating, setIsCreating] = useState(false);
-  const [newConfig, setNewConfig] = useState<Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>>(defaultClaudeConfig());
+  const [newConfig, setNewConfig] =
+    useState<Omit<ClaudeConfigItem, 'id' | 'createdAt' | 'updatedAt' | 'enabled'>>(
+      defaultClaudeConfig()
+    );
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [writingId, setWritingId] = useState<string | null>(null);
@@ -665,30 +773,34 @@ export function ClaudeContent() {
 
   const handleWriteConfig = async (id: string) => {
     if (writingId) return;
-    const target = configs.find(c => c.id === id);
+    const target = configs.find((c) => c.id === id);
     if (!target) return;
 
     setWritingId(id);
     setWrittenId(null);
 
-    const configJson = JSON.stringify({
-      env: {
-        ANTHROPIC_AUTH_TOKEN: target.apiKey || '',
-        ANTHROPIC_BASE_URL: target.endpoint || '',
-        ANTHROPIC_DEFAULT_HAIKU_MODEL: target.haikuModel || '',
-        ANTHROPIC_DEFAULT_OPUS_MODEL: target.opusModel || '',
-        ANTHROPIC_DEFAULT_SONNET_MODEL: target.sonnetModel || '',
-        ANTHROPIC_MODEL: target.mainModel || '',
-        ANTHROPIC_REASONING_MODEL: target.thinkingModel || '',
+    const configJson = JSON.stringify(
+      {
+        env: {
+          ANTHROPIC_AUTH_TOKEN: target.apiKey || '',
+          ANTHROPIC_BASE_URL: target.endpoint || '',
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: target.haikuModel || '',
+          ANTHROPIC_DEFAULT_OPUS_MODEL: target.opusModel || '',
+          ANTHROPIC_DEFAULT_SONNET_MODEL: target.sonnetModel || '',
+          ANTHROPIC_MODEL: target.mainModel || '',
+          ANTHROPIC_REASONING_MODEL: target.thinkingModel || '',
+        },
+        skipDangerousModePermissionPrompt: true,
       },
-      skipDangerousModePermissionPrompt: true,
-    }, null, 2);
+      null,
+      2
+    );
 
     try {
       const savedPath = await invoke<string>('save_claude_config', { content: configJson });
       setWrittenId(id);
       globalShowSuccess(`配置「${target.name}」已写入 ${savedPath}`);
-      setTimeout(() => setWrittenId(prev => prev === id ? null : prev), 2000);
+      setTimeout(() => setWrittenId((prev) => (prev === id ? null : prev)), 2000);
     } catch (e) {
       globalShowError(`写入配置失败: ${e}`);
     } finally {
@@ -721,11 +833,9 @@ export function ClaudeContent() {
       return;
     }
     setSaving(true);
-    setConfigs(prev => prev.map(c =>
-      c.id === editingId
-        ? { ...c, ...editConfig, updatedAt: Date.now() }
-        : c
-    ));
+    setConfigs((prev) =>
+      prev.map((c) => (c.id === editingId ? { ...c, ...editConfig, updatedAt: Date.now() } : c))
+    );
     setEditingId(null);
     setEditConfig(defaultClaudeConfig());
     setSaving(false);
@@ -754,18 +864,18 @@ export function ClaudeContent() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    setConfigs(prev => [...prev, config]);
+    setConfigs((prev) => [...prev, config]);
     setIsCreating(false);
     setNewConfig(defaultClaudeConfig());
     setSaving(false);
   };
 
   const handleDelete = (id: string) => {
-    setConfigs(prev => prev.filter(c => c.id !== id));
+    setConfigs((prev) => prev.filter((c) => c.id !== id));
     setDeleteConfirmId(null);
   };
 
-  const configToDelete = deleteConfirmId ? configs.find(c => c.id === deleteConfirmId) : null;
+  const configToDelete = deleteConfirmId ? configs.find((c) => c.id === deleteConfirmId) : null;
 
   return (
     <div className={pageStyles.root}>
@@ -781,7 +891,11 @@ export function ClaudeContent() {
             >
               {t.settingsClaude.newConfig}
             </button>
-            <button type="button" onClick={handleOpenClaudeConfig} className={styles.secondaryButton}>
+            <button
+              type="button"
+              onClick={handleOpenClaudeConfig}
+              className={styles.secondaryButton}
+            >
               {t.settingsClaude.openConfig}
             </button>
           </div>
@@ -802,11 +916,7 @@ export function ClaudeContent() {
             >
               {t.actions.cancel}
             </button>
-            <button
-              className={styles.skillSaveBtn}
-              onClick={handleSaveCreate}
-              disabled={saving}
-            >
+            <button className={styles.skillSaveBtn} onClick={handleSaveCreate} disabled={saving}>
               {saving ? t.settingsClaude.saving : t.actions.create}
             </button>
           </div>
@@ -820,24 +930,24 @@ export function ClaudeContent() {
         </div>
       ) : (
         <div className={styles.configList}>
-        {configs.map(config => (
-          <ClaudeConfigCard
-            key={config.id}
-            config={config}
-            isEditing={editingId === config.id}
-            editConfig={editConfig}
-            onEditConfigChange={setEditConfig}
-            onWrite={() => handleWriteConfig(config.id)}
-            isWriting={writingId === config.id}
-            isWritten={writtenId === config.id}
-            onStartEdit={() => handleStartEdit(config)}
-            onCancelEdit={handleCancelEdit}
-            onSaveEdit={handleSaveEdit}
-            onDelete={() => setDeleteConfirmId(config.id)}
-            saving={saving}
-            t={t}
-          />
-        ))}
+          {configs.map((config) => (
+            <ClaudeConfigCard
+              key={config.id}
+              config={config}
+              isEditing={editingId === config.id}
+              editConfig={editConfig}
+              onEditConfigChange={setEditConfig}
+              onWrite={() => handleWriteConfig(config.id)}
+              isWriting={writingId === config.id}
+              isWritten={writtenId === config.id}
+              onStartEdit={() => handleStartEdit(config)}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              onDelete={() => setDeleteConfirmId(config.id)}
+              saving={saving}
+              t={t}
+            />
+          ))}
         </div>
       )}
 

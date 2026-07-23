@@ -116,8 +116,7 @@ function createHarness(options?: {
       setAgentBusy,
       setSessionBusy,
       setConversationState: (updater) => {
-        conversationState =
-          typeof updater === 'function' ? updater(conversationState) : updater;
+        conversationState = typeof updater === 'function' ? updater(conversationState) : updater;
       },
       setError,
       stopFailedText: 'stop failed',

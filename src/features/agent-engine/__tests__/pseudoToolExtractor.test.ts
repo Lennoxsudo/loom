@@ -37,8 +37,7 @@ describe('extractPseudoToolCallsFromContent', () => {
   });
 
   it('extracts JSON bodies inside tool_call tags', () => {
-    const content =
-      '<tool_call>{"name":"read","arguments":{"path":"README.md"}}</tool_call>';
+    const content = '<tool_call>{"name":"read","arguments":{"path":"README.md"}}</tool_call>';
 
     const { toolCalls } = extractPseudoToolCallsFromContent(content, ['read']);
     expect(toolCalls).toHaveLength(1);

@@ -23,9 +23,8 @@ describe('gitPathDisplay', () => {
 
   it('compactGitPathHeadTail uses full first and last segments for 3+ parts', () => {
     expect(compactGitPathHeadTail('admin-dashboard\\src\\api\\dormit')).toBe(
-      'admin-dashboard\\...\\dormit',
+      'admin-dashboard\\...\\dormit'
     );
     expect(compactGitPathHeadTail('a/b/c/d')).toBe('a/.../d');
   });
-
 });

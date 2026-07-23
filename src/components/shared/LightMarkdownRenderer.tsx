@@ -1,6 +1,6 @@
 /**
  * 轻量级 Markdown 渲染器 - 用于流式输出
- * 
+ *
  * 特点：
  * - 使用 react-markdown 解析，但组件更轻量
  * - 无语法高亮（避免 Prism 的解析开销）
@@ -94,13 +94,7 @@ const hrStyle = {
 
 // ==================== 组件 ====================
 
-function LightCodeBlock({
-  language,
-  children,
-}: {
-  language?: string;
-  children?: string;
-}) {
+function LightCodeBlock({ language, children }: { language?: string; children?: string }) {
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = () => {
@@ -141,13 +135,7 @@ function LightInlineCode({ children }: { children?: ReactNode }) {
   return <code style={inlineCodeStyle}>{children}</code>;
 }
 
-function LightLink({
-  href,
-  children,
-}: {
-  href?: string;
-  children?: ReactNode;
-}) {
+function LightLink({ href, children }: { href?: string; children?: ReactNode }) {
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (href) {
@@ -169,7 +157,7 @@ function LightLink({
 
 /**
  * 轻量级 Markdown 组件集 - 用于流式渲染
- * 
+ *
  * 与完整版 markdownComponents 的区别：
  * - 代码块使用纯 CSS，无 SyntaxHighlighter
  * - 无复杂的代码块语言检测逻辑
@@ -200,7 +188,12 @@ export const lightMarkdownComponents = {
     <div
       role="heading"
       aria-level={1}
-      style={{ fontSize: headingSizes[1], fontWeight: 600, margin: '10px 0 6px 0', color: 'var(--text-primary)' }}
+      style={{
+        fontSize: headingSizes[1],
+        fontWeight: 600,
+        margin: '10px 0 6px 0',
+        color: 'var(--text-primary)',
+      }}
     >
       {props.children}
     </div>
@@ -210,7 +203,12 @@ export const lightMarkdownComponents = {
     <div
       role="heading"
       aria-level={2}
-      style={{ fontSize: headingSizes[2], fontWeight: 600, margin: '8px 0 4px 0', color: 'var(--text-primary)' }}
+      style={{
+        fontSize: headingSizes[2],
+        fontWeight: 600,
+        margin: '8px 0 4px 0',
+        color: 'var(--text-primary)',
+      }}
     >
       {props.children}
     </div>
@@ -220,7 +218,12 @@ export const lightMarkdownComponents = {
     <div
       role="heading"
       aria-level={3}
-      style={{ fontSize: headingSizes[3], fontWeight: 600, margin: '6px 0 4px 0', color: 'var(--text-primary)' }}
+      style={{
+        fontSize: headingSizes[3],
+        fontWeight: 600,
+        margin: '6px 0 4px 0',
+        color: 'var(--text-primary)',
+      }}
     >
       {props.children}
     </div>
@@ -230,7 +233,12 @@ export const lightMarkdownComponents = {
     <div
       role="heading"
       aria-level={4}
-      style={{ fontSize: headingSizes[4], fontWeight: 600, margin: '4px 0 2px 0', color: 'var(--text-primary)' }}
+      style={{
+        fontSize: headingSizes[4],
+        fontWeight: 600,
+        margin: '4px 0 2px 0',
+        color: 'var(--text-primary)',
+      }}
     >
       {props.children}
     </div>
@@ -240,7 +248,12 @@ export const lightMarkdownComponents = {
     <div
       role="heading"
       aria-level={5}
-      style={{ fontSize: headingSizes[5], fontWeight: 600, margin: '4px 0 2px 0', color: 'var(--text-primary)' }}
+      style={{
+        fontSize: headingSizes[5],
+        fontWeight: 600,
+        margin: '4px 0 2px 0',
+        color: 'var(--text-primary)',
+      }}
     >
       {props.children}
     </div>
@@ -250,7 +263,12 @@ export const lightMarkdownComponents = {
     <div
       role="heading"
       aria-level={6}
-      style={{ fontSize: headingSizes[6], fontWeight: 600, margin: '4px 0 2px 0', color: 'var(--text-primary)' }}
+      style={{
+        fontSize: headingSizes[6],
+        fontWeight: 600,
+        margin: '4px 0 2px 0',
+        color: 'var(--text-primary)',
+      }}
     >
       {props.children}
     </div>
@@ -259,15 +277,11 @@ export const lightMarkdownComponents = {
   a: LightLink,
 
   ul: ({ children }: { children?: ReactNode }) => (
-    <ul style={{ margin: '4px 0', paddingLeft: '18px', listStyleType: 'disc' }}>
-      {children}
-    </ul>
+    <ul style={{ margin: '4px 0', paddingLeft: '18px', listStyleType: 'disc' }}>{children}</ul>
   ),
 
   ol: ({ children }: { children?: ReactNode }) => (
-    <ol style={{ margin: '4px 0', paddingLeft: '18px', listStyleType: 'decimal' }}>
-      {children}
-    </ol>
+    <ol style={{ margin: '4px 0', paddingLeft: '18px', listStyleType: 'decimal' }}>{children}</ol>
   ),
 
   li: ({ children }: { children?: ReactNode }) => (
@@ -275,9 +289,7 @@ export const lightMarkdownComponents = {
   ),
 
   strong: ({ children }: { children?: ReactNode }) => (
-    <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-      {children}
-    </strong>
+    <strong style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{children}</strong>
   ),
 
   em: ({ children }: { children?: ReactNode }) => (

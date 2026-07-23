@@ -12,7 +12,9 @@
   border: 1px solid var(--approval-line);
   background: var(--approval-surface);
   overflow: hidden;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .shellPending:hover {

@@ -34,8 +34,8 @@ export interface UseAgentStreamControlResult {
 function messageHasVisibleContent(message: ChatMessage): boolean {
   return Boolean(
     message.text?.trim() ||
-      message.thinking?.trim() ||
-      (message.tool_calls && message.tool_calls.length > 0)
+    message.thinking?.trim() ||
+    (message.tool_calls && message.tool_calls.length > 0)
   );
 }
 

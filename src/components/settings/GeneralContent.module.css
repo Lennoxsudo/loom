@@ -42,7 +42,11 @@
 .patternText {
   min-width: 0;
   font-size: 11px;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;

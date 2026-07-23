@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation } from '../../i18n';
 import { showSuccess as globalShowSuccess } from '../../utils/notification';
-import {
-  type ImageGenerationConfig,
-  type ImageGenerationQuality,
-} from './types';
+import { type ImageGenerationConfig, type ImageGenerationQuality } from './types';
 import { filterImageModels } from '../../utils/imageGenConfig';
 import listStyles from './SettingsExpandableList.module.css';
 import styles from './ImageGenerationSection.module.css';
@@ -170,12 +167,7 @@ export function ImageGenerationSection({
           description={ig.hint}
           action={
             onSave ? (
-              <button
-                type="button"
-                className={styles.saveBtn}
-                onClick={onSave}
-                disabled={isSaving}
-              >
+              <button type="button" className={styles.saveBtn} onClick={onSave} disabled={isSaving}>
                 {isSaving ? form.saving : form.saveConfig}
               </button>
             ) : null
@@ -324,9 +316,7 @@ export function ImageGenerationSection({
               </button>
               {testResult ? (
                 <p
-                  className={
-                    testResult.success ? styles.testResultSuccess : styles.testResultError
-                  }
+                  className={testResult.success ? styles.testResultSuccess : styles.testResultError}
                 >
                   {testResult.message}
                 </p>

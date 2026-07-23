@@ -13,9 +13,7 @@ export interface UseAgentPendingChangesOptions {
   previewKey: string | null;
   onShowWarning: (message: string, title?: string) => void;
   onShowInfo: (message: string, title?: string) => void;
-  onSetConversationState: React.Dispatch<
-    React.SetStateAction<AgentConversationState>
-  >;
+  onSetConversationState: React.Dispatch<React.SetStateAction<AgentConversationState>>;
   onSetPreviewOpenByAgent: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   onSetPendingChangesBySession: React.Dispatch<
     React.SetStateAction<Record<string, PendingFileChange[]>>
@@ -170,7 +168,7 @@ export function useAgentPendingChanges(
           const fileName = change.filePath.split(/[/\\]/).pop() || change.filePath;
           onShowWarning(
             `${fileName} is missing rollback source content, so the file was kept to avoid deletion`,
-            'Rollback stopped',
+            'Rollback stopped'
           );
           return false;
         }
@@ -250,7 +248,15 @@ export function useAgentPendingChanges(
     if (currentItem?.originalContent !== undefined) {
       onSetPreviewOpenByAgent((prev) => ({ ...prev, [previewKey]: false }));
     }
-  }, [pendingChangesBySession, activeProjectKeyRef, previewKey, previewOpenByAgent, conversationStateRef, onSetConversationState, onSetPreviewOpenByAgent]);
+  }, [
+    pendingChangesBySession,
+    activeProjectKeyRef,
+    previewKey,
+    previewOpenByAgent,
+    conversationStateRef,
+    onSetConversationState,
+    onSetPreviewOpenByAgent,
+  ]);
 
   return {
     focusPreviewFile,

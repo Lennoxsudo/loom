@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { AgentConversationState, StreamChunkQueueItem } from '../../../types/chat';
 import { applyTrustedStreamSeparation } from '../../../utils/streamChunkSeparation';
-import { countStreamTextUnits, takeStreamTextUnits, appendThinkingStreamChunk } from '../../../utils/streamTextUnits';
+import {
+  countStreamTextUnits,
+  takeStreamTextUnits,
+  appendThinkingStreamChunk,
+} from '../../../utils/streamTextUnits';
 import { drainQueueChunkBatch, FAST_DRAIN_CHARS_PER_FRAME } from '../../../utils/streamChunkDrain';
 import { updateAgentMessageById } from './agentConversationUpdates';
 
@@ -75,7 +79,11 @@ export function useAgentStreamingQueue(
       for (const item of items) {
         if (shouldSkipItem(item)) continue;
         validItems.push(item);
-        if (!shouldScroll && item.agentId === currentAgentId && item.conversationId === currentConvId) {
+        if (
+          !shouldScroll &&
+          item.agentId === currentAgentId &&
+          item.conversationId === currentConvId
+        ) {
           shouldScroll = true;
         }
       }
@@ -92,74 +100,75 @@ export function useAgentStreamingQueue(
             conversationId,
             message_id,
             (msg) => {
-            const rawContent = msg.rawContent !== undefined ? msg.rawContent : (msg.text || '');
-            const rawThinking = msg.rawThinking !== undefined ? msg.rawThinking : (msg.thinking || '');
+              const rawContent = msg.rawContent !== undefined ? msg.rawContent : msg.text || '';
+              const rawThinking =
+                msg.rawThinking !== undefined ? msg.rawThinking : msg.thinking || '';
 
-            let nextRawContent = rawContent;
-            let nextRawThinking = rawThinking;
-            let nextLastThinkingChunk = msg.lastThinkingChunk;
+              let nextRawContent = rawContent;
+              let nextRawThinking = rawThinking;
+              let nextLastThinkingChunk = msg.lastThinkingChunk;
 
-            if (normalizedChunkType === 'thinking') {
-              const appended = appendThinkingStreamChunk(
-                rawThinking || '',
+              if (normalizedChunkType === 'thinking') {
+                const appended = appendThinkingStreamChunk(
+                  rawThinking || '',
+                  chunk,
+                  msg.lastThinkingChunk
+                );
+                nextRawThinking = appended.rawThinking;
+                nextLastThinkingChunk = appended.lastThinkingChunk;
+              } else {
+                nextRawContent = (rawContent || '') + chunk;
+              }
+
+              const separated = applyTrustedStreamSeparation({
+                rawContent: nextRawContent,
+                rawThinking: nextRawThinking,
+                chunk_type: normalizedChunkType,
                 chunk,
-                msg.lastThinkingChunk
-              );
-              nextRawThinking = appended.rawThinking;
-              nextLastThinkingChunk = appended.lastThinkingChunk;
-            } else {
-              nextRawContent = (rawContent || '') + chunk;
-            }
+                chunkTime,
+                receivedThinkingChunks: msg.receivedThinkingChunks,
+                thinkingStartedAt: msg.thinkingStartedAt,
+                thinkingEndedAt: msg.thinkingEndedAt,
+                firstContentTime: msg.firstContentTime,
+              });
 
-            const separated = applyTrustedStreamSeparation({
-              rawContent: nextRawContent,
-              rawThinking: nextRawThinking,
-              chunk_type: normalizedChunkType,
-              chunk,
-              chunkTime,
-              receivedThinkingChunks: msg.receivedThinkingChunks,
-              thinkingStartedAt: msg.thinkingStartedAt,
-              thinkingEndedAt: msg.thinkingEndedAt,
-              firstContentTime: msg.firstContentTime,
-            });
+              const nextText = separated.content;
+              const nextThinking = separated.thinking;
+              const nextIsThinking = separated.isThinking;
+              const nextReceivedThinkingChunks = separated.receivedThinkingChunks;
+              const nextThinkingStartedAt = separated.thinkingStartedAt;
+              const nextThinkingEndedAt = separated.thinkingEndedAt;
+              const nextFirstContentTime = separated.firstContentTime;
 
-            const nextText = separated.content;
-            const nextThinking = separated.thinking;
-            const nextIsThinking = separated.isThinking;
-            const nextReceivedThinkingChunks = separated.receivedThinkingChunks;
-            const nextThinkingStartedAt = separated.thinkingStartedAt;
-            const nextThinkingEndedAt = separated.thinkingEndedAt;
-            const nextFirstContentTime = separated.firstContentTime;
+              const noChanges =
+                msg.text === nextText &&
+                msg.thinking === nextThinking &&
+                msg.isThinking === nextIsThinking &&
+                msg.rawContent === nextRawContent &&
+                msg.rawThinking === nextRawThinking &&
+                msg.lastThinkingChunk === nextLastThinkingChunk &&
+                msg.receivedThinkingChunks === nextReceivedThinkingChunks &&
+                msg.thinkingStartedAt === nextThinkingStartedAt &&
+                msg.thinkingEndedAt === nextThinkingEndedAt &&
+                msg.firstContentTime === nextFirstContentTime;
+              if (noChanges) {
+                return msg;
+              }
 
-            const noChanges =
-              msg.text === nextText &&
-              msg.thinking === nextThinking &&
-              msg.isThinking === nextIsThinking &&
-              msg.rawContent === nextRawContent &&
-              msg.rawThinking === nextRawThinking &&
-              msg.lastThinkingChunk === nextLastThinkingChunk &&
-              msg.receivedThinkingChunks === nextReceivedThinkingChunks &&
-              msg.thinkingStartedAt === nextThinkingStartedAt &&
-              msg.thinkingEndedAt === nextThinkingEndedAt &&
-              msg.firstContentTime === nextFirstContentTime;
-            if (noChanges) {
-              return msg;
-            }
-
-            return {
-              ...msg,
-              text: nextText,
-              thinking: nextThinking,
-              isThinking: nextIsThinking,
-              rawContent: nextRawContent,
-              rawThinking: nextRawThinking,
-              lastThinkingChunk: nextLastThinkingChunk,
-              receivedThinkingChunks: nextReceivedThinkingChunks,
-              thinkingStartedAt: nextThinkingStartedAt,
-              thinkingEndedAt: nextThinkingEndedAt,
-              firstContentTime: nextFirstContentTime,
-            };
-          },
+              return {
+                ...msg,
+                text: nextText,
+                thinking: nextThinking,
+                isThinking: nextIsThinking,
+                rawContent: nextRawContent,
+                rawThinking: nextRawThinking,
+                lastThinkingChunk: nextLastThinkingChunk,
+                receivedThinkingChunks: nextReceivedThinkingChunks,
+                thinkingStartedAt: nextThinkingStartedAt,
+                thinkingEndedAt: nextThinkingEndedAt,
+                firstContentTime: nextFirstContentTime,
+              };
+            },
             { touchUpdatedAt: false }
           );
         }
@@ -170,7 +179,13 @@ export function useAgentStreamingQueue(
         scheduleAutoScrollToEnd();
       }
     },
-    [onSetConversationState, selectedAgentIdRef, conversationStateRef, scheduleAutoScrollToEnd, shouldSkipItem]
+    [
+      onSetConversationState,
+      selectedAgentIdRef,
+      conversationStateRef,
+      scheduleAutoScrollToEnd,
+      shouldSkipItem,
+    ]
   );
 
   const applyStreamChunk = useCallback(

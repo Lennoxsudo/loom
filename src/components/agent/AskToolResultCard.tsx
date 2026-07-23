@@ -13,10 +13,7 @@ export type AskAnswerPair = {
   answer: string;
 };
 
-export function parseAskToolAnswers(
-  text: string,
-  questions: AskQuestionArg[]
-): AskAnswerPair[] {
+export function parseAskToolAnswers(text: string, questions: AskQuestionArg[]): AskAnswerPair[] {
   if (!text || questions.length === 0) return [];
 
   const textLines = text.split('\n');
@@ -78,9 +75,7 @@ const AskToolResultCard = memo(function AskToolResultCard({
         ) : (
           answers.length > 0 && (
             <div
-              className={`${styles.answers} ${
-                answers.length === 1 ? styles.answersCompact : ''
-              }`}
+              className={`${styles.answers} ${answers.length === 1 ? styles.answersCompact : ''}`}
             >
               {answers.map((item, idx) => (
                 <div

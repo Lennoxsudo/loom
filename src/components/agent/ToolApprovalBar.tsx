@@ -10,16 +10,10 @@ export interface ToolApprovalBarProps {
   layout?: 'footer' | 'header';
 }
 
-export function ToolApprovalOutcomeLabel({
-  status,
-}: {
-  status: 'approved' | 'denied';
-}) {
+export function ToolApprovalOutcomeLabel({ status }: { status: 'approved' | 'denied' }) {
   const t = useTranslation();
   const label =
-    status === 'approved'
-      ? t.agent.approvalDialog.approve
-      : t.agent.approvalDialog.reject;
+    status === 'approved' ? t.agent.approvalDialog.approve : t.agent.approvalDialog.reject;
 
   return (
     <span

@@ -4,10 +4,7 @@ import { ChevronDownIcon } from '../shared/Icons';
 import { PROVIDERS } from './types';
 import type { ChatProtocolSelection } from './types';
 import styles from './ProviderModelSelector.module.css';
-import {
-  COMPOSER_SELECTOR_MENU_ATTR,
-  useAnchoredPortalMenu,
-} from './useAnchoredPortalMenu';
+import { COMPOSER_SELECTOR_MENU_ATTR, useAnchoredPortalMenu } from './useAnchoredPortalMenu';
 
 export interface ProviderModelSelectorProps {
   selectedProtocol: ChatProtocolSelection;
@@ -62,8 +59,7 @@ export default function ProviderModelSelector({
     : selectedProvider
       ? providerDisplayName(selectedProvider, t)
       : undefined;
-  const pillClass =
-    variant === 'ghost' ? `${styles.pill} ${styles.pillGhost}` : styles.pill;
+  const pillClass = variant === 'ghost' ? `${styles.pill} ${styles.pillGhost}` : styles.pill;
   const usePortal = variant === 'ghost';
 
   const providerAnchorRef = useRef<HTMLButtonElement>(null);
@@ -134,9 +130,7 @@ export default function ProviderModelSelector({
   const renderProviderMenu = () => {
     if (!isDropdownOpen) return null;
 
-    const menuClass = usePortal
-      ? `${styles.dropdownPortal} ${styles.dropdown}`
-      : styles.dropdown;
+    const menuClass = usePortal ? `${styles.dropdownPortal} ${styles.dropdown}` : styles.dropdown;
 
     const menu = (
       <div
@@ -215,9 +209,7 @@ export default function ProviderModelSelector({
 
       {!isAutoRouting && (
         <div
-          className={`${styles.wrap} ${
-            variant === 'ghost' ? styles.modelWrapGhost : ''
-          }`}
+          className={`${styles.wrap} ${variant === 'ghost' ? styles.modelWrapGhost : ''}`}
           ref={modelDropdownRef}
         >
           <div className={styles.anchor}>

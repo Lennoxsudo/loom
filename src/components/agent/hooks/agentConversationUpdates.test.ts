@@ -1,9 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { AgentConversationState, ChatMessage } from '../../../types/chat';
-import {
-  updateAgentConversationById,
-  updateAgentMessageById,
-} from './agentConversationUpdates';
+import { updateAgentConversationById, updateAgentMessageById } from './agentConversationUpdates';
 
 function makeMessage(id: string, text = ''): ChatMessage {
   return {
@@ -30,9 +27,7 @@ function makeConversation(
   };
 }
 
-function makeState(
-  conversations: AgentConversationState['conversations']
-): AgentConversationState {
+function makeState(conversations: AgentConversationState['conversations']): AgentConversationState {
   return {
     selectedConversationId: conversations[0]?.id ?? null,
     conversations,

@@ -72,7 +72,9 @@ describe('SidebarArea', () => {
   });
 
   it('mounts GitPanel in the background when a project folder is open', () => {
-    render(<SidebarArea {...createProps({ activeSidebarView: 'explorer', projectPath: 'D:\\demo' })} />);
+    render(
+      <SidebarArea {...createProps({ activeSidebarView: 'explorer', projectPath: 'D:\\demo' })} />
+    );
 
     expect(screen.getByText('GitPanel')).toBeInTheDocument();
   });
