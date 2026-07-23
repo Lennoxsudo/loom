@@ -20,6 +20,11 @@ import { useAgentAccessMode, useStreamSpeed, useEnableCodeGraph, useEnableCdpBro
 import { estimateTokens, estimateMessageTokens } from '../utils/contextBudget';
 import { useTranslation } from '../i18n';
 import { logDebug, isTauriCancellationError } from '../utils/errorHandling';
+import {
+  isBuiltinProtocol,
+  resolveBuiltinStreamError,
+} from '../utils/builtinGateway';
+import { useBuiltinGatewayStore } from '../stores/useBuiltinGatewayStore';
 import styles from './ChatPanel.module.css';
 import {
   type VisionCapability,
@@ -102,7 +107,12 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     try {
       const stored = localStorage.getItem(CHAT_PROTOCOL_STORAGE_KEY);
       if (stored === 'auto') return 'auto';
-      if (stored === 'openai' || stored === 'anthropic' || stored === 'ollama') {
+      if (
+        stored === 'openai' ||
+        stored === 'anthropic' ||
+        stored === 'ollama' ||
+        stored === 'builtin'
+      ) {
         return stored;
       }
     } catch {
@@ -508,6 +518,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       if (chatMode === 'plan') {
         tools = tools.filter((tool) => !isToolBlockedInPlanMode(tool.name));
       }
+      // builtin streams via openai-compatible tools schema
       if (provider === 'anthropic') {
         return toAnthropicTools(tools);
       }
@@ -782,6 +793,46 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     if (protocolSelection === 'auto') return;
 
     const loadModels = async () => {
+      if (protocolSelection === 'builtin') {
+        try {
+          const { useBuiltinGatewayStore } = await import('../stores/useBuiltinGatewayStore');
+          const store = useBuiltinGatewayStore.getState();
+          if (!store.hydrated) await store.hydrate();
+          if (!store.isActivated()) {
+            setAvailableModels([]);
+            setSelectedModel('');
+            setError(t.settingsBuiltin.notActivated);
+            return;
+          }
+          setError(null);
+          let models = store.models;
+          if (models.length === 0) {
+            models = await store.refreshModels();
+          }
+          if (models.length === 0) {
+            const configStr = await invoke<string>('load_ai_config');
+            if (configStr) {
+              const config = JSON.parse(configStr) as {
+                profiles?: {
+                  openai?: { items?: Array<{ id?: string; models?: string[] }> };
+                };
+              };
+              const item = config.profiles?.openai?.items?.find(
+                (it) => it.id === 'builtin-gateway'
+              );
+              models = (item?.models ?? []).map((m) => m.trim()).filter(Boolean);
+            }
+          }
+          setAvailableModels(models);
+          setSelectedModel((prev) =>
+            prev && models.includes(prev) ? prev : models[0] || ''
+          );
+        } catch (error) {
+          console.error('加载内置模型列表失败:', error);
+        }
+        return;
+      }
+
       try {
         const configStr = await invoke<string>('load_ai_config');
         if (configStr) {
@@ -793,6 +844,9 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
               providerConfig.models || (providerConfig.model ? [providerConfig.model] : []);
             setAvailableModels(models);
             setSelectedModel(models[0] || '');
+          } else {
+            setAvailableModels([]);
+            setSelectedModel('');
           }
         }
       } catch (error) {
@@ -800,7 +854,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       }
     };
     loadModels();
-  }, [protocolSelection]);
+  }, [protocolSelection, t.settingsBuiltin.notActivated]);
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -1215,7 +1269,15 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           return;
         }
 
-        setError(`流式输出错误: ${errorMsg}`);
+        const { message: displayError, unauthorized } = resolveBuiltinStreamError(
+          errorMsg,
+          t.settingsBuiltin.unauthorized,
+          { treatAsBuiltin: isBuiltinProtocol(protocolSelectionRef.current) }
+        );
+        if (unauthorized) {
+          useBuiltinGatewayStore.setState({ error: 'UNAUTHORIZED', status: 'error' });
+        }
+        setError(`${t.errors.streamOutputError}: ${displayError}`);
         setIsLoading(false);
         setIsStopping(false);
 

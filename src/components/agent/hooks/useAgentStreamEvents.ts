@@ -20,6 +20,11 @@ import type {
 import type { ToolCall } from '../../../features/agent-engine';
 import type { AIProvider } from '../../../utils/agentPersistence';
 import type { AgentRuntimeSnapshot } from '../utils';
+import {
+  isBuiltinProtocol,
+  resolveBuiltinStreamError,
+} from '../../../utils/builtinGateway';
+import { useBuiltinGatewayStore } from '../../../stores/useBuiltinGatewayStore';
 
 /** Payload for the ai-provider-switched event emitted by the Rust backend. */
 interface ProviderSwitchedPayload {
@@ -49,6 +54,8 @@ export interface UseAgentStreamEventsOptions {
   clearTrackedStream: (messageId: string) => void;
   onSetConversationState: React.Dispatch<React.SetStateAction<AgentConversationState>>;
   onSetError: (msg: string | null) => void;
+  /** Friendly message when built-in gateway returns 401 / auth_error during streaming. */
+  builtinUnauthorizedMessage?: string;
   streamMetaByMessageIdRef: React.MutableRefObject<Record<string, StreamMeta>>;
   conversationStateRef: React.MutableRefObject<AgentConversationState>;
   agentRuntimeRef: React.MutableRefObject<AgentRuntimeSnapshot>;
@@ -114,6 +121,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
     clearTrackedStream,
     onSetConversationState,
     onSetError,
+    builtinUnauthorizedMessage,
     streamMetaByMessageIdRef,
     conversationStateRef,
     agentRuntimeRef,
@@ -302,13 +310,27 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       finalizeCompletion();
     });
 
+    const mapStreamError = (errorMsg: string): string => {
+      if (!builtinUnauthorizedMessage) return errorMsg;
+      const { message, unauthorized } = resolveBuiltinStreamError(
+        errorMsg,
+        builtinUnauthorizedMessage,
+        { treatAsBuiltin: isBuiltinProtocol(agentRuntimeRef.current.provider) }
+      );
+      if (unauthorized) {
+        useBuiltinGatewayStore.setState({ error: 'UNAUTHORIZED', status: 'error' });
+      }
+      return message;
+    };
+
     const finalizeStreamError = (effectiveMessageId: string, errorMsg: string) => {
       const streamMeta = streamMetaByMessageIdRef.current[effectiveMessageId];
       const manualCancel = isManualCancelError(errorMsg);
+      const displayError = manualCancel ? errorMsg : mapStreamError(errorMsg);
 
       if (!streamMeta) {
         if (!manualCancel) {
-          onSetError(errorMsg);
+          onSetError(displayError);
         }
         clearTrackedStream(effectiveMessageId);
         return;
@@ -322,7 +344,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       );
 
       if (!manualCancel) {
-        onSetError(errorMsg);
+        onSetError(displayError);
       }
 
       clearTrackedStream(effectiveMessageId);

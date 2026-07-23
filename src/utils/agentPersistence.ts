@@ -3,7 +3,7 @@ import { coerceProjectPath, normalizeProjectPath } from '../shared/lib/projectPa
 import type { AgentConversationState } from '../types/chat';
 
 type AgentStatus = 'online' | 'busy' | 'offline';
-export type AIProvider = 'openai' | 'anthropic' | 'ollama';
+export type AIProvider = 'openai' | 'anthropic' | 'ollama' | 'builtin';
 /** Agent composer protocol selector: a concrete provider or automatic routing. */
 export type AgentProtocolSelection = AIProvider | 'auto';
 export type AgentRoutingMode = 'manual' | 'auto';
@@ -76,11 +76,16 @@ export interface MigrateToSingleAgentResult {
   agent: Agent | null;
 }
 
-const KNOWN_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'ollama'];
+const KNOWN_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'ollama', 'builtin'];
 
 /** Coerce a stored provider id to a supported provider (unknown → openai). */
 export function normalizeAIProvider(provider: string | undefined | null): AIProvider {
-  if (provider === 'openai' || provider === 'anthropic' || provider === 'ollama') {
+  if (
+    provider === 'openai' ||
+    provider === 'anthropic' ||
+    provider === 'ollama' ||
+    provider === 'builtin'
+  ) {
     return provider;
   }
   return 'openai';

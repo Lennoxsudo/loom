@@ -22,8 +22,21 @@ export interface ProviderModelSelectorProps {
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   modelDropdownRef: React.RefObject<HTMLDivElement | null>;
   autoRoutingLabel: string;
-  t: { common: { selectModel: string } };
+  t: {
+    common: { selectModel: string };
+    settingsBuiltin?: { protocolLabel: string };
+  };
   variant?: 'default' | 'ghost';
+}
+
+function providerDisplayName(
+  provider: { id: string; name: string },
+  t: ProviderModelSelectorProps['t']
+): string {
+  if (provider.id === 'builtin' && t.settingsBuiltin?.protocolLabel) {
+    return t.settingsBuiltin.protocolLabel;
+  }
+  return provider.name;
 }
 
 export default function ProviderModelSelector({
@@ -43,9 +56,12 @@ export default function ProviderModelSelector({
   variant = 'default',
 }: ProviderModelSelectorProps) {
   const isAutoRouting = selectedProtocol === 'auto';
+  const selectedProvider = PROVIDERS.find((provider) => provider.id === selectedProtocol);
   const providerName = isAutoRouting
     ? autoRoutingLabel
-    : PROVIDERS.find((provider) => provider.id === selectedProtocol)?.name;
+    : selectedProvider
+      ? providerDisplayName(selectedProvider, t)
+      : undefined;
   const pillClass =
     variant === 'ghost' ? `${styles.pill} ${styles.pillGhost}` : styles.pill;
   const usePortal = variant === 'ghost';
@@ -93,7 +109,7 @@ export default function ProviderModelSelector({
             setSelectedModel('');
           }}
         >
-          {provider.name}
+          {providerDisplayName(provider, t)}
         </div>
       ))}
     </>

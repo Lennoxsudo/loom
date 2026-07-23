@@ -28,6 +28,7 @@ import {
   WRITE_TOOLS,
 } from '../../utils/agentTools';
 import type { AgentAccessMode } from '../../types/settings';
+import { buildTransportInvokeArgs } from '../../utils/builtinGateway';
 import { shouldBlockTool } from '../../utils/agentAccessMode';
 import { beginSandboxExecution, endSandboxExecution } from '../../utils/agentSandbox';
 import { buildToolApprovalRejectionText } from '../agent/approvalUtils';
@@ -500,6 +501,7 @@ export function useToolCalls({
         ? getProviderToolsForChat(provider, allConfiguredTools, chatModeRef.current, toolsEnabled)
         : undefined;
 
+      const transport = buildTransportInvokeArgs(provider, model, profileId);
       const {
         preparedMessages: trimmedMessages,
         compressed,
@@ -507,9 +509,9 @@ export function useToolCalls({
         compactState,
       } = await buildChatContextUsage({
         messages: allStableMessages,
-        provider,
+        provider: transport.provider,
         model,
-        profileId,
+        profileId: transport.profileId,
         tools: continueTools,
         projectPath: projectPathRef.current,
         chatMode: chatModeRef.current,
@@ -543,10 +545,10 @@ export function useToolCalls({
       }
 
       await invoke('send_ai_chat_stream', {
-        provider,
+        provider: transport.provider,
         messageId: newAssistantMessageId,
-        model,
-        profileId,
+        model: transport.model,
+        profileId: transport.profileId,
         enableAutoRouting: chatRuntimeRef.current.routingMode === 'auto',
         messages: sanitizeMessagesForIpc(trimmedMessages),
         tools: sanitizeMessagesForIpc(continueTools),

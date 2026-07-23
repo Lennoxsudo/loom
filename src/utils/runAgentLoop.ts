@@ -25,6 +25,10 @@ import { requiresConfirmation } from './toolGuard';
 import { resolveSubagentStreamToolCalls } from '../features/agent-engine/finalizeStreamToolCalls';
 import { looksLikePseudoToolCall } from '../features/agent-engine/compatToolCalls';
 import { beginSandboxExecution, endSandboxExecution } from './agentSandbox';
+import {
+  buildTransportInvokeArgs,
+  isOpenaiCompatibleLogicalProvider,
+} from './builtinGateway';
 
 const DUPLICATE_TOOL_SKIP_MESSAGE =
   '已跳过重复工具调用：相同工具与参数在本子代理会话中已执行过。请根据上文已有结果直接输出最终结构化摘要，不要再调用工具。' +
@@ -81,6 +85,10 @@ async function resolveAppDataPath(): Promise<string | undefined> {
 function formatToolsForProvider(provider: AIProvider, tools: ToolDefinition[]): unknown {
   if (tools.length === 0) return undefined;
   if (provider === 'anthropic') return toAnthropicTools(tools);
+  // openai + builtin use OpenAI tools schema
+  if (isOpenaiCompatibleLogicalProvider(provider) || provider === 'ollama') {
+    return toOpenAITools(tools);
+  }
   return toOpenAITools(tools);
 }
 
@@ -458,23 +466,26 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{ fina
         await new Promise((r) => setTimeout(r, tcDelay));
       }
 
-      await invoke('send_ai_chat_stream', {
-        provider,
-        messageId: assistantMessageId,
-        model,
-        messages: providerMessages,
-        tools: providerTools,
-        ...(providerTools ? { tool_choice: 'auto' } : {}),
-        profileId: context.profileId,
-        enableAutoRouting: false,
-        toolChainConfig: {
-          enableBackendOrchestration: false,
-          maxRounds: 10,
-          projectPath: context.baseDir || undefined,
-          appDataPath,
-          toolCallDelayMs: useSettingsStore.getState().toolCallDelay,
-        },
-      });
+      {
+        const transport = buildTransportInvokeArgs(provider, model, context.profileId);
+        await invoke('send_ai_chat_stream', {
+          provider: transport.provider,
+          messageId: assistantMessageId,
+          model: transport.model,
+          messages: providerMessages,
+          tools: providerTools,
+          ...(providerTools ? { tool_choice: 'auto' } : {}),
+          profileId: transport.profileId,
+          enableAutoRouting: false,
+          toolChainConfig: {
+            enableBackendOrchestration: false,
+            maxRounds: 10,
+            projectPath: context.baseDir || undefined,
+            appDataPath,
+            toolCallDelayMs: useSettingsStore.getState().toolCallDelay,
+          },
+        });
+      }
 
       // 3. Wait for the stream to complete or error out
       const streamResult = await streamPromise;

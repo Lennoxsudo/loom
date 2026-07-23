@@ -6,6 +6,11 @@ import {
   DEFAULT_VISION_CAPABILITIES,
   extractVisionCapabilities,
 } from '../../utils/visionCapabilities';
+import {
+  BUILTIN_PROFILE_ID,
+  isBuiltinProtocol,
+} from '../../utils/builtinGateway';
+import { useBuiltinGatewayStore } from '../../stores/useBuiltinGatewayStore';
 import type { ChatPanelProvider, ChatProtocolSelection } from './types';
 
 export interface UseChatConfigOptions {
@@ -14,6 +19,50 @@ export interface UseChatConfigOptions {
   setAvailableModels: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedModel: React.Dispatch<React.SetStateAction<string>>;
   getProtocolSelection?: () => ChatProtocolSelection;
+}
+
+async function loadBuiltinModelsIntoUi(
+  setAvailableModels: React.Dispatch<React.SetStateAction<string[]>>,
+  setSelectedModel: React.Dispatch<React.SetStateAction<string>>,
+  preferCurrent?: string
+): Promise<void> {
+  const store = useBuiltinGatewayStore.getState();
+  if (!store.hydrated) {
+    await store.hydrate();
+  }
+  if (!store.isActivated()) {
+    setAvailableModels([]);
+    setSelectedModel('');
+    return;
+  }
+  let models = store.models;
+  if (models.length === 0) {
+    models = await store.refreshModels();
+  }
+  // Fallback: read injected openai profile if store models still empty
+  if (models.length === 0) {
+    try {
+      const configStr = await invoke<string>('load_ai_config');
+      if (configStr) {
+        const config = JSON.parse(configStr) as {
+          profiles?: {
+            openai?: { items?: Array<{ id?: string; models?: string[] }> };
+          };
+        };
+        const item = config.profiles?.openai?.items?.find((it) => it.id === BUILTIN_PROFILE_ID);
+        models = (item?.models ?? []).map((m) => m.trim()).filter(Boolean);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  setAvailableModels(models);
+  const preferred = preferCurrent?.trim();
+  if (preferred && models.includes(preferred)) {
+    setSelectedModel(preferred);
+  } else {
+    setSelectedModel(models[0] || '');
+  }
 }
 
 export function useChatConfig({
@@ -34,8 +83,16 @@ export function useChatConfig({
           if (getProtocolSelection?.() === 'auto') {
             return;
           }
+          // Do not override an explicit local protocol (e.g. builtin) from disk selectedProvider.
+          const current = getProtocolSelection?.();
+          if (current === 'builtin') {
+            await loadBuiltinModelsIntoUi(setAvailableModels, setSelectedModel);
+            return;
+          }
           const provider = config.selectedProvider || 'anthropic';
-          setProtocolSelection(provider);
+          if (provider === 'openai' || provider === 'anthropic' || provider === 'ollama') {
+            setProtocolSelection(provider);
+          }
 
           const providerConfig = config.configs?.[provider];
           if (providerConfig) {
@@ -62,8 +119,14 @@ export function useChatConfig({
           if (getProtocolSelection?.() === 'auto') {
             return;
           }
+          if (getProtocolSelection?.() === 'builtin') {
+            await loadBuiltinModelsIntoUi(setAvailableModels, setSelectedModel);
+            return;
+          }
           const provider = config.selectedProvider || 'anthropic';
-          setProtocolSelection(provider);
+          if (provider === 'openai' || provider === 'anthropic' || provider === 'ollama') {
+            setProtocolSelection(provider);
+          }
 
           const providerConfig = config.configs?.[provider];
           if (providerConfig) {
@@ -96,6 +159,10 @@ export function useChatConfig({
 
   const loadModels = (selectedProvider: ChatPanelProvider) => {
     const doLoad = async () => {
+      if (isBuiltinProtocol(selectedProvider)) {
+        await loadBuiltinModelsIntoUi(setAvailableModels, setSelectedModel);
+        return;
+      }
       try {
         const configStr = await invoke<string>('load_ai_config');
         if (configStr) {

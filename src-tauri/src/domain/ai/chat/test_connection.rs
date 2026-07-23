@@ -55,22 +55,40 @@ pub async fn test_openai_connection(
         "max_tokens": 1,
         "temperature": 0.0
     });
+    let body_bytes =
+        serde_json::to_vec(&body).map_err(|e| format!("构建请求体失败: {}", e))?;
+    let gateway_creds =
+        super::gateway_sign::require_builtin_credentials(&config.endpoint, None)?;
+    let api_key = config.api_key.clone();
+    let organization_id = config.organization_id.clone();
 
     let mut last_error = String::new();
 
     for (idx, url) in urls.iter().enumerate() {
-        let mut request = client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", config.api_key))
-            .header("Content-Type", "application/json");
-
-        if let Some(org_id) = &config.organization_id {
-            if !org_id.is_empty() {
-                request = request.header("OpenAI-Organization", org_id);
+        let url = url.clone();
+        let body_bytes = body_bytes.clone();
+        let request = match super::gateway_sign::build_signed_openai_post_request(
+            client,
+            &url,
+            &body_bytes,
+            &api_key,
+            &organization_id,
+            gateway_creds.as_ref(),
+        ) {
+            Ok(req) => req,
+            Err(e) => {
+                if idx + 1 < urls.len() {
+                    last_error = e;
+                    continue;
+                }
+                return Ok(TestResult {
+                    success: false,
+                    message: e,
+                });
             }
-        }
+        };
 
-        match request.json(&body).send().await {
+        match client.execute(request).await {
             Ok(response) => {
                 if response.status().is_success() {
                     return Ok(TestResult {

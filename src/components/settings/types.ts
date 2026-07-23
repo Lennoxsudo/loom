@@ -13,6 +13,7 @@ export type SettingsTab =
   | 'auto-routing'
   | 'ports'
   | 'update'
+  | 'builtin'
   | 'usage';
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';
 

@@ -46,6 +46,7 @@ import {
   type AgentConversationState,
   type StreamMeta,
 } from '../../../types/chat';
+import { buildTransportInvokeArgs } from '../../../utils/builtinGateway';
 import {
   reconcileRuntimeForAgentRequest,
   resolveAgentRequestRuntime,
@@ -368,6 +369,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       );
 
       const tools = getProviderTools(provider, agentId);
+      const transport = buildTransportInvokeArgs(provider, model, profileId ?? agent.profileId);
 
       const {
         preparedMessages: trimmedMsgs,
@@ -376,14 +378,14 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         compactState,
       } = await buildAgentRequestContext({
         agent,
-        provider,
+        provider: transport.provider,
         model,
         conversation: currentConversation ?? null,
         messages: allStableMessages,
         projectPath: projectPathRef.current,
         agentMode: agentModesRef.current[agent.id] ?? 'always-allow',
         tools,
-        profileId,
+        profileId: transport.profileId,
       });
 
       if (compressed) {
@@ -413,10 +415,10 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       }
 
       await invoke('send_ai_chat_stream', {
-        provider,
+        provider: transport.provider,
         messageId: newAssistantMessageId,
-        model,
-        profileId: profileId ?? agent.profileId,
+        model: transport.model,
+        profileId: transport.profileId,
         enableAutoRouting: agentRuntimeRef.current.routingMode === 'auto',
         messages: trimmedMsgs,
         tools,

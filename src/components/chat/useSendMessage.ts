@@ -28,6 +28,12 @@ import {
 } from '../../utils/skillSlashCommand';
 import type { AIProvider } from '../../utils/visionCapabilities';
 import type { VisionCapability } from '../../utils/visionCapabilities';
+import {
+  buildTransportInvokeArgs,
+  isBuiltinProtocol,
+  resolveBuiltinStreamError,
+} from '../../utils/builtinGateway';
+import { useBuiltinGatewayStore } from '../../stores/useBuiltinGatewayStore';
 import { ToolGuard } from '../../utils/toolGuard';
 import { logDebug } from '../../utils/errorHandling';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -37,6 +43,23 @@ import {
   collectUserMessageIdsFromIndex,
   findEarliestCheckpointForUserTurns,
 } from '../../utils/checkpointTimeline';
+
+async function ensureBuiltinReady(setError: (msg: string | null) => void, notActivated: string) {
+  const store = useBuiltinGatewayStore.getState();
+  if (!store.hydrated) {
+    await store.hydrate();
+  }
+  if (!store.isActivated()) {
+    setError(notActivated);
+    return false;
+  }
+  try {
+    await store.ensureAiConfigProfile();
+  } catch {
+    // profile sync is best-effort; stream may still work if already on disk
+  }
+  return true;
+}
 
 export interface UseSendMessageOptions {
   inputValue: string;
@@ -95,6 +118,7 @@ export interface UseSendMessageOptions {
     errors: { selectModelFirst: string };
     agent: { autoRoutingNotConfigured: string; changeReview: { restoreFailed: string } };
     chat: { fileContext: string; newConversation: string };
+    settingsBuiltin?: { notActivated: string; unauthorized: string };
   };
 }
 
@@ -212,6 +236,14 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       return;
     }
 
+    if (isBuiltinProtocol(opts.protocolSelection)) {
+      const ok = await ensureBuiltinReady(
+        opts.setError,
+        opts.t.settingsBuiltin?.notActivated || 'Activate built-in models in Settings first'
+      );
+      if (!ok) return;
+    }
+
     let provider: AIProvider =
       opts.protocolSelection === 'auto'
         ? opts.chatRuntimeRef.current.provider
@@ -294,6 +326,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       const tools = opts.getProviderToolsForChat(provider);
       const previousMessages = messagesForState.filter((message) => !message.isStreaming);
       const rulesAlreadyInjected = opts.chatRulesInjectedRef.current;
+      const transport = buildTransportInvokeArgs(provider, runtimeModel, profileId);
       const {
         preparedMessages,
         compressed,
@@ -301,9 +334,9 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         compactState,
       } = await buildChatContextUsage({
         messages: previousMessages,
-        provider,
+        provider: transport.provider,
         model: runtimeModel,
-        profileId,
+        profileId: transport.profileId,
         tools,
         projectPath: opts.projectPathRef.current,
         chatMode: opts.chatModeRef.current,
@@ -327,10 +360,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       }
 
       await invoke('send_ai_chat_stream', {
-        provider,
+        provider: transport.provider,
         messageId: assistantMessageId,
-        model: runtimeModel,
-        profileId,
+        model: transport.model,
+        profileId: transport.profileId,
         enableAutoRouting: opts.protocolSelection === 'auto',
         messages: sanitizeMessagesForIpc(preparedMessages),
         tools: sanitizeMessagesForIpc(tools),
@@ -347,7 +380,19 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       }
     } catch (error) {
       opts.ownedStreamMessageIdsRef.current.delete(assistantMessageId);
-      opts.setError(`发送失败: ${error}`);
+      const errText = String(error);
+      const { message: displayError, unauthorized } = resolveBuiltinStreamError(
+        errText,
+        opts.t.settingsBuiltin?.unauthorized ||
+          'Key invalid or revoked — please re-activate',
+        { treatAsBuiltin: isBuiltinProtocol(provider) }
+      );
+      if (unauthorized) {
+        useBuiltinGatewayStore.setState({ error: 'UNAUTHORIZED', status: 'error' });
+        opts.setError(displayError);
+      } else {
+        opts.setError(`发送失败: ${error}`);
+      }
       console.error('AI 聊天重发失败:', error);
       opts.setIsLoading(false);
       opts.setMessages((prev) => prev.filter((message) => message.id !== assistantMessageId));
@@ -371,6 +416,14 @@ export function useSendMessage(opts: UseSendMessageOptions) {
 
     if (opts.pendingChangesRef.current.length > 0) {
       opts.acceptAllPendingChanges();
+    }
+
+    if (isBuiltinProtocol(opts.protocolSelection)) {
+      const ok = await ensureBuiltinReady(
+        opts.setError,
+        opts.t.settingsBuiltin?.notActivated || 'Activate built-in models in Settings first'
+      );
+      if (!ok) return;
     }
 
     let provider: AIProvider =
@@ -563,6 +616,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       const previousMessages = opts.messages.filter((message) => !message.isStreaming);
       const currentMessages = previousMessages.concat(userMessage);
       const rulesAlreadyInjected = opts.chatRulesInjectedRef.current;
+      const transport = buildTransportInvokeArgs(provider, runtimeModel, profileId);
       const {
         preparedMessages,
         compressed,
@@ -570,9 +624,9 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         compactState,
       } = await buildChatContextUsage({
         messages: currentMessages,
-        provider,
+        provider: transport.provider,
         model: runtimeModel,
-        profileId,
+        profileId: transport.profileId,
         tools,
         projectPath: opts.projectPathRef.current,
         chatMode: opts.chatModeRef.current,
@@ -598,10 +652,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       }
 
       await invoke('send_ai_chat_stream', {
-        provider,
+        provider: transport.provider,
         messageId: assistantMessageId,
-        model: runtimeModel,
-        profileId,
+        model: transport.model,
+        profileId: transport.profileId,
         enableAutoRouting: opts.protocolSelection === 'auto',
         messages: sanitizeMessagesForIpc(preparedMessages),
         tools: sanitizeMessagesForIpc(tools),
@@ -618,7 +672,19 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       }
     } catch (error) {
       opts.ownedStreamMessageIdsRef.current.delete(assistantMessageId);
-      opts.setError(`发送失败: ${error}`);
+      const errText = String(error);
+      const { message: displayError, unauthorized } = resolveBuiltinStreamError(
+        errText,
+        opts.t.settingsBuiltin?.unauthorized ||
+          'Key invalid or revoked — please re-activate',
+        { treatAsBuiltin: isBuiltinProtocol(provider) }
+      );
+      if (unauthorized) {
+        useBuiltinGatewayStore.setState({ error: 'UNAUTHORIZED', status: 'error' });
+        opts.setError(displayError);
+      } else {
+        opts.setError(`发送失败: ${error}`);
+      }
       console.error('AI 聊天失败:', error);
       opts.setIsLoading(false);
       opts.setMessages((prev) => prev.filter((message) => message.id !== assistantMessageId));

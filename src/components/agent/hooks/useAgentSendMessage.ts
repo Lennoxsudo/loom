@@ -49,6 +49,28 @@ import {
 } from '../../../utils/checkpointTimeline';
 import type { PendingFileChange } from '../utils';
 import {
+  buildTransportInvokeArgs,
+  isBuiltinProtocol,
+} from '../../../utils/builtinGateway';
+import { useBuiltinGatewayStore } from '../../../stores/useBuiltinGatewayStore';
+
+async function ensureBuiltinReadyForAgent(setError: (msg: string | null) => void, notActivated: string) {
+  const store = useBuiltinGatewayStore.getState();
+  if (!store.hydrated) {
+    await store.hydrate();
+  }
+  if (!store.isActivated()) {
+    setError(notActivated);
+    return false;
+  }
+  try {
+    await store.ensureAiConfigProfile();
+  } catch {
+    // best-effort
+  }
+  return true;
+}
+import {
   expandSkillSlashCommand,
   formatSlashCommandDisplay,
 } from '../../../utils/skillSlashCommand';
@@ -252,6 +274,14 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     let runtimeModel = resolvedRuntime.model;
     let profileId = resolvedRuntime.profileId;
 
+    if (isBuiltinProtocol(provider) || isBuiltinProtocol(agentRuntimeRef.current.provider)) {
+      const ok = await ensureBuiltinReadyForAgent(
+        setError,
+        t.settingsBuiltin?.notActivated || 'Activate built-in models in Settings first'
+      );
+      if (!ok) return;
+    }
+
     try {
       const configStr = await invoke<string>('load_ai_config');
       if (configStr) {
@@ -355,6 +385,11 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
 
       const tools = getProviderTools(provider, selectedAgentId) as unknown[];
       const currentAgentMode = agentModesRef.current[selectedAgentId] ?? 'always-allow';
+      const transport = buildTransportInvokeArgs(
+        provider,
+        runtimeModel,
+        profileId ?? selectedAgent.profileId
+      );
 
       const needsRulesInjection = shouldInjectRules(
         selectedAgent.rules ?? '',
@@ -388,7 +423,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         compactState,
       } = await buildAgentRequestContext({
         agent: selectedAgent,
-        provider,
+        provider: transport.provider,
         model: runtimeModel,
         conversation: streamConversation,
         messages: allMessages,
@@ -397,7 +432,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         tools,
         shouldInjectProjectPath: needsInjection,
         subagentCatalog,
-        profileId: profileId ?? selectedAgent.profileId,
+        profileId: transport.profileId,
       });
 
       if (compressed) {
@@ -416,10 +451,10 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       }
 
       await invoke('send_ai_chat_stream', {
-        provider,
+        provider: transport.provider,
         messageId: assistantMessageId,
-        model: runtimeModel,
-        profileId: profileId ?? selectedAgent.profileId,
+        model: transport.model,
+        profileId: transport.profileId,
         enableAutoRouting: agentRuntimeRef.current.routingMode === 'auto',
         messages: providerMessages,
         tools,
@@ -499,6 +534,14 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     let provider = resolvedRuntime.provider;
     let runtimeModel = resolvedRuntime.model;
     let profileId = resolvedRuntime.profileId;
+
+    if (isBuiltinProtocol(provider) || isBuiltinProtocol(agentRuntimeRef.current.provider)) {
+      const ok = await ensureBuiltinReadyForAgent(
+        setError,
+        t.settingsBuiltin?.notActivated || 'Activate built-in models in Settings first'
+      );
+      if (!ok) return;
+    }
 
     try {
       const configStr = await invoke<string>('load_ai_config');
@@ -737,6 +780,11 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
 
       const tools = getProviderTools(provider, selectedAgentId) as unknown[];
       const currentAgentMode = agentModesRef.current[selectedAgentId] ?? 'always-allow';
+      const transport = buildTransportInvokeArgs(
+        provider,
+        runtimeModel,
+        profileId ?? selectedAgent.profileId
+      );
 
       const needsRulesInjection = shouldInjectRules(
         selectedAgent.rules ?? '',
@@ -770,7 +818,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         compactState,
       } = await buildAgentRequestContext({
         agent: selectedAgent,
-        provider,
+        provider: transport.provider,
         model: runtimeModel,
         conversation: streamConversation,
         messages: allMessages,
@@ -779,7 +827,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         tools,
         shouldInjectProjectPath: needsInjection,
         subagentCatalog,
-        profileId: profileId ?? selectedAgent.profileId,
+        profileId: transport.profileId,
       });
 
       if (compressed) {
@@ -798,10 +846,10 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       }
 
       await invoke('send_ai_chat_stream', {
-        provider,
+        provider: transport.provider,
         messageId: assistantMessageId,
-        model: runtimeModel,
-        profileId: profileId ?? selectedAgent.profileId,
+        model: transport.model,
+        profileId: transport.profileId,
         enableAutoRouting: agentRuntimeRef.current.routingMode === 'auto',
         messages: providerMessages,
         tools,

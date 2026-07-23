@@ -5,7 +5,7 @@
  * 被 ChatPanel 和 AgentPanel 共享使用
  */
 
-export type AIProvider = 'openai' | 'anthropic' | 'ollama';
+export type AIProvider = 'openai' | 'anthropic' | 'ollama' | 'builtin';
 
 export interface VisionCapability {
   supportsVision: boolean;
@@ -17,6 +17,7 @@ export const DEFAULT_VISION_CAPABILITIES: Record<AIProvider, VisionCapability> =
   openai: { supportsVision: true, visionMaxImages: 4, visionMaxBytes: 10 * 1024 * 1024 },
   anthropic: { supportsVision: true, visionMaxImages: 4, visionMaxBytes: 10 * 1024 * 1024 },
   ollama: { supportsVision: false, visionMaxImages: 0, visionMaxBytes: 0 },
+  builtin: { supportsVision: false, visionMaxImages: 0, visionMaxBytes: 0 },
 };
 
 export const ALLOWED_IMAGE_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
@@ -39,6 +40,7 @@ export const extractVisionCapabilities = (rawConfig: unknown): Record<AIProvider
     openai: { ...DEFAULT_VISION_CAPABILITIES.openai },
     anthropic: { ...DEFAULT_VISION_CAPABILITIES.anthropic },
     ollama: { ...DEFAULT_VISION_CAPABILITIES.ollama },
+    builtin: { ...DEFAULT_VISION_CAPABILITIES.builtin },
   };
 
   if (!rawConfig || typeof rawConfig !== 'object') {

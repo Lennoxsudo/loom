@@ -1,3 +1,5 @@
+mod builtin_gateway;
+mod gateway_sign;
 mod config;
 mod list_models;
 mod message_builder;
@@ -20,6 +22,12 @@ pub use config::{
 pub use test_connection::{__cmd__test_ai_connection, test_ai_connection};
 
 pub use list_models::{__cmd__list_ai_models, list_ai_models};
+
+pub use builtin_gateway::{
+    __cmd__builtin_gateway_activate, __cmd__builtin_gateway_get_quota,
+    __cmd__builtin_gateway_health, __cmd__builtin_gateway_list_models, builtin_gateway_activate,
+    builtin_gateway_get_quota, builtin_gateway_health, builtin_gateway_list_models,
+};
 
 pub use message_builder::{
     extension_from_image_format, media_type_from_image_format, normalize_path_string,

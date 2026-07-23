@@ -912,6 +912,7 @@ export interface I18nMessages {
     autoRouting: string;
     ports: string;
     update: string;
+    builtin: string;
     usage: string;
   };
   settingsPorts: {
@@ -1243,6 +1244,44 @@ export interface I18nMessages {
     checkFailed: string;
     downloadFailed: string;
     notes: string;
+  };
+  settingsBuiltin: {
+    title: string;
+    description: string;
+    endpoint: string;
+    status: string;
+    statusLoading: string;
+    statusInactive: string;
+    statusActive: string;
+    statusActivating: string;
+    statusError: string;
+    clientId: string;
+    keyPrefix: string;
+    activatedAt: string;
+    quotas: string;
+    dailyRequests: string;
+    quotaDailyDetail: string;
+    health: string;
+    healthOk: string;
+    healthFail: string;
+    activateSection: string;
+    activateHint: string;
+    invitePlaceholder: string;
+    inviteRequired: string;
+    activate: string;
+    reactivate: string;
+    activateSuccess: string;
+    activateFailed: string;
+    unauthorized: string;
+    clearKey: string;
+    cleared: string;
+    checkHealth: string;
+    refreshModels: string;
+    modelsLoaded: string;
+    modelsFailed: string;
+    desktopOnly: string;
+    protocolLabel: string;
+    notActivated: string;
   };
   settingsRules: {
     title: string;

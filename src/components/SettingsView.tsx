@@ -15,6 +15,7 @@ import { ClaudeContent } from './settings/ClaudeContent';
 import { AutoRoutingContent } from './settings/AutoRoutingContent';
 import { PortsContent } from './settings/PortsContent';
 import { UpdateContent } from './settings/UpdateContent';
+import { BuiltinGatewayContent } from './settings/BuiltinGatewayContent';
 import { UsageContent } from './settings/UsageContent';
 import styles from './SettingsView.module.css';
 
@@ -121,6 +122,11 @@ export default function SettingsView() {
           onClick={() => setActiveTab('update')}
         />
         <TabItem
+          label={t.settingsTabs.builtin}
+          isActive={activeTab === 'builtin'}
+          onClick={() => setActiveTab('builtin')}
+        />
+        <TabItem
           label={t.settingsTabs.usage}
           isActive={activeTab === 'usage'}
           onClick={() => setActiveTab('usage')}
@@ -142,6 +148,7 @@ export default function SettingsView() {
         {activeTab === 'auto-routing' && <AutoRoutingContent />}
         {activeTab === 'ports' && <PortsContent />}
         {activeTab === 'update' && <UpdateContent />}
+        {activeTab === 'builtin' && <BuiltinGatewayContent />}
         {activeTab === 'usage' && <UsageContent />}
       </div>
     </div>

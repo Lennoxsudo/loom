@@ -442,6 +442,7 @@ const AgentComposer = memo(function AgentComposer({
               selectModelLabel={t.common.selectModel}
               profileLabel={t.agent.profileLabel}
               autoRoutingLabel={t.agent.autoRouting}
+              builtinProtocolLabel={t.settingsBuiltin.protocolLabel}
               variant="ghost"
             />
           </div>

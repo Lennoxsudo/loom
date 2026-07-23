@@ -71,10 +71,19 @@ async fn list_openai_models(
 
     let mut last_error = String::new();
 
+    let gateway_creds =
+        super::gateway_sign::require_builtin_credentials(&config.endpoint, None)?;
+
     for (idx, url) in urls.iter().enumerate() {
-        let mut request = client
-            .get(url)
-            .header("Authorization", format!("Bearer {}", config.api_key));
+        let url = url.clone();
+        let mut request = super::gateway_sign::apply_openai_gateway_auth(
+            client.get(&url),
+            "GET",
+            &url,
+            &[],
+            &config.api_key,
+            gateway_creds.as_ref(),
+        )?;
 
         if let Some(org_id) = &config.organization_id {
             if !org_id.is_empty() {

@@ -25,10 +25,22 @@ export interface AgentProviderProfileModelSelectorProps {
   selectModelLabel: string;
   profileLabel: string;
   autoRoutingLabel: string;
+  /** Localized label for the built-in protocol (defaults to PROVIDERS entry). */
+  builtinProtocolLabel?: string;
   variant?: 'default' | 'ghost';
 }
 
 type OpenDropdown = 'provider' | 'profile' | 'model' | null;
+
+function providerDisplayName(
+  provider: { id: string; name: string },
+  builtinProtocolLabel?: string
+): string {
+  if (provider.id === 'builtin' && builtinProtocolLabel) {
+    return builtinProtocolLabel;
+  }
+  return provider.name;
+}
 
 export default function AgentProviderProfileModelSelector({
   selectedProvider,
@@ -44,10 +56,19 @@ export default function AgentProviderProfileModelSelector({
   selectModelLabel,
   profileLabel,
   autoRoutingLabel,
+  builtinProtocolLabel,
 }: AgentProviderProfileModelSelectorProps) {
   const [openDropdown, setOpenDropdown] = useState<OpenDropdown>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const isAutoRouting = selectedProvider === 'auto';
+  // Built-in models always use the injected builtin-gateway profile.
+  const shouldShowProfileSelector = !isAutoRouting && selectedProvider !== 'builtin';
+
+  useEffect(() => {
+    if (!shouldShowProfileSelector && openDropdown === 'profile') {
+      setOpenDropdown(null);
+    }
+  }, [openDropdown, shouldShowProfileSelector]);
 
   const providerAnchorRef = useRef<HTMLButtonElement>(null);
   const providerMenuRef = useRef<HTMLDivElement>(null);
@@ -56,10 +77,13 @@ export default function AgentProviderProfileModelSelector({
   const modelAnchorRef = useRef<HTMLButtonElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
 
+  const selectedProviderEntry = PROVIDERS.find((provider) => provider.id === selectedProvider);
   const providerName =
     selectedProvider === 'auto'
       ? autoRoutingLabel
-      : PROVIDERS.find((provider) => provider.id === selectedProvider)?.name;
+      : selectedProviderEntry
+        ? providerDisplayName(selectedProviderEntry, builtinProtocolLabel)
+        : undefined;
   const profileLabelText = selectedProfileName || selectProfileLabel;
 
   const providerMenuPos = useAgentSelectorPortalMenu(
@@ -172,14 +196,14 @@ export default function AgentProviderProfileModelSelector({
                   setOpenDropdown(null);
                 }}
               >
-                {provider.name}
+                {providerDisplayName(provider, builtinProtocolLabel)}
               </div>
             ))}
           </>
         )}
       </div>
 
-      {!isAutoRouting && (
+      {shouldShowProfileSelector && (
       <div className={`${styles.wrap} ${styles.profileWrap}`}>
         <div className={styles.anchor}>
           <button

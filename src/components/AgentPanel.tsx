@@ -433,6 +433,64 @@ export default function AgentPanel({
       mode: 'explicit' | 'infer' = profileId ? 'explicit' : 'infer'
     ) => {
       try {
+        if (provider === 'builtin') {
+          const { useBuiltinGatewayStore } = await import('../stores/useBuiltinGatewayStore');
+          const {
+            BUILTIN_PROFILE_ID,
+            BUILTIN_PROFILE_NAME,
+          } = await import('../utils/builtinGateway');
+          const store = useBuiltinGatewayStore.getState();
+          if (!store.hydrated) await store.hydrate();
+          if (!store.isActivated()) {
+            setAvailableProfiles([]);
+            setAvailableModels([]);
+            setActiveProfileId('');
+            setSelectedModel('');
+            syncAgentRuntimeRef({
+              provider: 'builtin',
+              model: '',
+              profileId: undefined,
+            });
+            setError(t.settingsBuiltin.notActivated);
+            return;
+          }
+          setError(null);
+          let models = store.models;
+          if (models.length === 0) {
+            models = await store.refreshModels();
+          }
+          if (models.length === 0) {
+            await store.ensureAiConfigProfile();
+            const configStr = await invoke<string>('load_ai_config');
+            if (configStr) {
+              const config = JSON.parse(configStr) as LoadedAiConfig;
+              const item = config.profiles?.openai?.items?.find(
+                (it) => it.id === BUILTIN_PROFILE_ID
+              );
+              models = (item?.models ?? []).map((m) => m.trim()).filter(Boolean);
+            }
+          }
+          setAvailableProfiles([
+            {
+              id: BUILTIN_PROFILE_ID,
+              name: BUILTIN_PROFILE_NAME,
+              models,
+            },
+          ]);
+          const preferred = model.trim() || fallbackModel?.trim() || '';
+          const selected =
+            preferred && models.includes(preferred) ? preferred : models[0] || '';
+          setAvailableModels(models);
+          setActiveProfileId(BUILTIN_PROFILE_ID);
+          setSelectedModel(selected);
+          syncAgentRuntimeRef({
+            provider: 'builtin',
+            model: selected,
+            profileId: BUILTIN_PROFILE_ID,
+          });
+          return;
+        }
+
         const configStr = await invoke<string>('load_ai_config');
         if (!configStr) return;
         const config = JSON.parse(configStr) as LoadedAiConfig;
@@ -468,7 +526,7 @@ export default function AgentPanel({
         // ignore model list failures
       }
     },
-    [syncAgentRuntimeRef]
+    [syncAgentRuntimeRef, t.settingsBuiltin.notActivated]
   );
 
   const handleRuntimeReconciled = useCallback(
@@ -1196,6 +1254,7 @@ export default function AgentPanel({
     clearTrackedStream,
     onSetConversationState: setConversationState,
     onSetError: setError,
+    builtinUnauthorizedMessage: t.settingsBuiltin.unauthorized,
     streamMetaByMessageIdRef,
     conversationStateRef,
     agentRuntimeRef,

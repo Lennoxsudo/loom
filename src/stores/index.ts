@@ -20,6 +20,10 @@ export {
   useCbmStore,
 } from './useCbmStore';
 export {
+  useBuiltinGatewayStore,
+  useBuiltinGatewayState,
+} from './useBuiltinGatewayStore';
+export {
   useSidebarWidth,
   useIsResizing,
   useIsChatPanelOpen,

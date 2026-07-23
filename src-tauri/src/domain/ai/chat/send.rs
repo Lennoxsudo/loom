@@ -172,23 +172,52 @@ pub async fn send_openai_chat(
         "messages": messages_json,
         "temperature": 0.7,
     });
+    let body_bytes =
+        serde_json::to_vec(&body).map_err(|e| format!("构建请求体失败: {}", e))?;
+    let gateway_creds =
+        super::gateway_sign::require_builtin_credentials(&config.endpoint, None)?;
+    let api_key = config.api_key.clone();
+    let organization_id = config.organization_id.clone();
 
     let mut last_error = String::new();
 
     for (idx, url) in urls.iter().enumerate() {
-        let result = send_ai_request_with_retry_limit(|| {
-            let mut req = client
-                .post(url)
-                .header("Authorization", format!("Bearer {}", config.api_key))
-                .header("Content-Type", "application/json");
-
-            if let Some(org_id) = &config.organization_id {
-                if !org_id.is_empty() {
-                    req = req.header("OpenAI-Organization", org_id);
-                }
+        let url = url.clone();
+        let body_bytes = body_bytes.clone();
+        let gateway_creds = gateway_creds.clone();
+        if let Err(e) = super::gateway_sign::build_signed_openai_post_request(
+            client,
+            &url,
+            &body_bytes,
+            &api_key,
+            &organization_id,
+            gateway_creds.as_ref(),
+        ) {
+            if e.contains("404") && idx + 1 < urls.len() {
+                last_error = e;
+                continue;
             }
-
-            req.json(&body).send()
+            return Err(e);
+        }
+        let result = send_ai_request_with_retry_limit(|| {
+            let client = client.clone();
+            let url = url.clone();
+            let body_bytes = body_bytes.clone();
+            let api_key = api_key.clone();
+            let organization_id = organization_id.clone();
+            let gateway_creds = gateway_creds.clone();
+            async move {
+                let request = super::gateway_sign::build_signed_openai_post_request(
+                    &client,
+                    &url,
+                    &body_bytes,
+                    &api_key,
+                    &organization_id,
+                    gateway_creds.as_ref(),
+                )
+                .expect("request validated before retry");
+                client.execute(request).await
+            }
         }, max_retries)
         .await;
 

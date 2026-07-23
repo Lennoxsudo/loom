@@ -78,6 +78,7 @@ import {
 import { refreshMonacoTheme } from './utils/monacoTheme';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useAppUpdateStore } from './stores/useAppUpdateStore';
+import { useBuiltinGatewayStore } from './stores/useBuiltinGatewayStore';
 import { useLayoutResize } from './hooks/useLayoutResize';
 import { useCbmGraphReady, useCbmSidecarState, useCbmStore } from './stores/useCbmStore';
 import { useUsageStore } from './stores/useUsageStore';
@@ -1954,6 +1955,7 @@ function AppWithSettings() {
   useEffect(() => {
     initializeSettings();
     void useUsageStore.getState().initUsage();
+    void useBuiltinGatewayStore.getState().hydrate();
   }, [initializeSettings]);
 
   useEffect(() => {

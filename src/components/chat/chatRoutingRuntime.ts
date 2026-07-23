@@ -4,6 +4,11 @@ import {
   type AutoRoutingResolveOptions,
   type LoadedAiConfig,
 } from '../../utils/aiProviderRuntime';
+import {
+  BUILTIN_PROFILE_ID,
+  isBuiltinProtocol,
+  toConfigProviderKey,
+} from '../../utils/builtinGateway';
 import type { AIProvider } from '../../utils/visionCapabilities';
 import type { ChatProtocolSelection } from './types';
 
@@ -43,6 +48,23 @@ export function reconcileChatRequestRuntime(
   const model = manualModel.trim();
   if (!model) {
     return null;
+  }
+
+  // Built-in: logical provider stays `builtin`; config lives under openai profile.
+  if (isBuiltinProtocol(protocolSelection)) {
+    const configProvider = toConfigProviderKey('builtin');
+    const reconciled = reconcileProviderRequest(
+      config,
+      configProvider,
+      model,
+      BUILTIN_PROFILE_ID
+    );
+    return {
+      provider: 'builtin',
+      model: reconciled.model,
+      profileId: BUILTIN_PROFILE_ID,
+      routingMode: 'manual',
+    };
   }
 
   const reconciled = reconcileProviderRequest(

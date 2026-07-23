@@ -33,6 +33,11 @@ import {
   type AutoRoutingResolveOptions,
   type LoadedAiConfig,
 } from '../../utils/aiProviderRuntime';
+import {
+  BUILTIN_PROFILE_ID,
+  isBuiltinProtocol,
+  toConfigProviderKey,
+} from '../../utils/builtinGateway';
 import type { AgentRoutingMode } from '../../utils/agentPersistence';
 
 export { parseProviderAndModel };
@@ -75,6 +80,19 @@ export function reconcileAgentRequestRuntime(
   }
 ): { provider: AIProvider; model: string; profileId?: string } {
   const resolved = resolveAgentRequestRuntime(agent, runtime);
+  if (isBuiltinProtocol(resolved.provider)) {
+    const reconciled = reconcileProviderRequest(
+      config,
+      toConfigProviderKey('builtin'),
+      resolved.model,
+      BUILTIN_PROFILE_ID
+    );
+    return {
+      provider: 'builtin',
+      model: reconciled.model,
+      profileId: BUILTIN_PROFILE_ID,
+    };
+  }
   return reconcileProviderRequest(
     config,
     resolved.provider,
@@ -176,8 +194,8 @@ export function shouldInjectThinkingPrompt(
   provider: AIProvider,
   model: string,
 ): boolean {
-  // 仅对 openai 兼容 provider 注入
-  if (provider !== 'openai') return false;
+  // OpenAI-compatible transports (including built-in gateway)
+  if (provider !== 'openai' && provider !== 'builtin') return false;
 
   // o1 系列是原生推理模型，不需要 thinking 标签
   if (model.startsWith('o1-')) return false;

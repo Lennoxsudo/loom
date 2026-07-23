@@ -1205,19 +1205,43 @@ pub async fn send_openai_stream(
         apply_provider_tool_choice(&mut body, "openai", &tool_choice);
     }
 
+    let body_bytes =
+        serde_json::to_vec(&body).map_err(|e| format!("构建请求体失败: {}", e))?;
+    let gateway_creds =
+        super::gateway_sign::require_builtin_credentials(&config.endpoint, Some(app))?;
+    let api_key = config.api_key.clone();
+    let organization_id = config.organization_id.clone();
+
+    if let Err(e) = super::gateway_sign::build_signed_openai_post_request(
+        client,
+        &url,
+        &body_bytes,
+        &api_key,
+        &organization_id,
+        gateway_creds.as_ref(),
+    ) {
+        return Err(e);
+    }
+
     let response = send_ai_request_with_retry(|| {
-        let mut req = client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", config.api_key))
-            .header("Content-Type", "application/json");
-
-        if let Some(org_id) = &config.organization_id {
-            if !org_id.is_empty() {
-                req = req.header("OpenAI-Organization", org_id);
-            }
+        let client = client.clone();
+        let url = url.clone();
+        let body_bytes = body_bytes.clone();
+        let api_key = api_key.clone();
+        let organization_id = organization_id.clone();
+        let gateway_creds = gateway_creds.clone();
+        async move {
+            let request = super::gateway_sign::build_signed_openai_post_request(
+                &client,
+                &url,
+                &body_bytes,
+                &api_key,
+                &organization_id,
+                gateway_creds.as_ref(),
+            )
+            .expect("request validated before retry");
+            client.execute(request).await
         }
-
-        req.json(&body).send()
     })
     .await?;
 
