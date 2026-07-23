@@ -32,6 +32,9 @@ jobs:
         shell: bash
         run: node scripts/check-release-version.mjs
 
+      - name: Fetch CBM sidecar binary
+        run: npm run fetch:cbm
+
       - name: Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
