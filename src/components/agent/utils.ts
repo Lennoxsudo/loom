@@ -137,16 +137,10 @@ export function syncReconciledRuntimeIfChanged(
   }
 }
 
-// ── Thinking Prompt 常量 ──
-/** 幂等标记：用于检测 thinking 指令是否已注入 */
-export const THINKING_PROMPT_MARKER = '[系统附加指令]';
-
-/** 要求模型展示思考过程的指令文本 */
-export const THINKING_PROMPT_TEXT =
-  '在回答问题前，请先在<thinking>标签中展示你的思考过程，然后在标签外给出最终答案。例如：\n<thinking>\n这里是思考过程...\n</thinking>\n\n这里是最终答案。';
+// ── Native reasoning helpers ──
 
 /**
- * 判断模型是否为原生推理模型（自带 reasoning / thinking 通道，无需注入 <thinking> 指令）。
+ * 判断模型是否为原生推理模型（自带 reasoning / thinking 通道）。
  */
 export function isNativeReasoningModel(model: string): boolean {
   const lower = model.toLowerCase();
@@ -172,29 +166,6 @@ export function isNativeReasoningModel(model: string): boolean {
   ] as const;
 
   return nativeMarkers.some((marker) => lower.includes(marker));
-}
-
-/**
- * 判断是否应为当前 provider/model 注入 thinking 指令。
- *
- * 仅对 OpenAI 兼容 provider 且非推理模型注入。
- * Built-in 走 Gateway 原生 reasoning（enable_thinking），不再叠加 <thinking> prompt，
- * 避免双通道把思考泄漏到正文。
- * Anthropic / Ollama 各有自己的思考机制，不需要此指令。
- */
-export function shouldInjectThinkingPrompt(provider: AIProvider, model: string): boolean {
-  // Built-in: Gateway-X already requests native reasoning; skip prompt-tag fallback.
-  if (provider === 'builtin') return false;
-
-  if (provider !== 'openai') return false;
-
-  // o1 系列是原生推理模型，不需要 thinking 标签
-  if (model.startsWith('o1-')) return false;
-
-  // 原生推理模型自带 reasoning 通道，不再叠加 <thinking> 指令
-  if (isNativeReasoningModel(model)) return false;
-
-  return true;
 }
 
 export function formatError(error: unknown): string {
@@ -1622,7 +1593,7 @@ export function buildContextForRequest(options: BuildContextOptions): {
   // ① & ② 组合唯一的 System prompt
   // 拼接顺序按「最稳定 → 最易变」排列，使 Prompt Caching 前缀尽可能稳定：
   //   runtimeIdentity > coreSystemPrompt > agent.description > subagentCatalog >
-  //   skillsContext > projectPath > thinking
+  //   skillsContext > projectPath
   const systemLines: string[] = [];
 
   if (includeCoreSystemPrompt) {
@@ -1648,14 +1619,6 @@ export function buildContextForRequest(options: BuildContextOptions): {
   // 6. projectPath（首次注入后不再变）
   if (shouldInjectProjectPath && projectPath && projectPath.trim()) {
     systemLines.push(`${PROJECT_PATH_CONTEXT_PREFIX}${projectPath}`);
-  }
-
-  // 7. thinking 指令（取决于 provider+model，最易变）
-  if (shouldInjectThinkingPrompt(provider, model)) {
-    const alreadyInjected = systemLines.some((line) => line.includes(THINKING_PROMPT_MARKER));
-    if (!alreadyInjected) {
-      systemLines.push(`${THINKING_PROMPT_MARKER}\n${THINKING_PROMPT_TEXT}`);
-    }
   }
 
   if (systemLines.length > 0) {

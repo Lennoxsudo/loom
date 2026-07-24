@@ -34,6 +34,14 @@ export interface BuiltinQuotaStatus {
   };
 }
 
+/** `GET /v1/notice` — Gateway-X ad / instruction copy for settings. */
+export type BuiltinNoticeKind = 'ad' | 'info';
+
+export interface BuiltinNotice {
+  message: string;
+  kind: BuiltinNoticeKind;
+}
+
 export interface BuiltinGatewayState {
   installId: string;
   apiKey: string | null;
@@ -190,6 +198,46 @@ function readNonNegInt(value: unknown, fallback = 0): number {
     return n >= 0 ? Math.floor(n) : fallback;
   }
   return fallback;
+}
+
+/** Parse Gateway-X `GET /v1/notice` JSON. */
+export function parseNoticePayload(payload: unknown): BuiltinNotice | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const obj = payload as Record<string, unknown>;
+  const message = typeof obj.message === 'string' ? obj.message.trim() : '';
+  if (!message) return null;
+  const rawKind = typeof obj.kind === 'string' ? obj.kind.trim().toLowerCase() : '';
+  const kind: BuiltinNoticeKind = rawKind === 'ad' ? 'ad' : 'info';
+  return { message, kind };
+}
+
+export async function fetchBuiltinNotice(fetchImpl?: typeof fetch): Promise<BuiltinNotice | null> {
+  if (!fetchImpl) {
+    try {
+      const { invoke, isTauri } = await import('@tauri-apps/api/core');
+      if (isTauri()) {
+        const result = await invoke<{ message?: string; kind?: string }>(
+          'builtin_gateway_get_notice'
+        );
+        return parseNoticePayload(result);
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const doFetch = fetchImpl ?? fetch;
+    const res = await doFetch(`${BUILTIN_GATEWAY_BASE}/notice`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return parseNoticePayload(json);
+  } catch {
+    return null;
+  }
 }
 
 /** Parse Gateway-X `GET /v1/quota` JSON. */

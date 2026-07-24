@@ -12,6 +12,8 @@ import type { CbmIndexedProject } from '../hooks/useIndexedProjects';
 export interface SidebarAreaProps {
   sidebarWidth: number;
   isFileTreeCollapsed: boolean;
+  /** Activity Bar 关闭：整栏不渲染 */
+  isSidebarHidden?: boolean;
   activeSidebarView: 'explorer' | 'search' | 'git';
   isResizing: boolean;
   projectName: string;
@@ -116,6 +118,7 @@ const resizeHandleStyle: CSSProperties = {
 function SidebarAreaBase({
   sidebarWidth,
   isFileTreeCollapsed,
+  isSidebarHidden = false,
   activeSidebarView,
   isResizing,
   projectName,
@@ -170,11 +173,52 @@ function SidebarAreaBase({
     }
   }, [activeSidebarView]);
 
-  if (isFileTreeCollapsed) {
+  const resolvedProjectPath = projectPath ?? undefined;
+
+  if (isSidebarHidden) {
     return null;
   }
 
-  const resolvedProjectPath = projectPath ?? undefined;
+  // Soft collapse (header caret): keep the project header strip; hide bodies.
+  if (isFileTreeCollapsed) {
+    return (
+      <>
+        <div
+          style={{
+            ...sidebarStyle,
+            width: `${sidebarWidth}px`,
+            display: 'flex',
+          }}
+        >
+          <ProjectRootHeader
+            projectName={projectName}
+            projectPath={resolvedProjectPath || ''}
+            isFileTreeCollapsed={isFileTreeCollapsed}
+            onToggleCollapse={onToggleCollapse}
+            onCreateFolder={onCreateFolder}
+            onCreateFile={onCreateFile}
+            onOpenFolder={onOpenFolder}
+            onContextMenuBlank={onContextMenuBlank}
+          />
+        </div>
+
+        <div
+          onMouseDown={onSidebarResizeStart}
+          style={{
+            ...resizeHandleStyle,
+            backgroundColor: isResizing ? 'var(--panel-resizer-active)' : 'var(--panel-resizer)',
+            transition: isResizing ? 'none' : 'background-color 0.1s',
+          }}
+          onMouseEnter={(e) => {
+            if (!isResizing) e.currentTarget.style.backgroundColor = 'var(--panel-resizer-active)';
+          }}
+          onMouseLeave={(e) => {
+            if (!isResizing) e.currentTarget.style.backgroundColor = 'var(--panel-resizer)';
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <>

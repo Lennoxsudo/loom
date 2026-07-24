@@ -179,6 +179,7 @@ pub fn attach_handlers(
         crate::chat::test_ai_connection,
         crate::chat::list_ai_models,
         crate::chat::builtin_gateway_health,
+        crate::chat::builtin_gateway_get_notice,
         crate::chat::builtin_gateway_activate,
         crate::chat::builtin_gateway_list_models,
         crate::chat::builtin_gateway_get_quota,

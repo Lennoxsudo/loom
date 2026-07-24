@@ -13,7 +13,7 @@ import {
   estimateToolsTokens,
 } from '../../utils/contextBudget';
 import { AI_TOOLS } from '../../features/agent-engine/definitions';
-import { buildContextForRequest, THINKING_PROMPT_MARKER, THINKING_PROMPT_TEXT } from './utils';
+import { buildContextForRequest } from './utils';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
 import { formatRulesContext } from '../../utils/rulesInjector';
 import type { AIProvider } from '../../utils/agentPersistence';
@@ -199,13 +199,6 @@ describe('Agent 单次请求 token 用量估算', () => {
       `  Project path:          ${projectPathTokens} tokens (${projectPathContent.length} chars)`
     );
 
-    // Thinking prompt
-    const thinkingContent = `${THINKING_PROMPT_MARKER}\n${THINKING_PROMPT_TEXT}`;
-    const thinkingTokens = estimateTokens(thinkingContent);
-    console.warn(
-      `  Thinking prompt:       ${thinkingTokens} tokens (${thinkingContent.length} chars)`
-    );
-
     // Plan mode prompt
     const planTokens = estimateTokens(PLAN_MODE_PROMPT);
     console.warn(
@@ -239,12 +232,7 @@ describe('Agent 单次请求 token 用量估算', () => {
 
     // 总开销估算
     const overheadOpenAI =
-      descTokens +
-      rulesTokens +
-      projectPathTokens +
-      thinkingTokens +
-      openaiToolTokens +
-      userMsgTokens;
+      descTokens + rulesTokens + projectPathTokens + openaiToolTokens + userMsgTokens;
     const overheadAnthropic =
       descTokens + rulesTokens + projectPathTokens + anthropicToolTokens + userMsgTokens;
     console.warn('');
@@ -383,7 +371,6 @@ function computeTokenBreakdown(
       systemTokens += tokens;
       if (content.includes('<available_skills>')) skillsTokens += tokens;
       if (content.includes(PROJECT_PATH_PREFIX)) projectPathTokens += tokens;
-      if (content.includes(THINKING_PROMPT_MARKER)) thinkingTokens += tokens;
       if (content.includes('[Rules Context]')) rulesTokens += tokens;
       if (content.includes('计划模式')) planModeTokens += tokens;
       // Agent description: system message 中排除以上特殊内容的剩余部分
@@ -391,7 +378,6 @@ function computeTokenBreakdown(
       if (
         !content.includes('<available_skills>') &&
         !content.includes(PROJECT_PATH_PREFIX) &&
-        !content.includes(THINKING_PROMPT_MARKER) &&
         !content.includes('[Rules Context]') &&
         !content.includes('计划模式') &&
         !content.includes(APP_DISPLAY_NAME) &&

@@ -100,4 +100,37 @@ describe('SidebarArea', () => {
 
     expect(screen.getByText('GitPanel')).toBeInTheDocument();
   });
+
+  it('keeps ProjectRootHeader when soft-collapsed and hides explorer body', () => {
+    render(
+      <SidebarArea
+        {...createProps({
+          isFileTreeCollapsed: true,
+          isSidebarHidden: false,
+          activeSidebarView: 'explorer',
+          projectPath: 'D:\\demo',
+        })}
+      />
+    );
+
+    expect(screen.getByText('ProjectRootHeader')).toBeInTheDocument();
+    expect(screen.queryByText('FileTree')).not.toBeInTheDocument();
+    expect(screen.queryByText('SearchPanel')).not.toBeInTheDocument();
+    expect(screen.queryByText('GitPanel')).not.toBeInTheDocument();
+  });
+
+  it('hides the entire sidebar when isSidebarHidden', () => {
+    const { container } = render(
+      <SidebarArea
+        {...createProps({
+          isSidebarHidden: true,
+          activeSidebarView: 'explorer',
+          projectPath: 'D:\\demo',
+        })}
+      />
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText('ProjectRootHeader')).not.toBeInTheDocument();
+  });
 });

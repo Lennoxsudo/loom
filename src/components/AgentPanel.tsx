@@ -1,6 +1,7 @@
 import styles from './AgentPanel.module.css';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 import { useTranslation, useLocale } from '../i18n';
 import { useNotification } from '../contexts/NotificationContext';
@@ -23,6 +24,8 @@ import { useCbmGraphReady } from '../stores/useCbmStore';
 import { useCbmIndexEvents } from '../hooks/useCbmIndexEvents';
 import { useCbmConfigSync } from '../hooks/useCbmConfigSync';
 import { isCbmSkippedTooLarge, scheduleCbmWorkspaceIndex } from '../utils/cbmRuntime';
+import { useBuiltinGatewayStore } from '../stores/useBuiltinGatewayStore';
+import { BUILTIN_PROFILE_ID, BUILTIN_PROFILE_NAME } from '../utils/builtinGateway';
 import AgentNavSidebar from './agent/AgentNavSidebar';
 import AgentThreadDeleteDialog from './agent/AgentThreadDeleteDialog';
 import AgentProjectDeleteDialog from './agent/AgentProjectDeleteDialog';
@@ -414,6 +417,8 @@ export default function AgentPanel({
     model: '',
     routingMode: 'manual',
   });
+  const selectedProviderRef = useRef(selectedProvider);
+  selectedProviderRef.current = selectedProvider;
 
   const syncAgentRuntimeRef = useCallback(
     (partial: {
@@ -528,6 +533,40 @@ export default function AgentPanel({
     },
     [syncAgentRuntimeRef, t.settingsBuiltin.notActivated]
   );
+
+  // Settings "Refresh models" writes disk + emits; hydrate then overwrite Agent builtin list.
+  useEffect(() => {
+    const unlisten = listen('builtin-models-updated', () => {
+      void (async () => {
+        const store = useBuiltinGatewayStore.getState();
+        await store.hydrate();
+        if (selectedProviderRef.current !== 'builtin') return;
+        const models = store.models ?? [];
+        setAvailableModels(models);
+        setAvailableProfiles([
+          {
+            id: BUILTIN_PROFILE_ID,
+            name: BUILTIN_PROFILE_NAME,
+            models,
+          },
+        ]);
+        setActiveProfileId(BUILTIN_PROFILE_ID);
+        setSelectedModel((prev) => {
+          const next = prev && models.includes(prev) ? prev : models[0] || '';
+          syncAgentRuntimeRef({
+            provider: 'builtin',
+            model: next,
+            profileId: BUILTIN_PROFILE_ID,
+          });
+          return next;
+        });
+      })();
+    });
+
+    return () => {
+      void unlisten.then((fn) => fn());
+    };
+  }, [syncAgentRuntimeRef]);
 
   const handleRuntimeReconciled = useCallback(
     (runtime: { provider: AIProvider; model: string; profileId?: string }) => {

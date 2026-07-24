@@ -26,6 +26,7 @@ export {
   useIsTerminalResizing,
   useHasTerminals,
   useActiveSidebarView,
+  useIsSidebarHidden,
   useLayoutActions,
 } from './useLayoutStore';
 export {

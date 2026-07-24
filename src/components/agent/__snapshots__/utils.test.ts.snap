@@ -532,15 +532,7 @@ When errors occur:
 
 You are a coding assistant.
 
-[Project Context] Current project path: /workspace
-
-[系统附加指令]
-在回答问题前，请先在<thinking>标签中展示你的思考过程，然后在标签外给出最终答案。例如：
-<thinking>
-这里是思考过程...
-</thinking>
-
-这里是最终答案。",
+[Project Context] Current project path: /workspace",
     "role": "system",
   },
   {

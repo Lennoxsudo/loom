@@ -7,6 +7,7 @@ type SidebarView = 'explorer' | 'search' | 'git';
 
 export interface UseActivityBarCallbacksOptions {
   isFileTreeCollapsed: boolean;
+  isSidebarHidden: boolean;
   activeSidebarView: SidebarView;
   isChatPanelOpen: boolean;
   hasTerminals: boolean;
@@ -16,6 +17,7 @@ export interface UseActivityBarCallbacksOptions {
   layoutActions: {
     setIsResizing: (resizing: boolean) => void;
     setActiveSidebarView: (view: SidebarView) => void;
+    setIsSidebarHidden: (hidden: boolean) => void;
     setIsChatPanelOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
     setIsTerminalOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
   };
@@ -28,6 +30,7 @@ export interface UseActivityBarCallbacksOptions {
 
 export function useActivityBarCallbacks({
   isFileTreeCollapsed,
+  isSidebarHidden,
   activeSidebarView,
   isChatPanelOpen,
   hasTerminals,
@@ -40,35 +43,43 @@ export function useActivityBarCallbacks({
   setEditorGroups,
   setExplorerWorkingDir,
 }: UseActivityBarCallbacksOptions) {
+  const showSidebarView = useCallback(
+    (view: SidebarView) => {
+      layoutActions.setIsResizing(false);
+      layoutActions.setActiveSidebarView(view);
+      layoutActions.setIsSidebarHidden(false);
+      setIsFileTreeCollapsed(false);
+    },
+    [layoutActions, setIsFileTreeCollapsed]
+  );
+
   const handleToggleExplorer = useCallback(() => {
     layoutActions.setIsResizing(false);
-    if (!isFileTreeCollapsed && activeSidebarView === 'explorer') {
-      setIsFileTreeCollapsed(true);
+    // Activity Bar: hide the whole sidebar column (not header-only soft collapse).
+    if (!isSidebarHidden && activeSidebarView === 'explorer') {
+      layoutActions.setIsSidebarHidden(true);
       return;
     }
-    layoutActions.setActiveSidebarView('explorer');
-    setIsFileTreeCollapsed(false);
-  }, [isFileTreeCollapsed, activeSidebarView, layoutActions]);
+    showSidebarView('explorer');
+  }, [isSidebarHidden, activeSidebarView, layoutActions, showSidebarView]);
 
   const handleToggleSearch = useCallback(() => {
     layoutActions.setIsResizing(false);
-    if (!isFileTreeCollapsed && activeSidebarView === 'search') {
-      setIsFileTreeCollapsed(true);
+    if (!isSidebarHidden && activeSidebarView === 'search') {
+      layoutActions.setIsSidebarHidden(true);
       return;
     }
-    layoutActions.setActiveSidebarView('search');
-    setIsFileTreeCollapsed(false);
-  }, [isFileTreeCollapsed, activeSidebarView, layoutActions]);
+    showSidebarView('search');
+  }, [isSidebarHidden, activeSidebarView, layoutActions, showSidebarView]);
 
   const handleToggleGit = useCallback(() => {
     layoutActions.setIsResizing(false);
-    if (!isFileTreeCollapsed && activeSidebarView === 'git') {
-      setIsFileTreeCollapsed(true);
+    if (!isSidebarHidden && activeSidebarView === 'git') {
+      layoutActions.setIsSidebarHidden(true);
       return;
     }
-    layoutActions.setActiveSidebarView('git');
-    setIsFileTreeCollapsed(false);
-  }, [isFileTreeCollapsed, activeSidebarView, layoutActions]);
+    showSidebarView('git');
+  }, [isSidebarHidden, activeSidebarView, layoutActions, showSidebarView]);
 
   const handleToggleChat = useCallback(() => {
     layoutActions.setIsChatPanelOpen(!isChatPanelOpen);
@@ -139,8 +150,9 @@ export function useActivityBarCallbacks({
 
   const handleSidebarToggleCollapse = useCallback(() => {
     layoutActions.setIsResizing(false);
-    setIsFileTreeCollapsed(true);
-  }, [layoutActions]);
+    layoutActions.setIsSidebarHidden(false);
+    setIsFileTreeCollapsed(!isFileTreeCollapsed);
+  }, [layoutActions, isFileTreeCollapsed, setIsFileTreeCollapsed]);
 
   const handleSetExplorerWorkingDir = useCallback(
     (dir: string | null) => {

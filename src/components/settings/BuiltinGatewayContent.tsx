@@ -5,10 +5,28 @@ import {
   useBuiltinGatewayState,
   useBuiltinGatewayStore,
 } from '../../stores/useBuiltinGatewayStore';
+import { fetchBuiltinNotice, type BuiltinNotice } from '../../utils/builtinGateway';
 import pageStyles from './SettingsPage.module.css';
 import styles from './BuiltinGatewayContent.module.css';
 
 const QUOTA_POLL_MS = 30_000;
+const INVITE_CODE_STORAGE_KEY = 'loom.builtin.inviteCode';
+
+function readStoredInviteCode(): string {
+  try {
+    return localStorage.getItem(INVITE_CODE_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeStoredInviteCode(code: string): void {
+  try {
+    localStorage.setItem(INVITE_CODE_STORAGE_KEY, code);
+  } catch {
+    // ignore quota / private-mode failures
+  }
+}
 
 export function BuiltinGatewayContent() {
   const t = useTranslation();
@@ -22,12 +40,23 @@ export function BuiltinGatewayContent() {
   const refreshModels = useBuiltinGatewayStore((s) => s.refreshModels);
   const refreshQuota = useBuiltinGatewayStore((s) => s.refreshQuota);
 
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(readStoredInviteCode);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<BuiltinNotice | null>(null);
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchBuiltinNotice().then((next) => {
+      if (!cancelled) setNotice(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // On settings mount / when activated: fetch quota immediately and every 30s.
   useEffect(() => {
@@ -51,7 +80,7 @@ export function BuiltinGatewayContent() {
       const ok = await activate(inviteCode.trim());
       if (ok) {
         showSuccess(t.settingsBuiltin.activateSuccess);
-        setInviteCode('');
+        writeStoredInviteCode(inviteCode.trim());
         void refreshHealth();
       } else {
         const err = useBuiltinGatewayStore.getState().error;
@@ -113,6 +142,14 @@ export function BuiltinGatewayContent() {
     if (status === 'error') return error || t.settingsBuiltin.statusError;
     return t.settingsBuiltin.statusInactive;
   })();
+
+  const messagePanelClass = [
+    styles.messagePanel,
+    notice?.kind === 'ad' ? styles.messagePanelAd : '',
+    notice?.kind === 'info' ? styles.messagePanelInfo : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={pageStyles.root}>
@@ -178,7 +215,11 @@ export function BuiltinGatewayContent() {
             className={styles.input}
             type="text"
             value={inviteCode}
-            onChange={(e) => setInviteCode(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setInviteCode(next);
+              writeStoredInviteCode(next);
+            }}
             placeholder={t.settingsBuiltin.invitePlaceholder}
             disabled={busy || status === 'desktopOnly'}
             autoComplete="off"
@@ -220,6 +261,26 @@ export function BuiltinGatewayContent() {
         >
           {t.settingsBuiltin.clearKey}
         </button>
+      </section>
+
+      <section
+        className={messagePanelClass}
+        aria-live="polite"
+        aria-label={t.settingsBuiltin.messageTitle}
+      >
+        <div className={styles.messageHeader}>
+          <h2 className={styles.messageTitle}>{t.settingsBuiltin.messageTitle}</h2>
+          {notice ? (
+            <span className={styles.messageKind}>
+              {notice.kind === 'ad'
+                ? t.settingsBuiltin.messageKindAd
+                : t.settingsBuiltin.messageKindInfo}
+            </span>
+          ) : null}
+        </div>
+        <p className={notice ? styles.messageBody : styles.messageBodyEmpty}>
+          {notice?.message ?? t.settingsBuiltin.messageEmpty}
+        </p>
       </section>
     </div>
   );

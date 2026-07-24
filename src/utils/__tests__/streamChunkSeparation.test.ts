@@ -39,7 +39,7 @@ describe('streamChunkSeparation', () => {
       expect(result.firstContentTime).toBe(30);
     });
 
-    test('parses inline think tags when no thinking chunks were received', () => {
+    test('strips inline think tags from body without promoting to thinking bubble', () => {
       const result = applyTrustedStreamSeparation({
         rawContent: '<think>Inline thought</think>Body text',
         rawThinking: '',
@@ -48,10 +48,9 @@ describe('streamChunkSeparation', () => {
         chunkTime: 40,
       });
 
-      expect(result.thinking).toBe('Inline thought');
+      expect(result.thinking).toBe('');
       expect(result.content).toBe('Body text');
       expect(result.isThinking).toBe(false);
-      expect(result.thinkingEndedAt).toBe(40);
     });
 
     test('does not leak Chinese reasoning keywords from thinking stream to body', () => {

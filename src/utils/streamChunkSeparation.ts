@@ -4,7 +4,6 @@ import {
   mergeStreamingAndFinalSplit,
   parseInlineThinkingFromContent,
   sanitizeSeparateReasoningStream,
-  separateMessageState,
   stripStrayThinkTags,
 } from './thinkingExtractor';
 
@@ -30,16 +29,6 @@ export interface TrustedStreamSeparationResult {
   thinkingStartedAt?: number;
   thinkingEndedAt?: number;
   firstContentTime?: number;
-}
-
-function needsInlineTagFallback(
-  rawContent: string,
-  rawThinking: string,
-  receivedThinkingChunks: boolean
-): boolean {
-  if (receivedThinkingChunks) return false;
-  if ((rawThinking || '').trim().length > 0) return false;
-  return hasInlineThinkTags(rawContent);
 }
 
 /**
@@ -69,13 +58,16 @@ function pickMonotonicNativeThinking(streamThinking: string, rawThinking: string
   return fromRaw.length >= fromStream.length ? fromRaw : fromStream;
 }
 
+/** Strip prompt-style think tags from body text; never promote them into the thinking bubble. */
+function stripPseudoThinkTagsFromContent(content: string): string {
+  if (!hasInlineThinkTags(content)) return content;
+  return parseInlineThinkingFromContent(content).text;
+}
 
 /**
- * Trust backend chunk_type during streaming; only apply tag-only fallback when
- * the provider never emitted a separate thinking stream but left tags in content.
- *
- * When a native reasoning stream was received, thinking comes ONLY from that
- * stream — never merge content-channel <thinking> tags (avoids bilingual dupes).
+ * Trust backend chunk_type during streaming.
+ * Thinking bubble is fed ONLY by the native reasoning stream (chunk_type === 'thinking').
+ * Content-channel <thinking> tags are stripped from the body, never shown as thinking.
  */
 export function applyTrustedStreamSeparation(
   input: TrustedStreamSeparationInput
@@ -112,57 +104,14 @@ export function applyTrustedStreamSeparation(
     firstContentTime = chunkTime;
   }
 
-  if (needsInlineTagFallback(rawContent, rawThinking, nextReceivedThinkingChunks)) {
-    const inline = parseInlineThinkingFromContent(rawContent);
-    const hasClosingTag = /<\/think(?:ing)?>/i.test(rawContent) || rawContent.includes('思考结束');
-    const isThinking =
-      !(inline.text || '').trim() && (!hasClosingTag || Boolean((inline.thinking || '').trim()));
-
-    if (inline.thinking && !thinkingStartedAt) {
-      thinkingStartedAt = chunkTime;
-    }
-    if (
-      inline.text.trim() &&
-      hadThinkingBeforeChunk === false &&
-      inline.thinking &&
-      !thinkingEndedAt
-    ) {
-      thinkingEndedAt = chunkTime;
-    }
-    if (inline.text.trim() && !firstContentTime) {
-      firstContentTime = chunkTime;
-    }
-
-    return {
-      content: inline.text,
-      thinking: inline.thinking,
-      isThinking: isThinking && !(inline.text || '').trim(),
-      receivedThinkingChunks: nextReceivedThinkingChunks,
-      thinkingStartedAt,
-      thinkingEndedAt,
-      firstContentTime,
-    };
-  }
-
-  let content = rawContent;
-  let thinking = rawThinking;
+  let content = stripPseudoThinkTagsFromContent(rawContent);
+  let thinking = '';
 
   if (nextReceivedThinkingChunks) {
-    // Native reasoning only — never prepend content-channel <thinking> tags.
-    thinking = resolveNativeReasoningThinking(thinking);
-    if (hasInlineThinkTags(content)) {
-      content = parseInlineThinkingFromContent(content).text;
-    }
-  } else {
-    if ((rawThinking || '').trim() && hasInlineThinkTags(rawContent)) {
-      const inline = parseInlineThinkingFromContent(rawContent);
-      content = inline.text;
-      thinking = inline.thinking
-        ? mergeDistinctTextSegments(inline.thinking, rawThinking)
-        : rawThinking;
-    }
-
-    const sanitized = sanitizeSeparateReasoningStream(thinking);
+    thinking = resolveNativeReasoningThinking(rawThinking);
+  } else if ((rawThinking || '').trim()) {
+    // Legacy persisted rawThinking without chunk_type — treat as native-ish and sanitize only.
+    const sanitized = sanitizeSeparateReasoningStream(rawThinking);
     if (sanitized.leakedText) {
       content = mergeDistinctTextSegments(sanitized.leakedText, content);
       if (!thinkingEndedAt) {
@@ -204,10 +153,8 @@ export interface FinalizeStreamMessageResult {
 }
 
 /**
- * Monotonic finalize: preserve streamed bubble assignment, only tag-parse or
- * light cleanup when the provider never split thinking/content.
- *
- * With a native reasoning stream, never merge content <thinking> into thinking.
+ * Monotonic finalize: thinking comes only from the native reasoning stream.
+ * Content-channel <thinking> tags are stripped from the body, never promoted.
  */
 export function finalizeStreamMessage(
   input: FinalizeStreamMessageInput
@@ -215,61 +162,33 @@ export function finalizeStreamMessage(
   const rawContent = (input.rawContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const rawThinking = (input.rawThinking || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  const streamText = (input.streamContent ?? rawContent).trim();
+  const streamText = stripPseudoThinkTagsFromContent(
+    (input.streamContent ?? rawContent).trim()
+  ).trim();
   const streamThinking = (input.streamThinking ?? rawThinking).trim();
 
-  const streamState = { text: streamText, thinking: streamThinking };
-
   const hasNativeReasoning = Boolean(input.receivedThinkingChunks) || Boolean(rawThinking.trim());
-  const backendSplit = hasNativeReasoning || !hasInlineThinkTags(rawContent);
 
-  if (backendSplit) {
-    if (input.receivedThinkingChunks || rawThinking.trim()) {
-      const thinking = pickMonotonicNativeThinking(streamThinking, rawThinking);
-      let text = rawContent.trim();
-      if (hasInlineThinkTags(text)) {
-        text = parseInlineThinkingFromContent(text).text;
-      }
-      // Merge body text only — pass identical thinking so finalize cannot concat paraphrases.
-      const merged = mergeStreamingAndFinalSplit(
-        { text: streamText, thinking },
-        { text, thinking }
-      );
-      return {
-        content: hasInlineThinkTags(merged.text)
-          ? parseInlineThinkingFromContent(merged.text).text
-          : merged.text,
-        thinking,
-      };
-    }
-
-    const sanitizedThinking = sanitizeSeparateReasoningStream(rawThinking);
-    const finalState = {
-      text: mergeDistinctTextSegments(sanitizedThinking.leakedText, rawContent.trim()),
-      thinking: sanitizedThinking.thinking.trim(),
+  if (hasNativeReasoning) {
+    const thinking = pickMonotonicNativeThinking(streamThinking, rawThinking);
+    const text = stripPseudoThinkTagsFromContent(rawContent.trim());
+    const merged = mergeStreamingAndFinalSplit(
+      { text: streamText, thinking },
+      { text, thinking }
+    );
+    return {
+      content: stripPseudoThinkTagsFromContent(merged.text),
+      thinking,
     };
-    const merged = mergeStreamingAndFinalSplit(streamState, finalState);
-    if (hasInlineThinkTags(merged.text)) {
-      const parsed = parseInlineThinkingFromContent(merged.text);
-      return {
-        content: parsed.text,
-        thinking: mergeDistinctTextSegments(merged.thinking, parsed.thinking),
-      };
-    }
-    return { content: merged.text, thinking: merged.thinking };
   }
 
-  const finalSplit = separateMessageState({
-    rawContent,
-    rawThinking,
-    isStreaming: false,
-  });
-
-  const merged = mergeStreamingAndFinalSplit(streamState, {
-    text: finalSplit.text.trim(),
-    thinking: finalSplit.thinking.trim(),
-  });
-  return { content: merged.text, thinking: merged.thinking };
+  // No native reasoning — keep body only; discard prompt-style think tags.
+  const text = stripPseudoThinkTagsFromContent(rawContent.trim());
+  const merged = mergeStreamingAndFinalSplit(
+    { text: streamText, thinking: '' },
+    { text, thinking: '' }
+  );
+  return { content: stripPseudoThinkTagsFromContent(merged.text), thinking: '' };
 }
 
 export { mergeDistinctTextSegments };

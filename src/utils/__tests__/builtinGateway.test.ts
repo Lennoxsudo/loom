@@ -15,6 +15,7 @@ import {
   isGatewayAuthErrorMessage,
   normalizeActivateResponse,
   parseModelsListPayload,
+  parseNoticePayload,
   parseQuotaStatusPayload,
   toConfigProviderKey,
   toTransportProfileId,
@@ -140,6 +141,18 @@ describe('builtinGateway helpers', () => {
       usage: { daily_requests: 12, daily_tokens: 0 },
       remaining: { daily_requests: 488, daily_tokens: null },
     });
+  });
+
+  it('parseNoticePayload reads message and kind', () => {
+    expect(parseNoticePayload({ message: '  hello  ', kind: 'ad' })).toEqual({
+      message: 'hello',
+      kind: 'ad',
+    });
+    expect(parseNoticePayload({ message: 'note' })).toEqual({
+      message: 'note',
+      kind: 'info',
+    });
+    expect(parseNoticePayload({ message: '' })).toBeNull();
   });
 
   it('fetchBuiltinQuota calls GET /quota with bearer', async () => {

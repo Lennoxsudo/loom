@@ -4,7 +4,7 @@ import { useStreamChunkQueue } from './useStreamChunkQueue';
 import type { Message } from './types';
 
 describe('useStreamChunkQueue', () => {
-  test('separates thinking tags carried inside content chunks in normal chat', () => {
+  test('strips content-channel thinking tags without promoting to thinking bubble', () => {
     let messages: Message[] = [
       {
         id: 'msg-1',
@@ -47,14 +47,12 @@ describe('useStreamChunkQueue', () => {
       });
     });
 
-    expect(messages[0].thinking).toContain('The edit was successful.');
-    expect(messages[0].thinking).toContain('Let me confirm the final state of the file.');
-    expect(messages[0].thinking).not.toContain('<thinking>');
+    expect(messages[0].thinking).toBe('');
     expect(messages[0].content).toBe('Visible final answer');
-    expect(messages[0].thinkingEndedAt).toBe(20);
+    expect(messages[0].content).not.toContain('<thinking>');
   });
 
-  test('correctly handles split thinking streams starting with <think>', () => {
+  test('does not treat content-channel <think> tags as a thinking stream', () => {
     let messages: Message[] = [
       {
         id: 'msg-2',
@@ -79,7 +77,6 @@ describe('useStreamChunkQueue', () => {
       })
     );
 
-    // 1. Chunk starts with <think> tag
     act(() => {
       result.current.applyStreamChunk({
         message_id: 'msg-2',
@@ -88,11 +85,10 @@ describe('useStreamChunkQueue', () => {
         chunkTime: 10,
       });
     });
-    expect(messages[0].isThinking).toBe(true);
+    expect(messages[0].isThinking).toBe(false);
     expect(messages[0].thinking).toBe('');
     expect(messages[0].content).toBe('');
 
-    // 2. Chunk with thinking text (should go to thinking)
     act(() => {
       result.current.applyStreamChunk({
         message_id: 'msg-2',
@@ -101,11 +97,8 @@ describe('useStreamChunkQueue', () => {
         chunkTime: 20,
       });
     });
-    expect(messages[0].isThinking).toBe(true);
-    expect(messages[0].thinking).toBe('First line of thinking\n');
-    expect(messages[0].content).toBe('');
+    expect(messages[0].thinking).toBe('');
 
-    // 3. Another thinking line
     act(() => {
       result.current.applyStreamChunk({
         message_id: 'msg-2',
@@ -114,11 +107,8 @@ describe('useStreamChunkQueue', () => {
         chunkTime: 30,
       });
     });
-    expect(messages[0].isThinking).toBe(true);
-    expect(messages[0].thinking).toBe('First line of thinking\nSecond line of thinking');
-    expect(messages[0].content).toBe('');
+    expect(messages[0].thinking).toBe('');
 
-    // 4. Closing tag and final answer
     act(() => {
       result.current.applyStreamChunk({
         message_id: 'msg-2',
@@ -128,9 +118,8 @@ describe('useStreamChunkQueue', () => {
       });
     });
     expect(messages[0].isThinking).toBe(false);
-    expect(messages[0].thinking).toBe('First line of thinking\nSecond line of thinking');
+    expect(messages[0].thinking).toBe('');
     expect(messages[0].content).toBe('Visible final answer');
-    expect(messages[0].thinkingEndedAt).toBe(40);
   });
 
   test('correctly handles separate thinking stream chunks', () => {

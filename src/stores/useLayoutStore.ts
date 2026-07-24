@@ -20,6 +20,8 @@ interface LayoutState {
   isTerminalResizing: boolean;
   hasTerminals: boolean;
   activeSidebarView: SidebarView;
+  /** Activity Bar 关闭侧栏：整栏消失（与顶栏三角「只收起」区分） */
+  isSidebarHidden: boolean;
 }
 
 interface LayoutActions {
@@ -33,6 +35,7 @@ interface LayoutActions {
   setIsTerminalResizing: (resizing: boolean) => void;
   setHasTerminals: (has: boolean) => void;
   setActiveSidebarView: (view: SidebarView) => void;
+  setIsSidebarHidden: (hidden: boolean) => void;
   resetLayout: () => void;
 }
 
@@ -47,6 +50,7 @@ const initialState: LayoutState = {
   isTerminalResizing: false,
   hasTerminals: false,
   activeSidebarView: 'explorer',
+  isSidebarHidden: false,
 };
 
 export const useLayoutStore = create<LayoutState & LayoutActions>()(
@@ -89,6 +93,8 @@ export const useLayoutStore = create<LayoutState & LayoutActions>()(
 
       setActiveSidebarView: (view) => set({ activeSidebarView: view }),
 
+      setIsSidebarHidden: (hidden) => set({ isSidebarHidden: hidden }),
+
       resetLayout: () => set(initialState),
     }),
     {
@@ -108,6 +114,7 @@ export const useTerminalHeight = () => useLayoutStore((state) => state.terminalH
 export const useIsTerminalResizing = () => useLayoutStore((state) => state.isTerminalResizing);
 export const useHasTerminals = () => useLayoutStore((state) => state.hasTerminals);
 export const useActiveSidebarView = () => useLayoutStore((state) => state.activeSidebarView);
+export const useIsSidebarHidden = () => useLayoutStore((state) => state.isSidebarHidden);
 
 // Actions hook — 使用 getState() 获取稳定引用，避免每次渲染创建新对象
 export const useLayoutActions = () => {
@@ -123,5 +130,6 @@ export const useLayoutActions = () => {
     setIsTerminalResizing: store.getState().setIsTerminalResizing,
     setHasTerminals: store.getState().setHasTerminals,
     setActiveSidebarView: store.getState().setActiveSidebarView,
+    setIsSidebarHidden: store.getState().setIsSidebarHidden,
   };
 };

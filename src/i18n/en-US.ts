@@ -1322,6 +1322,10 @@ export const enUS: I18nMessages = {
     desktopOnly: 'Built-in models are only available in the desktop app',
     protocolLabel: 'Built-in Models',
     notActivated: 'Activate built-in models in Settings first',
+    messageTitle: 'Gateway-X',
+    messageEmpty: 'No announcement from Gateway-X yet',
+    messageKindAd: 'Ad',
+    messageKindInfo: 'Info',
   },
   settingsRules: {
     title: 'Rules Configuration',

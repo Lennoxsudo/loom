@@ -1282,6 +1282,10 @@ export interface I18nMessages {
     desktopOnly: string;
     protocolLabel: string;
     notActivated: string;
+    messageTitle: string;
+    messageEmpty: string;
+    messageKindAd: string;
+    messageKindInfo: string;
   };
   settingsRules: {
     title: string;

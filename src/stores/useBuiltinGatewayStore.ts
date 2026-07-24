@@ -194,17 +194,8 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
                 daily_tokens: result.quotas.daily_tokens ?? 0,
               }
             : null;
-          let models: string[] = [];
-          try {
-            models = await fetchBuiltinModels(result.api_key);
-          } catch (modelErr) {
-            const msg = errorMessage(modelErr);
-            if (msg === 'UNAUTHORIZED' || (modelErr as { status?: number }).status === 401) {
-              set({ error: 'UNAUTHORIZED', status: 'error' });
-              return false;
-            }
-            // Activation succeeded even if model list fails transiently
-          }
+          // Persist new credentials BEFORE listing models. list_models signs with
+          // clientSecret loaded from disk — using the old secret + new apiKey causes 401.
           const next: BuiltinGatewayState = {
             installId,
             apiKey: result.api_key,
@@ -212,7 +203,7 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
             clientId: result.client_id,
             activatedAt: new Date().toISOString(),
             lastQuotas: quotas,
-            models,
+            models: [],
           };
           await writeStateToDisk(next);
           set({
@@ -221,6 +212,17 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
             error: null,
             quotaStatus: null,
           });
+
+          try {
+            const models = await fetchBuiltinModels(result.api_key);
+            if (models.length > 0) {
+              const withModels = { ...next, models };
+              await writeStateToDisk(withModels);
+              set({ models, error: null, status: 'active' });
+            }
+          } catch {
+            // Activation already succeeded; model list is best-effort (manual refresh available).
+          }
           void get().refreshQuota();
           return true;
         } catch (error) {
@@ -281,6 +283,12 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
           };
           await writeStateToDisk(next);
           set({ models, error: null, status: 'active' });
+          try {
+            const { emit } = await import('@tauri-apps/api/event');
+            await emit('builtin-models-updated', null);
+          } catch {
+            // Event notify is best-effort (Chat/Agent live refresh).
+          }
           return models;
         } catch (error) {
           const status = (error as { status?: number }).status;

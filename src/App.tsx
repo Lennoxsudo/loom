@@ -29,6 +29,7 @@ import {
   useIsTerminalResizing,
   useHasTerminals,
   useActiveSidebarView,
+  useIsSidebarHidden,
   useLayoutActions,
   useTabSize,
   useAutoSaveDelay,
@@ -194,6 +195,7 @@ function AppContent() {
   const isTerminalResizing = useIsTerminalResizing();
   const hasTerminals = useHasTerminals();
   const activeSidebarView = useActiveSidebarView();
+  const isSidebarHidden = useIsSidebarHidden();
 
   const layoutActions = useLayoutActions();
 
@@ -1482,7 +1484,7 @@ function AppContent() {
       ) {
         return;
       }
-      if (activeSidebarView !== 'explorer' || isFileTreeCollapsed) {
+      if (activeSidebarView !== 'explorer' || isFileTreeCollapsed || isSidebarHidden) {
         return;
       }
       if (renamingItem || creatingItem) {
@@ -1558,6 +1560,7 @@ function AppContent() {
     handlePasteAtRoot,
     handlePasteIntoTreeNode,
     isFileTreeCollapsed,
+    isSidebarHidden,
     projectPath,
     renamingItem,
     startFileTreeRename,
@@ -1727,6 +1730,7 @@ function AppContent() {
     handleSetExplorerWorkingDir,
   } = useActivityBarCallbacks({
     isFileTreeCollapsed,
+    isSidebarHidden,
     activeSidebarView,
     isChatPanelOpen,
     hasTerminals,
@@ -1820,9 +1824,9 @@ function AppContent() {
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             <ActivityBar
-              isExplorerActive={activeSidebarView === 'explorer' && !isFileTreeCollapsed}
-              isSearchActive={activeSidebarView === 'search' && !isFileTreeCollapsed}
-              isGitActive={activeSidebarView === 'git' && !isFileTreeCollapsed}
+              isExplorerActive={activeSidebarView === 'explorer' && !isSidebarHidden}
+              isSearchActive={activeSidebarView === 'search' && !isSidebarHidden}
+              isGitActive={activeSidebarView === 'git' && !isSidebarHidden}
               isChatActive={isChatPanelOpen}
               isTerminalActive={isTerminalOpen}
               onToggleExplorer={handleToggleExplorer}
@@ -1836,6 +1840,7 @@ function AppContent() {
             <SidebarArea
               sidebarWidth={sidebarWidth}
               isFileTreeCollapsed={isFileTreeCollapsed}
+              isSidebarHidden={isSidebarHidden}
               activeSidebarView={activeSidebarView}
               isResizing={isResizing}
               projectName={projectName}

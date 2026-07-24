@@ -44,6 +44,12 @@ pub struct BuiltinQuotaResult {
     pub remaining: Value,
 }
 
+#[derive(Debug, Serialize)]
+pub struct BuiltinNoticeResult {
+    pub message: String,
+    pub kind: String,
+}
+
 #[tauri::command]
 pub async fn builtin_gateway_health() -> Result<BuiltinHealthResult, String> {
     let client = build_client()?;
@@ -54,6 +60,54 @@ pub async fn builtin_gateway_health() -> Result<BuiltinHealthResult, String> {
         }),
         Err(_) => Ok(BuiltinHealthResult { ok: false }),
     }
+}
+
+/// Public Gateway-X notice / ad copy for the built-in settings panel.
+#[tauri::command]
+pub async fn builtin_gateway_get_notice() -> Result<BuiltinNoticeResult, String> {
+    let client = build_client()?;
+    let url = format!("{}/notice", BUILTIN_GATEWAY_BASE);
+    let res = client
+        .get(&url)
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to load notice: {}", e))?;
+
+    let status = res.status();
+    let text = res
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read notice response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Failed to load notice ({})", status.as_u16()));
+    }
+
+    let json: Value = if text.trim().is_empty() {
+        Value::Null
+    } else {
+        serde_json::from_str(&text).unwrap_or(Value::Null)
+    };
+
+    let message = json
+        .get("message")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    if message.is_empty() {
+        return Err("Notice response missing message".to_string());
+    }
+
+    let kind = json
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_ascii_lowercase())
+        .filter(|s| s == "ad" || s == "info")
+        .unwrap_or_else(|| "info".to_string());
+
+    Ok(BuiltinNoticeResult { message, kind })
 }
 
 #[tauri::command]

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildChatContextUsage, CHAT_CONTEXT_RESERVE_TOKENS } from './contextUsage';
 import { DEFAULT_CONTEXT_WINDOW, estimateToolsTokens } from '../../utils/contextBudget';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
-import { THINKING_PROMPT_MARKER } from '../agent/utils';
 
 vi.mock('../../utils/skills', () => ({
   loadSkillsContext: vi.fn(),
@@ -90,7 +89,7 @@ describe('buildChatContextUsage', () => {
     expect(systemText).not.toContain('[Rules Context]');
   });
 
-  it('injects the thinking prompt for built-in native-looking models', async () => {
+  it('does not inject thinking prompt for built-in models', async () => {
     const result = await buildChatContextUsage({
       messages: [
         {
@@ -121,7 +120,8 @@ describe('buildChatContextUsage', () => {
       .map((message) => message.content)
       .join('\n\n');
 
-    expect(systemText).toContain(THINKING_PROMPT_MARKER);
+    expect(systemText).not.toContain('[系统附加指令]');
+    expect(systemText).not.toContain('<thinking>');
   });
 
   it('does not re-inject rules after they were already applied', async () => {

@@ -1300,6 +1300,10 @@ export const zhCN: I18nMessages = {
     desktopOnly: '内置模型仅在桌面端可用',
     protocolLabel: '内置模型',
     notActivated: '请先在设置中激活内置模型',
+    messageTitle: 'Gateway-X',
+    messageEmpty: '暂无来自 Gateway-X 的公告或说明',
+    messageKindAd: '公告',
+    messageKindInfo: '说明',
   },
   settingsRules: {
     title: 'Rules 配置',

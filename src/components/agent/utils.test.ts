@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   buildContextForRequest,
-  shouldInjectThinkingPrompt,
   isNativeReasoningModel,
   ensureAnthropicLeadingUser,
   ensureConversationStateForAgent,
@@ -17,8 +16,6 @@ import {
   resolveDraftSessionKey,
   createAssistantMessageId,
   createUserMessageId,
-  THINKING_PROMPT_MARKER,
-  THINKING_PROMPT_TEXT,
 } from './utils';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
 import type { ProviderRequestMessage, ChatMessage } from '../../types/chat';
@@ -142,38 +139,19 @@ describe('Context Assembly Unity (Regression Tests)', () => {
   });
 });
 
-// ── shouldInjectThinkingPrompt ──────────────────────────────────────
-describe('shouldInjectThinkingPrompt', () => {
-  it('should inject for standard OpenAI models', () => {
-    expect(shouldInjectThinkingPrompt('openai', 'gpt-4o')).toBe(true);
-    expect(shouldInjectThinkingPrompt('openai', 'gpt-4-turbo')).toBe(true);
-    expect(shouldInjectThinkingPrompt('openai', 'gpt-3.5-turbo')).toBe(true);
-  });
-
-  it('should NOT inject for o1-* reasoning models', () => {
-    expect(shouldInjectThinkingPrompt('openai', 'o1-preview')).toBe(false);
-    expect(shouldInjectThinkingPrompt('openai', 'o1-mini')).toBe(false);
-  });
-
-  it('should NOT inject for Anthropic provider', () => {
-    expect(shouldInjectThinkingPrompt('anthropic', 'claude-3-5-sonnet')).toBe(false);
-  });
-
-  it('should NOT inject for Ollama provider', () => {
-    expect(shouldInjectThinkingPrompt('ollama', 'llama3')).toBe(false);
-  });
-
-  it('should NOT inject for native reasoning models', () => {
-    expect(shouldInjectThinkingPrompt('openai', 'nvidia/nemotron-3-super-120b-a12b')).toBe(false);
-    expect(shouldInjectThinkingPrompt('openai', 'deepseek-r1-distill')).toBe(false);
-    expect(shouldInjectThinkingPrompt('openai', 'qwq-32b')).toBe(false);
-    expect(shouldInjectThinkingPrompt('openai', 'o3-mini')).toBe(false);
-  });
-
-  it('does not inject thinking prompt for built-in models', () => {
-    expect(shouldInjectThinkingPrompt('builtin', 'deepseek-v4-pro')).toBe(false);
-    expect(shouldInjectThinkingPrompt('builtin', 'nvidia/nemotron-3-super-120b-a12b')).toBe(false);
-    expect(shouldInjectThinkingPrompt('builtin', 'glm-5.2')).toBe(false);
+// ── Pseudo thinking prompt injection (removed) ──────────────────────
+describe('shouldInjectThinkingPrompt (removed)', () => {
+  it('buildContextForRequest never injects <thinking> prompt tags', () => {
+    for (const model of ['gpt-4o', 'gpt-4-turbo', 'glm-5.2', 'gemini-3-pro-preview'] as const) {
+      const result = buildContextForRequest({
+        requestMessages: [{ role: 'user', content: 'Hello' }],
+        provider: 'openai',
+        model,
+      });
+      const text = systemText(result);
+      expect(text).not.toContain('[系统附加指令]');
+      expect(text).not.toContain('<thinking>');
+    }
   });
 });
 
@@ -208,7 +186,7 @@ describe('isNativeReasoningModel', () => {
 describe('buildContextForRequest — thinking prompt injection', () => {
   const baseMessages: ProviderRequestMessage[] = [{ role: 'user', content: 'Hello' }];
 
-  it('should inject thinking marker for OpenAI gpt-4o', () => {
+  it('never injects thinking prompt for OpenAI gpt-4o', () => {
     const result = buildContextForRequest({
       requestMessages: baseMessages,
       provider: 'openai',
@@ -216,8 +194,8 @@ describe('buildContextForRequest — thinking prompt injection', () => {
     });
     const system = msg(result, 0);
     expect(system.role).toBe('system');
-    expect(system.content as string).toContain(THINKING_PROMPT_MARKER);
-    expect(system.content as string).toContain(THINKING_PROMPT_TEXT);
+    expect(system.content as string).not.toContain('[系统附加指令]');
+    expect(system.content as string).not.toContain('<thinking>');
   });
 
   it('should NOT inject thinking for Anthropic', () => {
@@ -235,7 +213,7 @@ describe('buildContextForRequest — thinking prompt injection', () => {
         : Array.isArray(system.content)
           ? (system.content as { text?: string }[]).map((b) => b.text ?? '').join('')
           : '';
-    expect(textContent).not.toContain(THINKING_PROMPT_MARKER);
+    expect(textContent).not.toContain('[系统附加指令]');
   });
 
   it('should NOT inject thinking for o1-preview', () => {
@@ -246,7 +224,7 @@ describe('buildContextForRequest — thinking prompt injection', () => {
     });
     const text = systemText(result);
     expect(text).toContain(APP_DISPLAY_NAME);
-    expect(text).not.toContain(THINKING_PROMPT_MARKER);
+    expect(text).not.toContain('[系统附加指令]');
     expect(msg(result, 1).role).toBe('user');
   });
 
@@ -258,13 +236,13 @@ describe('buildContextForRequest — thinking prompt injection', () => {
     });
     const text = systemText(result);
     expect(text).toContain(APP_DISPLAY_NAME);
-    expect(text).not.toContain(THINKING_PROMPT_MARKER);
+    expect(text).not.toContain('[系统附加指令]');
     expect(msg(result, 1).role).toBe('user');
   });
 
-  it('should be idempotent — calling twice yields one marker', () => {
-    // Simulate a systemPrompt that already contains the marker
-    const existingSystem = `You are helpful.\n\n${THINKING_PROMPT_MARKER}\n${THINKING_PROMPT_TEXT}`;
+  it('does not reintroduce thinking prompt via systemPrompt alone', () => {
+    // Custom systemPrompt may still contain legacy text; we simply do not add another copy.
+    const existingSystem = 'You are helpful.\n\n[系统附加指令]\nlegacy';
     const result = buildContextForRequest({
       systemPrompt: existingSystem,
       requestMessages: baseMessages,
@@ -273,10 +251,8 @@ describe('buildContextForRequest — thinking prompt injection', () => {
     });
     const system = msg(result, 0);
     const content = system.content as string;
-    const count = (
-      content.match(new RegExp(THINKING_PROMPT_MARKER.replace(/[[\]]/g, '\\$&'), 'g')) || []
-    ).length;
-    expect(count).toBe(1);
+    // Only the caller-provided copy (if any), never an auto-injected second block with <thinking> template.
+    expect(content).not.toContain('在回答问题前，请先在<thinking>标签中展示你的思考过程');
   });
 
   it('stream vs chat: identical provider pipeline output', () => {

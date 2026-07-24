@@ -147,6 +147,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   });
   const chatModeRef = useRef<'plan' | 'always-allow'>(chatMode);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const builtinModels = useBuiltinGatewayStore((s) => s.models);
   const [totalTokens, setTotalTokens] = useState(0);
   const [maxContextTokens, setMaxContextTokens] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -802,7 +803,6 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     const loadModels = async () => {
       if (protocolSelection === 'builtin') {
         try {
-          const { useBuiltinGatewayStore } = await import('../stores/useBuiltinGatewayStore');
           const store = useBuiltinGatewayStore.getState();
           if (!store.hydrated) await store.hydrate();
           if (!store.isActivated()) {
@@ -812,7 +812,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             return;
           }
           setError(null);
-          const models = store.models ?? [];
+          // Prefer live store list so Settings "Refresh models" overwrites Chat immediately.
+          const models = store.models ?? builtinModels ?? [];
           setAvailableModels(models);
           setSelectedModel((prev) => (prev && models.includes(prev) ? prev : models[0] || ''));
         } catch (error) {
@@ -842,7 +843,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       }
     };
     loadModels();
-  }, [protocolSelection, t.settingsBuiltin.notActivated]);
+  }, [protocolSelection, builtinModels, t.settingsBuiltin.notActivated]);
 
   useEffect(() => {
     const loadConversations = async () => {
