@@ -5,6 +5,7 @@ import {
   parseInlineThinkingFromContent,
   sanitizeSeparateReasoningStream,
   separateMessageState,
+  stripStrayThinkTags,
 } from './thinkingExtractor';
 
 export type StreamChunkType = 'thinking' | 'content';
@@ -42,8 +43,39 @@ function needsInlineTagFallback(
 }
 
 /**
+ * Native reasoning sometimes embeds a prompt-style </thinking> followed by an
+ * alternate paraphrase. Keep a single segment (longer wins); never leak the
+ * other side into the reply body (that caused bilingual / duplicate bubbles).
+ */
+function resolveNativeReasoningThinking(rawThinking: string): string {
+  const sanitized = sanitizeSeparateReasoningStream(rawThinking);
+  const before = sanitized.thinking.trim();
+  const after = sanitized.leakedText.trim();
+  if (!after) {
+    return stripStrayThinkTags(sanitized.thinking, { trim: false });
+  }
+  return before.length >= after.length ? before : after;
+}
+
+/** Pick one native thinking source — never concatenate divergent paraphrases. */
+function pickMonotonicNativeThinking(streamThinking: string, rawThinking: string): string {
+  const fromRaw = resolveNativeReasoningThinking(rawThinking);
+  const fromStream = resolveNativeReasoningThinking(streamThinking);
+  if (!fromStream) return fromRaw;
+  if (!fromRaw) return fromStream;
+  if (fromStream === fromRaw) return fromStream;
+  if (fromStream.includes(fromRaw)) return fromStream;
+  if (fromRaw.includes(fromStream)) return fromRaw;
+  return fromRaw.length >= fromStream.length ? fromRaw : fromStream;
+}
+
+
+/**
  * Trust backend chunk_type during streaming; only apply tag-only fallback when
  * the provider never emitted a separate thinking stream but left tags in content.
+ *
+ * When a native reasoning stream was received, thinking comes ONLY from that
+ * stream — never merge content-channel <thinking> tags (avoids bilingual dupes).
  */
 export function applyTrustedStreamSeparation(
   input: TrustedStreamSeparationInput
@@ -115,25 +147,33 @@ export function applyTrustedStreamSeparation(
   let content = rawContent;
   let thinking = rawThinking;
 
-  if ((rawThinking || '').trim() && hasInlineThinkTags(rawContent)) {
-    const inline = parseInlineThinkingFromContent(rawContent);
-    content = inline.text;
-    thinking = inline.thinking
-      ? mergeDistinctTextSegments(inline.thinking, rawThinking)
-      : rawThinking;
-  }
+  if (nextReceivedThinkingChunks) {
+    // Native reasoning only — never prepend content-channel <thinking> tags.
+    thinking = resolveNativeReasoningThinking(thinking);
+    if (hasInlineThinkTags(content)) {
+      content = parseInlineThinkingFromContent(content).text;
+    }
+  } else {
+    if ((rawThinking || '').trim() && hasInlineThinkTags(rawContent)) {
+      const inline = parseInlineThinkingFromContent(rawContent);
+      content = inline.text;
+      thinking = inline.thinking
+        ? mergeDistinctTextSegments(inline.thinking, rawThinking)
+        : rawThinking;
+    }
 
-  const sanitized = sanitizeSeparateReasoningStream(thinking);
-  if (sanitized.leakedText) {
-    content = mergeDistinctTextSegments(sanitized.leakedText, content);
-    if (!thinkingEndedAt) {
-      thinkingEndedAt = chunkTime;
+    const sanitized = sanitizeSeparateReasoningStream(thinking);
+    if (sanitized.leakedText) {
+      content = mergeDistinctTextSegments(sanitized.leakedText, content);
+      if (!thinkingEndedAt) {
+        thinkingEndedAt = chunkTime;
+      }
+      if (!firstContentTime) {
+        firstContentTime = chunkTime;
+      }
     }
-    if (!firstContentTime) {
-      firstContentTime = chunkTime;
-    }
+    thinking = sanitized.thinking;
   }
-  thinking = sanitized.thinking;
 
   const isThinking =
     !(content || '').trim() && (chunk_type === 'thinking' || Boolean((thinking || '').trim()));
@@ -166,6 +206,8 @@ export interface FinalizeStreamMessageResult {
 /**
  * Monotonic finalize: preserve streamed bubble assignment, only tag-parse or
  * light cleanup when the provider never split thinking/content.
+ *
+ * With a native reasoning stream, never merge content <thinking> into thinking.
  */
 export function finalizeStreamMessage(
   input: FinalizeStreamMessageInput
@@ -178,12 +220,29 @@ export function finalizeStreamMessage(
 
   const streamState = { text: streamText, thinking: streamThinking };
 
-  const backendSplit =
-    Boolean(input.receivedThinkingChunks) ||
-    Boolean(rawThinking.trim()) ||
-    !hasInlineThinkTags(rawContent);
+  const hasNativeReasoning = Boolean(input.receivedThinkingChunks) || Boolean(rawThinking.trim());
+  const backendSplit = hasNativeReasoning || !hasInlineThinkTags(rawContent);
 
   if (backendSplit) {
+    if (input.receivedThinkingChunks || rawThinking.trim()) {
+      const thinking = pickMonotonicNativeThinking(streamThinking, rawThinking);
+      let text = rawContent.trim();
+      if (hasInlineThinkTags(text)) {
+        text = parseInlineThinkingFromContent(text).text;
+      }
+      // Merge body text only — pass identical thinking so finalize cannot concat paraphrases.
+      const merged = mergeStreamingAndFinalSplit(
+        { text: streamText, thinking },
+        { text, thinking }
+      );
+      return {
+        content: hasInlineThinkTags(merged.text)
+          ? parseInlineThinkingFromContent(merged.text).text
+          : merged.text,
+        thinking,
+      };
+    }
+
     const sanitizedThinking = sanitizeSeparateReasoningStream(rawThinking);
     const finalState = {
       text: mergeDistinctTextSegments(sanitizedThinking.leakedText, rawContent.trim()),

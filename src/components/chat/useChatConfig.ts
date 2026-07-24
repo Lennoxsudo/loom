@@ -6,7 +6,7 @@ import {
   DEFAULT_VISION_CAPABILITIES,
   extractVisionCapabilities,
 } from '../../utils/visionCapabilities';
-import { BUILTIN_PROFILE_ID, isBuiltinProtocol } from '../../utils/builtinGateway';
+import { isBuiltinProtocol } from '../../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../../stores/useBuiltinGatewayStore';
 import type { ChatPanelProvider, ChatProtocolSelection } from './types';
 
@@ -32,34 +32,16 @@ async function loadBuiltinModelsIntoUi(
     setSelectedModel('');
     return;
   }
-  let models = store.models;
-  if (models.length === 0) {
-    models = await store.refreshModels();
-  }
-  // Fallback: read injected openai profile if store models still empty
-  if (models.length === 0) {
-    try {
-      const configStr = await invoke<string>('load_ai_config');
-      if (configStr) {
-        const config = JSON.parse(configStr) as {
-          profiles?: {
-            openai?: { items?: Array<{ id?: string; models?: string[] }> };
-          };
-        };
-        const item = config.profiles?.openai?.items?.find((it) => it.id === BUILTIN_PROFILE_ID);
-        models = (item?.models ?? []).map((m) => m.trim()).filter(Boolean);
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // Use cached models from builtin-gateway.json only (fetched on activate / manual refresh).
+  const models = store.models ?? [];
   setAvailableModels(models);
-  const preferred = preferCurrent?.trim();
-  if (preferred && models.includes(preferred)) {
-    setSelectedModel(preferred);
-  } else {
-    setSelectedModel(models[0] || '');
-  }
+  setSelectedModel((prev) => {
+    const preferred = preferCurrent?.trim() || prev.trim();
+    if (preferred && models.includes(preferred)) {
+      return preferred;
+    }
+    return models[0] || '';
+  });
 }
 
 export function useChatConfig({

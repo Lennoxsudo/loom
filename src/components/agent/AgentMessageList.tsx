@@ -10,10 +10,7 @@ export interface AgentMessageListHandle {
 
 interface AgentMessageListProps {
   messages: ChatMessage[];
-  expandedThinkingIds: Set<string>;
   thinkingBlockAutoExpand: boolean;
-  streamingContinuingLabel?: string;
-  onToggleThinking: (messageId: string) => void;
   messagesContainerRef?: React.RefObject<HTMLDivElement | null>;
   onApproveTool?: (messageId: string) => void;
   onRejectTool?: (messageId: string) => void;
@@ -29,10 +26,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
   function AgentMessageList(
     {
       messages,
-      expandedThinkingIds,
       thinkingBlockAutoExpand,
-      streamingContinuingLabel = 'Generating response...',
-      onToggleThinking,
       messagesContainerRef,
       onApproveTool,
       onRejectTool,
@@ -114,10 +108,7 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
                   : (item.messages[0]?.id ?? `${item.kind}-${index}`)
             }
             item={item}
-            expandedThinkingIds={expandedThinkingIds}
             thinkingBlockAutoExpand={thinkingBlockAutoExpand}
-            streamingContinuingLabel={streamingContinuingLabel}
-            onToggleThinking={onToggleThinking}
             onApproveTool={onApproveTool}
             onRejectTool={onRejectTool}
             onUserMessageLayout={onUserMessageLayout}

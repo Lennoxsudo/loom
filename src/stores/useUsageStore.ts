@@ -25,6 +25,8 @@ export interface UsageEntry {
 
 export interface SessionUsageEntry extends UsageEntry {
   updatedAt: number;
+  /** Human-readable conversation / thread title when known. */
+  title?: string;
 }
 
 export interface UsageState {
@@ -35,6 +37,8 @@ export interface UsageState {
 
 export interface AddUsagePayload extends UsageTokens {
   sessionKey?: string;
+  /** Optional display name for the session (conversation title). */
+  sessionTitle?: string;
   provider?: string;
   model?: string;
   /** When true, record token counts only and skip USD cost computation. */
@@ -43,6 +47,8 @@ export interface AddUsagePayload extends UsageTokens {
 
 interface UsageActions {
   addUsage: (payload: AddUsagePayload) => void;
+  /** Merge known titles into existing session rows (does not create new sessions). */
+  applySessionTitles: (titles: Record<string, string>) => void;
   reset: () => void;
   hydrate: (
     data: Partial<{
@@ -117,14 +123,20 @@ export const useUsageStore = create<UsageStore>()(
         // accumulate or persist any token/cost data.
         if (!useSettingsStore.getState().enableUsageTracking) return;
         const entry = entryFromPayload(payload);
+        const sessionTitle = payload.sessionTitle?.trim() || undefined;
         set((state) => {
           const total = addEntries(state.total, entry);
           let sessions = state.sessions;
           if (payload.sessionKey) {
             const prev = state.sessions[payload.sessionKey] ?? emptyEntry();
+            const prevSession = state.sessions[payload.sessionKey];
             sessions = {
               ...state.sessions,
-              [payload.sessionKey]: { ...addEntries(prev, entry), updatedAt: Date.now() },
+              [payload.sessionKey]: {
+                ...addEntries(prev, entry),
+                updatedAt: Date.now(),
+                title: sessionTitle || prevSession?.title,
+              },
             };
           }
           const key = modelKey(payload.provider, payload.model);
@@ -133,6 +145,29 @@ export const useUsageStore = create<UsageStore>()(
           return { total, sessions, byModel };
         });
         scheduleFlush(get);
+      },
+
+      applySessionTitles: (titles) => {
+        const entries = Object.entries(titles)
+          .map(([id, title]) => [id, title.trim()] as const)
+          .filter(([, title]) => Boolean(title));
+        if (entries.length === 0) return;
+
+        let changed = false;
+        set((state) => {
+          const sessions = { ...state.sessions };
+          for (const [id, title] of entries) {
+            const prev = sessions[id];
+            if (!prev) continue;
+            if (prev.title === title) continue;
+            sessions[id] = { ...prev, title };
+            changed = true;
+          }
+          return changed ? { sessions } : state;
+        });
+        if (changed) {
+          scheduleFlush(get);
+        }
       },
 
       reset: () => {

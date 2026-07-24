@@ -36,7 +36,6 @@ import {
 import {
   BUILTIN_PROFILE_ID,
   isBuiltinProtocol,
-  toConfigProviderKey,
 } from '../../utils/builtinGateway';
 import type { AgentRoutingMode } from '../../utils/agentPersistence';
 
@@ -80,15 +79,10 @@ export function reconcileAgentRequestRuntime(
 ): { provider: AIProvider; model: string; profileId?: string } {
   const resolved = resolveAgentRequestRuntime(agent, runtime);
   if (isBuiltinProtocol(resolved.provider)) {
-    const reconciled = reconcileProviderRequest(
-      config,
-      toConfigProviderKey('builtin'),
-      resolved.model,
-      BUILTIN_PROFILE_ID
-    );
+    const model = resolved.model.trim();
     return {
       provider: 'builtin',
-      model: reconciled.model,
+      model,
       profileId: BUILTIN_PROFILE_ID,
     };
   }
@@ -164,6 +158,8 @@ export function isNativeReasoningModel(model: string): boolean {
   const nativeMarkers = [
     'deepseek-r1',
     'deepseek-reasoner',
+    // Gateway-X enables this model's native reasoning stream by default.
+    'deepseek-v4-pro',
     'nemotron',
     'qwq',
     'magistral',
@@ -181,12 +177,16 @@ export function isNativeReasoningModel(model: string): boolean {
 /**
  * 判断是否应为当前 provider/model 注入 thinking 指令。
  *
- * 仅对 OpenAI 兼容 provider 且非推理模型（o1-*）注入。
+ * 仅对 OpenAI 兼容 provider 且非推理模型注入。
+ * Built-in 走 Gateway 原生 reasoning（enable_thinking），不再叠加 <thinking> prompt，
+ * 避免双通道把思考泄漏到正文。
  * Anthropic / Ollama 各有自己的思考机制，不需要此指令。
  */
 export function shouldInjectThinkingPrompt(provider: AIProvider, model: string): boolean {
-  // OpenAI-compatible transports (including built-in gateway)
-  if (provider !== 'openai' && provider !== 'builtin') return false;
+  // Built-in: Gateway-X already requests native reasoning; skip prompt-tag fallback.
+  if (provider === 'builtin') return false;
+
+  if (provider !== 'openai') return false;
 
   // o1 系列是原生推理模型，不需要 thinking 标签
   if (model.startsWith('o1-')) return false;

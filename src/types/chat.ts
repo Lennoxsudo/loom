@@ -100,8 +100,12 @@ export interface ChatMessage {
   thinkingStartedAt?: number;
   /** Thinking end timestamp */
   thinkingEndedAt?: number;
+  /** Timestamp of the first stream chunk (thinking or content) */
+  firstChunkTime?: number;
   /** Timestamp of the first non-empty content chunk */
   firstContentTime?: number;
+  /** Stream end timestamp */
+  endTime?: number;
   /** Tool calls made in this message */
   tool_calls?: ToolCall[];
   /** Tool call ID (for tool response messages) */

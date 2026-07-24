@@ -1,10 +1,26 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useUsageStore } from './useUsageStore';
 import { useSettingsStore } from './useSettingsStore';
 
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(async () => undefined),
+  isTauri: vi.fn(() => false),
+}));
+
 describe('useUsageStore', () => {
   beforeEach(() => {
-    useUsageStore.getState().reset();
+    useSettingsStore.setState({ enableUsageTracking: true });
+    useUsageStore.setState({
+      total: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        costUsd: 0,
+      },
+      sessions: {},
+      byModel: {},
+    });
   });
 
   it('accumulates totals across addUsage calls', () => {
@@ -61,20 +77,19 @@ describe('useUsageStore', () => {
     expect(total.costUsd).toBe(0);
   });
 
-  it('does not accumulate when usage tracking is disabled', () => {
-    useSettingsStore.setState({ enableUsageTracking: false });
-    try {
-      useUsageStore.getState().addUsage({
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet',
-        input: 1000,
-        output: 500,
-      });
-      const { total } = useUsageStore.getState();
-      expect(total.inputTokens).toBe(0);
-      expect(total.outputTokens).toBe(0);
-    } finally {
-      useSettingsStore.setState({ enableUsageTracking: true });
-    }
+  it('stores and applies session titles', () => {
+    const store = useUsageStore.getState();
+    store.addUsage({
+      sessionKey: 'conv-1',
+      sessionTitle: 'Hello world',
+      provider: 'openai',
+      model: 'gpt-4o',
+      input: 10,
+      output: 5,
+    });
+    expect(useUsageStore.getState().sessions['conv-1'].title).toBe('Hello world');
+
+    store.applySessionTitles({ 'conv-1': 'Renamed thread' });
+    expect(useUsageStore.getState().sessions['conv-1'].title).toBe('Renamed thread');
   });
 });

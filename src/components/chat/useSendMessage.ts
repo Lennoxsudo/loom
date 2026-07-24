@@ -50,11 +50,6 @@ async function ensureBuiltinReady(setError: (msg: string | null) => void, notAct
     setError(notActivated);
     return false;
   }
-  try {
-    await store.ensureAiConfigProfile();
-  } catch {
-    // profile sync is best-effort; stream may still work if already on disk
-  }
   return true;
 }
 
@@ -331,7 +326,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         compactState,
       } = await buildChatContextUsage({
         messages: previousMessages,
-        provider: transport.provider,
+        provider,
         model: runtimeModel,
         profileId: transport.profileId,
         tools,
@@ -615,7 +610,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         compactState,
       } = await buildChatContextUsage({
         messages: currentMessages,
-        provider: transport.provider,
+        provider,
         model: runtimeModel,
         profileId: transport.profileId,
         tools,

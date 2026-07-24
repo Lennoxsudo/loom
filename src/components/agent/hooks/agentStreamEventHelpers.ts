@@ -28,9 +28,9 @@ export function buildThinkingEndedPatch(
 export function flushQueuedChunksForMessageIfNeeded(
   messageId: string,
   hasQueuedChunksForMessage: (messageId: string) => boolean,
-  flushAllQueuedChunks: () => void
+  flushQueuedChunksForMessage: (messageId: string) => void
 ): void {
   if (hasQueuedChunksForMessage(messageId)) {
-    flushAllQueuedChunks();
+    flushQueuedChunksForMessage(messageId);
   }
 }

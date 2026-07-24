@@ -138,8 +138,10 @@ export function normalizeLexicalPath(path: string): string {
 }
 
 /**
- * 在 baseDir 下安全解析路径：拒绝绝对路径越界与 `../` 逃逸。
- * @throws 当路径逃出工作区时抛出 Error
+ * 在 baseDir 下安全解析路径：拒绝盘符/UNC 越界与 `../` 逃逸。
+ *
+ * 对以 `/` 开头的「伪绝对路径」（模型常写成 `/project/...`）会尽量映射回工作区，
+ * 而不是一律拒绝——例如 `/loom` + base=`D:\...\loom` → 工作区根。
  */
 export function resolveContainedPath(path: string, baseDir: string): string {
   const base = baseDir.trim();
@@ -154,12 +156,22 @@ export function resolveContainedPath(path: string, baseDir: string): string {
   let candidate: string;
   if (isAbsolutePath(p)) {
     candidate = normalizeLexicalPath(p);
-  } else {
-    const baseNorm = base.replace(/[\\/]+$/g, '');
-    const rel = p.replace(/^[\\/]+/g, '');
-    const sep = baseNorm.includes('\\') || /^[A-Za-z]:/.test(baseNorm) ? '\\' : '/';
-    candidate = normalizeLexicalPath(`${baseNorm}${sep}${rel}`);
+    if (isPathUnderRoot(candidate, base)) {
+      return candidate;
+    }
+    const remapped = remapPseudoAbsoluteUnderWorkspace(candidate, base);
+    if (remapped && isPathUnderRoot(remapped, base)) {
+      return remapped;
+    }
+    const message = `Path escapes workspace root: ${path}`;
+    reportPathDenied(path, base, message);
+    throw new Error(message);
   }
+
+  const baseNorm = base.replace(/[\\/]+$/g, '');
+  const rel = p.replace(/^[\\/]+/g, '');
+  const sep = baseNorm.includes('\\') || /^[A-Za-z]:/.test(baseNorm) ? '\\' : '/';
+  candidate = normalizeLexicalPath(`${baseNorm}${sep}${rel}`);
 
   if (!isPathUnderRoot(candidate, base)) {
     const message = `Path escapes workspace root: ${path}`;
@@ -167,6 +179,41 @@ export function resolveContainedPath(path: string, baseDir: string): string {
     throw new Error(message);
   }
   return candidate;
+}
+
+/**
+ * Soft-remap absolute-looking paths that are not real Windows/UNC targets.
+ * Keeps real drive/UNC escapes rejected.
+ */
+function remapPseudoAbsoluteUnderWorkspace(absolutePath: string, baseDir: string): string | null {
+  const trimmed = absolutePath.trim();
+  // Keep real Windows drive / UNC escapes strict.
+  if (/^[A-Za-z]:/.test(trimmed) || trimmed.startsWith('\\\\')) {
+    return null;
+  }
+  // Only remap Unix-style absolute paths (`/foo/...`).
+  if (!trimmed.startsWith('/')) {
+    return null;
+  }
+
+  const baseNorm = baseDir.replace(/[\\/]+$/g, '');
+  const baseName = getBasename(normalizePathForCompare(baseNorm));
+  const segs = trimmed.replace(/^\/+/, '').split('/').filter(Boolean);
+
+  if (
+    segs.length > 0 &&
+    baseName &&
+    segs[0].localeCompare(baseName, undefined, { sensitivity: 'accent' }) === 0
+  ) {
+    segs.shift();
+  }
+
+  const sep = baseNorm.includes('\\') || /^[A-Za-z]:/.test(baseNorm) ? '\\' : '/';
+  if (segs.length === 0) {
+    return normalizeLexicalPath(baseNorm);
+  }
+  const rel = segs.join(sep);
+  return normalizeLexicalPath(`${baseNorm}${sep}${rel}`);
 }
 
 /**

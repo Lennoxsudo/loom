@@ -45,6 +45,10 @@ import {
 import type { PendingFileChange } from '../utils';
 import { buildTransportInvokeArgs, isBuiltinProtocol } from '../../../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../../../stores/useBuiltinGatewayStore';
+import {
+  expandSkillSlashCommand,
+  formatSlashCommandDisplay,
+} from '../../../utils/skillSlashCommand';
 
 async function ensureBuiltinReadyForAgent(
   setError: (msg: string | null) => void,
@@ -58,17 +62,8 @@ async function ensureBuiltinReadyForAgent(
     setError(notActivated);
     return false;
   }
-  try {
-    await store.ensureAiConfigProfile();
-  } catch {
-    // best-effort
-  }
   return true;
 }
-import {
-  expandSkillSlashCommand,
-  formatSlashCommandDisplay,
-} from '../../../utils/skillSlashCommand';
 
 export interface UseAgentSendMessageOptions {
   draftMessage: string;

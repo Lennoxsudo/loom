@@ -9,6 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 type HmacSha256 = Hmac<Sha256>;
 
 pub const BUILTIN_GATEWAY_HOST: &str = "gateway.tanyun.store";
+pub const BUILTIN_GATEWAY_BASE: &str = "https://gateway.tanyun.store/v1";
+pub const BUILTIN_PROFILE_ID: &str = "builtin-gateway";
 pub const TIMESTAMP_HEADER: &str = "x-gateway-timestamp";
 pub const SIGNATURE_HEADER: &str = "x-gateway-signature";
 pub const INSTALL_ID_HEADER: &str = "x-gateway-install-id";
@@ -24,6 +26,27 @@ pub struct BuiltinGatewayCredentials {
 
 pub fn is_builtin_gateway_endpoint(endpoint: &str) -> bool {
     endpoint.contains(BUILTIN_GATEWAY_HOST)
+}
+
+pub fn is_builtin_profile_id(profile_id: &str) -> bool {
+    profile_id.trim() == BUILTIN_PROFILE_ID
+}
+
+/// Build AIConfig for the managed built-in channel from `builtin-gateway.json` only
+/// (not from AI protocol profiles).
+pub fn load_builtin_ai_config(
+    app: Option<&tauri::AppHandle>,
+) -> Result<super::types::AIConfig, String> {
+    let creds = load_builtin_credentials(app)?.ok_or_else(|| {
+        "内置网关未激活或缺少凭证，请先在设置中激活内置模型".to_string()
+    })?;
+    Ok(super::types::AIConfig {
+        endpoint: BUILTIN_GATEWAY_BASE.to_string(),
+        api_key: creds.api_key,
+        model: String::new(),
+        models: Vec::new(),
+        organization_id: None,
+    })
 }
 
 fn now_unix_secs() -> u64 {

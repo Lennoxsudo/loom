@@ -21,6 +21,12 @@ export interface ChatMessageBubbleProps {
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
   editDisabled?: boolean;
+  /**
+   * Auto-expand thinking while actively thinking (Chat default).
+   * Agent passes its thinkingBlockAutoExpand setting here.
+   * @default true
+   */
+  autoExpandThinking?: boolean;
 }
 
 function MessageBubble({
@@ -28,6 +34,7 @@ function MessageBubble({
   onUserMessageLayout,
   onResendFromUserMessage,
   editDisabled = false,
+  autoExpandThinking = true,
 }: ChatMessageBubbleProps) {
   const t = useTranslation();
   const isUser = message.role === 'user';
@@ -62,7 +69,9 @@ function MessageBubble({
 
   useEffect(() => {
     if (isActivelyThinking) {
-      setIsThinkingExpanded(true);
+      if (autoExpandThinking) {
+        setIsThinkingExpanded(true);
+      }
     } else if (
       (message.thinking || message.isThinking) &&
       (message.thinkingEndedAt || !message.isStreaming)
@@ -71,6 +80,7 @@ function MessageBubble({
     }
   }, [
     isActivelyThinking,
+    autoExpandThinking,
     message.thinkingEndedAt,
     message.isStreaming,
     message.thinking,
@@ -568,7 +578,8 @@ function messageBubblePropsEqual(
     a.thinkingEndedAt === b.thinkingEndedAt &&
     (a.attachments?.length ?? 0) === (b.attachments?.length ?? 0) &&
     prev.editDisabled === next.editDisabled &&
-    prev.onResendFromUserMessage === next.onResendFromUserMessage
+    prev.onResendFromUserMessage === next.onResendFromUserMessage &&
+    prev.autoExpandThinking === next.autoExpandThinking
   );
 }
 

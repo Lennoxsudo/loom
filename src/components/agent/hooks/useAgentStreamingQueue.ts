@@ -22,6 +22,7 @@ export interface UseAgentStreamingQueueOptions {
 export interface UseAgentStreamingQueueResult {
   enqueueStreamChunk: (item: StreamChunkQueueItem) => void;
   flushAllQueuedChunks: () => void;
+  flushQueuedChunksForMessage: (messageId: string) => void;
   drainQueuedChunksFast: (onComplete?: () => void) => void;
   stopStreamChunkTimer: () => void;
   hasQueuedChunksForMessage: (messageId: string) => boolean;
@@ -107,6 +108,7 @@ export function useAgentStreamingQueue(
               let nextRawContent = rawContent;
               let nextRawThinking = rawThinking;
               let nextLastThinkingChunk = msg.lastThinkingChunk;
+              const nextFirstChunkTime = msg.firstChunkTime ?? chunkTime;
 
               if (normalizedChunkType === 'thinking') {
                 const appended = appendThinkingStreamChunk(
@@ -150,7 +152,8 @@ export function useAgentStreamingQueue(
                 msg.receivedThinkingChunks === nextReceivedThinkingChunks &&
                 msg.thinkingStartedAt === nextThinkingStartedAt &&
                 msg.thinkingEndedAt === nextThinkingEndedAt &&
-                msg.firstContentTime === nextFirstContentTime;
+                msg.firstContentTime === nextFirstContentTime &&
+                msg.firstChunkTime === nextFirstChunkTime;
               if (noChanges) {
                 return msg;
               }
@@ -167,6 +170,7 @@ export function useAgentStreamingQueue(
                 thinkingStartedAt: nextThinkingStartedAt,
                 thinkingEndedAt: nextThinkingEndedAt,
                 firstContentTime: nextFirstContentTime,
+                firstChunkTime: nextFirstChunkTime,
               };
             },
             { touchUpdatedAt: false }
@@ -253,6 +257,38 @@ export function useAgentStreamingQueue(
   const hasQueuedChunksForMessage = useCallback((messageId: string) => {
     return streamChunkQueueRef.current.some((item) => item.message_id === messageId);
   }, []);
+
+  const flushQueuedChunksForMessage = useCallback(
+    (messageId: string) => {
+      stopFastDrain();
+      const queue = streamChunkQueueRef.current;
+      if (queue.length === 0) {
+        return;
+      }
+
+      const remaining: StreamChunkQueueItem[] = [];
+      const toApply: StreamChunkQueueItem[] = [];
+
+      for (const item of queue) {
+        if (item.message_id === messageId) {
+          toApply.push(item);
+        } else {
+          remaining.push(item);
+        }
+      }
+
+      streamChunkQueueRef.current = remaining;
+
+      if (toApply.length > 0) {
+        applyStreamChunkBatch(toApply);
+      }
+
+      if (remaining.length === 0) {
+        stopStreamChunkTimer();
+      }
+    },
+    [applyStreamChunkBatch, stopFastDrain, stopStreamChunkTimer]
+  );
 
   const processQueuedChunksTick = useCallback(() => {
     const queue = streamChunkQueueRef.current;
@@ -351,6 +387,7 @@ export function useAgentStreamingQueue(
   return {
     enqueueStreamChunk,
     flushAllQueuedChunks,
+    flushQueuedChunksForMessage,
     drainQueuedChunksFast,
     stopStreamChunkTimer,
     hasQueuedChunksForMessage,

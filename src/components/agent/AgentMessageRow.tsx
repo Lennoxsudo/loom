@@ -1,14 +1,9 @@
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import ThinkingBlock from './ThinkingBlock';
 import ToolResultMessage from './ToolResultMessage';
 import ProviderSwitchNotice from './ProviderSwitchNotice';
 import ToolActivityRow, { ToolActivityChildren } from './ToolActivityRow';
-import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers';
-import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
-import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
-import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
+import ChatMessageBubble from '../chat/ChatMessageBubble';
+import type { Message } from '../chat/types';
 import type { ChatMessage } from '../../types/chat';
 import CompactBoundaryCard from '../shared/CompactBoundaryCard';
 import UserMessageBubble from './UserMessageBubble';
@@ -21,10 +16,7 @@ export type AgentGroupedItem =
 
 interface AgentMessageRowProps {
   item: AgentGroupedItem;
-  expandedThinkingIds: Set<string>;
   thinkingBlockAutoExpand: boolean;
-  streamingContinuingLabel: string;
-  onToggleThinking: (messageId: string) => void;
   onApproveTool?: (messageId: string) => void;
   onRejectTool?: (messageId: string) => void;
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
@@ -32,6 +24,41 @@ interface AgentMessageRowProps {
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
   userMessageEditDisabled?: boolean;
   planSlot?: React.ReactNode;
+}
+
+/** Map Agent ChatMessage → Chat Message so assistant UI is ChatMessageBubble (same path). */
+function toChatBubbleMessage(message: ChatMessage): Message {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.text || '',
+    rawContent: message.rawContent,
+    rawThinking: message.rawThinking,
+    lastThinkingChunk: message.lastThinkingChunk,
+    receivedThinkingChunks: message.receivedThinkingChunks,
+    thinking: message.thinking,
+    isThinking: message.isThinking,
+    isStreaming: message.isStreaming,
+    timestamp: message.createdAt,
+    startTime: message.createdAt,
+    firstChunkTime: message.firstChunkTime,
+    firstContentTime: message.firstContentTime,
+    endTime: message.endTime,
+    thinkingStartedAt: message.thinkingStartedAt,
+    thinkingEndedAt: message.thinkingEndedAt,
+    attachments: message.attachments,
+    tool_calls: message.tool_calls,
+    tool_call_id: message.tool_call_id,
+    tool_name: message.tool_name,
+    tool_args: message.tool_args,
+    isError: message.isError,
+    slashCommand: message.slashCommand,
+    uiNotice: message.uiNotice,
+    compactBoundary: message.compactBoundary,
+    compactSummary: message.compactSummary,
+    compactMetadata: message.compactMetadata,
+    executedTools: message.executedTools,
+  };
 }
 
 function getReadDisplayName(m: ChatMessage) {
@@ -121,10 +148,7 @@ function DeleteGroupRow({ messages }: { messages: ChatMessage[] }) {
 
 export default function AgentMessageRow({
   item,
-  expandedThinkingIds,
   thinkingBlockAutoExpand,
-  streamingContinuingLabel,
-  onToggleThinking,
   onApproveTool,
   onRejectTool,
   onUserMessageLayout,
@@ -185,40 +209,7 @@ export default function AgentMessageRow({
     );
   }
 
-  const isUser = message.role === 'user';
-  const isActivelyStreaming = !!message.isStreaming;
-  let displayText = message.text;
-  let actualThinking = message.thinking || '';
-  if (!isUser) {
-    const leftoverThinkMatch =
-      displayText.match(/<think[\s\S]*?>([\s\S]*?)<\/think>/i) ||
-      displayText.match(/<thinking[\s\S]*?>([\s\S]*?)<\/thinking>/i) ||
-      displayText.match(/思考开始[\s\S]*?思考结束/);
-    if (leftoverThinkMatch) {
-      displayText = displayText.replace(leftoverThinkMatch[0], '').trim();
-    }
-    displayText = stripStrayThinkTags(displayText);
-    actualThinking = stripStrayThinkTags(actualThinking);
-  }
-  const isActivelyThinking =
-    !!message.isStreaming && !message.thinkingEndedAt && !!message.isThinking;
-  const hasThinking = !isUser && (isActivelyThinking || actualThinking.length > 0);
-  const isThinkingExpanded =
-    expandedThinkingIds.has(message.id) ||
-    (thinkingBlockAutoExpand && !!message.isThinking && !!message.isStreaming);
-
-  const normalizedAssistantText = isUser
-    ? displayText
-    : isActivelyStreaming
-      ? displayText.replace(/^(?:\r?\n)+/, '')
-      : normalizeAssistantMarkdown(displayText.replace(/^(?:\r?\n)+/, ''));
-  const hasVisibleAssistantText = normalizedAssistantText.trim().length > 0;
-  const showStreamingGap =
-    !!message.isStreaming && !!message.thinkingEndedAt && !hasVisibleAssistantText;
-  const showProcessingIndicator = !isUser && showStreamingGap;
-  const processingIndicatorLabel = streamingContinuingLabel;
-
-  if (isUser) {
+  if (message.role === 'user') {
     return (
       <UserMessageBubble
         message={message}
@@ -241,87 +232,13 @@ export default function AgentMessageRow({
     );
   }
 
-  if (!hasThinking && !hasVisibleAssistantText && !showProcessingIndicator) return null;
+  // Assistant: same ThinkingBlock expand/collapse path as Chat.
   return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        marginBottom: '8px',
-      }}
-    >
-      {showProcessingIndicator && (
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '2px 0',
-            color: 'var(--text-secondary)',
-            fontSize: '12px',
-          }}
-        >
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--accent-color, #4a9eff)',
-              opacity: 0.85,
-            }}
-          />
-          {processingIndicatorLabel}
-        </div>
-      )}
-
-      {hasThinking && (
-        <ThinkingBlock
-          thinking={actualThinking}
-          isThinking={isActivelyThinking}
-          thinkingStartedAt={message.thinkingStartedAt}
-          thinkingEndedAt={message.thinkingEndedAt ?? message.firstContentTime}
-          createdAt={message.createdAt}
-          isExpanded={isThinkingExpanded}
-          onToggle={() => onToggleThinking(message.id)}
-        />
-      )}
-
-      {hasVisibleAssistantText && (
-        <div
-          style={{
-            padding: 0,
-            borderRadius: 0,
-            backgroundColor: 'transparent',
-            border: 'none',
-            boxShadow: 'none',
-            color: 'var(--text-primary)',
-            lineHeight: '1.65',
-            fontSize: '13px',
-          }}
-        >
-          {isActivelyStreaming ? (
-            // 流式时使用轻量级 Markdown 渲染器（无语法高亮，性能更优）
-            <ReactMarkdown
-              key={`md-${message.id}-streaming`}
-              remarkPlugins={[remarkGfm]}
-              components={lightMarkdownComponents}
-            >
-              {cleanupFileTree(normalizedAssistantText)}
-            </ReactMarkdown>
-          ) : (
-            <ReactMarkdown
-              key={`md-${message.id}-done`}
-              remarkPlugins={[remarkGfm]}
-              components={markdownComponents}
-            >
-              {normalizedAssistantText}
-            </ReactMarkdown>
-          )}
-        </div>
-      )}
+    <div id={`msg-${message.id}`} style={{ marginBottom: '8px' }}>
+      <ChatMessageBubble
+        message={toChatBubbleMessage(message)}
+        autoExpandThinking={thinkingBlockAutoExpand}
+      />
     </div>
   );
 }

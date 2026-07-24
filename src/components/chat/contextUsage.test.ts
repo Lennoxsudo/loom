@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildChatContextUsage, CHAT_CONTEXT_RESERVE_TOKENS } from './contextUsage';
 import { DEFAULT_CONTEXT_WINDOW, estimateToolsTokens } from '../../utils/contextBudget';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
+import { THINKING_PROMPT_MARKER } from '../agent/utils';
 
 vi.mock('../../utils/skills', () => ({
   loadSkillsContext: vi.fn(),
@@ -87,6 +88,40 @@ describe('buildChatContextUsage', () => {
     expect(systemText).toContain('read-only');
     expect(systemText).not.toContain('【计划模式】');
     expect(systemText).not.toContain('[Rules Context]');
+  });
+
+  it('injects the thinking prompt for built-in native-looking models', async () => {
+    const result = await buildChatContextUsage({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          content: 'Explain this code',
+          timestamp: Date.now(),
+        },
+      ],
+      provider: 'builtin',
+      model: 'deepseek-v4-pro',
+      projectPath: '',
+      chatMode: 'always-allow',
+      chatRules: [],
+      chatRulesInjected: true,
+    });
+
+    const systemText = result.preparedMessages
+      .filter(
+        (message): message is { role: string; content: string } =>
+          typeof message === 'object' &&
+          message !== null &&
+          'role' in message &&
+          'content' in message &&
+          (message as { role?: string }).role === 'system' &&
+          typeof (message as { content?: unknown }).content === 'string'
+      )
+      .map((message) => message.content)
+      .join('\n\n');
+
+    expect(systemText).toContain(THINKING_PROMPT_MARKER);
   });
 
   it('does not re-inject rules after they were already applied', async () => {

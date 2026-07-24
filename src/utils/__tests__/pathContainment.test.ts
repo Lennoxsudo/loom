@@ -4,6 +4,7 @@ import {
   isAbsolutePath,
   isPathUnderRoot,
   normalizeLexicalPath,
+  normalizePathForCompare,
   resolveContainedPath,
 } from '../pathUtils';
 
@@ -28,8 +29,26 @@ describe('path containment (phase 2)', () => {
     ).toThrow(/escapes workspace/i);
   });
 
-  it('rejects absolute paths outside base (Unix-style)', () => {
-    expect(() => resolvePathWithBaseDir('/etc/passwd', unixRoot)).toThrow(/escapes workspace/i);
+  it('soft-remaps unix-style absolute paths into the workspace', () => {
+    const remapped = resolvePathWithBaseDir('/etc/passwd', unixRoot);
+    expect(isPathUnderRoot(remapped, unixRoot)).toBe(true);
+    expect(normalizeLexicalPath(remapped).replace(/\\/g, '/')).toMatch(/\/etc\/passwd$/);
+  });
+
+  it('maps /<workspace-name> to the workspace root', () => {
+    const resolved = resolvePathWithBaseDir('/proj', unixRoot);
+    expect(normalizeLexicalPath(resolved).replace(/\\/g, '/')).toBe(
+      normalizeLexicalPath(unixRoot).replace(/\\/g, '/')
+    );
+    const nested = resolvePathWithBaseDir('/proj/src/a.ts', unixRoot);
+    expect(isPathUnderRoot(nested, unixRoot)).toBe(true);
+    expect(normalizeLexicalPath(nested).replace(/\\/g, '/')).toMatch(/\/src\/a\.ts$/);
+  });
+
+  it('maps /loom under a Windows workspace named loom', () => {
+    const loomRoot = 'D:\\project\\loom';
+    const resolved = resolvePathWithBaseDir('/loom', loomRoot);
+    expect(normalizePathForCompare(resolved)).toBe(normalizePathForCompare(loomRoot));
   });
 
   it('rejects relative traversal outside base', () => {

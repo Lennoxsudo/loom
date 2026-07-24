@@ -421,6 +421,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
       if (usage) {
         useUsageStore.getState().addUsage({
           sessionKey: taskId ? `subagent:${taskId}` : assistantMessageId,
+          sessionTitle: taskId ? `子代理 ${taskId}` : undefined,
           provider: event.payload.provider ?? provider,
           model: event.payload.model ?? model,
           input: usage.input_tokens,

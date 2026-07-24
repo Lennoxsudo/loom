@@ -812,24 +812,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             return;
           }
           setError(null);
-          let models = store.models;
-          if (models.length === 0) {
-            models = await store.refreshModels();
-          }
-          if (models.length === 0) {
-            const configStr = await invoke<string>('load_ai_config');
-            if (configStr) {
-              const config = JSON.parse(configStr) as {
-                profiles?: {
-                  openai?: { items?: Array<{ id?: string; models?: string[] }> };
-                };
-              };
-              const item = config.profiles?.openai?.items?.find(
-                (it) => it.id === 'builtin-gateway'
-              );
-              models = (item?.models ?? []).map((m) => m.trim()).filter(Boolean);
-            }
-          }
+          const models = store.models ?? [];
           setAvailableModels(models);
           setSelectedModel((prev) => (prev && models.includes(prev) ? prev : models[0] || ''));
         } catch (error) {
@@ -1036,6 +1019,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       if (usage) {
         useUsageStore.getState().addUsage({
           sessionKey: currentConversationRef.current?.id,
+          sessionTitle: currentConversationRef.current?.title,
           provider,
           model,
           input: usage.input_tokens,

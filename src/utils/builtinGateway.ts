@@ -42,6 +42,8 @@ export interface BuiltinGatewayState {
   clientId: string | null;
   activatedAt: string | null;
   lastQuotas: BuiltinQuotas | null;
+  /** Cached model ids from activation / manual refresh; not stored in AI protocol config. */
+  models: string[];
 }
 
 export interface BuiltinActivateResponse {
@@ -93,7 +95,8 @@ export function toTransportProfileId(
 
 /**
  * Provider key used when reading `profiles` / `configs` from load_ai_config.
- * Built-in models are stored under openai as profile `builtin-gateway`.
+ * Built-in requests still use the openai transport path, but credentials/models
+ * live only in builtin-gateway.json (not AI protocol profiles).
  */
 export function toConfigProviderKey(
   provider: string | null | undefined
@@ -461,7 +464,21 @@ export async function fetchBuiltinQuota(
   return parsed;
 }
 
-/** Shape used when merging into load_ai_config profiles.openai */
+/** True when an AI-protocol profile id is the managed built-in channel. */
+export function isBuiltinProfileId(id: string | null | undefined): boolean {
+  return (id ?? '').trim() === BUILTIN_PROFILE_ID;
+}
+
+/** Drop managed built-in entries from AI protocol profile lists (settings / auto-routing). */
+export function excludeBuiltinAiProfiles<T extends { id?: string }>(items: T[] | undefined): T[] {
+  if (!Array.isArray(items)) return [];
+  return items.filter((it) => !isBuiltinProfileId(it?.id));
+}
+
+/**
+ * Shape used when presenting the built-in channel as a synthetic profile in UI
+ * (never persisted into AI protocol config).
+ */
 export function buildBuiltinProfileItem(apiKey: string, models: string[]) {
   return {
     id: BUILTIN_PROFILE_ID,
@@ -471,61 +488,5 @@ export function buildBuiltinProfileItem(apiKey: string, models: string[]) {
     models: models.length > 0 ? models : [''],
     organizationId: undefined as string | undefined,
     supportsVision: false,
-  };
-}
-
-/**
- * Ensure openai profiles contain the builtin gateway profile (in-memory + optional disk).
- * Does not remove user profiles. Marks activeId only when `makeActive` is true.
- */
-export function mergeBuiltinProfileIntoAiConfig(
-  config: Record<string, unknown>,
-  apiKey: string,
-  models: string[],
-  options?: { makeActive?: boolean }
-): Record<string, unknown> {
-  const makeActive = options?.makeActive ?? false;
-  const profiles = {
-    ...((config.profiles as Record<string, unknown> | undefined) ?? {}),
-  };
-  const openai = {
-    ...((profiles.openai as { activeId?: string; items?: unknown[] } | undefined) ?? {
-      activeId: '',
-      items: [],
-    }),
-  };
-  const items = Array.isArray(openai.items) ? [...openai.items] : [];
-  const item = buildBuiltinProfileItem(apiKey, models);
-  const idx = items.findIndex(
-    (it) => it && typeof it === 'object' && (it as { id?: string }).id === BUILTIN_PROFILE_ID
-  );
-  if (idx >= 0) {
-    items[idx] = { ...(items[idx] as object), ...item };
-  } else {
-    items.push(item);
-  }
-  profiles.openai = {
-    ...openai,
-    items,
-    activeId: makeActive
-      ? BUILTIN_PROFILE_ID
-      : openai.activeId || (items[0] as { id?: string })?.id,
-  };
-  const configs = {
-    ...((config.configs as Record<string, unknown> | undefined) ?? {}),
-  };
-  // Keep configs.openai pointing at user active profile when not makeActive; when
-  // makeActive, mirror builtin for legacy code paths that only read configs.
-  if (makeActive) {
-    configs.openai = {
-      endpoint: BUILTIN_GATEWAY_BASE,
-      apiKey,
-      models: models.length > 0 ? models : [],
-    };
-  }
-  return {
-    ...config,
-    profiles,
-    configs,
   };
 }

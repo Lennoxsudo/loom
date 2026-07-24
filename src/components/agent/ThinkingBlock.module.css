@@ -88,6 +88,8 @@
 }
 
 .contentInner {
+  /* Required for 0fr↔1fr collapse animation */
+  min-height: 0;
   overflow: hidden;
   max-height: 280px;
   opacity: 0;

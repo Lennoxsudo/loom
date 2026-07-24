@@ -16,6 +16,7 @@ import {
   DEFAULT_IMAGE_GENERATION_CONFIG,
 } from './types';
 import { normalizeImageGenerationConfig } from '../../utils/imageGenConfig';
+import { excludeBuiltinAiProfiles } from '../../utils/builtinGateway';
 import { ImageGenerationSection } from './ImageGenerationSection';
 import { ChevronDownIcon, CloseIcon, CopyIcon, EditIcon, PlusIcon } from '../shared/Icons';
 import styles from './AIConfigContent.module.css';
@@ -726,21 +727,23 @@ export function AIConfigContent() {
             const buildProviderProfiles = (provider: AIProvider): AIProviderProfiles => {
               const raw = rawProfiles[provider];
               const itemsRaw = raw && Array.isArray(raw.items) ? raw.items : [];
-              const items: AIProfileItem[] = itemsRaw
-                .map((it: unknown, idx: number) => {
-                  const item = it as Record<string, unknown>;
-                  const cfg = normalizeConfigValue(provider, it);
-                  const id =
-                    typeof item?.id === 'string' && item.id.trim()
-                      ? item.id
-                      : `migrated_${provider}_${idx}_${Date.now()}`;
-                  const name =
-                    typeof item?.name === 'string' && item.name.trim()
-                      ? item.name
-                      : `配置${idx + 1}`;
-                  return { id, name, ...cfg } as AIProfileItem;
-                })
-                .filter((it: AIProfileItem) => it.models && it.models.length > 0);
+              const items: AIProfileItem[] = excludeBuiltinAiProfiles(
+                itemsRaw
+                  .map((it: unknown, idx: number) => {
+                    const item = it as Record<string, unknown>;
+                    const cfg = normalizeConfigValue(provider, it);
+                    const id =
+                      typeof item?.id === 'string' && item.id.trim()
+                        ? item.id
+                        : `migrated_${provider}_${idx}_${Date.now()}`;
+                    const name =
+                      typeof item?.name === 'string' && item.name.trim()
+                        ? item.name
+                        : `配置${idx + 1}`;
+                    return { id, name, ...cfg } as AIProfileItem;
+                  })
+                  .filter((it: AIProfileItem) => it.models && it.models.length > 0)
+              );
 
               if (items.length === 0) {
                 const id = `default-${provider}`;

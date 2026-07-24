@@ -2,19 +2,15 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import { emit } from '@tauri-apps/api/event';
 import {
   activateBuiltinGateway,
-  buildBuiltinProfileItem,
   checkBuiltinHealth,
   createInstallId,
   fetchBuiltinModels,
   fetchBuiltinQuota,
-  mergeBuiltinProfileIntoAiConfig,
   type BuiltinGatewayState,
   type BuiltinQuotaStatus,
   type BuiltinQuotas,
-  BUILTIN_PROFILE_ID,
   BUILTIN_STORAGE_FILE,
   keyPrefix,
 } from '../utils/builtinGateway';
@@ -32,7 +28,6 @@ interface BuiltinGatewayStore extends BuiltinGatewayState {
   status: BuiltinGatewayStatus;
   error: string | null;
   healthy: boolean | null;
-  models: string[];
   /** Live GET /v1/quota snapshot (not persisted). */
   quotaStatus: BuiltinQuotaStatus | null;
   hydrated: boolean;
@@ -40,9 +35,9 @@ interface BuiltinGatewayStore extends BuiltinGatewayState {
   activate: (inviteCode: string) => Promise<boolean>;
   clearLocalKey: () => Promise<void>;
   refreshHealth: () => Promise<void>;
+  /** Manual refresh only — activation already fetches once and caches to disk. */
   refreshModels: () => Promise<string[]>;
   refreshQuota: () => Promise<BuiltinQuotaStatus | null>;
-  ensureAiConfigProfile: (models?: string[]) => Promise<void>;
   isActivated: () => boolean;
   getKeyPrefix: () => string;
 }
@@ -55,7 +50,16 @@ function emptyState(): BuiltinGatewayState {
     clientId: null,
     activatedAt: null,
     lastQuotas: null,
+    models: [],
   };
+}
+
+function parseStoredModels(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((m): m is string => typeof m === 'string')
+    .map((m) => m.trim())
+    .filter(Boolean);
 }
 
 function parseStored(raw: string): BuiltinGatewayState {
@@ -72,6 +76,7 @@ function parseStored(raw: string): BuiltinGatewayState {
         data.lastQuotas && typeof data.lastQuotas === 'object'
           ? (data.lastQuotas as BuiltinQuotas)
           : null,
+      models: parseStoredModels(data.models),
     };
   } catch {
     return emptyState();
@@ -106,6 +111,7 @@ async function writeStateToDisk(state: BuiltinGatewayState): Promise<void> {
     clientId: state.clientId,
     activatedAt: state.activatedAt,
     lastQuotas: state.lastQuotas,
+    models: state.models ?? [],
   };
   await invoke('write_file_content', {
     filePath: path,
@@ -125,7 +131,6 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
       status: 'idle',
       error: null,
       healthy: null,
-      models: [],
       quotaStatus: null,
       hydrated: false,
 
@@ -151,13 +156,13 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
           const needsReactivate = hasKey && !hasSecret;
           set({
             ...stored,
+            models: stored.models ?? [],
             status: needsReactivate ? 'error' : active ? 'active' : 'inactive',
             hydrated: true,
             error: needsReactivate ? 'UNAUTHORIZED' : null,
             quotaStatus: active ? get().quotaStatus : null,
           });
           if (active) {
-            void get().ensureAiConfigProfile();
             void get().refreshQuota();
           }
         } catch (error) {
@@ -189,25 +194,9 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
                 daily_tokens: result.quotas.daily_tokens ?? 0,
               }
             : null;
-          const next: BuiltinGatewayState = {
-            installId,
-            apiKey: result.api_key,
-            clientSecret: result.client_secret,
-            clientId: result.client_id,
-            activatedAt: new Date().toISOString(),
-            lastQuotas: quotas,
-          };
-          await writeStateToDisk(next);
-          set({
-            ...next,
-            status: 'active',
-            error: null,
-            quotaStatus: null,
-          });
           let models: string[] = [];
           try {
             models = await fetchBuiltinModels(result.api_key);
-            set({ models });
           } catch (modelErr) {
             const msg = errorMessage(modelErr);
             if (msg === 'UNAUTHORIZED' || (modelErr as { status?: number }).status === 401) {
@@ -216,8 +205,23 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
             }
             // Activation succeeded even if model list fails transiently
           }
+          const next: BuiltinGatewayState = {
+            installId,
+            apiKey: result.api_key,
+            clientSecret: result.client_secret,
+            clientId: result.client_id,
+            activatedAt: new Date().toISOString(),
+            lastQuotas: quotas,
+            models,
+          };
+          await writeStateToDisk(next);
+          set({
+            ...next,
+            status: 'active',
+            error: null,
+            quotaStatus: null,
+          });
           void get().refreshQuota();
-          await get().ensureAiConfigProfile(models);
           return true;
         } catch (error) {
           set({
@@ -237,6 +241,7 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
           clientId: null,
           activatedAt: null,
           lastQuotas: null,
+          models: [],
         };
         try {
           await writeStateToDisk(next);
@@ -246,7 +251,6 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
         set({
           ...next,
           status: 'inactive',
-          models: [],
           quotaStatus: null,
           error: null,
         });
@@ -265,8 +269,18 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
         }
         try {
           const models = await fetchBuiltinModels(apiKey);
+          const { installId, clientId, clientSecret, activatedAt, lastQuotas } = get();
+          const next: BuiltinGatewayState = {
+            installId,
+            apiKey,
+            clientSecret,
+            clientId,
+            activatedAt,
+            lastQuotas,
+            models,
+          };
+          await writeStateToDisk(next);
           set({ models, error: null, status: 'active' });
-          await get().ensureAiConfigProfile(models);
           return models;
         } catch (error) {
           const status = (error as { status?: number }).status;
@@ -295,7 +309,7 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
               get().status === 'error' && get().error === 'UNAUTHORIZED' ? 'active' : get().status,
           });
           // Persist limit snapshot only (usage/remaining stay in memory).
-          const { installId, clientId, clientSecret, activatedAt } = get();
+          const { installId, clientId, clientSecret, activatedAt, models } = get();
           void writeStateToDisk({
             installId,
             apiKey,
@@ -303,6 +317,7 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
             clientId,
             activatedAt,
             lastQuotas: status.quotas,
+            models: models ?? [],
           });
           return status;
         } catch (error) {
@@ -312,39 +327,6 @@ export const useBuiltinGatewayStore = create<BuiltinGatewayStore>()(
           }
           // Keep previous quotaStatus on transient failures
           return get().quotaStatus;
-        }
-      },
-
-      ensureAiConfigProfile: async (models) => {
-        if (!isTauri()) return;
-        const apiKey = get().apiKey;
-        if (!apiKey) return;
-        const modelList = models ?? get().models;
-        try {
-          const configStr = await invoke<string>('load_ai_config');
-          const existing: Record<string, unknown> = configStr ? JSON.parse(configStr) : {};
-          const merged = mergeBuiltinProfileIntoAiConfig(existing, apiKey, modelList, {
-            makeActive: false,
-          });
-          // Always refresh builtin item fields (endpoint/key/models)
-          const openai = (merged.profiles as { openai?: { items?: unknown[] } })?.openai;
-          const items = openai?.items ?? [];
-          const has = items.some(
-            (it) =>
-              it && typeof it === 'object' && (it as { id?: string }).id === BUILTIN_PROFILE_ID
-          );
-          if (!has) {
-            // merge should have added it
-          }
-          void buildBuiltinProfileItem;
-          await invoke('save_ai_config', { config: JSON.stringify(merged) });
-          try {
-            await emit('ai-config-updated', null);
-          } catch {
-            // ignore
-          }
-        } catch (error) {
-          console.warn('[builtin-gateway] failed to sync AI config profile', error);
         }
       },
     }),

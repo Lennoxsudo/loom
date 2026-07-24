@@ -10,6 +10,7 @@ import {
   type AutoRoutingConfig,
 } from './types';
 import { showSuccess as globalShowSuccess } from '../../utils/notification';
+import { excludeBuiltinAiProfiles } from '../../utils/builtinGateway';
 import { SettingsSelect } from './SettingsPrimitives';
 import { ChevronDownIcon, CloseIcon, PlusIcon } from '../shared/Icons';
 import styles from './AutoRoutingContent.module.css';
@@ -30,7 +31,7 @@ function resolveEntryDefaults(
   entry: AutoRoutingEntry,
   profiles: AIProfiles | null
 ): AutoRoutingEntry {
-  const providerProfiles = profiles?.[entry.provider]?.items ?? [];
+  const providerProfiles = excludeBuiltinAiProfiles(profiles?.[entry.provider]?.items ?? []);
   let profileId = entry.profileId.trim();
   let model = entry.model.trim();
 
@@ -70,7 +71,7 @@ function EntryRow({
   onMoveDown: (index: number) => void;
 }) {
   const t = useTranslation();
-  const providerProfiles = profiles[entry.provider]?.items ?? [];
+  const providerProfiles = excludeBuiltinAiProfiles(profiles[entry.provider]?.items ?? []);
   const selectedProfile = providerProfiles.find((p: AIProfileItem) => p.id === entry.profileId);
   const availableModels = selectedProfile?.models ?? [];
 
@@ -203,9 +204,24 @@ export function AutoRoutingContent() {
         if (configStr) {
           const config = JSON.parse(configStr);
           const loadedProfiles: AIProfiles = config.profiles ?? {};
+          const sanitizedProfiles: AIProfiles = {
+            openai: loadedProfiles.openai
+              ? {
+                  ...loadedProfiles.openai,
+                  items: excludeBuiltinAiProfiles(loadedProfiles.openai.items),
+                  activeId: excludeBuiltinAiProfiles(loadedProfiles.openai.items).some(
+                    (it) => it.id === loadedProfiles.openai?.activeId
+                  )
+                    ? loadedProfiles.openai.activeId
+                    : (excludeBuiltinAiProfiles(loadedProfiles.openai.items)[0]?.id ?? ''),
+                }
+              : loadedProfiles.openai,
+            anthropic: loadedProfiles.anthropic,
+            ollama: loadedProfiles.ollama,
+          };
           const autoRouting: AutoRoutingConfig | undefined = config.autoRouting;
 
-          setProfiles(loadedProfiles);
+          setProfiles(sanitizedProfiles);
           if (autoRouting) {
             setEnabledSync(autoRouting.enabled ?? false);
             const knownProviders: AIProvider[] = ['openai', 'anthropic', 'ollama'];
@@ -217,7 +233,7 @@ export function AutoRoutingContent() {
                   entry.provider === 'ollama'
                     ? entry.provider
                     : ('openai' as AIProvider);
-                return resolveEntryDefaults({ ...entry, provider }, loadedProfiles);
+                return resolveEntryDefaults({ ...entry, provider }, sanitizedProfiles);
               })
               .filter((entry) => knownProviders.includes(entry.provider));
             setEntriesSync(loadedEntries.length > 0 ? loadedEntries : []);
@@ -274,7 +290,9 @@ export function AutoRoutingContent() {
         const currentProfiles = profilesRef.current;
         if (field === 'provider') {
           const provider = value as AIProvider;
-          const providerProfiles = currentProfiles?.[provider]?.items ?? [];
+          const providerProfiles = excludeBuiltinAiProfiles(
+            currentProfiles?.[provider]?.items ?? []
+          );
           const firstProfile = providerProfiles[0];
           next[index] = {
             provider,
@@ -282,7 +300,9 @@ export function AutoRoutingContent() {
             model: firstModel(firstProfile),
           };
         } else if (field === 'profileId') {
-          const providerProfiles = currentProfiles?.[next[index].provider]?.items ?? [];
+          const providerProfiles = excludeBuiltinAiProfiles(
+            currentProfiles?.[next[index].provider]?.items ?? []
+          );
           const selectedProfile = providerProfiles.find((p) => p.id === value);
           next[index] = {
             ...next[index],
@@ -336,7 +356,9 @@ export function AutoRoutingContent() {
   const handleAddEntry = useCallback(() => {
     setEntriesSync((prev) => {
       const provider: AIProvider = 'openai';
-      const providerProfiles = profilesRef.current?.[provider]?.items ?? [];
+      const providerProfiles = excludeBuiltinAiProfiles(
+        profilesRef.current?.[provider]?.items ?? []
+      );
       const firstProfile = providerProfiles[0];
       return [
         ...prev,

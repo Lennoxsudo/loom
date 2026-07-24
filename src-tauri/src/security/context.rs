@@ -105,7 +105,9 @@ pub fn normalize_lexical(path: &Path) -> PathBuf {
 /// `root` when a root is provided.
 ///
 /// - Relative paths are joined to `root`.
-/// - Absolute paths must already lie under `root` (lexical + prefix check).
+/// - Absolute paths under `root` are kept.
+/// - Unix-style absolute paths outside `root` (e.g. `/proj/...`) are soft-remapped
+///   into the workspace (common model habit); Windows drive/UNC escapes stay rejected.
 /// - Empty `root` returns the path as-is (caller may still run sandbox roots).
 pub fn resolve_under_root(raw: &str, root: Option<&str>) -> Result<PathBuf, String> {
     let raw = raw.trim();
@@ -119,23 +121,71 @@ pub fn resolve_under_root(raw: &str, root: Option<&str>) -> Result<PathBuf, Stri
     };
 
     let root_path = PathBuf::from(root_str);
-    let joined = if path.is_absolute() {
-        path
-    } else {
-        root_path.join(path)
-    };
-
-    let normalized = normalize_lexical(&joined);
     let root_norm = normalize_lexical(&root_path);
 
-    if !path_is_under(&normalized, &root_norm) {
-        return Err(format!(
-            "路径越界，不允许访问工作区外: {}",
-            raw
-        ));
+    // On Windows, Path::join replaces the base when `path` is absolute (e.g. `/proj/...`
+    // → `\proj\...`). Always evaluate the joined/normalized candidate first, then soft-remap.
+    let candidate = if path.is_absolute() {
+        normalize_lexical(&path)
+    } else {
+        normalize_lexical(&root_path.join(&path))
+    };
+
+    if path_is_under(&candidate, &root_norm) {
+        return Ok(candidate);
     }
 
-    Ok(normalized)
+    let looks_pseudo_absolute = path.is_absolute()
+        || raw.starts_with('/')
+        || (raw.starts_with('\\') && !raw.starts_with("\\\\"));
+    if looks_pseudo_absolute {
+        if let Some(remapped) = remap_pseudo_absolute_under_workspace(&normalize_lexical(&path), &root_norm)
+        {
+            if path_is_under(&remapped, &root_norm) {
+                return Ok(remapped);
+            }
+        }
+    }
+
+    Err(format!("路径越界，不允许访问工作区外: {}", raw))
+}
+
+/// Soft-remap `/name/...` into the workspace. Real drive/UNC absolutes return None.
+fn remap_pseudo_absolute_under_workspace(absolute: &Path, root: &Path) -> Option<PathBuf> {
+    let abs_str = absolute.to_string_lossy();
+    // Keep Windows drive / UNC escapes strict.
+    let bytes = abs_str.as_bytes();
+    if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+        return None;
+    }
+    if abs_str.starts_with("\\\\") || abs_str.starts_with("//") {
+        return None;
+    }
+
+    let mut segs: Vec<String> = absolute
+        .components()
+        .filter_map(|c| match c {
+            Component::Normal(s) => Some(s.to_string_lossy().into_owned()),
+            _ => None,
+        })
+        .collect();
+
+    if segs.is_empty() {
+        return None;
+    }
+
+    let root_name = root.file_name().map(|s| s.to_string_lossy().into_owned());
+    if let (Some(first), Some(name)) = (segs.first(), root_name.as_ref()) {
+        if first.eq_ignore_ascii_case(name) {
+            segs.remove(0);
+        }
+    }
+
+    let mut out = root.to_path_buf();
+    for seg in segs {
+        out.push(seg);
+    }
+    Some(normalize_lexical(&out))
 }
 
 /// Case-insensitive prefix check on Windows, case-sensitive elsewhere.
@@ -187,19 +237,28 @@ mod tests {
     }
 
     #[test]
-    fn resolve_under_root_blocks_absolute_outside() {
+    fn resolve_under_root_blocks_windows_drive_escape() {
+        #[cfg(windows)]
+        {
+            let err = resolve_under_root(
+                "C:\\Windows\\System32\\drivers\\etc\\hosts",
+                Some("C:\\workspace\\proj"),
+            )
+            .unwrap_err();
+            assert!(err.contains("越界") || err.contains("工作区"));
+        }
+    }
+
+    #[test]
+    fn resolve_under_root_soft_remaps_unix_style_absolute() {
         let root = if cfg!(windows) {
             "C:\\workspace\\proj"
         } else {
             "/workspace/proj"
         };
-        let outside = if cfg!(windows) {
-            "C:\\Windows\\System32\\drivers\\etc\\hosts"
-        } else {
-            "/etc/passwd"
-        };
-        let err = resolve_under_root(outside, Some(root)).unwrap_err();
-        assert!(err.contains("越界") || err.contains("工作区"));
+        let got = resolve_under_root("/proj/src/a.ts", Some(root)).expect("soft remap");
+        assert!(path_is_under(&got, Path::new(root)));
+        assert!(got.ends_with(Path::new("src").join("a.ts")));
     }
 
     #[test]

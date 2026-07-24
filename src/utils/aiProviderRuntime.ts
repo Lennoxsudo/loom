@@ -1,5 +1,6 @@
 import type { AIProvider } from './agentPersistence';
 import { parseProviderAndModel } from './parseProviderAndModel';
+import { excludeBuiltinAiProfiles, isBuiltinProfileId } from './builtinGateway';
 
 export interface ProviderProfileRuntime {
   profileId: string;
@@ -32,10 +33,10 @@ export function getActiveProfileRuntime(
   provider: AIProvider
 ): ProviderProfileRuntime | null {
   const providerProfiles = config.profiles?.[provider];
-  if (providerProfiles?.items?.length) {
-    const activeId = providerProfiles.activeId || providerProfiles.items[0]?.id;
-    const active =
-      providerProfiles.items.find((item) => item.id === activeId) ?? providerProfiles.items[0];
+  const items = excludeBuiltinAiProfiles(providerProfiles?.items ?? []);
+  if (items.length > 0) {
+    const activeId = providerProfiles?.activeId || items[0]?.id;
+    const active = items.find((item) => item.id === activeId) ?? items[0];
     const models = (active.models ?? []).map((model) => model.trim()).filter(Boolean);
     if (models.length > 0 && active.id) {
       return { profileId: active.id, models, defaultModel: models[0] };
@@ -73,7 +74,7 @@ export function findProfileIdForModel(
     return active.profileId;
   }
 
-  const items = config.profiles?.[provider]?.items ?? [];
+  const items = excludeBuiltinAiProfiles(config.profiles?.[provider]?.items ?? []);
   for (const item of items) {
     if (item.models?.some((entry) => entry.trim() === trimmed)) {
       return item.id;
@@ -87,6 +88,9 @@ export function getProfileRuntimeById(
   provider: AIProvider,
   profileId: string
 ): ProviderProfileRuntime | null {
+  if (!profileId || isBuiltinProfileId(profileId)) {
+    return null;
+  }
   const profile = config.profiles?.[provider]?.items?.find((item) => item.id === profileId);
   if (!profile?.id) {
     return null;
@@ -114,7 +118,7 @@ export function listProviderProfiles(
   config: LoadedAiConfig,
   provider: AIProvider
 ): ProviderProfileOption[] {
-  const items = config.profiles?.[provider]?.items ?? [];
+  const items = excludeBuiltinAiProfiles(config.profiles?.[provider]?.items ?? []);
   if (items.length > 0) {
     return items.map((item) => ({
       id: item.id,

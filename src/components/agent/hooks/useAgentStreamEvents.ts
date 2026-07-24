@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { logDebug } from '../../../utils/errorHandling';
-import { isManualCancelError, finalizeThinkingMessage } from '../utils';
+import { isManualCancelError } from '../utils';
 import { finalizeStreamMessage } from '../../../utils/streamChunkSeparation';
 import { resolveStreamCompletionToolCalls } from '../../../features/agent-engine/streamCompletionToolCalls';
 import {
@@ -43,9 +43,16 @@ export interface UseAgentStreamEventsOptions {
   streamSpeed: 'fast' | 'normal' | 'slow';
   enqueueStreamChunk: (item: StreamChunkQueueItem) => void;
   flushAllQueuedChunks: () => void;
+  flushQueuedChunksForMessage: (messageId: string) => void;
   drainQueuedChunksFast: (onComplete?: () => void) => void;
   stopStreamChunkTimer: () => void;
   hasQueuedChunksForMessage: (messageId: string) => boolean;
+  /** Chat-aligned completion quiescence coordinator */
+  streamCompletionCoordinator: {
+    noteChunk: (messageId: string) => boolean;
+    complete: (messageId: string, finalize: () => void) => void;
+    cancel: (messageId: string) => void;
+  };
   getKnownToolNames: () => string[];
   handleToolCallsRef: React.MutableRefObject<
     | ((
@@ -102,12 +109,19 @@ function stopStreamingMessageInConversation(
         if (message.id !== messageId) {
           return message;
         }
-        return finalizeThinkingMessage({
+        return {
           ...message,
           isStreaming: false,
           isProcessingTools: false,
-          thinkingEndedAt: message.thinkingEndedAt ?? Date.now(),
-        });
+          endTime: message.endTime ?? Date.now(),
+          isThinking: false,
+          thinkingEndedAt: message.thinking
+            ? (message.thinkingEndedAt ?? message.firstContentTime ?? Date.now())
+            : message.thinkingEndedAt,
+          thinkingStartedAt: message.thinking
+            ? (message.thinkingStartedAt ?? message.firstChunkTime ?? message.createdAt)
+            : message.thinkingStartedAt,
+        };
       }),
     };
   });
@@ -117,10 +131,12 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
   const {
     streamSpeed,
     enqueueStreamChunk,
-    flushAllQueuedChunks,
+    flushAllQueuedChunks: _flushAllQueuedChunks,
+    flushQueuedChunksForMessage,
     drainQueuedChunksFast: _drainQueuedChunksFast,
     stopStreamChunkTimer: _stopStreamChunkTimer,
     hasQueuedChunksForMessage,
+    streamCompletionCoordinator,
     getKnownToolNames,
     handleToolCallsRef,
     isStopRequested,
@@ -156,6 +172,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       const normalizedChunk = isThinkingChunk ? chunk : stripLegacyAutoRoutingChunk(chunk);
       if (!isThinkingChunk && !normalizedChunk) return;
 
+      streamCompletionCoordinator.noteChunk(message_id);
       enqueueStreamChunk({
         message_id,
         chunk: normalizedChunk,
@@ -210,8 +227,12 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
 
       // 用量/成本追踪：把真实 API usage 累加到 UsageStore（按会话 + 按模型粒度）
       if (usage) {
+        const conversationTitle = conversationStateRef.current.conversations.find(
+          (conv) => conv.id === streamMeta.conversationId
+        )?.title;
         useUsageStore.getState().addUsage({
           sessionKey: streamMeta.conversationId,
+          sessionTitle: conversationTitle,
           provider: event.payload.provider,
           model: event.payload.model,
           input: usage.input_tokens,
@@ -244,47 +265,55 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
 
         onSetConversationState((prev) =>
           updateAgentMessageById(prev, targetConversationId, message_id, (msg) => {
-            const updates: Partial<typeof msg> = {
+            const endTime = Date.now();
+            let nextText = msg.text;
+            if (resolution.cleanedText !== undefined && resolution.cleanedText !== msg.text) {
+              nextText = resolution.cleanedText;
+            }
+
+            const separated = finalizeStreamMessage({
+              rawContent: msg.rawContent ?? nextText ?? '',
+              rawThinking: msg.rawThinking ?? msg.thinking ?? '',
+              streamContent: nextText,
+              streamThinking: msg.thinking,
+              receivedThinkingChunks: msg.receivedThinkingChunks,
+              hasToolCalls: Boolean(resolution.toolCalls && resolution.toolCalls.length > 0),
+            });
+
+            const finalized: typeof msg = {
+              ...msg,
+              text: separated.content,
+              thinking: separated.thinking,
               isStreaming: false,
               isProcessingTools: false,
+              endTime,
+              isThinking: false,
             };
 
             if (resolution.toolCalls && resolution.toolCalls.length > 0) {
-              updates.tool_calls = resolution.toolCalls;
+              finalized.tool_calls = resolution.toolCalls;
               logDebug(
                 '从流式完成事件中解析到工具调用: ' + JSON.stringify(resolution.toolCalls),
                 'Agent'
               );
             }
 
-            if (resolution.cleanedText !== undefined && resolution.cleanedText !== msg.text) {
-              updates.text = resolution.cleanedText;
-            }
-
             if (thinking_signature) {
-              updates.thinkingSignature = thinking_signature;
-            }
-            if (msg.thinking && !msg.thinkingEndedAt) {
-              updates.thinkingEndedAt = msg.firstContentTime ?? Date.now();
-            }
-            if (msg.thinking) {
-              updates.isThinking = false;
+              finalized.thinkingSignature = thinking_signature;
             }
 
-            const finalizedMessage = { ...msg, ...updates };
-            const separated = finalizeStreamMessage({
-              rawContent: finalizedMessage.rawContent ?? finalizedMessage.text ?? '',
-              rawThinking: finalizedMessage.rawThinking ?? finalizedMessage.thinking ?? '',
-              streamContent: finalizedMessage.text,
-              streamThinking: finalizedMessage.thinking,
-              receivedThinkingChunks: finalizedMessage.receivedThinkingChunks,
-              hasToolCalls: Boolean(
-                finalizedMessage.tool_calls && finalizedMessage.tool_calls.length > 0
-              ),
-            });
-            finalizedMessage.text = separated.content;
-            finalizedMessage.thinking = separated.thinking;
-            return finalizeThinkingMessage(finalizedMessage);
+            // Match ChatPanel finalizeCompletion thinking timestamps.
+            if (finalized.thinking) {
+              if (!finalized.thinkingStartedAt) {
+                finalized.thinkingStartedAt =
+                  finalized.firstChunkTime ?? finalized.createdAt ?? endTime;
+              }
+              if (!finalized.thinkingEndedAt) {
+                finalized.thinkingEndedAt = finalized.firstContentTime ?? endTime;
+              }
+            }
+
+            return finalized;
           })
         );
 
@@ -309,12 +338,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
         clearTrackedStream(savedMessageId);
       };
 
-      if (streamSpeedRef.current !== 'fast' && hasQueuedChunksForMessage(message_id)) {
-        // Ensure deterministic completion even when RAF is throttled in tests/background tabs.
-        flushAllQueuedChunks();
-      }
-
-      finalizeCompletion();
+      streamCompletionCoordinator.complete(message_id, finalizeCompletion);
     });
 
     const mapStreamError = (errorMsg: string): string => {
@@ -408,7 +432,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       flushQueuedChunksForMessageIfNeeded(
         message_id,
         hasQueuedChunksForMessage,
-        flushAllQueuedChunks
+        flushQueuedChunksForMessage
       );
 
       onSetConversationState((prev) =>
@@ -438,7 +462,7 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       flushQueuedChunksForMessageIfNeeded(
         message_id,
         hasQueuedChunksForMessage,
-        flushAllQueuedChunks
+        flushQueuedChunksForMessage
       );
     });
 

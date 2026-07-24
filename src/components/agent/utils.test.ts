@@ -169,6 +169,12 @@ describe('shouldInjectThinkingPrompt', () => {
     expect(shouldInjectThinkingPrompt('openai', 'qwq-32b')).toBe(false);
     expect(shouldInjectThinkingPrompt('openai', 'o3-mini')).toBe(false);
   });
+
+  it('does not inject thinking prompt for built-in models', () => {
+    expect(shouldInjectThinkingPrompt('builtin', 'deepseek-v4-pro')).toBe(false);
+    expect(shouldInjectThinkingPrompt('builtin', 'nvidia/nemotron-3-super-120b-a12b')).toBe(false);
+    expect(shouldInjectThinkingPrompt('builtin', 'glm-5.2')).toBe(false);
+  });
 });
 
 describe('isNativeReasoningModel', () => {
@@ -183,6 +189,7 @@ describe('isNativeReasoningModel', () => {
     expect(isNativeReasoningModel('nvidia/nemotron-3-super-120b-a12b')).toBe(true);
     expect(isNativeReasoningModel('deepseek-reasoner')).toBe(true);
     expect(isNativeReasoningModel('deepseek-r1')).toBe(true);
+    expect(isNativeReasoningModel('deepseek-v4-pro')).toBe(true);
     expect(isNativeReasoningModel('qwen-qwq')).toBe(true);
     expect(isNativeReasoningModel('magistral-medium')).toBe(true);
     expect(isNativeReasoningModel('glm-z1-preview')).toBe(true);

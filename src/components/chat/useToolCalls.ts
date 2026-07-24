@@ -507,7 +507,7 @@ export function useToolCalls({
         compactState,
       } = await buildChatContextUsage({
         messages: allStableMessages,
-        provider: transport.provider,
+        provider,
         model,
         profileId: transport.profileId,
         tools: continueTools,

@@ -5,13 +5,14 @@ import {
   activateBuiltinGateway,
   buildTransportInvokeArgs,
   buildBuiltinProfileItem,
+  excludeBuiltinAiProfiles,
   fetchBuiltinQuota,
   isBuiltinProtocol,
+  isBuiltinProfileId,
   isOpenaiCompatibleLogicalProvider,
   keyPrefix,
   formatBuiltinGatewayStreamError,
   isGatewayAuthErrorMessage,
-  mergeBuiltinProfileIntoAiConfig,
   normalizeActivateResponse,
   parseModelsListPayload,
   parseQuotaStatusPayload,
@@ -179,26 +180,14 @@ describe('builtinGateway helpers', () => {
     ).toBe('请重新激活内置模型');
   });
 
-  it('merges builtin profile into ai config without clobbering other items', () => {
-    const merged = mergeBuiltinProfileIntoAiConfig(
-      {
-        profiles: {
-          openai: {
-            activeId: 'user-1',
-            items: [
-              { id: 'user-1', name: 'Mine', endpoint: 'http://x', apiKey: 'k', models: ['m'] },
-            ],
-          },
-        },
-      },
-      'sk-gw',
-      ['model-a', 'model-b']
-    );
-    const openai = (
-      merged.profiles as { openai: { activeId: string; items: Array<{ id: string }> } }
-    ).openai;
-    expect(openai.activeId).toBe('user-1');
-    expect(openai.items.some((i) => i.id === 'user-1')).toBe(true);
-    expect(openai.items.some((i) => i.id === BUILTIN_PROFILE_ID)).toBe(true);
+  it('excludes managed builtin profile from AI protocol lists', () => {
+    expect(isBuiltinProfileId(BUILTIN_PROFILE_ID)).toBe(true);
+    expect(isBuiltinProfileId('user-1')).toBe(false);
+    expect(
+      excludeBuiltinAiProfiles([
+        { id: 'user-1', name: 'Mine' },
+        { id: BUILTIN_PROFILE_ID, name: 'Loom Built-in' },
+      ])
+    ).toEqual([{ id: 'user-1', name: 'Mine' }]);
   });
 });

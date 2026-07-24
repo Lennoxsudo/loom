@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import { useTranslation } from '../../i18n';
 import { useEnableUsageTracking, useUpdateUsageTracking } from '../../stores';
 import { useUsageStore, useUsageTotals, useUsageByModel } from '../../stores/useUsageStore';
+import { loadAllProjectThreadSummaries } from '../../utils/agentPersistence';
 import { useNotification } from '../../contexts/NotificationContext';
 import pageStyles from './SettingsPage.module.css';
 import { SettingsPanel, SettingsSection, SettingsRow, SettingsToggle } from './SettingsPrimitives';
@@ -17,6 +19,16 @@ function formatNumber(n: number): string {
 function clampPage(page: number, totalPages: number): number {
   if (totalPages <= 0) return 1;
   return Math.min(Math.max(1, page), totalPages);
+}
+
+function shortSessionFallback(id: string): string {
+  if (id.startsWith('subagent:')) {
+    return `子代理 ${id.slice('subagent:'.length, 'subagent:'.length + 8)}`;
+  }
+  if (id.length > 12) {
+    return `${id.slice(0, 8)}…`;
+  }
+  return id;
 }
 
 function UsagePagination({
@@ -75,10 +87,12 @@ export function UsageContent() {
   const total = useUsageTotals();
   const byModel = useUsageByModel();
   const sessions = useUsageStore((s) => s.sessions);
+  const applySessionTitles = useUsageStore((s) => s.applySessionTitles);
   const resetUsage = useUsageStore((s) => s.reset);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [sessionPage, setSessionPage] = useState(1);
   const [modelPage, setModelPage] = useState(1);
+  const [resolvedTitles, setResolvedTitles] = useState<Record<string, string>>({});
 
   const enableUsageTracking = useEnableUsageTracking();
   const updateUsageTracking = useUpdateUsageTracking();
@@ -105,6 +119,43 @@ export function UsageContent() {
   useEffect(() => {
     setModelPage((page) => clampPage(page, modelTotalPages));
   }, [modelTotalPages]);
+
+  // Backfill human-readable titles for historical UUID-only session rows.
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!isTauri()) return;
+      const titles: Record<string, string> = {};
+      try {
+        const grouped = await loadAllProjectThreadSummaries();
+        for (const threads of Object.values(grouped)) {
+          for (const thread of threads) {
+            const title = thread.title?.trim();
+            if (title) titles[thread.id] = title;
+          }
+        }
+      } catch {
+        // ignore agent index failures
+      }
+      try {
+        const convs = await invoke<Array<{ id?: string; title?: string }>>('list_conversations');
+        for (const conv of convs ?? []) {
+          const id = typeof conv.id === 'string' ? conv.id : '';
+          const title = typeof conv.title === 'string' ? conv.title.trim() : '';
+          if (id && title) titles[id] = title;
+        }
+      } catch {
+        // ignore chat list failures
+      }
+      if (cancelled || Object.keys(titles).length === 0) return;
+      setResolvedTitles(titles);
+      applySessionTitles(titles);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [applySessionTitles]);
 
   const pagedSessions = sessionEntries.slice(
     (sessionPage - 1) * PAGE_SIZE,
@@ -196,21 +247,25 @@ export function UsageContent() {
         {sessionEntries.length > 0 && (
           <SettingsSection title={t.settingsUsage.perSession}>
             <div className={styles.list}>
-              {pagedSessions.map(([id, entry]) => (
-                <div className={styles.listRow} key={id}>
-                  <span className={styles.listName} title={id}>
-                    {id}
-                  </span>
-                  <span className={styles.listMeta}>
-                    <span className={styles.metaLabel}>{t.settingsUsage.inputShort}</span>
-                    {formatNumber(entry.inputTokens)} tok
-                  </span>
-                  <span className={styles.listMeta}>
-                    <span className={styles.metaLabel}>{t.settingsUsage.outputShort}</span>
-                    {formatNumber(entry.outputTokens)} tok
-                  </span>
-                </div>
-              ))}
+              {pagedSessions.map(([id, entry]) => {
+                const displayName =
+                  entry.title?.trim() || resolvedTitles[id]?.trim() || shortSessionFallback(id);
+                return (
+                  <div className={styles.listRow} key={id}>
+                    <span className={styles.listName} title={id}>
+                      {displayName}
+                    </span>
+                    <span className={styles.listMeta}>
+                      <span className={styles.metaLabel}>{t.settingsUsage.inputShort}</span>
+                      {formatNumber(entry.inputTokens)} tok
+                    </span>
+                    <span className={styles.listMeta}>
+                      <span className={styles.metaLabel}>{t.settingsUsage.outputShort}</span>
+                      {formatNumber(entry.outputTokens)} tok
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <UsagePagination
               page={sessionPage}

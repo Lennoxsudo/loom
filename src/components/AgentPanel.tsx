@@ -83,6 +83,7 @@ import {
 import { useHydrateSubagentRuns } from './agent/hooks/useHydrateSubagentRuns';
 import { useAgentStreamingQueue } from './agent/hooks/useAgentStreamingQueue';
 import { useAgentStreamEvents } from './agent/hooks/useAgentStreamEvents';
+import { StreamCompletionCoordinator } from './chat/streamCompletionCoordinator';
 import { extractKnownToolNamesFromProviderTools } from '../features/agent-engine/streamCompletionToolCalls';
 import { useAgentStreamControl } from './agent/hooks/useAgentStreamControl';
 import { useAgentSendMessage } from './agent/hooks/useAgentSendMessage';
@@ -313,7 +314,6 @@ export default function AgentPanel({
   const [error, setError] = useState<string | null>(null);
   const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
   const [renamingConversationTitle, setRenamingConversationTitle] = useState('');
-  const [expandedThinkingIds, setExpandedThinkingIds] = useState<Set<string>>(new Set());
   const [isAutomationsPanelOpen, setIsAutomationsPanelOpen] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<'workspace' | 'settings'>('workspace');
   const [settingsSection, setSettingsSection] = useState<AgentSettingsSection>('general');
@@ -459,12 +459,12 @@ export default function AgentPanel({
             return;
           }
           setError(null);
-          let models = store.models;
+          let models = store.models ?? [];
+          // Hydrated disk state can be activated with an empty model cache — refresh once.
           if (models.length === 0) {
             models = await store.refreshModels();
           }
           if (models.length === 0) {
-            await store.ensureAiConfigProfile();
             const configStr = await invoke<string>('load_ai_config');
             if (configStr) {
               const config = JSON.parse(configStr) as LoadedAiConfig;
@@ -1177,6 +1177,7 @@ export default function AgentPanel({
   const {
     enqueueStreamChunk,
     flushAllQueuedChunks,
+    flushQueuedChunksForMessage,
     drainQueuedChunksFast,
     stopStreamChunkTimer,
     hasQueuedChunksForMessage,
@@ -1192,6 +1193,22 @@ export default function AgentPanel({
     },
     onSetConversationState: setConversationState,
   });
+
+  const streamCompletionCoordinatorRef = useRef<StreamCompletionCoordinator | null>(null);
+  const flushQueuedChunksForMessageRef = useRef(flushQueuedChunksForMessage);
+  flushQueuedChunksForMessageRef.current = flushQueuedChunksForMessage;
+  if (!streamCompletionCoordinatorRef.current) {
+    streamCompletionCoordinatorRef.current = new StreamCompletionCoordinator((messageId) => {
+      flushQueuedChunksForMessageRef.current(messageId);
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      streamCompletionCoordinatorRef.current?.dispose();
+      streamCompletionCoordinatorRef.current = null;
+    };
+  }, []);
 
   streamFlushRef.current = {
     flushAllQueuedChunks,
@@ -1231,9 +1248,11 @@ export default function AgentPanel({
     streamSpeed,
     enqueueStreamChunk,
     flushAllQueuedChunks,
+    flushQueuedChunksForMessage,
     drainQueuedChunksFast,
     stopStreamChunkTimer,
     hasQueuedChunksForMessage,
+    streamCompletionCoordinator: streamCompletionCoordinatorRef.current,
     getKnownToolNames: () => {
       const currentAgent = agentRef.current;
       const runtime = agentRuntimeRef.current;
@@ -2159,15 +2178,6 @@ export default function AgentPanel({
     scheduleUpdate();
   }, [activeScrollSessionKey, scheduleUpdate]);
 
-  const handleToggleThinking = useCallback((messageId: string) => {
-    setExpandedThinkingIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(messageId)) next.delete(messageId);
-      else next.add(messageId);
-      return next;
-    });
-  }, []);
-
   useEffect(() => {
     return () => {
       cancelSmoothScrollRef.current?.();
@@ -2308,10 +2318,7 @@ export default function AgentPanel({
                         <AgentMessageList
                           ref={messageListRef}
                           messages={selectedMessages}
-                          expandedThinkingIds={expandedThinkingIds}
                           thinkingBlockAutoExpand={thinkingBlockAutoExpand}
-                          streamingContinuingLabel={t.agent.streamingContinuing}
-                          onToggleThinking={handleToggleThinking}
                           messagesContainerRef={messagesContainerRef}
                           onUserMessageLayout={handleUserMessageLayout}
                           getLayoutCache={getLayoutCache}

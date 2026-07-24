@@ -144,6 +144,12 @@ export async function autoGenerateAgentConversationTitle(
           titleGenerated: true,
         }))
       );
+      try {
+        const { useUsageStore } = await import('../../../stores/useUsageStore');
+        useUsageStore.getState().applySessionTitles({ [conversationId]: cleanTitle });
+      } catch {
+        // usage title sync is best-effort
+      }
     } else {
       markTitleGenerated();
     }

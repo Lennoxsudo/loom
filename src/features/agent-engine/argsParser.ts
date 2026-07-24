@@ -16,7 +16,8 @@ import { isAbsolutePath, resolveContainedPath } from '../../shared/lib/pathUtils
  *
  * Phase 2 安全：
  * - 相对路径：`baseDir + path`，拒绝 `../` 逃逸
- * - 绝对路径：仅当落在 baseDir 内时放行，否则抛错（修复绝对路径绕过）
+ * - 盘符/UNC 绝对路径：仅当落在 baseDir 内时放行
+ * - `/project/...` 伪绝对路径：映射回工作区（模型常见写法）
  *
  * @param path - 要解析的路径
  * @param baseDir - 工作区根目录（可选；未提供时保持原样兼容）

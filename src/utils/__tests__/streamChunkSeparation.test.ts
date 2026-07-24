@@ -70,6 +70,67 @@ describe('streamChunkSeparation', () => {
       expect(result.thinking).toBe(rawThinking);
       expect(result.isThinking).toBe(true);
     });
+
+    test('keeps only native reasoning when content also has bilingual <thinking> tags', () => {
+      const nativeEnglish =
+        "The user is asking 'What kind of person do you think I am?' in Chinese.";
+      const contentChinese =
+        '<thinking>\n用户在问「你觉得我是什么人」。\n</thinking>\n\n坦白说，我对你几乎一无所知。';
+      const result = applyTrustedStreamSeparation({
+        rawContent: contentChinese,
+        rawThinking: nativeEnglish,
+        chunk_type: 'content',
+        chunk: '坦白说，我对你几乎一无所知。',
+        chunkTime: 50,
+        receivedThinkingChunks: true,
+        thinkingStartedAt: 10,
+      });
+
+      expect(result.thinking).toBe(nativeEnglish);
+      expect(result.thinking).not.toContain('用户在问');
+      expect(result.content).toBe('坦白说，我对你几乎一无所知。');
+      expect(result.content).not.toContain('<thinking>');
+    });
+
+    test('keeps a single native segment when </thinking> separates alternate paraphrases', () => {
+      const first =
+        '用户问我是什么人。这是一个比较开放的问题，我需要基于我观察到的信息来回答。';
+      const second =
+        '用户问我“你觉得我是什么人”。这是一个比较主观的问题。让我看看我能从当前环境中获取什么信息。';
+      const rawThinking = `${first}\n</thinking>\n\n${second}`;
+      const result = applyTrustedStreamSeparation({
+        rawContent: '',
+        rawThinking,
+        chunk_type: 'thinking',
+        chunk: second,
+        chunkTime: 25,
+        receivedThinkingChunks: true,
+        thinkingStartedAt: 10,
+      });
+
+      expect(result.content).toBe('');
+      expect(result.thinking).not.toContain('</thinking>');
+      expect(result.thinking).toBe(second);
+      expect(result.thinking).not.toContain(first);
+      expect(result.isThinking).toBe(true);
+    });
+
+    test('keeps continuation after </thinking> when it is the longer native segment', () => {
+      const rawThinking = '短前言。\n</thinking>\n\n这里是更完整的原生思考续写，应当保留。';
+      const result = applyTrustedStreamSeparation({
+        rawContent: '',
+        rawThinking,
+        chunk_type: 'thinking',
+        chunk: '这里是更完整的原生思考续写，应当保留。',
+        chunkTime: 25,
+        receivedThinkingChunks: true,
+        thinkingStartedAt: 10,
+      });
+
+      expect(result.content).toBe('');
+      expect(result.thinking).toBe('这里是更完整的原生思考续写，应当保留。');
+      expect(result.thinking).not.toContain('短前言');
+    });
   });
 
   describe('finalizeStreamMessage', () => {
@@ -84,6 +145,38 @@ describe('streamChunkSeparation', () => {
 
       expect(result.content).toContain('以下是说明');
       expect(result.thinking).toBe('分析过程');
+    });
+
+    test('finalize with native reasoning ignores bilingual content <thinking> tags', () => {
+      const nativeEnglish = 'The user asked who I think they are.';
+      const result = finalizeStreamMessage({
+        rawContent:
+          '<thinking>\n用户在问我是什么人。\n</thinking>\n\n坦白说，我对你几乎一无所知。',
+        rawThinking: nativeEnglish,
+        streamContent: '坦白说，我对你几乎一无所知。',
+        streamThinking: nativeEnglish,
+        receivedThinkingChunks: true,
+      });
+
+      expect(result.thinking).toBe(nativeEnglish);
+      expect(result.thinking).not.toContain('用户在问');
+      expect(result.content).toBe('坦白说，我对你几乎一无所知。');
+    });
+
+    test('finalize does not concatenate divergent native thinking paraphrases', () => {
+      const streamed = '用户问我是什么人。这是一个比较开放的问题。';
+      const raw =
+        '用户问我“你觉得我是什么人”。这是一个比较主观的问题。让我看看环境信息。';
+      const result = finalizeStreamMessage({
+        rawContent: '坦白说，我对你几乎一无所知。',
+        rawThinking: raw,
+        streamContent: '坦白说，我对你几乎一无所知。',
+        streamThinking: streamed,
+        receivedThinkingChunks: true,
+      });
+
+      expect(result.thinking).toBe(raw);
+      expect(result.thinking).not.toContain(streamed);
     });
   });
 });

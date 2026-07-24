@@ -26,6 +26,9 @@ pub fn get_active_profile_config(
     let profiles = config_json.get("profiles")?;
     let provider_profiles = profiles.get(provider)?;
     let active_id = provider_profiles.get("activeId")?.as_str()?;
+    if super::gateway_sign::is_builtin_profile_id(active_id) {
+        return super::gateway_sign::load_builtin_ai_config(None).ok();
+    }
     let items = provider_profiles.get("items")?.as_array()?;
 
     for item in items {
@@ -45,6 +48,9 @@ pub fn get_profile_config_by_id(
     provider: &str,
     profile_id: &str,
 ) -> Option<AIConfig> {
+    if super::gateway_sign::is_builtin_profile_id(profile_id) {
+        return super::gateway_sign::load_builtin_ai_config(None).ok();
+    }
     let profiles = config_json.get("profiles")?;
     let provider_profiles = profiles.get(provider)?;
     let items = provider_profiles.get("items")?.as_array()?;

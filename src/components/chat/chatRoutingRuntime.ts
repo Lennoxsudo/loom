@@ -7,7 +7,6 @@ import {
 import {
   BUILTIN_PROFILE_ID,
   isBuiltinProtocol,
-  toConfigProviderKey,
 } from '../../utils/builtinGateway';
 import type { AIProvider } from '../../utils/visionCapabilities';
 import type { ChatProtocolSelection } from './types';
@@ -46,13 +45,11 @@ export function reconcileChatRequestRuntime(
     return null;
   }
 
-  // Built-in: logical provider stays `builtin`; config lives under openai profile.
+  // Built-in models are managed outside AI protocol config — keep the user's pick.
   if (isBuiltinProtocol(protocolSelection)) {
-    const configProvider = toConfigProviderKey('builtin');
-    const reconciled = reconcileProviderRequest(config, configProvider, model, BUILTIN_PROFILE_ID);
     return {
       provider: 'builtin',
-      model: reconciled.model,
+      model,
       profileId: BUILTIN_PROFILE_ID,
       routingMode: 'manual',
     };

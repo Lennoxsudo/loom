@@ -30,6 +30,7 @@ const ThinkingBlock = memo(function ThinkingBlock({
     }
   }, [thinking, isThinking]);
 
+  // Same as Chat: ended label when not actively thinking; duration from thinkingEndedAt.
   const hasThinkingEnded = !isThinking || !!thinkingEndedAt;
   let thinkingLabel = t.agentInternal.thinking;
   if (thinking) {
