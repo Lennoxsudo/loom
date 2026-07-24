@@ -53,6 +53,56 @@ describe('streamChunkSeparation', () => {
       expect(result.isThinking).toBe(false);
     });
 
+    test('promotes Gemini <thought> tags into the thinking bubble', () => {
+      const result = applyTrustedStreamSeparation({
+        rawContent:
+          '<thought>\n**Acknowledge User\'s Greeting**\nI registered the greeting.\n</thought>\n你好！有什么可以帮你？',
+        rawThinking: '',
+        chunk_type: 'content',
+        chunk: '你好！有什么可以帮你？',
+        chunkTime: 40,
+      });
+
+      expect(result.thinking).toContain("Acknowledge User's Greeting");
+      expect(result.thinking).toContain('I registered the greeting.');
+      expect(result.thinking).not.toContain('<thought>');
+      expect(result.content).toBe('你好！有什么可以帮你？');
+      expect(result.content).not.toContain('<thought>');
+      expect(result.isThinking).toBe(false);
+      expect(result.thinkingEndedAt).toBe(40);
+    });
+
+    test('does not discard <thought> when native flag is set but rawThinking is empty', () => {
+      // Regression: strip-from-body + thinking:'' discarded Gemini thoughts after tag parsing was fixed.
+      const result = applyTrustedStreamSeparation({
+        rawContent:
+          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        rawThinking: '',
+        chunk_type: 'content',
+        chunk: '你好！请问有什么可以帮你？',
+        chunkTime: 40,
+        receivedThinkingChunks: true,
+      });
+
+      expect(result.thinking).toBe('Plan the greeting.');
+      expect(result.content).toBe('你好！请问有什么可以帮你？');
+      expect(result.content).not.toContain('<thought>');
+    });
+
+    test('streams unclosed Gemini <thought> into the thinking bubble', () => {
+      const result = applyTrustedStreamSeparation({
+        rawContent: '<thought>\nStill reasoning…',
+        rawThinking: '',
+        chunk_type: 'content',
+        chunk: 'Still reasoning…',
+        chunkTime: 15,
+      });
+
+      expect(result.thinking).toContain('Still reasoning…');
+      expect(result.content).toBe('');
+      expect(result.isThinking).toBe(true);
+    });
+
     test('does not leak Chinese reasoning keywords from thinking stream to body', () => {
       const rawThinking = '好的。让我先分析项目结构。还需要检查配置文件。';
       const result = applyTrustedStreamSeparation({
@@ -160,6 +210,36 @@ describe('streamChunkSeparation', () => {
       expect(result.thinking).toBe(nativeEnglish);
       expect(result.thinking).not.toContain('用户在问');
       expect(result.content).toBe('坦白说，我对你几乎一无所知。');
+    });
+
+    test('finalize promotes Gemini <thought> tags without native reasoning stream', () => {
+      const result = finalizeStreamMessage({
+        rawContent:
+          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        rawThinking: '',
+        streamContent:
+          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        streamThinking: '',
+        receivedThinkingChunks: false,
+      });
+
+      expect(result.thinking).toBe('Plan the greeting.');
+      expect(result.content).toBe('你好！请问有什么可以帮你？');
+    });
+
+    test('finalize does not discard <thought> when receivedThinkingChunks is true but thinking empty', () => {
+      const result = finalizeStreamMessage({
+        rawContent:
+          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        rawThinking: '',
+        streamContent:
+          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        streamThinking: '',
+        receivedThinkingChunks: true,
+      });
+
+      expect(result.thinking).toBe('Plan the greeting.');
+      expect(result.content).toBe('你好！请问有什么可以帮你？');
     });
 
     test('finalize does not concatenate divergent native thinking paraphrases', () => {

@@ -250,7 +250,10 @@ pub fn find_first_tag(haystack: &str, tags: &[&str]) -> Option<(usize, usize)> {
                 .all(|(a, b)| a.eq_ignore_ascii_case(b));
             if matches {
                 match best {
-                    Some((best_pos, _)) if start >= best_pos => {}
+                    // Prefer earlier position; at the same position prefer longer tag
+                    // so `<think>` does not win over `<thought>` / `<thinking>`.
+                    Some((best_pos, best_len))
+                        if start > best_pos || (start == best_pos && tag_bytes.len() <= best_len) => {}
                     _ => best = Some((start, tag_bytes.len())),
                 }
                 break;
@@ -261,11 +264,11 @@ pub fn find_first_tag(haystack: &str, tags: &[&str]) -> Option<(usize, usize)> {
     best
 }
 
-pub const THINKING_START_TAGS: &[&str] = &["<thinking>", "<think>"];
-pub const THINKING_END_TAGS: &[&str] = &["</thinking>", "</think>"];
-/// Longest start tag: `<think>`
-pub const THINKING_START_TAG_KEEP: usize = 8;
-/// Longest end tag: `</think>`
+pub const THINKING_START_TAGS: &[&str] = &["<thinking>", "<thought>", "<think>"];
+pub const THINKING_END_TAGS: &[&str] = &["</thinking>", "</thought>", "</think>"];
+/// Longest start tag: `<thinking>`
+pub const THINKING_START_TAG_KEEP: usize = 10;
+/// Keep enough buffer for the longest end tag while streaming.
 pub const THINKING_END_TAG_KEEP: usize = 21;
 
 pub struct ThinkingTagStreamState {
@@ -375,19 +378,51 @@ pub fn emit_filtered_chunk(
     );
 }
 
-const OPENAI_REASONING_FIELD_KEYS: &[&str] = &["reasoning_content", "reasoning", "thinking"];
+const OPENAI_REASONING_FIELD_KEYS: &[&str] =
+    &["reasoning_content", "reasoning", "thinking", "thought", "thoughts"];
+
+/// Coerce OpenAI-compatible reasoning field values to text.
+/// Some proxies return `thought`/`thoughts` as objects or arrays instead of plain strings.
+fn openai_compatible_text_value(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::String(s) if !s.is_empty() => Some(s.clone()),
+        serde_json::Value::Array(items) => {
+            let mut out = String::new();
+            for item in items {
+                if let Some(piece) = openai_compatible_text_value(item) {
+                    out.push_str(&piece);
+                }
+            }
+            if out.is_empty() {
+                None
+            } else {
+                Some(out)
+            }
+        }
+        serde_json::Value::Object(map) => {
+            if let Some(s) = map
+                .get("text")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+            {
+                return Some(s.to_string());
+            }
+            map.get("content").and_then(openai_compatible_text_value)
+        }
+        _ => None,
+    }
+}
 
 /// Prefer incremental `delta` reasoning fields; only fall back to `message` when delta is absent.
 /// Many OpenAI-compatible proxies mirror the same chunk in both fields, which would duplicate UI output.
-pub fn pick_openai_compatible_reasoning_chunk<'a>(
-    choice: &'a serde_json::Value,
+pub fn pick_openai_compatible_reasoning_chunk(
+    choice: &serde_json::Value,
     key: &str,
-) -> Option<&'a str> {
+) -> Option<String> {
     let from_delta = choice
         .get("delta")
         .and_then(|delta| delta.get(key))
-        .and_then(|value| value.as_str())
-        .filter(|text| !text.is_empty());
+        .and_then(openai_compatible_text_value);
 
     if from_delta.is_some() {
         return from_delta;
@@ -396,14 +431,13 @@ pub fn pick_openai_compatible_reasoning_chunk<'a>(
     choice
         .get("message")
         .and_then(|message| message.get(key))
-        .and_then(|value| value.as_str())
-        .filter(|text| !text.is_empty())
+        .and_then(openai_compatible_text_value)
 }
 
 /// Pick the first non-empty dedicated reasoning field for this SSE event.
-pub fn pick_first_openai_compatible_reasoning_chunk<'a>(
-    choice: &'a serde_json::Value,
-) -> Option<&'a str> {
+pub fn pick_first_openai_compatible_reasoning_chunk(
+    choice: &serde_json::Value,
+) -> Option<String> {
     for key in OPENAI_REASONING_FIELD_KEYS {
         if let Some(reasoning) = pick_openai_compatible_reasoning_chunk(choice, key) {
             return Some(reasoning);
@@ -562,7 +596,7 @@ pub fn process_openai_compatible_choice_delta(
     thinking_tags: &mut ThinkingTagStreamState,
 ) {
     let reasoning_emitted = pick_first_openai_compatible_reasoning_chunk(choice)
-        .and_then(|reasoning| reasoning_state.push_and_emit(app, message_id, reasoning));
+        .and_then(|reasoning| reasoning_state.push_and_emit(app, message_id, &reasoning));
 
     let Some(content) = pick_openai_compatible_content_chunk(choice) else {
         return;
@@ -603,7 +637,7 @@ mod openai_reasoning_chunk_tests {
         });
         assert_eq!(
             pick_openai_compatible_reasoning_chunk(&choice, "reasoning_content"),
-            Some("npm")
+            Some("npm".to_string())
         );
     }
 
@@ -615,7 +649,7 @@ mod openai_reasoning_chunk_tests {
         });
         assert_eq!(
             pick_openai_compatible_reasoning_chunk(&choice, "reasoning_content"),
-            Some("final reasoning")
+            Some("final reasoning".to_string())
         );
     }
 
@@ -627,7 +661,7 @@ mod openai_reasoning_chunk_tests {
         });
         assert_eq!(
             pick_openai_compatible_reasoning_chunk(&choice, "reasoning_content"),
-            Some("backup")
+            Some("backup".to_string())
         );
     }
 
@@ -642,7 +676,26 @@ mod openai_reasoning_chunk_tests {
         });
         assert_eq!(
             pick_first_openai_compatible_reasoning_chunk(&choice),
-            Some("We ")
+            Some("We ".to_string())
+        );
+    }
+
+    #[test]
+    fn extracts_object_and_array_thought_fields() {
+        let object_choice = json!({
+            "delta": { "thought": { "text": "step one" } }
+        });
+        assert_eq!(
+            pick_openai_compatible_reasoning_chunk(&object_choice, "thought"),
+            Some("step one".to_string())
+        );
+
+        let array_choice = json!({
+            "delta": { "thoughts": [{ "text": "a" }, { "content": "b" }] }
+        });
+        assert_eq!(
+            pick_first_openai_compatible_reasoning_chunk(&array_choice),
+            Some("ab".to_string())
         );
     }
 

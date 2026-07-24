@@ -21,9 +21,10 @@ export function extractThinkingContent(
   // 如果没有思考标签，直接返回
   if (
     !text.includes('<thinking') &&
+    !text.includes('<thought') &&
     !text.includes('<think') &&
-    !text.includes('<think>') &&
-    !text.includes('</think>')
+    !text.includes('</think') &&
+    !text.includes('思考开始')
   ) {
     return {
       thinking: '',
@@ -32,11 +33,13 @@ export function extractThinkingContent(
     };
   }
 
-  // 尝试匹配标准 <thinking> 标签
+  // 尝试匹配标准标签（长标签优先，避免 <think> 误匹配 <thought>/<thinking>）
   const thinkingRegex = /<thinking[\s\S]*?>([\s\S]*?)<\/thinking>/i;
-  const thinkRegex = /<think[\s\S]*?>([\s\S]*?)<\/think>/i;
+  const thoughtRegex = /<thought[\s\S]*?>([\s\S]*?)<\/thought>/i;
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/i;
 
-  let thinkingMatch = thinkingRegex.exec(text) || thinkRegex.exec(text);
+  let thinkingMatch =
+    thinkingRegex.exec(text) || thoughtRegex.exec(text) || thinkRegex.exec(text);
 
   // 如果没有匹配到标准标签，尝试中文标签
   if (!thinkingMatch) {
@@ -84,11 +87,13 @@ export function extractThinkingContent(
 
   // 尝试匹配未闭合的思考标签（流式传输中可能未闭合）
   const unclosedThinkingRegex = /<thinking[\s\S]*?>([\s\S]*)/i;
-  const unclosedThinkRegex = /<think[\s\S]*?>([\s\S]*)/i;
+  const unclosedThoughtRegex = /<thought[\s\S]*?>([\s\S]*)/i;
+  const unclosedThinkRegex = /<think>([\s\S]*)/i;
   const unclosedCnThinkingRegex = /思考开始([\s\S]*)/;
 
   const unclosedMatch =
     unclosedThinkingRegex.exec(text) ||
+    unclosedThoughtRegex.exec(text) ||
     unclosedThinkRegex.exec(text) ||
     unclosedCnThinkingRegex.exec(text);
 
@@ -318,10 +323,14 @@ function isStartOfAnswerParagraph(paragraph: string): boolean {
 
 export function hasInlineThinkTags(content: string): boolean {
   return (
+    content.includes('<thinking') ||
+    content.includes('<thought') ||
     content.includes('<think') ||
-    content.includes('<think>') ||
-    content.includes('</think>') ||
-    content.includes('思考开始')
+    content.includes('</thinking') ||
+    content.includes('</thought') ||
+    content.includes('</think') ||
+    content.includes('思考开始') ||
+    content.includes('思考结束')
   );
 }
 
@@ -334,7 +343,13 @@ export function parseInlineThinkingFromContent(cleanContent: string): {
     return { text: cleanContent, thinking: '', hasTags: false };
   }
 
-  const closingTags = [/<\/think(?:ing)?>/i, /<\/redacted_thinking>/i, /思考结束/];
+  const closingTags = [
+    /<\/thinking>/i,
+    /<\/thought>/i,
+    /<\/think>/i,
+    /<\/redacted_thinking>/i,
+    /思考结束/,
+  ];
   let closingTagMatch: RegExpMatchArray | null = null;
   for (const pattern of closingTags) {
     const match = cleanContent.match(pattern);
@@ -352,18 +367,25 @@ export function parseInlineThinkingFromContent(cleanContent: string): {
       .slice(closingTagIndex + closingTagMatch[0].length)
       .replace(/^\s+/, '');
     thinking = thinking
-      .replace(/<think(?:ing)?[\s\S]*?>/gi, '')
+      .replace(/<thinking[\s\S]*?>/gi, '')
+      .replace(/<thought[\s\S]*?>/gi, '')
+      .replace(/<think>/gi, '')
       .replace(/思考开始/g, '')
       .trim();
     return { text, thinking, hasTags: true };
   }
 
-  const startTags = ['<thinking>', '<think>', '思考开始'];
+  const startTags = ['<thinking>', '<thought>', '<think>', '思考开始'];
   let earliestStartPos = -1;
   let startTagLength = 0;
   for (const tag of startTags) {
-    const pos = cleanContent.indexOf(tag);
-    if (pos !== -1 && (earliestStartPos === -1 || pos < earliestStartPos)) {
+    const pos = cleanContent.toLowerCase().indexOf(tag.toLowerCase());
+    if (pos === -1) continue;
+    if (
+      earliestStartPos === -1 ||
+      pos < earliestStartPos ||
+      (pos === earliestStartPos && tag.length > startTagLength)
+    ) {
       earliestStartPos = pos;
       startTagLength = tag.length;
     }
@@ -654,7 +676,7 @@ export function processStreamingThinkingChunk(
 
   if (isCurrentlyInThinking) {
     // 当前在思考标签内，查找结束标签
-    const endTags = ['</thinking>', '</think>', '思考结束'];
+    const endTags = ['</thinking>', '</thought>', '</think>', '思考结束'];
     let earliestEndPos = -1;
     let endTagLength = 0;
 
@@ -685,14 +707,19 @@ export function processStreamingThinkingChunk(
       remainingText: '',
     };
   } else {
-    // 不在思考中，查找开始标签
-    const startTags = ['<thinking>', '<think>', '思考开始'];
+    // 不在思考中，查找开始标签（长标签优先，避免 <think> 误匹配 <thought>）
+    const startTags = ['<thinking>', '<thought>', '<think>', '思考开始'];
     let earliestStartPos = -1;
     let startTagLength = 0;
 
     for (const tag of startTags) {
-      const pos = text.indexOf(tag);
-      if (pos !== -1 && (earliestStartPos === -1 || pos < earliestStartPos)) {
+      const pos = text.toLowerCase().indexOf(tag.toLowerCase());
+      if (pos === -1) continue;
+      if (
+        earliestStartPos === -1 ||
+        pos < earliestStartPos ||
+        (pos === earliestStartPos && tag.length > startTagLength)
+      ) {
         earliestStartPos = pos;
         startTagLength = tag.length;
       }
@@ -1193,16 +1220,24 @@ export function mergeDistinctTextSegments(prefixText: string, existingText: stri
   return `${prefix}\n\n${existing}`.trim();
 }
 
-const CLOSING_THINK_TAG_LITERALS = ['</thinking>', '</think>', '</think>', '思考结束'] as const;
+const CLOSING_THINK_TAG_LITERALS = [
+  '</thinking>',
+  '</thought>',
+  '</think>',
+  '思考结束',
+] as const;
 
 /**
  * Remove stray think-tag artifacts from display text (does not split at closing tags).
  */
 export function stripStrayThinkTags(text: string, options?: { trim?: boolean }): string {
   const stripped = (text || '')
-    .replace(/<\/think(?:ing)?>/gi, '')
+    .replace(/<\/thinking>/gi, '')
+    .replace(/<\/thought>/gi, '')
+    .replace(/<\/think>/gi, '')
     .replace(/<\/redacted_thinking>/gi, '')
-    .replace(/<think(?:ing)?[\s\S]*?>/gi, '')
+    .replace(/<thinking[\s\S]*?>/gi, '')
+    .replace(/<thought[\s\S]*?>/gi, '')
     .replace(/<think>/gi, '')
     .replace(/思考开始/g, '')
     .replace(/思考结束/g, '');
@@ -1505,13 +1540,18 @@ export function separateMessageState(inputs: {
     };
   }
 
-  // 查找开始标签（中英文）
-  const startTags = ['<thinking>', '<think>', '思考开始'];
+  // 查找开始标签（中英文；长标签优先，避免 <think> 误匹配 <thought>）
+  const startTags = ['<thinking>', '<thought>', '<think>', '思考开始'];
   let earliestStartPos = -1;
   let startTagLength = 0;
   for (const tag of startTags) {
-    const pos = cleanContent.indexOf(tag);
-    if (pos !== -1 && (earliestStartPos === -1 || pos < earliestStartPos)) {
+    const pos = cleanContent.toLowerCase().indexOf(tag.toLowerCase());
+    if (pos === -1) continue;
+    if (
+      earliestStartPos === -1 ||
+      pos < earliestStartPos ||
+      (pos === earliestStartPos && tag.length > startTagLength)
+    ) {
       earliestStartPos = pos;
       startTagLength = tag.length;
     }

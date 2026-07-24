@@ -12,6 +12,22 @@ import {
 
 describe('thinkingExtractor', () => {
   describe('extractThinkingContent', () => {
+    test('should extract Gemini <thought> tags into thinking', () => {
+      const text = `<thought>
+**Acknowledge User's Greeting**
+I've registered the greeting.
+</thought>
+你好！请问今天有什么具体的开发任务或技术问题需要我协助吗？`;
+
+      const result = extractThinkingContent(text);
+
+      expect(result.hasThinkingTag).toBe(true);
+      expect(result.thinking).toContain("Acknowledge User's Greeting");
+      expect(result.thinking).not.toContain('你好');
+      expect(result.content).toContain('你好！请问今天有什么具体的开发任务');
+      expect(result.content).not.toContain('<thought>');
+    });
+
     test('should extract thinking content from standard tags', () => {
       const text = `Before thinking.
 <thinking>

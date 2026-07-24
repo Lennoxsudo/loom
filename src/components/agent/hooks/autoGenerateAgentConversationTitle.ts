@@ -5,7 +5,7 @@ import type { AgentConversation, AgentConversationState } from '../../../types/c
 import { normalizeGeneratedTitle } from '../utils';
 import { updateAgentConversationById } from './agentConversationUpdates';
 
-const INVALID_TITLE_PATTERN = /<\/?\s*(think|thinking)\b/i;
+const INVALID_TITLE_PATTERN = /<\/?\s*(think|thinking|thought)\b/i;
 const DEFAULT_AGENT_CONVERSATION_TITLE = '会话';
 const INSTANT_TITLE_MAX_CHARS = 15;
 
