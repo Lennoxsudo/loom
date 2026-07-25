@@ -3,8 +3,8 @@
  * Endpoint is fixed; credentials come from invite activation only.
  */
 
-export const BUILTIN_GATEWAY_BASE = 'https://gateway.tanyun.store/v1';
-export const BUILTIN_GATEWAY_ORIGIN = 'https://gateway.tanyun.store';
+export const BUILTIN_GATEWAY_BASE = 'https://www.pengdev.top/v1';
+export const BUILTIN_GATEWAY_ORIGIN = 'https://www.pengdev.top';
 export const BUILTIN_PROFILE_ID = 'builtin-gateway';
 export const BUILTIN_PROFILE_NAME = 'Loom Built-in';
 /** OpenAI-compatible provider id used for stream/chat (not a new Rust provider). */

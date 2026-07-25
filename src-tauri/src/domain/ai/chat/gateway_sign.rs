@@ -8,8 +8,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 type HmacSha256 = Hmac<Sha256>;
 
-pub const BUILTIN_GATEWAY_HOST: &str = "gateway.tanyun.store";
-pub const BUILTIN_GATEWAY_BASE: &str = "https://gateway.tanyun.store/v1";
+pub const BUILTIN_GATEWAY_HOST: &str = "www.pengdev.top";
+pub const BUILTIN_GATEWAY_BASE: &str = "https://www.pengdev.top/v1";
 pub const BUILTIN_PROFILE_ID: &str = "builtin-gateway";
 pub const TIMESTAMP_HEADER: &str = "x-gateway-timestamp";
 pub const SIGNATURE_HEADER: &str = "x-gateway-signature";

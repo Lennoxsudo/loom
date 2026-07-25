@@ -5,8 +5,8 @@ use super::gateway_sign::{apply_openai_gateway_auth, load_builtin_credentials};
 use serde::Serialize;
 use serde_json::Value;
 
-const BUILTIN_GATEWAY_BASE: &str = "https://gateway.tanyun.store/v1";
-const BUILTIN_GATEWAY_ORIGIN: &str = "https://gateway.tanyun.store";
+const BUILTIN_GATEWAY_BASE: &str = "https://www.pengdev.top/v1";
+const BUILTIN_GATEWAY_ORIGIN: &str = "https://www.pengdev.top";
 
 fn build_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
