@@ -72,13 +72,13 @@
 }
 
 .buttonActive {
-  color: var(--text-inverse);
+  color: var(--text-accent);
 }
 
 .buttonActive::before {
   opacity: 1;
-  background-color: color-mix(in srgb, var(--text-primary) 7%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 5%, transparent);
+  background-color: var(--surface-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .buttonActive .icon {
@@ -86,7 +86,7 @@
 }
 
 .buttonActive:hover::before {
-  background-color: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  background-color: var(--surface-accent-strong);
 }
 
 .spacer {

@@ -1,13 +1,10 @@
 import type * as Monaco from 'monaco-editor';
 import { getMonacoInstance } from '../monaco-loader';
+import type { ThemeMode } from '../types/settings';
+import { resolveThemeFromMode } from './lineHighlightColor';
 
-export function resolveMonacoThemeMode(themeMode: 'system' | 'dark' | 'light'): 'dark' | 'light' {
-  if (themeMode === 'dark') return 'dark';
-  if (themeMode === 'light') return 'light';
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return 'dark';
+export function resolveMonacoThemeMode(themeMode: ThemeMode): 'dark' | 'light' {
+  return resolveThemeFromMode(themeMode);
 }
 
 function cssVar(computed: CSSStyleDeclaration, name: string, fallback: string): string {
@@ -50,7 +47,7 @@ function monoColor(css: CSSStyleDeclaration, varName: string, fallbackHex: strin
   return toMonacoColor(cssVar(css, varName, fallbackHex), fallbackHex);
 }
 
-export function applyMonacoTheme(monaco: typeof Monaco, themeMode: 'system' | 'dark' | 'light') {
+export function applyMonacoTheme(monaco: typeof Monaco, themeMode: ThemeMode) {
   const computed = getComputedStyle(document.documentElement);
   const resolvedMode = resolveMonacoThemeMode(themeMode);
   const isDark = resolvedMode === 'dark';
@@ -211,7 +208,7 @@ export function applyMonacoTheme(monaco: typeof Monaco, themeMode: 'system' | 'd
   monaco.editor.setTheme(themeName);
 }
 
-export function refreshMonacoTheme(themeMode: 'system' | 'dark' | 'light'): void {
+export function refreshMonacoTheme(themeMode: ThemeMode): void {
   try {
     const monaco = getMonacoInstance();
     applyMonacoTheme(monaco, themeMode);

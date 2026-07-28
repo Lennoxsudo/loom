@@ -549,7 +549,9 @@
 }
 
 .messageAssistantContent pre {
-  background-color: #1e1e1e;
+  background-color: var(--bg-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   padding: 12px;
   overflow-x: auto;

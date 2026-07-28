@@ -333,8 +333,8 @@ describe('agePersistedProviderToolMessages', () => {
     expect(result).toBe(messages);
   });
 
-  it('summarizes old OpenAI-format tool results beyond keepCount', () => {
-    const longContent = 'x'.repeat(500);
+  it('summarizes old OpenAI-format tool results beyond keepCount under pressure', () => {
+    const longContent = 'x'.repeat(2000);
     const messages = [
       { role: 'user', content: 'q1' },
       { role: 'assistant', content: 'a1' },
@@ -349,20 +349,38 @@ describe('agePersistedProviderToolMessages', () => {
       { role: 'assistant', content: 'a4' },
       { role: 'tool', content: longContent },
     ];
-    const result = agePersistedProviderToolMessages(messages, 3);
+    // 小窗口强制触发压力门控
+    const result = agePersistedProviderToolMessages(messages, 3, 1000);
     // First tool result should be aged (content shortened)
     const firstTool = result[2] as { role: string; content: string };
     expect(firstTool.role).toBe('tool');
     expect(firstTool.content.length).toBeLessThan(longContent.length);
-    expect(firstTool.content).toContain('[tool result aged');
+    expect(firstTool.content).toContain('truncated to save context');
 
     // Last 3 tool results should be unchanged
     const lastTool = result[11] as { role: string; content: string };
     expect(lastTool.content).toBe(longContent);
   });
 
+  it('does not summarize when context pressure is low', () => {
+    const longContent = 'x'.repeat(2000);
+    const messages = [
+      { role: 'user', content: 'q1' },
+      { role: 'tool', content: longContent },
+      { role: 'user', content: 'q2' },
+      { role: 'tool', content: longContent },
+      { role: 'user', content: 'q3' },
+      { role: 'tool', content: longContent },
+      { role: 'user', content: 'q4' },
+      { role: 'tool', content: longContent },
+    ];
+    // 默认 200K 窗口，用量远低于阈值 → 原样返回
+    const result = agePersistedProviderToolMessages(messages, 3);
+    expect(result).toBe(messages);
+  });
+
   it('summarizes old Anthropic-format tool_result blocks', () => {
-    const longContent = 'y'.repeat(500);
+    const longContent = 'y'.repeat(2000);
     const makeToolResultMsg = (content: string) => ({
       role: 'user',
       content: [{ type: 'tool_result', tool_use_id: 'id1', content }],
@@ -376,7 +394,7 @@ describe('agePersistedProviderToolMessages', () => {
       { role: 'assistant', content: [{ type: 'tool_use', id: 'id2', name: 'read', input: {} }] },
       makeToolResultMsg(longContent),
     ];
-    const result = agePersistedProviderToolMessages(messages, 1);
+    const result = agePersistedProviderToolMessages(messages, 1, 1000);
     // First tool_result should be aged
     const firstToolResultMsg = result[2];
     const block = (firstToolResultMsg.content as Array<Record<string, unknown>>)[0];
@@ -402,7 +420,7 @@ describe('agePersistedProviderToolMessages', () => {
       { role: 'assistant', content: 'a3' },
       { role: 'tool', content: 'short3' },
     ];
-    const result = agePersistedProviderToolMessages(messages, 1);
+    const result = agePersistedProviderToolMessages(messages, 1, 100);
     // Short content should not be aged
     const firstTool = result[2] as { role: string; content: string };
     expect(firstTool.content).toBe('short');

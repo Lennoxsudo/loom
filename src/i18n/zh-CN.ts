@@ -1105,8 +1105,14 @@ export const zhCN: I18nMessages = {
     themeMode: {
       title: '主题模式',
       system: '跟随系统',
-      dark: '深色',
-      light: '浅色',
+      dark: '默认暗黑 (Dark)',
+      light: '默认浅色 (Light)',
+      oledVoid: '暗夜极光 (OLED Void)',
+      titaniumDusk: '黑曜钛金 (Titanium Dusk)',
+      nordicAurora: '极光深蓝 (Nordic Aurora)',
+      studioPaper: '绢白书卷 (Studio Paper)',
+      cyberCrimson: '赛博赤红 (Cyber Crimson)',
+      matchaSage: '竹韵抹绿 (Matcha Sage)',
     },
     wordWrap: {
       title: '自动换行',

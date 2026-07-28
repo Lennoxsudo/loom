@@ -1094,6 +1094,12 @@ export interface I18nMessages {
       system: string;
       dark: string;
       light: string;
+      oledVoid: string;
+      titaniumDusk: string;
+      nordicAurora: string;
+      studioPaper: string;
+      cyberCrimson: string;
+      matchaSage: string;
     };
     wordWrap: {
       title: string;

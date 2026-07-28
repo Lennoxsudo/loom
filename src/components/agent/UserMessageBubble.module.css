@@ -17,7 +17,7 @@
   border-radius: 14px 14px 4px 14px;
   background: color-mix(in srgb, var(--surface-overlay-soft) 55%, transparent);
   border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
-  color: var(--text-inverse);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;

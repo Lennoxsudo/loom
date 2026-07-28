@@ -1,5 +1,6 @@
 /** 主编辑区内的并排差异视图。 */
 import { MonacoDiffHost } from '../editor/MonacoHost';
+import type { ThemeMode } from '../../types/settings';
 import styles from './EditorDiffPanel.module.css';
 
 export interface EditorDiffPanelProps {
@@ -8,7 +9,7 @@ export interface EditorDiffPanelProps {
   language: string;
   leftLabel: string;
   rightLabel: string;
-  themeMode: 'system' | 'dark' | 'light';
+  themeMode: ThemeMode;
   fontSize: number;
   wordWrap: boolean;
   lineNumbers: boolean;

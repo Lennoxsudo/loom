@@ -7,6 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { buildRuleBasedSummary } from '../contextCompressor';
 import { buildCompactPrompt, parseCompactResponse, type CompactPromptMode } from './prompt';
 import { messagesToConversationText } from './compact';
+import { appendReadFilesSection, collectReadFilePathsFromMessages } from './readFilePaths';
 import type { CompactableMessage } from './types';
 import type { SplitByRetention } from './grouping';
 
@@ -24,6 +25,7 @@ export async function generateCompactSummary(opts: {
   promptMode?: CompactPromptMode;
 }): Promise<GenerateSummaryResult> {
   const { prefixMessages, split, provider, model, profileId, promptMode = 'base' } = opts;
+  const readPaths = collectReadFilePathsFromMessages(prefixMessages);
   const conversationText = messagesToConversationText(prefixMessages);
   const prompt = buildCompactPrompt(promptMode, conversationText);
 
@@ -38,7 +40,7 @@ export async function generateCompactSummary(opts: {
 
     const parsed = parseCompactResponse(raw);
     if (parsed && parsed.length > 30) {
-      return { summaryText: parsed, usedLlm: true };
+      return { summaryText: appendReadFilesSection(parsed, readPaths), usedLlm: true };
     }
   } catch (error) {
     console.warn('[compact] LLM summary failed, falling back to rules:', error);
@@ -54,7 +56,7 @@ export async function generateCompactSummary(opts: {
     split.prefixEnd
   );
 
-  return { summaryText: ruleSummary.summary, usedLlm: false };
+  return { summaryText: appendReadFilesSection(ruleSummary.summary, readPaths), usedLlm: false };
 }
 
 function formatForRust(msg: CompactableMessage): Record<string, unknown> {

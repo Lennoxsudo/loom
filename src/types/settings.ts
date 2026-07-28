@@ -30,7 +30,16 @@ export type Language = 'zh-CN' | 'en-US';
 /**
  * Application theme mode
  */
-export type ThemeMode = 'system' | 'dark' | 'light';
+export type ThemeMode =
+  | 'system'
+  | 'dark'
+  | 'light'
+  | 'oled-void'
+  | 'titanium-dusk'
+  | 'nordic-aurora'
+  | 'studio-paper'
+  | 'cyber-crimson'
+  | 'matcha-sage';
 
 /**
  * Editor whitespace rendering mode

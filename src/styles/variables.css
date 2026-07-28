@@ -1,71 +1,5 @@
 :root {
-  /* --- Color Palette (Dark Theme) --- */
-
-  /* Backgrounds */
-  --bg-primary: #1e1e1e;
-  --bg-app: #1e1e1e;
-  --bg-sidebar: #252526;
-  --bg-activity-bar: #333333;
-  --bg-editor: #1e1e1e;
-  --bg-panel: #1e1e1e;
-  --bg-header: #2d2d2d;
-  --bg-input: #3c3c3c;
-  --bg-dropdown: #252526;
-  --bg-overlay: rgba(0, 0, 0, 0.4);
-
-  /* Interactive States */
-  --bg-hover: #2a2d2e;
-  --bg-list-hover: #2a2d2e;
-  --bg-list-active: #37373d;
-  --bg-button: #007acc;
-  --bg-button-hover: #0062a3;
-  --bg-muted: #252526;
-  --bg-elevated: rgba(30, 30, 30, 0.85);
-  --bg-scrollbar: transparent;
-  --bg-scrollbar-thumb: #424242;
-  --bg-scrollbar-thumb-hover: #4f4f4f;
-
-  /* Typography */
-  --text-primary: #cccccc;
-  --text-secondary: #858585;
-  --text-inverse: #ffffff;
-  --text-accent: #007acc;
-  --text-error: #f48771;
-  --text-warning: #cca700;
-
-  /* Borders & Dividers */
-  --border-primary: #454545;
-  --border-subtle: #2b2b2b;
-  --border-focus: #007acc;
-  --border-strong: #3c3c3c;
-  --surface-accent-soft: rgba(0, 122, 204, 0.12);
-  --surface-accent-strong: rgba(0, 122, 204, 0.18);
-  --surface-overlay-soft: rgba(255, 255, 255, 0.04);
-  --surface-overlay-border: rgba(255, 255, 255, 0.08);
-  --editor-line-highlight: rgba(0, 122, 204, 0.08);
-  --editor-line-highlight-border: rgba(0, 122, 204, 0.2);
-  /* Monaco：选区用独立色，勿用surface-accent-strong，避免与 diff 红底叠加成刺眼整块红 */
-  --editor-selection-background: #264f7880;
-  --editor-selection-inactive-background: #264f7840;
-  --editor-diff-removed-line: rgba(255, 80, 80, 0.14);
-  --editor-diff-removed-text: rgba(255, 80, 80, 0.18);
-  --editor-diff-inserted-line: rgba(80, 200, 120, 0.12);
-  --editor-diff-inserted-text: rgba(80, 200, 120, 0.16);
-  /* 括号：配对块与逐级着色，避开 vs-dark 自带的偏红括号层 */
-  --editor-bracket-match-background: rgba(38, 79, 120, 0.42);
-  --editor-bracket-match-border: rgba(120, 180, 235, 0.7);
-  --editor-bracket-fg-1: #79b8ff;
-  --editor-bracket-fg-2: #4dcdb2;
-  --editor-bracket-fg-3: #cfa8ff;
-  --editor-bracket-fg-4: #b8e986;
-  --editor-bracket-fg-5: #9bdcfe;
-  --editor-bracket-fg-6: #87d6ff;
-  --editor-bracket-unexpected-fg: #e0a958;
-  --panel-resizer: #3c3c3c;
-  --panel-resizer-muted: #2a2a2a;
-  --panel-resizer-active: #007acc;
-
-  /* Dimensions & Spacing */
+  /* --- Dimensions & Spacing --- */
   --activity-bar-width: 48px;
   --title-bar-height: 30px;
   --status-bar-height: 22px;
@@ -75,84 +9,457 @@
   --chat-composer-radius: 6px;
   --chat-composer-padding: 8px;
   --chat-meta-height: 24px;
-  --chat-stop-bg: #6b4340;
-  --chat-stop-bg-hover: #7a4e4a;
-  --chat-stop-fg: #e8d8d6;
 
-  /* Components */
+  /* Components & Animation */
   --radius-sm: 3px;
   --radius-md: 6px;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
-
-  /* Animation */
   --transition-fast: 0.1s ease;
   --transition-normal: 0.2s ease;
 }
 
-:root[data-theme='light'] {
-  --bg-primary: #ffffff;
-  --bg-app: #f5f5f5;
-  --bg-sidebar: #ebebeb;
-  --bg-activity-bar: #dddddd;
-  --bg-editor: #ffffff;
-  --bg-panel: #ffffff;
-  --bg-header: #e5e5e5;
-  --bg-input: #ffffff;
-  --bg-dropdown: #ffffff;
+/* ==========================================================================
+   THEME 1: OLED VOID (暗夜极光) - Default Dark Theme
+   ========================================================================== */
+:root,
+:root[data-theme='dark'],
+:root[data-theme='oled-void'] {
+  --bg-primary: #040407;
+  --bg-app: #040407;
+  --bg-sidebar: #090A10;
+  --bg-activity-bar: #07080E;
+  --bg-editor: #07080E;
+  --bg-panel: #0D0F18;
+  --bg-header: #090A10;
+  --bg-input: #151827;
+  --bg-dropdown: #090A10;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --bg-hover: #151827;
+  --bg-list-hover: #151827;
+  --bg-list-active: #1F243A;
+  --bg-button: #00F5A0;
+  --bg-button-hover: #00D088;
+  --bg-muted: #151827;
+  --bg-elevated: rgba(13, 15, 24, 0.95);
+  --bg-scrollbar: transparent;
+  --bg-scrollbar-thumb: #23283E;
+  --bg-scrollbar-thumb-hover: #333A58;
+
+  /* High Contrast Typography */
+  --text-primary: #FFFFFF;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+  --text-inverse: #040407;
+  --text-accent: #00F5A0;
+  --text-error: #FF5370;
+  --text-warning: #FFCB6B;
+
+  --border-primary: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-focus: #00F5A0;
+  --border-strong: rgba(0, 245, 160, 0.35);
+  --surface-accent-soft: rgba(0, 245, 160, 0.1);
+  --surface-accent-strong: rgba(0, 245, 160, 0.2);
+  --surface-overlay-soft: rgba(255, 255, 255, 0.04);
+  --surface-overlay-border: rgba(255, 255, 255, 0.08);
+  --editor-line-highlight: rgba(0, 245, 160, 0.08);
+  --editor-line-highlight-border: rgba(0, 245, 160, 0.2);
+  --editor-selection-background: rgba(0, 245, 160, 0.22);
+  --editor-selection-inactive-background: rgba(0, 245, 160, 0.12);
+  --editor-diff-removed-line: rgba(255, 83, 112, 0.14);
+  --editor-diff-removed-text: rgba(255, 83, 112, 0.22);
+  --editor-diff-inserted-line: rgba(0, 245, 160, 0.12);
+  --editor-diff-inserted-text: rgba(0, 245, 160, 0.2);
+
+  --editor-bracket-match-background: rgba(0, 245, 160, 0.25);
+  --editor-bracket-match-border: rgba(0, 245, 160, 0.6);
+  --editor-bracket-fg-1: #00F5A0;
+  --editor-bracket-fg-2: #7B2CBF;
+  --editor-bracket-fg-3: #38BDF8;
+  --editor-bracket-fg-4: #F59E0B;
+  --editor-bracket-fg-5: #F472B6;
+  --editor-bracket-fg-6: #A7F3D0;
+  --editor-bracket-unexpected-fg: #FF5370;
+  --panel-resizer: rgba(255, 255, 255, 0.1);
+  --panel-resizer-muted: rgba(255, 255, 255, 0.05);
+  --panel-resizer-active: #00F5A0;
+
+  --chat-stop-bg: #6B2332;
+  --chat-stop-bg-hover: #822C3F;
+  --chat-stop-fg: #FFE5EC;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   THEME 2: TITANIUM DUSK (黑曜钛金)
+   ========================================================================== */
+:root[data-theme='titanium-dusk'] {
+  --bg-primary: #0B0C10;
+  --bg-app: #0B0C10;
+  --bg-sidebar: #12141C;
+  --bg-activity-bar: #0E1017;
+  --bg-editor: #0E1017;
+  --bg-panel: #181B26;
+  --bg-header: #12141C;
+  --bg-input: #222636;
+  --bg-dropdown: #12141C;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --bg-hover: #222636;
+  --bg-list-hover: #222636;
+  --bg-list-active: #2C3246;
+  --bg-button: #F59E0B;
+  --bg-button-hover: #D97706;
+  --bg-muted: #222636;
+  --bg-elevated: rgba(24, 27, 38, 0.95);
+  --bg-scrollbar: transparent;
+  --bg-scrollbar-thumb: #2F354A;
+  --bg-scrollbar-thumb-hover: #404864;
+
+  /* High Contrast Typography */
+  --text-primary: #FFFFFF;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+  --text-inverse: #0B0C10;
+  --text-accent: #F59E0B;
+  --text-error: #EF4444;
+  --text-warning: #F59E0B;
+
+  --border-primary: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-focus: #F59E0B;
+  --border-strong: rgba(245, 158, 11, 0.35);
+  --surface-accent-soft: rgba(245, 158, 11, 0.12);
+  --surface-accent-strong: rgba(245, 158, 11, 0.22);
+  --surface-overlay-soft: rgba(255, 255, 255, 0.04);
+  --surface-overlay-border: rgba(255, 255, 255, 0.08);
+  --editor-line-highlight: rgba(245, 158, 11, 0.08);
+  --editor-line-highlight-border: rgba(245, 158, 11, 0.25);
+  --editor-selection-background: rgba(245, 158, 11, 0.24);
+  --editor-selection-inactive-background: rgba(245, 158, 11, 0.12);
+  --editor-diff-removed-line: rgba(239, 68, 68, 0.14);
+  --editor-diff-removed-text: rgba(239, 68, 68, 0.22);
+  --editor-diff-inserted-line: rgba(245, 158, 11, 0.14);
+  --editor-diff-inserted-text: rgba(245, 158, 11, 0.22);
+
+  --editor-bracket-match-background: rgba(245, 158, 11, 0.25);
+  --editor-bracket-match-border: rgba(245, 158, 11, 0.6);
+  --editor-bracket-fg-1: #F59E0B;
+  --editor-bracket-fg-2: #CBD5E1;
+  --editor-bracket-fg-3: #60A5FA;
+  --editor-bracket-fg-4: #34D399;
+  --editor-bracket-fg-5: #F472B6;
+  --editor-bracket-fg-6: #FDE047;
+  --editor-bracket-unexpected-fg: #EF4444;
+  --panel-resizer: rgba(255, 255, 255, 0.12);
+  --panel-resizer-muted: rgba(255, 255, 255, 0.06);
+  --panel-resizer-active: #F59E0B;
+
+  --chat-stop-bg: #6B2323;
+  --chat-stop-bg-hover: #822C2C;
+  --chat-stop-fg: #FFE5E5;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   THEME 3: NORDIC AURORA (极光深蓝)
+   ========================================================================== */
+:root[data-theme='nordic-aurora'] {
+  --bg-primary: #070D18;
+  --bg-app: #070D18;
+  --bg-sidebar: #0F172A;
+  --bg-activity-bar: #0A1120;
+  --bg-editor: #0A1120;
+  --bg-panel: #162036;
+  --bg-header: #0F172A;
+  --bg-input: #202D47;
+  --bg-dropdown: #0F172A;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --bg-hover: #202D47;
+  --bg-list-hover: #202D47;
+  --bg-list-active: #2B3C5E;
+  --bg-button: #38BDF8;
+  --bg-button-hover: #0284C7;
+  --bg-muted: #202D47;
+  --bg-elevated: rgba(22, 32, 54, 0.95);
+  --bg-scrollbar: transparent;
+  --bg-scrollbar-thumb: #2B3954;
+  --bg-scrollbar-thumb-hover: #3C4F73;
+
+  /* High Contrast Typography */
+  --text-primary: #FFFFFF;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+  --text-inverse: #070D18;
+  --text-accent: #38BDF8;
+  --text-error: #F87171;
+  --text-warning: #FBBF24;
+
+  --border-primary: rgba(99, 102, 241, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-focus: #38BDF8;
+  --border-strong: rgba(56, 189, 248, 0.35);
+  --surface-accent-soft: rgba(56, 189, 248, 0.12);
+  --surface-accent-strong: rgba(56, 189, 248, 0.22);
+  --surface-overlay-soft: rgba(255, 255, 255, 0.05);
+  --surface-overlay-border: rgba(255, 255, 255, 0.1);
+  --editor-line-highlight: rgba(56, 189, 248, 0.08);
+  --editor-line-highlight-border: rgba(56, 189, 248, 0.22);
+  --editor-selection-background: rgba(56, 189, 248, 0.24);
+  --editor-selection-inactive-background: rgba(56, 189, 248, 0.12);
+  --editor-diff-removed-line: rgba(248, 113, 113, 0.14);
+  --editor-diff-removed-text: rgba(248, 113, 113, 0.22);
+  --editor-diff-inserted-line: rgba(56, 189, 248, 0.14);
+  --editor-diff-inserted-text: rgba(56, 189, 248, 0.22);
+
+  --editor-bracket-match-background: rgba(56, 189, 248, 0.25);
+  --editor-bracket-match-border: rgba(56, 189, 248, 0.6);
+  --editor-bracket-fg-1: #38BDF8;
+  --editor-bracket-fg-2: #818CF8;
+  --editor-bracket-fg-3: #34D399;
+  --editor-bracket-fg-4: #FBBF24;
+  --editor-bracket-fg-5: #C084FC;
+  --editor-bracket-fg-6: #A5F3FC;
+  --editor-bracket-unexpected-fg: #F87171;
+  --panel-resizer: rgba(99, 102, 241, 0.2);
+  --panel-resizer-muted: rgba(255, 255, 255, 0.07);
+  --panel-resizer-active: #38BDF8;
+
+  --chat-stop-bg: #6B2332;
+  --chat-stop-bg-hover: #822C3F;
+  --chat-stop-fg: #FFE5EC;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   THEME 4: STUDIO PAPER (绢白书卷) - Light Theme
+   ========================================================================== */
+:root[data-theme='light'],
+:root[data-theme='studio-paper'] {
+  --bg-primary: #F6F4EE;
+  --bg-app: #F6F4EE;
+  --bg-sidebar: #ECE9DF;
+  --bg-activity-bar: #ECE9DF;
+  --bg-editor: #FAF8F5;
+  --bg-panel: #FFFFFF;
+  --bg-header: #ECE9DF;
+  --bg-input: #FFFFFF;
+  --bg-dropdown: #FFFFFF;
   --bg-overlay: rgba(0, 0, 0, 0.16);
 
-  --bg-hover: #e8eef7;
-  --bg-list-hover: #edf3fb;
-  --bg-list-active: #dbeafe;
-  --bg-button: #0b69c7;
-  --bg-button-hover: #0959a8;
-  --bg-muted: #f0f2f4;
-  --bg-elevated: rgba(255, 255, 255, 0.9);
+  --bg-hover: #E3DFD3;
+  --bg-list-hover: #E3DFD3;
+  --bg-list-active: #D9D4C5;
+  --bg-button: #D97706;
+  --bg-button-hover: #B45309;
+  --bg-muted: #ECE9DF;
+  --bg-elevated: rgba(255, 255, 255, 0.95);
   --bg-scrollbar: transparent;
-  --bg-scrollbar-thumb: #c1c1c1;
-  --bg-scrollbar-thumb-hover: #a9a9a9;
+  --bg-scrollbar-thumb: #D3CEBF;
+  --bg-scrollbar-thumb-hover: #B5AFA0;
 
-  --text-primary: #1f2328;
-  --text-secondary: #5f6b7a;
-  --text-inverse: #ffffff;
-  --text-accent: #0b69c7;
-  --text-error: #c73e1d;
-  --text-warning: #9a6700;
+  /* High Contrast Typography for Light Theme */
+  --text-primary: #09090B;
+  --text-secondary: #3F3F46;
+  --text-muted: #52525B;
+  --text-dim: #71717A;
+  --text-inverse: #FFFFFF;
+  --text-accent: #D97706;
+  --text-error: #DC2626;
+  --text-warning: #D97706;
 
-  --border-primary: #d0d7de;
-  --border-subtle: #e5e7eb;
-  --border-focus: #0b69c7;
-  --border-strong: #c1c7cf;
-  --surface-accent-soft: rgba(11, 105, 199, 0.12);
-  --surface-accent-strong: rgba(11, 105, 199, 0.18);
-  --surface-overlay-soft: rgba(15, 23, 42, 0.05);
-  --surface-overlay-border: rgba(15, 23, 42, 0.12);
-  --editor-line-highlight: rgba(11, 105, 199, 0.08);
-  --editor-line-highlight-border: rgba(11, 105, 199, 0.18);
-  --editor-selection-background: #b3d7ff99;
-  --editor-selection-inactive-background: #b3d7ff52;
-  --editor-diff-removed-line: rgba(200, 40, 40, 0.1);
-  --editor-diff-removed-text: rgba(200, 40, 40, 0.14);
-  --editor-diff-inserted-line: rgba(34, 160, 80, 0.1);
-  --editor-diff-inserted-text: rgba(34, 160, 80, 0.14);
-  --editor-bracket-match-background: rgba(11, 105, 199, 0.14);
-  --editor-bracket-match-border: rgba(11, 105, 199, 0.5);
-  --editor-bracket-fg-1: #0969da;
-  --editor-bracket-fg-2: #087e6c;
-  --editor-bracket-fg-3: #6639ba;
-  --editor-bracket-fg-4: #1a7f37;
-  --editor-bracket-fg-5: #1f6feb;
-  --editor-bracket-fg-6: #0b6899;
-  --editor-bracket-unexpected-fg: #9a6700;
-  --panel-resizer: #c1c7cf;
-  --panel-resizer-muted: #d7dce2;
-  --panel-resizer-active: #0b69c7;
+  --border-primary: rgba(24, 24, 27, 0.18);
+  --border-subtle: rgba(24, 24, 27, 0.08);
+  --border-focus: #D97706;
+  --border-strong: rgba(217, 119, 6, 0.4);
+  --surface-accent-soft: rgba(217, 119, 6, 0.12);
+  --surface-accent-strong: rgba(217, 119, 6, 0.22);
+  --surface-overlay-soft: rgba(24, 24, 27, 0.05);
+  --surface-overlay-border: rgba(24, 24, 27, 0.12);
+  --editor-line-highlight: rgba(217, 119, 6, 0.08);
+  --editor-line-highlight-border: rgba(217, 119, 6, 0.22);
+  --editor-selection-background: rgba(217, 119, 6, 0.22);
+  --editor-selection-inactive-background: rgba(217, 119, 6, 0.12);
+  --editor-diff-removed-line: rgba(220, 38, 38, 0.12);
+  --editor-diff-removed-text: rgba(220, 38, 38, 0.18);
+  --editor-diff-inserted-line: rgba(217, 119, 6, 0.12);
+  --editor-diff-inserted-text: rgba(217, 119, 6, 0.18);
 
-  --chat-stop-bg: #b86a62;
-  --chat-stop-bg-hover: #a85f58;
-  --chat-stop-fg: #fff8f7;
+  --editor-bracket-match-background: rgba(217, 119, 6, 0.18);
+  --editor-bracket-match-border: rgba(217, 119, 6, 0.5);
+  --editor-bracket-fg-1: #D97706;
+  --editor-bracket-fg-2: #2563EB;
+  --editor-bracket-fg-3: #059669;
+  --editor-bracket-fg-4: #7C3AED;
+  --editor-bracket-fg-5: #DB2777;
+  --editor-bracket-fg-6: #0891B2;
+  --editor-bracket-unexpected-fg: #DC2626;
+  --panel-resizer: rgba(24, 24, 27, 0.18);
+  --panel-resizer-muted: rgba(24, 24, 27, 0.08);
+  --panel-resizer-active: #D97706;
 
-  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.12);
+  --chat-stop-bg: #B86A62;
+  --chat-stop-bg-hover: #A85F58;
+  --chat-stop-fg: #FFF8F7;
+
+  --shadow-sm: 0 2px 4px rgba(24, 24, 27, 0.06);
+  --shadow-md: 0 8px 24px rgba(24, 24, 27, 0.12);
+}
+
+/* ==========================================================================
+   THEME 5: CYBER CRIMSON (赛博赤红)
+   ========================================================================== */
+:root[data-theme='cyber-crimson'] {
+  --bg-primary: #040204;
+  --bg-app: #040204;
+  --bg-sidebar: #0B060B;
+  --bg-activity-bar: #070308;
+  --bg-editor: #070308;
+  --bg-panel: #130B14;
+  --bg-header: #0B060B;
+  --bg-input: #1F1020;
+  --bg-dropdown: #0B060B;
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+
+  --bg-hover: #1F1020;
+  --bg-list-hover: #1F1020;
+  --bg-list-active: #2D182E;
+  --bg-button: #FF2A6D;
+  --bg-button-hover: #D91D55;
+  --bg-muted: #1F1020;
+  --bg-elevated: rgba(19, 11, 20, 0.95);
+  --bg-scrollbar: transparent;
+  --bg-scrollbar-thumb: #331A35;
+  --bg-scrollbar-thumb-hover: #4A264D;
+
+  /* High Contrast Typography */
+  --text-primary: #FFF0F5;
+  --text-secondary: #E9D5FF;
+  --text-muted: #C084FC;
+  --text-dim: #9333EA;
+  --text-inverse: #040204;
+  --text-accent: #FF2A6D;
+  --text-error: #FF2A6D;
+  --text-warning: #05D9E8;
+
+  --border-primary: rgba(255, 42, 109, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: #FF2A6D;
+  --border-strong: rgba(255, 42, 109, 0.45);
+  --surface-accent-soft: rgba(255, 42, 109, 0.12);
+  --surface-accent-strong: rgba(255, 42, 109, 0.25);
+  --surface-overlay-soft: rgba(255, 255, 255, 0.04);
+  --surface-overlay-border: rgba(255, 255, 255, 0.08);
+  --editor-line-highlight: rgba(255, 42, 109, 0.1);
+  --editor-line-highlight-border: rgba(255, 42, 109, 0.28);
+  --editor-selection-background: rgba(255, 42, 109, 0.26);
+  --editor-selection-inactive-background: rgba(255, 42, 109, 0.14);
+  --editor-diff-removed-line: rgba(255, 42, 109, 0.16);
+  --editor-diff-removed-text: rgba(255, 42, 109, 0.26);
+  --editor-diff-inserted-line: rgba(5, 217, 232, 0.14);
+  --editor-diff-inserted-text: rgba(5, 217, 232, 0.24);
+
+  --editor-bracket-match-background: rgba(255, 42, 109, 0.28);
+  --editor-bracket-match-border: rgba(255, 42, 109, 0.7);
+  --editor-bracket-fg-1: #FF2A6D;
+  --editor-bracket-fg-2: #05D9E8;
+  --editor-bracket-fg-3: #F59E0B;
+  --editor-bracket-fg-4: #D8B4E2;
+  --editor-bracket-fg-5: #38BDF8;
+  --editor-bracket-fg-6: #F472B6;
+  --editor-bracket-unexpected-fg: #FF2A6D;
+  --panel-resizer: rgba(255, 42, 109, 0.2);
+  --panel-resizer-muted: rgba(255, 255, 255, 0.08);
+  --panel-resizer-active: #FF2A6D;
+
+  --chat-stop-bg: #7A1A33;
+  --chat-stop-bg-hover: #962241;
+  --chat-stop-fg: #FFE5ED;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+
+/* ==========================================================================
+   THEME 6: MATCHA SAGE (竹韵抹绿)
+   ========================================================================== */
+:root[data-theme='matcha-sage'] {
+  --bg-primary: #0A120E;
+  --bg-app: #0A120E;
+  --bg-sidebar: #101C16;
+  --bg-activity-bar: #0C1510;
+  --bg-editor: #0C1510;
+  --bg-panel: #17281F;
+  --bg-header: #101C16;
+  --bg-input: #21382C;
+  --bg-dropdown: #101C16;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --bg-hover: #21382C;
+  --bg-list-hover: #21382C;
+  --bg-list-active: #2C4B3B;
+  --bg-button: #34D399;
+  --bg-button-hover: #059669;
+  --bg-muted: #21382C;
+  --bg-elevated: rgba(23, 40, 31, 0.95);
+  --bg-scrollbar: transparent;
+  --bg-scrollbar-thumb: #284435;
+  --bg-scrollbar-thumb-hover: #375E4A;
+
+  /* High Contrast Typography */
+  --text-primary: #F0FDF4;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  --text-dim: #6B7280;
+  --text-inverse: #0A120E;
+  --text-accent: #34D399;
+  --text-error: #F87171;
+  --text-warning: #FBBF24;
+
+  --border-primary: rgba(52, 211, 153, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-focus: #34D399;
+  --border-strong: rgba(52, 211, 153, 0.4);
+  --surface-accent-soft: rgba(52, 211, 153, 0.12);
+  --surface-accent-strong: rgba(52, 211, 153, 0.22);
+  --surface-overlay-soft: rgba(255, 255, 255, 0.04);
+  --surface-overlay-border: rgba(255, 255, 255, 0.08);
+  --editor-line-highlight: rgba(52, 211, 153, 0.08);
+  --editor-line-highlight-border: rgba(52, 211, 153, 0.22);
+  --editor-selection-background: rgba(52, 211, 153, 0.24);
+  --editor-selection-inactive-background: rgba(52, 211, 153, 0.12);
+  --editor-diff-removed-line: rgba(248, 113, 113, 0.14);
+  --editor-diff-removed-text: rgba(248, 113, 113, 0.22);
+  --editor-diff-inserted-line: rgba(52, 211, 153, 0.14);
+  --editor-diff-inserted-text: rgba(52, 211, 153, 0.22);
+
+  --editor-bracket-match-background: rgba(52, 211, 153, 0.25);
+  --editor-bracket-match-border: rgba(52, 211, 153, 0.6);
+  --editor-bracket-fg-1: #34D399;
+  --editor-bracket-fg-2: #FBBF24;
+  --editor-bracket-fg-3: #60A5FA;
+  --editor-bracket-fg-4: #A7F3D0;
+  --editor-bracket-fg-5: #F472B6;
+  --editor-bracket-fg-6: #C084FC;
+  --editor-bracket-unexpected-fg: #F87171;
+  --panel-resizer: rgba(52, 211, 153, 0.2);
+  --panel-resizer-muted: rgba(255, 255, 255, 0.07);
+  --panel-resizer-active: #34D399;
+
+  --chat-stop-bg: #6B2323;
+  --chat-stop-bg-hover: #822C2C;
+  --chat-stop-fg: #FFE5E5;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
 }

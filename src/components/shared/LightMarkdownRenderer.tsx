@@ -49,11 +49,13 @@ const codeBlockPreStyle = {
   fontSize: '12px',
   lineHeight: '1.5',
   backgroundColor: 'transparent',
+  color: 'var(--text-primary)',
   overflow: 'auto',
 };
 
 const inlineCodeStyle = {
   backgroundColor: 'var(--surface-overlay-soft)',
+  color: 'var(--text-primary)',
   padding: '2px 4px',
   borderRadius: '4px',
   fontFamily: 'monospace',

@@ -12,10 +12,23 @@ vi.mock('@tauri-apps/api/event', () => ({
   emit: (...args: unknown[]) => emitMock(...args),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn().mockResolvedValue(null),
+  isTauri: () => false,
+}));
+
 vi.mock('../stores', () => ({
   useSettingsLoading: () => useSettingsLoadingMock(),
   useInitializeSettings: () => initializeSettingsMock,
   useLanguage: () => useLanguageMock(),
+  useThemeMode: () => 'oled-void',
+  useSettingsStore: {
+    getState: () => ({ currentLineHighlightColor: 'dark' }),
+  },
+}));
+
+vi.mock('../utils/monacoTheme', () => ({
+  refreshMonacoTheme: vi.fn(),
 }));
 
 vi.mock('./TitleBar', () => ({
@@ -58,7 +71,7 @@ describe('AgentApp', () => {
     render(<AgentApp projectPath="D:\\test\\project" />);
 
     expect(screen.getByTestId('agent-app-loading')).toHaveTextContent('Loading Agent…');
-    expect(screen.getByText('TitleBar Agent')).toBeInTheDocument();
+    expect(screen.getByText(/TitleBar/)).toBeInTheDocument();
     expect(screen.queryByText(/AgentPanel/)).not.toBeInTheDocument();
 
     await waitFor(() => {

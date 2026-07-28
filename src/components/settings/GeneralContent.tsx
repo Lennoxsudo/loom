@@ -47,6 +47,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { resolveThemeFromMode } from '../../utils/lineHighlightColor';
 import pageStyles from './SettingsPage.module.css';
 import localStyles from './GeneralContent.module.css';
+import { ThemeSelectorGrid } from './ThemeSelectorGrid';
 import {
   SettingsBlockBody,
   SettingsInlineControls,
@@ -128,6 +129,10 @@ export function GeneralContent() {
 
       <SettingsPanel>
         <SettingsSection title={t.settingsGeneral.groups.editorDisplay}>
+          <ThemeSelectorGrid
+            value={themeMode}
+            onChange={(mode) => withUpdate(() => updateThemeMode(mode))}
+          />
           <SettingsRow
             label={t.settingsGeneral.tabSize.title}
             control={
@@ -148,20 +153,6 @@ export function GeneralContent() {
                   label: String(size),
                 }))}
                 onChange={(size) => withUpdate(() => updateFontSize(size))}
-              />
-            }
-          />
-          <SettingsRow
-            label={t.settingsGeneral.themeMode.title}
-            control={
-              <SettingsSegmented
-                value={themeMode}
-                options={[
-                  { value: 'system' as const, label: t.settingsGeneral.themeMode.system },
-                  { value: 'dark' as const, label: t.settingsGeneral.themeMode.dark },
-                  { value: 'light' as const, label: t.settingsGeneral.themeMode.light },
-                ]}
-                onChange={(mode) => withUpdate(() => updateThemeMode(mode))}
               />
             }
           />

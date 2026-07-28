@@ -24,7 +24,6 @@ import { buildPendingSessionKey, createAssistantMessageId } from '../utils';
 import type { PendingFileChange } from '../utils';
 import { normalizePathForCompare } from '../../../utils/pathUtils';
 import { MAX_PREVIEW_HISTORY } from '../../../types/chat';
-import { agePersistedChatToolMessages } from '../../../utils/toolResultAging';
 import { useToolStore } from '../../../stores/useToolStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useCheckpointStore } from '../../../stores/useCheckpointStore';
@@ -1101,11 +1100,10 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       const conversations = prev.conversations.map((conv) => {
         if (conv.id !== conversationId) return conv;
         const merged = mergeAgentMessages(conv.messages, toolMessages);
-        const { messages: agedMessages } = agePersistedChatToolMessages(merged);
         return {
           ...conv,
           updatedAt: Date.now(),
-          messages: agedMessages,
+          messages: merged,
         };
       });
       return { ...prev, conversations };

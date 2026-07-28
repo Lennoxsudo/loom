@@ -18,7 +18,6 @@ import { isRunCommandToolName } from '../../utils/parseCommandExecOutput';
 import { useCommandExecProgress } from '../../hooks/useCommandExecProgress';
 import type { ToolDefinition } from '../../types/ai';
 import { estimateTokens } from '../../utils/contextBudget';
-import { agePersistedChatToolMessages } from '../../utils/toolResultAging';
 import { ToolGuard, requiresConfirmation } from '../../utils/toolGuard';
 import {
   CREATE_DELETE_TOOLS,
@@ -684,7 +683,7 @@ export function useToolCalls({
   ) => {
     setMessages((prev) => {
       const merged = mergeToolMessages(prev, toolMessages);
-      return agePersistedChatToolMessages(merged).messages;
+      return merged;
     });
 
     // exit_plan_mode: disconnect this turn — do not start another model stream.

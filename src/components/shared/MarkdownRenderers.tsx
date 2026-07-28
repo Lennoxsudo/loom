@@ -67,7 +67,7 @@ export function cleanupFileTree(text: string): string {
   return cleaned.join('\n');
 }
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useTranslation } from '../../i18n';
 import { CheckIcon } from './Icons';
@@ -147,12 +147,20 @@ const CodeBlockRenderer = ({
   const isInline = !match && !codeText.includes('\n') && !language;
   const [isCopied, setIsCopied] = useState(false);
 
+  const isLight =
+    typeof document !== 'undefined' &&
+    (document.documentElement.getAttribute('data-theme') === 'studio-paper' ||
+      document.documentElement.getAttribute('data-theme') === 'light');
+
+  const syntaxTheme = isLight ? vs : vscDarkPlus;
+
   if (isInline) {
     return (
       <code
         {...rest}
         style={{
           backgroundColor: 'var(--surface-overlay-soft)',
+          color: 'var(--text-primary)',
           padding: '2px 4px',
           borderRadius: '4px',
           fontFamily: 'monospace',
@@ -178,6 +186,7 @@ const CodeBlockRenderer = ({
         overflow: 'hidden',
         border: '1px solid var(--surface-overlay-border)',
         backgroundColor: 'var(--bg-muted)',
+        color: 'var(--text-primary)',
         boxShadow: 'var(--shadow-sm)',
       }}
     >
@@ -218,7 +227,7 @@ const CodeBlockRenderer = ({
         PreTag="div"
         children={codeText.replace(/\n$/, '')}
         language={language || undefined}
-        style={vscDarkPlus}
+        style={syntaxTheme}
         customStyle={{
           margin: 0,
           padding: '12px',

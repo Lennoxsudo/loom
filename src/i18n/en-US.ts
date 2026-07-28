@@ -1124,8 +1124,14 @@ export const enUS: I18nMessages = {
     themeMode: {
       title: 'Theme Mode',
       system: 'Follow System',
-      dark: 'Dark',
-      light: 'Light',
+      dark: 'Default Dark',
+      light: 'Default Light',
+      oledVoid: 'OLED Void',
+      titaniumDusk: 'Titanium Dusk',
+      nordicAurora: 'Nordic Aurora',
+      studioPaper: 'Studio Paper',
+      cyberCrimson: 'Cyber Crimson',
+      matchaSage: 'Matcha Sage',
     },
     wordWrap: {
       title: 'Word Wrap',

@@ -66,6 +66,23 @@ describe('compact/buildPostCompactMessages', () => {
   });
 });
 
+describe('compact/microCompact', () => {
+  it('preserves full tool result bodies', async () => {
+    const { microCompactMessages } = await import('../microCompact');
+    const longText = 'x'.repeat(2000);
+    const messages: CompactableMessage[] = [
+      { id: '1', role: 'tool', text: longText },
+      { id: '2', role: 'tool', text: longText },
+      { id: '3', role: 'tool', text: longText },
+      { id: '4', role: 'tool', text: longText },
+    ];
+    const { messages: result, changed, tokensSaved } = microCompactMessages(messages);
+    expect(changed).toBe(false);
+    expect(tokensSaved).toBe(0);
+    expect(result.every((m, i) => m.text === messages[i].text)).toBe(true);
+  });
+});
+
 describe('compact/autoCompact', () => {
   it('computes threshold from budget', () => {
     const threshold = computeCompressionThreshold({ maxContextTokens: 100_000 });

@@ -3,6 +3,7 @@
  */
 
 import { useState, useRef, useEffect, type ReactNode } from 'react';
+import type { ThemeMode } from '../../types/settings';
 import { MonacoHost } from './MonacoHost';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
@@ -131,7 +132,7 @@ interface EditorGroupViewProps {
   minimap: boolean;
   cursorStyle: 'line' | 'block' | 'underline';
   cursorBlinking: 'blink' | 'smooth' | 'phase' | 'solid';
-  themeMode: 'system' | 'dark' | 'light';
+  themeMode: ThemeMode;
   renderWhitespace: 'none' | 'boundary' | 'selection' | 'all';
   currentLineHighlight: boolean;
   bracketPairColorization: boolean;

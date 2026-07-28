@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { ThemeMode } from '../../types/settings';
 import type {
   EditorGroupId,
   EditorGroupState,
@@ -41,7 +42,7 @@ export interface EditorSplitViewProps {
   minimap: boolean;
   cursorStyle: 'line' | 'block' | 'underline';
   cursorBlinking: 'blink' | 'smooth' | 'phase' | 'solid';
-  themeMode: 'system' | 'dark' | 'light';
+  themeMode: ThemeMode;
   renderWhitespace: 'none' | 'boundary' | 'selection' | 'all';
   currentLineHighlight: boolean;
   bracketPairColorization: boolean;

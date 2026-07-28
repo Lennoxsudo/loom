@@ -1,15 +1,8 @@
 import type { Terminal } from 'xterm';
+import type { ThemeMode } from '../types/settings';
+import { resolveThemeFromMode } from '../utils/lineHighlightColor';
 
-export type ResolvedThemeMode = 'system' | 'dark' | 'light';
-
-function resolveThemeMode(themeMode: ResolvedThemeMode): 'dark' | 'light' {
-  if (themeMode === 'dark') return 'dark';
-  if (themeMode === 'light') return 'light';
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return 'dark';
-}
+export type ResolvedThemeMode = ThemeMode;
 
 function getCssVarValue(computed: CSSStyleDeclaration, name: string): string {
   return computed.getPropertyValue(name).trim();
@@ -17,7 +10,7 @@ function getCssVarValue(computed: CSSStyleDeclaration, name: string): string {
 
 export function getTerminalTheme(themeMode: ResolvedThemeMode) {
   const computed = getComputedStyle(document.documentElement);
-  const isDark = resolveThemeMode(themeMode) === 'dark';
+  const isDark = resolveThemeFromMode(themeMode) === 'dark';
 
   return {
     background: getCssVarValue(computed, '--bg-editor'),

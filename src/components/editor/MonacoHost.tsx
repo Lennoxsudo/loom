@@ -11,6 +11,8 @@ import {
 } from '../../utils/monacoLanguageLoader';
 import { installEditorClipboardShortcuts } from '../../utils/editorClipboardShortcuts';
 
+import type { ThemeMode } from '../../types/settings';
+
 export interface MonacoHostProps {
   modelUri: string;
   language: string;
@@ -24,7 +26,7 @@ export interface MonacoHostProps {
   cursorStyle: 'line' | 'block' | 'underline';
   cursorBlinking: 'blink' | 'smooth' | 'phase' | 'solid';
   tabSize: 2 | 4 | 8;
-  themeMode?: 'system' | 'dark' | 'light';
+  themeMode?: ThemeMode;
   renderWhitespace?: 'none' | 'boundary' | 'selection' | 'all';
   currentLineHighlight?: boolean;
   bracketPairColorization?: boolean;
@@ -46,7 +48,7 @@ export interface MonacoDiffHostProps {
   lineNumbers: boolean;
   minimap: boolean;
   tabSize: 2 | 4 | 8;
-  themeMode?: 'system' | 'dark' | 'light';
+  themeMode?: ThemeMode;
   renderWhitespace?: 'none' | 'boundary' | 'selection' | 'all';
   currentLineHighlight?: boolean;
   bracketPairColorization?: boolean;

@@ -13,7 +13,6 @@ import type { AIProvider } from './agentPersistence';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useUsageStore } from '../stores/useUsageStore';
 import { estimateMessageTokens, estimateTokens } from './contextBudget';
-import { agePersistedChatToolMessages } from './toolResultAging';
 import { shouldBlockTool, shouldRequestApproval } from './agentAccessMode';
 import { requiresConfirmation } from './toolGuard';
 import { resolveSubagentStreamToolCalls } from '../features/agent-engine/finalizeStreamToolCalls';
@@ -738,9 +737,6 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
         } finally {
           await endSandboxExecution(executionId);
         }
-
-        const { messages: agedMessages } = agePersistedChatToolMessages(messages);
-        messages.splice(0, messages.length, ...agedMessages);
 
         if (!executedNewToolThisRound) {
           accumulatedPromptTokens += estimateChatMessagesTokens(

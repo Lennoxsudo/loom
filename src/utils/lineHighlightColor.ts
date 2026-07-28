@@ -87,11 +87,15 @@ export function previewCurrentLineHighlightColor(
   });
 }
 
-export function resolveThemeFromMode(themeMode: 'system' | 'dark' | 'light'): 'dark' | 'light' {
-  if (themeMode === 'dark') return 'dark';
-  if (themeMode === 'light') return 'light';
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+import type { ThemeMode } from '../types/settings';
+
+export function resolveThemeFromMode(themeMode: ThemeMode): 'dark' | 'light' {
+  if (themeMode === 'light' || themeMode === 'studio-paper') return 'light';
+  if (themeMode === 'system') {
+    if (typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'dark';
   }
   return 'dark';
 }

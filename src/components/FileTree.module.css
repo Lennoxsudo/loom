@@ -97,7 +97,7 @@
 }
 
 .treeRowSelected {
-  color: var(--text-inverse);
+  color: var(--text-primary);
   background-color: var(--bg-list-active);
 }
 

@@ -5,7 +5,7 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  color: var(--text-inverse);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.55;
   word-wrap: break-word;
@@ -53,7 +53,7 @@
 .copyButton {
   padding: 6px;
   background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-inverse);
+  color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
   cursor: pointer;
@@ -191,7 +191,7 @@
 .iconButton {
   width: 26px;
   height: 26px;
-  color: var(--text-inverse);
+  color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background-color: rgba(255, 255, 255, 0.08);
   opacity: 0.82;

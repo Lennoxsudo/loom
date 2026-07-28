@@ -2089,12 +2089,13 @@ function AppWithSettings() {
 
     const applyDocumentTheme = () => {
       const resolvedTheme =
-        themeMode === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : themeMode;
+        themeMode === 'system' ? (mediaQuery.matches ? 'oled-void' : 'studio-paper') : themeMode;
+      const baseColorScheme = resolveThemeFromMode(resolvedTheme);
       document.documentElement.dataset.theme = resolvedTheme;
-      document.documentElement.style.colorScheme = resolvedTheme;
+      document.documentElement.style.colorScheme = baseColorScheme;
       applyCurrentLineHighlightColor(
         useSettingsStore.getState().currentLineHighlightColor,
-        resolvedTheme
+        baseColorScheme
       );
       refreshMonacoTheme(themeMode);
     };

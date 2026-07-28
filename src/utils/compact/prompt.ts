@@ -13,6 +13,7 @@ const COMPACT_SUMMARY_INSTRUCTIONS = `Analyze the conversation history and creat
 4. Current state/progress
 5. Any open questions or next steps
 6. Relevant technical details (file paths, dependencies, architecture)
+7. A "## Files Read" section listing every file path opened via the read tool (deduplicated)
 
 Guidelines:
 - Keep it factual and objective
@@ -38,7 +39,7 @@ export function buildCompactPrompt(mode: CompactPromptMode, conversationText: st
 Output format:
 - First write your analysis inside <analysis>...</analysis> tags (this will be stripped).
 - Then output the final summary inside <summary>...</summary> tags.
-- Use markdown headings for the six sections above.
+- Use markdown headings for the sections above.
 
 Conversation to summarize:
 ---

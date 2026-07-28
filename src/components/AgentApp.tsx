@@ -13,9 +13,12 @@ import { emit } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { I18nProvider } from '../i18n';
 import { NotificationProvider } from '../contexts/NotificationContext';
-import { useSettingsLoading, useInitializeSettings, useLanguage } from '../stores';
+import { useSettingsLoading, useInitializeSettings, useLanguage, useThemeMode } from '../stores';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { useCbmStore } from '../stores/useCbmStore';
 import { useUsageStore } from '../stores/useUsageStore';
+import { resolveThemeFromMode, applyCurrentLineHighlightColor } from '../utils/lineHighlightColor';
+import { refreshMonacoTheme } from '../utils/monacoTheme';
 import TitleBar from './TitleBar';
 import AgentPanel from './AgentPanel';
 import styles from './AgentApp.module.css';
@@ -81,10 +84,58 @@ export default function AgentApp({ projectPath: initialProjectPath }: AgentAppPr
     void emit('agent-files-changed', { paths });
   }, []);
 
+  const themeMode = useThemeMode();
+
+  useEffect(() => {
+    const mediaQuery =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)')
+        : null;
+
+    const applyDocumentTheme = () => {
+      const resolvedTheme =
+        themeMode === 'system'
+          ? mediaQuery?.matches
+            ? 'oled-void'
+            : 'studio-paper'
+          : themeMode;
+      const baseColorScheme = resolveThemeFromMode(resolvedTheme);
+      document.documentElement.dataset.theme = resolvedTheme;
+      document.documentElement.style.colorScheme = baseColorScheme;
+      applyCurrentLineHighlightColor(
+        useSettingsStore.getState().currentLineHighlightColor,
+        baseColorScheme
+      );
+      refreshMonacoTheme(themeMode);
+    };
+
+    applyDocumentTheme();
+
+    if (themeMode !== 'system' || !mediaQuery) {
+      return;
+    }
+
+    const mediaQueryListener = () => applyDocumentTheme();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', mediaQueryListener);
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(mediaQueryListener);
+    }
+
+    return () => {
+      if (typeof mediaQuery.removeEventListener === 'function') {
+        mediaQuery.removeEventListener('change', mediaQueryListener);
+      } else if (typeof mediaQuery.removeListener === 'function') {
+        mediaQuery.removeListener(mediaQueryListener);
+      }
+    };
+  }, [themeMode]);
+
   return (
     <I18nProvider defaultLocale={language}>
       <NotificationProvider>
-        <div className={styles.root} data-theme="light">
+        <div className={styles.root}>
           <TitleBar onOpenFolder={() => {}} onOpenFile={() => {}} hideMenu />
           <div className={styles.content} style={loading ? loadingStateStyle : undefined}>
             {loading ? (
