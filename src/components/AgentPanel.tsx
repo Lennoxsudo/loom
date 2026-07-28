@@ -19,6 +19,7 @@ import {
   useEnableCdpBrowser,
   useGraphAutoIndexOnOpen,
   useGraphAutoIndexMaxFiles,
+  useChatSendDuringStreamingMode,
 } from '../stores';
 import { useCbmGraphReady } from '../stores/useCbmStore';
 import { useCbmIndexEvents } from '../hooks/useCbmIndexEvents';
@@ -89,7 +90,8 @@ import { useAgentStreamEvents } from './agent/hooks/useAgentStreamEvents';
 import { StreamCompletionCoordinator } from './chat/streamCompletionCoordinator';
 import { extractKnownToolNamesFromProviderTools } from '../features/agent-engine/streamCompletionToolCalls';
 import { useAgentStreamControl } from './agent/hooks/useAgentStreamControl';
-import { useAgentSendMessage } from './agent/hooks/useAgentSendMessage';
+import { useAgentSendMessage, type SendMessageOverrides } from './agent/hooks/useAgentSendMessage';
+import { useChatSendDuringStreamingDispatch } from '../hooks/useChatSendDuringStreamingDispatch';
 import { useAgentConversationPersistence } from './agent/hooks/useAgentConversationPersistence';
 import { useAgentThreadManager } from './agent/hooks/useAgentThreadManager';
 import { useAgentSessionExtrasPersistence } from './agent/hooks/useAgentSessionExtrasPersistence';
@@ -167,6 +169,7 @@ export default function AgentPanel({
   const enableCdpBrowser = useEnableCdpBrowser();
   const graphAutoIndexOnOpen = useGraphAutoIndexOnOpen();
   const graphAutoIndexMaxFiles = useGraphAutoIndexMaxFiles();
+  const chatSendDuringStreamingMode = useChatSendDuringStreamingMode();
   const cbmGraphEnabled = useCbmGraphReady(enableCodeGraph);
   useCbmIndexEvents(cbmGraphEnabled && graphAutoIndexOnOpen);
   useCbmConfigSync();
@@ -1002,6 +1005,8 @@ export default function AgentPanel({
   const {
     attachedImages,
     attachedFiles,
+    setAttachedImages,
+    setAttachedFiles,
     isDragOver,
     visionCapabilities,
     handleInputPaste,
@@ -1015,6 +1020,10 @@ export default function AgentPanel({
     handleDrop,
   } = useAgentAttachments({
     selectedAgent,
+    visionProvider:
+      selectedProvider === 'auto'
+        ? ((agentRuntimeRef.current.provider || selectedAgent?.provider || 'openai') as AIProvider)
+        : selectedProvider,
     isSelectedAgentBusy: isComposerBusy,
     inputCardRef,
     setError,
@@ -1077,11 +1086,6 @@ export default function AgentPanel({
   ]);
 
   const isPanelBusy = busyAgentIds.size > 0 || busySessionKeys.size > 0;
-  const canSend =
-    !!selectedAgent &&
-    !!selectedModel.trim() &&
-    !isComposerBusy &&
-    (draftMessage.trim().length > 0 || attachedImages.length > 0 || attachedFiles.length > 0);
 
   const setSessionBusy = useCallback((sessionKey: string, busy: boolean) => {
     if (!sessionKey) return;
@@ -1835,10 +1839,83 @@ export default function AgentPanel({
     onFilesChanged: (paths) => onFilesChangedRef.current?.(paths),
   });
 
-  const handleSendCurrentMessage = useCallback(async () => {
-    await sendMessage();
-  }, [sendMessage]);
-  handleSendCurrentMessageRef.current = handleSendCurrentMessage;
+  const hasComposerInput =
+    draftMessage.trim().length > 0 || attachedImages.length > 0 || attachedFiles.length > 0;
+  const isComposerStopping = selectedPendingSessionKey
+    ? isStopRequested(selectedPendingSessionKey)
+    : false;
+  const canSendWhileIdle = !!selectedAgent && !!selectedModel.trim();
+
+  const snapshotComposer = useCallback(
+    () => ({
+      inputValue: draftMessage,
+      attachedFiles,
+      attachedImages,
+    }),
+    [draftMessage, attachedFiles, attachedImages]
+  );
+
+  const clearComposer = useCallback(() => {
+    setDraftMessage('');
+    clearAttachedFiles();
+    clearAttachedImages();
+    if (draftTextareaRef.current) {
+      draftTextareaRef.current.style.height = 'auto';
+    }
+  }, [clearAttachedFiles, clearAttachedImages]);
+
+  const restoreComposer = useCallback(
+    (payload: {
+      inputValue: string;
+      attachedFiles: typeof attachedFiles;
+      attachedImages: typeof attachedImages;
+    }) => {
+      setDraftMessage(payload.inputValue);
+      setAttachedFiles(payload.attachedFiles);
+      setAttachedImages(payload.attachedImages);
+      if (draftTextareaRef.current) {
+        draftTextareaRef.current.style.height = 'auto';
+      }
+    },
+    [setAttachedFiles, setAttachedImages]
+  );
+
+  const sendComposerMessage = useCallback(
+    async (overrides?: SendMessageOverrides) => {
+      await sendMessage(overrides);
+    },
+    [sendMessage]
+  );
+
+  const {
+    dispatchComposerSend,
+    canSendComposer,
+    showStopButton,
+    queuedMessages,
+    removeQueuedMessage,
+    restoreQueuedMessage,
+  } = useChatSendDuringStreamingDispatch({
+    mode: chatSendDuringStreamingMode,
+    isStreamingBusy: isComposerBusy,
+    isStopping: isComposerStopping,
+    hasInput: hasComposerInput,
+    canSendWhileIdle,
+    snapshotComposer,
+    clearComposer,
+    restoreComposer,
+    sendMessage: sendComposerMessage,
+    stopStreaming: handleStopStreaming,
+    toSendOverrides: (payload) => ({
+      draftMessage: payload.inputValue,
+      attachedFiles: payload.attachedFiles,
+      attachedImages: payload.attachedImages,
+    }),
+  });
+
+  const canSend = canSendComposer;
+  const showStop = showStopButton;
+
+  handleSendCurrentMessageRef.current = dispatchComposerSend;
 
   const handleResendFromUserMessage = useCallback(
     async (messageId: string, newText: string) => {
@@ -2139,13 +2216,16 @@ export default function AgentPanel({
       inputValue={draftMessage}
       setInputValue={setDraftMessage}
       isLoading={isComposerBusy}
-      isStopping={false}
+      isStopping={isComposerStopping}
       canSend={canSend}
-      showStop={isComposerBusy}
-      disabled={!selectedAgent || isComposerBusy}
+      showStop={showStop}
+      disabled={!selectedAgent}
       isDragOver={isDragOver}
       attachedFiles={attachedFiles}
       attachedImages={attachedImages}
+      queuedMessages={queuedMessages}
+      onRestoreQueuedMessage={restoreQueuedMessage}
+      onRemoveQueuedMessage={removeQueuedMessage}
       textareaRef={draftTextareaRef}
       inputCardRef={inputCardRef}
       imageInputRef={imageInputRef}
@@ -2155,7 +2235,7 @@ export default function AgentPanel({
       handleInputPaste={handleInputPaste}
       removeFileFromContext={removeFileFromContext}
       removeImageFromContext={handleRemoveImage}
-      handleSend={handleSendCurrentMessage}
+      handleSend={dispatchComposerSend}
       handleStop={handleStopStreaming}
       handleImageInputChange={handleImageInputChange}
       selectedProvider={selectedProvider}

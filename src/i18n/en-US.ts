@@ -476,6 +476,11 @@ export const enUS: I18nMessages = {
     attachFileFailed: 'Failed to choose files: {error}',
     stopping: 'Stopping...',
     stopGenerating: 'Stop Generating',
+    sendQueueTitle: 'Queued',
+    sendQueueRestore: 'Return to input',
+    sendQueueRemove: 'Remove from queue',
+    sendQueueImages: '{count} images',
+    sendQueueFiles: '{count} files',
     maxImagesSupported: 'Current model supports up to {count} images',
     imageCountExceeded: 'Image count exceeded, maximum {count} images allowed',
     imageSizeExceeded: 'Image {name} exceeds size limit',
@@ -1288,6 +1293,9 @@ export const enUS: I18nMessages = {
     checkFailed: 'Failed to check for updates',
     downloadFailed: 'Failed to download or install the update',
     notes: 'Release notes',
+    modalRemindLater: 'Remind me later',
+    modalIgnoreVersion: 'Ignore this version',
+    modalRestartNow: 'Restart now',
   },
   settingsBuiltin: {
     title: 'Built-in Models',
@@ -1442,6 +1450,13 @@ export const enUS: I18nMessages = {
       fast: 'Fast',
       normal: 'Normal',
       slow: 'Slow',
+    },
+    chatSendDuringStreaming: {
+      title: 'Send While Streaming',
+      description:
+        'Keep typing while AI replies: Queue auto-sends in order after it finishes; Interrupt stops and sends now.',
+      queue: 'Queue',
+      interrupt: 'Interrupt',
     },
     thinkingBlockAutoExpand: {
       title: 'Auto-Expand Thinking',

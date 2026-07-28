@@ -15,6 +15,7 @@ import type {
   StartupBehavior,
   FileSortBy,
   StreamSpeed,
+  StreamSendMode,
   KeyBindings,
   SettingsState,
   Language,
@@ -26,6 +27,7 @@ import type {
   ReasoningEffort,
   AgentRuntimeMode,
   RecentWorkspace,
+  ChatSendDuringStreamingMode,
 } from '../types/settings';
 import { DEFAULT_KEY_BINDINGS, migrateLegacyExecutionMode } from '../types/settings';
 import { normalizeHexColor } from '../utils/lineHighlightColor';
@@ -57,6 +59,7 @@ interface SettingsActions {
   updateAgentAccessMode: (mode: AgentAccessMode) => Promise<void>;
   updateToolCallDelay: (delay: ToolCallDelay) => Promise<void>;
   updateStreamSpeed: (speed: StreamSpeed) => Promise<void>;
+  updateStreamSendMode: (mode: StreamSendMode) => Promise<void>;
   updateThinkingBlockAutoExpand: (enabled: boolean) => Promise<void>;
   updateEnableSubagents: (enabled: boolean) => Promise<void>;
   updateEnableCodeGraph: (enabled: boolean) => Promise<void>;
@@ -66,6 +69,7 @@ interface SettingsActions {
   updateGraphAutoIndexMaxFiles: (maxFiles: number) => Promise<void>;
   updateReasoningEffort: (effort: ReasoningEffort) => Promise<void>;
   updateAgentRuntimeMode: (mode: AgentRuntimeMode) => Promise<void>;
+  updateChatSendDuringStreamingMode: (mode: ChatSendDuringStreamingMode) => Promise<void>;
   updateSpendCap: (enable: boolean, cap: number) => Promise<void>;
   updateUsageTracking: (enabled: boolean) => Promise<void>;
   touchRecentWorkspace: (path: string, name: string) => Promise<void>;
@@ -88,6 +92,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   fileSortBy: 'name',
   foldersFirst: true,
   streamSpeed: 'fast',
+  streamSendMode: 'queue_after_stream',
   keyBindings: DEFAULT_KEY_BINDINGS,
   agentAccessMode: 'auto',
   toolCallDelay: 2000,
@@ -101,6 +106,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   } as Record<string, string>,
   reasoningEffort: 'medium' as ReasoningEffort,
   agentRuntimeMode: 'local' as AgentRuntimeMode,
+  chatSendDuringStreamingMode: 'queue' as ChatSendDuringStreamingMode,
   recentWorkspaces: [] as RecentWorkspace[],
   enableCodeGraph: true,
   enableCdpBrowser: false,
@@ -136,6 +142,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     fileSortBy: state.fileSortBy,
     foldersFirst: state.foldersFirst,
     streamSpeed: state.streamSpeed,
+    streamSendMode: state.streamSendMode,
     keyBindings: state.keyBindings,
     agentAccessMode: state.agentAccessMode,
     toolCallDelay: state.toolCallDelay,
@@ -144,6 +151,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     subagentModelAliases: state.subagentModelAliases,
     reasoningEffort: state.reasoningEffort,
     agentRuntimeMode: state.agentRuntimeMode,
+    chatSendDuringStreamingMode: state.chatSendDuringStreamingMode,
     recentWorkspaces: state.recentWorkspaces,
     enableCodeGraph: state.enableCodeGraph,
     enableCdpBrowser: state.enableCdpBrowser,
@@ -206,6 +214,12 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (['fast', 'normal', 'slow'].includes(settings.streamSpeed as string)) {
     result.streamSpeed = settings.streamSpeed as StreamSpeed;
+  }
+
+  if (
+    ['queue_after_stream', 'interrupt_and_send'].includes(settings.streamSendMode as string)
+  ) {
+    result.streamSendMode = settings.streamSendMode as StreamSendMode;
   }
 
   if (Array.isArray(settings.excludePatterns)) {
@@ -298,6 +312,11 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (['local', 'cloud'].includes(settings.agentRuntimeMode as string)) {
     result.agentRuntimeMode = settings.agentRuntimeMode as AgentRuntimeMode;
+  }
+
+  if (['queue', 'interrupt'].includes(settings.chatSendDuringStreamingMode as string)) {
+    result.chatSendDuringStreamingMode =
+      settings.chatSendDuringStreamingMode as ChatSendDuringStreamingMode;
   }
 
   if (Array.isArray(settings.recentWorkspaces)) {
@@ -545,6 +564,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
 
+      updateStreamSendMode: async (streamSendMode) => {
+        set({ streamSendMode });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
       updateThinkingBlockAutoExpand: async (thinkingBlockAutoExpand) => {
         set({ thinkingBlockAutoExpand });
         const state = get();
@@ -603,6 +628,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 
       updateAgentRuntimeMode: async (agentRuntimeMode) => {
         set({ agentRuntimeMode });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateChatSendDuringStreamingMode: async (chatSendDuringStreamingMode) => {
+        set({ chatSendDuringStreamingMode });
         const state = get();
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
@@ -712,7 +743,10 @@ export const useExcludePatterns = () => useSettingsStore((state) => state.exclud
 export const useFileSortBy = () => useSettingsStore((state) => state.fileSortBy);
 export const useFoldersFirst = () => useSettingsStore((state) => state.foldersFirst);
 export const useStreamSpeed = () => useSettingsStore((state) => state.streamSpeed);
+export const useStreamSendMode = () => useSettingsStore((state) => state.streamSendMode);
 export const useUpdateStreamSpeed = () => useSettingsStore((state) => state.updateStreamSpeed);
+export const useUpdateStreamSendMode = () =>
+  useSettingsStore((state) => state.updateStreamSendMode);
 export const useKeyBindings = () => useSettingsStore((state) => state.keyBindings);
 export const useLanguage = () => useSettingsStore((state) => state.language);
 export const useThemeMode = () => useSettingsStore((state) => state.themeMode);
@@ -733,6 +767,8 @@ export const useThinkingBlockAutoExpand = () =>
 export const useEnableSubagents = () => useSettingsStore((state) => state.enableSubagents);
 export const useReasoningEffort = () => useSettingsStore((state) => state.reasoningEffort);
 export const useAgentRuntimeMode = () => useSettingsStore((state) => state.agentRuntimeMode);
+export const useChatSendDuringStreamingMode = () =>
+  useSettingsStore((state) => state.chatSendDuringStreamingMode);
 export const useRecentWorkspaces = () => useSettingsStore((state) => state.recentWorkspaces);
 export const useSettingsLoading = () => useSettingsStore((state) => state.loading);
 
@@ -796,6 +832,8 @@ export const useUpdateReasoningEffort = () =>
   useSettingsStore((state) => state.updateReasoningEffort);
 export const useUpdateAgentRuntimeMode = () =>
   useSettingsStore((state) => state.updateAgentRuntimeMode);
+export const useUpdateChatSendDuringStreamingMode = () =>
+  useSettingsStore((state) => state.updateChatSendDuringStreamingMode);
 export const useEnableSpendCap = () => useSettingsStore((state) => state.enableSpendCap);
 export const useSpendCap = () => useSettingsStore((state) => state.spendCap);
 export const useUpdateSpendCap = () => useSettingsStore((state) => state.updateSpendCap);

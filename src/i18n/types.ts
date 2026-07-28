@@ -469,6 +469,11 @@ export interface I18nMessages {
     attachFileFailed: string;
     stopping: string;
     stopGenerating: string;
+    sendQueueTitle: string;
+    sendQueueRestore: string;
+    sendQueueRemove: string;
+    sendQueueImages: string;
+    sendQueueFiles: string;
     maxImagesSupported: string;
     imageCountExceeded: string;
     imageSizeExceeded: string;
@@ -1250,6 +1255,9 @@ export interface I18nMessages {
     checkFailed: string;
     downloadFailed: string;
     notes: string;
+    modalRemindLater: string;
+    modalIgnoreVersion: string;
+    modalRestartNow: string;
   };
   settingsBuiltin: {
     title: string;
@@ -1396,6 +1404,12 @@ export interface I18nMessages {
       fast: string;
       normal: string;
       slow: string;
+    };
+    chatSendDuringStreaming: {
+      title: string;
+      description: string;
+      queue: string;
+      interrupt: string;
     };
     thinkingBlockAutoExpand: {
       title: string;

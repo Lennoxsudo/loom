@@ -114,6 +114,12 @@ export interface UseSendMessageOptions {
   };
 }
 
+export interface QueuedDraftMessage {
+  inputValue: string;
+  attachedFiles: AttachedFile[];
+  attachedImages: PendingImageAttachment[];
+}
+
 export function useSendMessage(opts: UseSendMessageOptions) {
   const { showInfo, showWarning } = useNotification();
   const t = useTranslation();
@@ -386,12 +392,16 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     }
   };
 
-  const handleSendMessage = async () => {
+  const sendMessageInternal = async (draft?: QueuedDraftMessage) => {
+    const sourceInputValue = draft?.inputValue ?? opts.inputValue;
+    const sourceAttachedFiles = draft?.attachedFiles ?? opts.attachedFiles;
+    const sourceAttachedImages = draft?.attachedImages ?? opts.attachedImages;
+    const clearComposerImmediately = !draft;
     if (
-      (!opts.inputValue.trim() &&
-        opts.attachedFiles.length === 0 &&
-        opts.attachedImages.length === 0) ||
-      opts.isLoading
+      (!sourceInputValue.trim() &&
+        sourceAttachedFiles.length === 0 &&
+        sourceAttachedImages.length === 0) ||
+      (opts.isLoading && !draft)
     ) {
       return;
     }
@@ -466,17 +476,17 @@ export function useSendMessage(opts: UseSendMessageOptions) {
 
     const capability = opts.visionCapabilities[provider] || opts.currentVisionCapability;
 
-    if (opts.attachedImages.length > 0 && !capability.supportsVision) {
+    if (sourceAttachedImages.length > 0 && !capability.supportsVision) {
       opts.setError(VISION_UNSUPPORTED_ERROR);
       return;
     }
 
-    if (opts.attachedImages.length > capability.visionMaxImages) {
+    if (sourceAttachedImages.length > capability.visionMaxImages) {
       opts.setError(`当前模型最多支持 ${opts.currentVisionCapability.visionMaxImages} 张图片`);
       return;
     }
 
-    const rawInput = opts.inputValue.trim();
+    const rawInput = sourceInputValue.trim();
     const resolved = rawInput
       ? await resolveUserBody(rawInput)
       : { body: '', slashCommand: undefined as undefined };
@@ -485,8 +495,8 @@ export function useSendMessage(opts: UseSendMessageOptions) {
 
     const userTextForTitle = slashCommand?.displayText ?? rawInput;
     const fileNamesForTitle = [
-      ...opts.attachedFiles.map((file) => file.name),
-      ...opts.attachedImages.map(
+      ...sourceAttachedFiles.map((file) => file.name),
+      ...sourceAttachedImages.map(
         (image) => image.fileName || image.path.split(/[/\\]/).pop() || '图片'
       ),
     ];
@@ -527,10 +537,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
 
     let messageContent = '';
 
-    if (opts.attachedFiles.length > 0) {
+    if (sourceAttachedFiles.length > 0) {
       messageContent += opts.t.chat.fileContext;
 
-      for (const file of opts.attachedFiles) {
+      for (const file of sourceAttachedFiles) {
         messageContent += `- ${file.name} (\`${file.path}\`)\n`;
       }
 
@@ -541,7 +551,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       messageContent += userBody;
     }
 
-    const userAttachments = opts.attachedImages.map(
+    const userAttachments = sourceAttachedImages.map(
       ({ previewUrl: _, ...attachment }) => attachment
     );
     const userTimestamp = Date.now();
@@ -566,9 +576,11 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     };
 
     opts.setMessages((prev) => [...prev, userMessage]);
-    opts.setInputValue('');
-    opts.setAttachedFiles([]);
-    opts.clearAttachedImages();
+    if (clearComposerImmediately) {
+      opts.setInputValue('');
+      opts.setAttachedFiles([]);
+      opts.clearAttachedImages();
+    }
     opts.setIsLoading(true);
     opts.setError(null);
     if (opts.textareaRef.current) {
@@ -676,5 +688,13 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     }
   };
 
-  return { handleSendMessage, resendFromUserMessage };
+  const handleSendMessage = async () => {
+    await sendMessageInternal();
+  };
+
+  const handleSendQueuedMessage = async (draft: QueuedDraftMessage) => {
+    await sendMessageInternal(draft);
+  };
+
+  return { handleSendMessage, handleSendQueuedMessage, resendFromUserMessage };
 }

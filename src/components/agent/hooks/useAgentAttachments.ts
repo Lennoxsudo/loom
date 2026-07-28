@@ -7,6 +7,8 @@ import {
   DEFAULT_VISION_CAPABILITIES,
   ALLOWED_IMAGE_MEDIA_TYPES,
   extractVisionCapabilities,
+  collectClipboardImageFiles,
+  clipboardLooksLikeImage,
 } from '../../../utils/visionCapabilities';
 import { isImageFilePath } from '../../../utils/fileTreeUtils';
 import type { AIProvider, Agent } from '../../../utils/agentPersistence';
@@ -17,6 +19,8 @@ export const VISION_UNSUPPORTED_ERROR = '当前模型不支持图片输入';
 
 export interface UseAgentAttachmentsOptions {
   selectedAgent: Agent | null;
+  /** Provider used for vision limits (composer selection / runtime), not the static agent default. */
+  visionProvider: AIProvider;
   isSelectedAgentBusy: boolean;
   inputCardRef: React.RefObject<HTMLElement | null>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
@@ -25,6 +29,8 @@ export interface UseAgentAttachmentsOptions {
 export interface UseAgentAttachmentsResult {
   attachedImages: PendingImageAttachment[];
   attachedFiles: AttachedFile[];
+  setAttachedImages: React.Dispatch<React.SetStateAction<PendingImageAttachment[]>>;
+  setAttachedFiles: React.Dispatch<React.SetStateAction<AttachedFile[]>>;
   isDragOver: boolean;
   visionCapabilities: Record<AIProvider, VisionCapability>;
   handleInputPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
@@ -43,7 +49,7 @@ export interface UseAgentAttachmentsResult {
 export function useAgentAttachments(
   options: UseAgentAttachmentsOptions
 ): UseAgentAttachmentsResult {
-  const { selectedAgent, isSelectedAgentBusy, inputCardRef, setError } = options;
+  const { selectedAgent, visionProvider, inputCardRef, setError } = options;
 
   const [attachedImages, setAttachedImages] = useState<PendingImageAttachment[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
@@ -87,9 +93,17 @@ export function useAgentAttachments(
 
   const addImageBlobsToContext = useCallback(
     async (files: File[]) => {
-      if (!selectedAgent) return;
-      const provider = selectedAgent.provider as AIProvider;
-      const capability = visionCapabilities[provider] || DEFAULT_VISION_CAPABILITIES[provider];
+      if (!selectedAgent) {
+        setError('请先选择 Agent');
+        return;
+      }
+      const capability =
+        visionCapabilities[visionProvider] || DEFAULT_VISION_CAPABILITIES[visionProvider];
+
+      if (!capability.supportsVision || capability.visionMaxImages <= 0) {
+        setError(VISION_UNSUPPORTED_ERROR);
+        return;
+      }
 
       const existingCount = attachedImages.length;
       const slotsRemaining = Math.max(capability.visionMaxImages - existingCount, 0);
@@ -99,21 +113,25 @@ export function useAgentAttachments(
         return;
       }
 
-      const imageFiles = files.filter(
-        (file) => ALLOWED_IMAGE_MEDIA_TYPES.has(file.type) || isImageFilePath(file.name)
-      );
-      if (imageFiles.length === 0) {
+      const accepted = files.filter((file) => ALLOWED_IMAGE_MEDIA_TYPES.has(file.type));
+      if (accepted.length === 0) {
+        setError('不支持的图片类型');
         return;
       }
 
-      const limited = imageFiles.slice(0, slotsRemaining);
-      if (imageFiles.length > limited.length) {
+      const limited = accepted.slice(0, slotsRemaining);
+      if (accepted.length > limited.length) {
         setError(`图片数量超出限制，已截取前 ${limited.length} 张`);
       }
 
       const created: PendingImageAttachment[] = [];
 
       for (const file of limited) {
+        if (!ALLOWED_IMAGE_MEDIA_TYPES.has(file.type)) {
+          setError(`不支持的图片类型: ${file.type || file.name || 'unknown'}`);
+          continue;
+        }
+
         if (file.size > capability.visionMaxBytes) {
           setError(
             `图片 ${file.name || '未命名'} 超出大小限制 (${Math.round(capability.visionMaxBytes / 1024 / 1024)}MB)`
@@ -158,25 +176,24 @@ export function useAgentAttachments(
 
       setError((prev) => (prev === VISION_UNSUPPORTED_ERROR ? null : prev));
     },
-    [attachedImages.length, selectedAgent, revokeIfBlobUrl, visionCapabilities, setError]
+    [attachedImages.length, selectedAgent, revokeIfBlobUrl, visionCapabilities, visionProvider, setError]
   );
 
   const handleInputPaste = useCallback(
     async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-      const clipboardItems = Array.from(e.clipboardData?.items || []);
-      const imageFiles = clipboardItems
-        .filter((item) => item.type.startsWith('image/'))
-        .map((item) => item.getAsFile())
-        .filter((file): file is File => !!file);
-
+      const imageFiles = collectClipboardImageFiles(e.clipboardData);
       if (imageFiles.length === 0) {
+        if (clipboardLooksLikeImage(e.clipboardData)) {
+          e.preventDefault();
+          setError('无法读取剪贴板中的图片');
+        }
         return;
       }
 
       e.preventDefault();
       await addImageBlobsToContext(imageFiles);
     },
-    [addImageBlobsToContext]
+    [addImageBlobsToContext, setError]
   );
 
   const handleRemoveImage = useCallback(
@@ -217,10 +234,10 @@ export function useAgentAttachments(
   const addImagePathToContext = useCallback(
     async (filePath: string) => {
       if (!selectedAgent) return;
-      const provider = selectedAgent.provider as AIProvider;
-      const capability = visionCapabilities[provider] || DEFAULT_VISION_CAPABILITIES[provider];
+      const capability =
+        visionCapabilities[visionProvider] || DEFAULT_VISION_CAPABILITIES[visionProvider];
 
-      if (!capability.supportsVision) {
+      if (!capability.supportsVision || capability.visionMaxImages <= 0) {
         setError(VISION_UNSUPPORTED_ERROR);
         return;
       }
@@ -263,7 +280,7 @@ export function useAgentAttachments(
         setError(`读取图片失败: ${err}`);
       }
     },
-    [attachedImages.length, selectedAgent, visionCapabilities, setError]
+    [attachedImages.length, selectedAgent, visionCapabilities, visionProvider, setError]
   );
 
   const handleImageInputChange = useCallback(
@@ -276,16 +293,11 @@ export function useAgentAttachments(
     [addImageBlobsToContext]
   );
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!isSelectedAgentBusy) {
-        setIsDragOver(true);
-      }
-    },
-    [isSelectedAgentBusy]
-  );
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -398,6 +410,8 @@ export function useAgentAttachments(
   return {
     attachedImages,
     attachedFiles,
+    setAttachedImages,
+    setAttachedFiles,
     isDragOver,
     visionCapabilities,
     handleInputPaste,

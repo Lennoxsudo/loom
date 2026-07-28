@@ -85,9 +85,9 @@
   --panel-resizer-muted: rgba(255, 255, 255, 0.05);
   --panel-resizer-active: #00f5a0;
 
-  --chat-stop-bg: #6b2332;
-  --chat-stop-bg-hover: #822c3f;
-  --chat-stop-fg: #ffe5ec;
+  --chat-stop-bg: #DC2626;
+  --chat-stop-bg-hover: #B91C1C;
+  --chat-stop-fg: #FFFFFF;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -159,9 +159,9 @@
   --panel-resizer-muted: rgba(255, 255, 255, 0.06);
   --panel-resizer-active: #f59e0b;
 
-  --chat-stop-bg: #6b2323;
-  --chat-stop-bg-hover: #822c2c;
-  --chat-stop-fg: #ffe5e5;
+  --chat-stop-bg: #DC2626;
+  --chat-stop-bg-hover: #B91C1C;
+  --chat-stop-fg: #FFFFFF;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -233,9 +233,9 @@
   --panel-resizer-muted: rgba(255, 255, 255, 0.07);
   --panel-resizer-active: #38bdf8;
 
-  --chat-stop-bg: #6b2332;
-  --chat-stop-bg-hover: #822c3f;
-  --chat-stop-fg: #ffe5ec;
+  --chat-stop-bg: #DC2626;
+  --chat-stop-bg-hover: #B91C1C;
+  --chat-stop-fg: #FFFFFF;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -308,9 +308,9 @@
   --panel-resizer-muted: rgba(24, 24, 27, 0.08);
   --panel-resizer-active: #d97706;
 
-  --chat-stop-bg: #b86a62;
-  --chat-stop-bg-hover: #a85f58;
-  --chat-stop-fg: #fff8f7;
+  --chat-stop-bg: #DC2626;
+  --chat-stop-bg-hover: #B91C1C;
+  --chat-stop-fg: #FFFFFF;
 
   --shadow-sm: 0 2px 4px rgba(24, 24, 27, 0.06);
   --shadow-md: 0 8px 24px rgba(24, 24, 27, 0.12);
@@ -382,9 +382,9 @@
   --panel-resizer-muted: rgba(255, 255, 255, 0.08);
   --panel-resizer-active: #ff2a6d;
 
-  --chat-stop-bg: #7a1a33;
-  --chat-stop-bg-hover: #962241;
-  --chat-stop-fg: #ffe5ed;
+  --chat-stop-bg: #FF2A6D;
+  --chat-stop-bg-hover: #D91D55;
+  --chat-stop-fg: #FFFFFF;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.7);
@@ -456,9 +456,9 @@
   --panel-resizer-muted: rgba(255, 255, 255, 0.07);
   --panel-resizer-active: #34d399;
 
-  --chat-stop-bg: #6b2323;
-  --chat-stop-bg-hover: #822c2c;
-  --chat-stop-fg: #ffe5e5;
+  --chat-stop-bg: #DC2626;
+  --chat-stop-bg-hover: #B91C1C;
+  --chat-stop-fg: #FFFFFF;
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);

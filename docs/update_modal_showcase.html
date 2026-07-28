@@ -1,520 +1,534 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="oled-void">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Loom 自动更新弹窗交互与处理逻辑设计</title>
+  <title>Loom 更新弹窗 · 重设计</title>
   <style>
     :root {
-      --bg-base: #040407;
-      --bg-surface-shell: #090A10;
-      --bg-surface-core: #0D0F18;
-      --bg-surface-elevated: #151827;
-      --border-outer: rgba(255, 255, 255, 0.12);
-      --border-inner: rgba(0, 245, 160, 0.3);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --accent-primary: #00F5A0;
-      --accent-glow: rgba(0, 245, 160, 0.25);
-      --accent-secondary: #7B2CBF;
-      --text-main: #FFFFFF;
-      --text-muted: #CBD5E1;
-      --text-dim: #94A3B8;
-      --code-bg: #07080E;
+      --bg: #0e1117;
+      --ink: #f4f6fb;
+      --sub: #afb8cc;
+      --line: #2b3243;
+      --paper: #141a25;
+      --paper-2: #1b2230;
+      --accent: #7ed6c4;
+      --accent-ink: #0c1a17;
+      --ok: #75d8b0;
+      --warn: #f0d28e;
+      --err: #f08ea7;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
-      background-color: var(--bg-base);
-      color: var(--text-main);
-      line-height: 1.6;
-      padding: 40px 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      margin: 0;
+      min-height: 100dvh;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 560px at 15% -30%, rgba(126,214,196,.15), transparent 62%),
+        radial-gradient(980px 540px at 100% -20%, rgba(137,164,232,.12), transparent 65%),
+        var(--bg);
+      padding: 36px 20px 48px;
     }
 
-    .container {
-      max-width: 900px;
-      width: 100%;
+    .layout {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 22px;
     }
 
-    .header-panel {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .header-panel h1 {
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #FFFFFF 0%, #00F5A0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .header-panel p {
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-
-    /* 状态切换控制器 */
-    .state-controls {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 32px;
-      background: var(--bg-surface-shell);
-      padding: 8px;
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-    }
-
-    .state-btn {
-      all: unset;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .state-btn:hover {
-      color: var(--text-main);
-      background: var(--bg-surface-elevated);
-    }
-
-    .state-btn.active {
-      color: #040407;
-      background: var(--accent-primary);
-      box-shadow: 0 2px 12px var(--accent-glow);
-    }
-
-    /* 弹窗模拟器外壳 */
-    .modal-viewport {
-      position: relative;
-      height: 520px;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.4);
-      border-radius: 20px;
-      border: 1px solid var(--border-subtle);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
-      backdrop-filter: blur(8px);
-    }
-
-    /* 双层贝塞尔 Doppelrand 弹窗卡片 */
-    .update-modal-shell {
-      width: 520px;
-      max-width: 90%;
-      background: color-mix(in srgb, var(--border-outer) 40%, var(--bg-surface-shell));
-      border: 1px solid var(--border-outer);
-      border-radius: 20px;
-      padding: 5px;
-      box-shadow: 
-        0 24px 60px rgba(0, 0, 0, 0.8),
-        0 0 0 1px var(--border-inner);
-      animation: modalFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    @keyframes modalFadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.95) translateY(12px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    .update-modal-core {
-      background: var(--bg-surface-core);
+    .panel {
+      border: 1px solid var(--line);
       border-radius: 16px;
-      padding: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      box-shadow: 0 22px 46px rgba(0,0,0,.3);
+      backdrop-filter: blur(4px);
+      padding: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.05;
+      letter-spacing: -.03em;
+      text-wrap: balance;
+    }
+    .lead {
+      margin: 10px 0 0;
+      max-width: 56ch;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .state-toolbar {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-      position: relative;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
     }
 
-    .modal-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .version-badge-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .version-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: rgba(0, 245, 160, 0.12);
-      border: 1px solid rgba(0, 245, 160, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 4px 16px var(--accent-glow);
-    }
-
-    .version-info h3 {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    .version-info p {
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: #161d2a;
+      border-radius: 999px;
       font-size: 12px;
-      color: var(--text-dim);
+      letter-spacing: .01em;
+      padding: 7px 12px;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    button:hover { transform: translateY(-1px); border-color: #3d4963; }
+    button.primary {
+      border-color: transparent;
+      background: linear-gradient(165deg, #8ce2d0, #6ccbb8);
+      color: var(--accent-ink);
+      font-weight: 700;
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--sub);
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .demo-space {
+      margin-top: 18px;
+      border: 1px dashed #364359;
+      border-radius: 14px;
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px) 0 0/24px 24px,
+        linear-gradient(0deg, rgba(255,255,255,.015) 1px, transparent 1px) 0 0/24px 24px,
+        rgba(0,0,0,.16);
     }
 
-    .release-tag {
+    .modal {
+      width: min(590px, 92%);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.15);
+      background:
+        radial-gradient(300px 120px at 18% 0%, rgba(126,214,196,.12), transparent 65%),
+        var(--paper);
+      box-shadow:
+        0 30px 72px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.08);
+      overflow: hidden;
+    }
+
+    .modal-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 18px 20px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: var(--sub);
+      text-transform: uppercase;
+    }
+    .modal-title {
+      margin: 7px 0 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      text-wrap: balance;
+    }
+    .meta {
+      margin: 8px 0 0;
+      color: var(--sub);
+      font-size: 12px;
+    }
+    .status-pill {
+      align-self: start;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      padding: 4px 9px;
       font-size: 11px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: var(--accent-primary);
-      color: #040407;
-      letter-spacing: 0.02em;
+      color: var(--ok);
+      background: rgba(117,216,176,.1);
     }
 
-    .close-btn {
-      all: unset;
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-dim);
-      cursor: pointer;
-      transition: all 0.15s ease;
+    .modal-body {
+      padding: 16px 20px;
+      display: grid;
+      gap: 14px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,.01));
+    }
+    .desc {
+      margin: 0;
+      color: #d4dded;
+      font-size: 14px;
+      line-height: 1.75;
     }
 
-    .close-btn:hover {
-      color: var(--text-main);
-      background: var(--bg-surface-elevated);
+    .timeline {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
     }
-
-    /* 发版日志预览区 */
-    .release-notes-box {
-      background: var(--code-bg);
-      border: 1px solid var(--border-subtle);
+    .step {
+      border: 1px solid var(--line);
       border-radius: 10px;
-      padding: 14px;
-      max-height: 160px;
-      overflow-y: auto;
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.6;
+      background: var(--paper-2);
+      padding: 8px 9px;
+      font-size: 11px;
+      color: var(--sub);
+    }
+    .step strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 3px;
+      font-size: 12px;
+      font-weight: 600;
     }
 
-    .release-notes-box h4 {
-      color: var(--text-main);
-      font-size: 13px;
-      margin-bottom: 6px;
-    }
-
-    .release-notes-box ul {
-      padding-left: 18px;
-    }
-
-    .release-notes-box li {
-      margin-bottom: 4px;
-    }
-
-    /* 进度条动画 */
-    .progress-section {
-      display: flex;
-      flex-direction: column;
+    .progress {
+      display: none;
       gap: 6px;
     }
-
+    .progress.show { display: grid; }
     .progress-meta {
       display: flex;
       justify-content: space-between;
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--sub);
+      font-variant-numeric: tabular-nums;
     }
-
-    .progress-bar-track {
-      height: 8px;
-      background: var(--bg-surface-elevated);
-      border-radius: 4px;
+    .track {
+      height: 9px;
+      border-radius: 99px;
+      background: #222c3c;
+      border: 1px solid #36445b;
       overflow: hidden;
-      border: 1px solid var(--border-subtle);
     }
-
-    .progress-bar-fill {
+    .fill {
+      width: 0;
       height: 100%;
-      background: linear-gradient(90deg, #00F5A0 0%, #38BDF8 100%);
-      width: 65%;
-      border-radius: 4px;
-      transition: width 0.3s ease;
-      box-shadow: 0 0 12px var(--accent-glow);
+      background: linear-gradient(90deg, #75d8b0, #96e8d9);
+      box-shadow: 0 0 12px rgba(117,216,176,.45);
+      transition: width .22s ease;
     }
 
-    /* 底部按钮栏 */
-    .modal-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 4px;
-    }
-
-    .btn-secondary {
-      all: unset;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border: 1px solid var(--border-subtle);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .btn-secondary:hover {
-      color: var(--text-main);
-      background: var(--bg-surface-elevated);
-    }
-
-    .btn-primary {
-      all: unset;
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      background: var(--accent-primary);
-      color: #040407;
-      cursor: pointer;
-      box-shadow: 0 4px 16px var(--accent-glow);
-      transition: all 0.15s ease;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px var(--accent-glow);
-    }
-
-    .btn-primary:active {
-      transform: scale(0.98);
-    }
-
-    /* 处理逻辑说明文档区 */
-    .architecture-doc {
-      margin-top: 40px;
-      background: var(--bg-surface-shell);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 24px;
-    }
-
-    .architecture-doc h2 {
-      font-size: 18px;
-      margin-bottom: 16px;
-      color: var(--accent-primary);
-    }
-
-    .flow-steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    .flow-card {
-      background: var(--bg-surface-core);
-      border: 1px solid var(--border-subtle);
+    .release-note,
+    .error-box {
       border-radius: 12px;
-      padding: 16px;
+      border: 1px solid var(--line);
+      padding: 12px;
+      background: var(--paper-2);
+      font-size: 13px;
+      line-height: 1.6;
     }
-
-    .flow-card h3 {
-      font-size: 14px;
-      color: var(--text-main);
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .flow-card p {
+    .release-note h4 {
+      margin: 0 0 6px;
       font-size: 12px;
-      color: var(--text-dim);
+      color: var(--sub);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .release-note ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #d1dcef;
+    }
+    .error-box {
+      display: none;
+      color: var(--err);
+      border-color: rgba(240,142,167,.35);
+      background: rgba(240,142,167,.08);
+    }
+    .error-box.show { display: block; }
+
+    .modal-foot {
+      padding: 14px 20px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      background: rgba(8,11,17,.6);
+    }
+    .left,
+    .right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .guide h3 {
+      margin: 0 0 9px;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.01em;
+    }
+    .guide ol {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: #ced8ea;
+      line-height: 1.7;
+    }
+    .guide code {
+      background: #10192a;
+      border: 1px solid #2f405e;
+      color: #b9dbff;
+      padding: 1px 5px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    .log {
+      margin-top: 14px;
+      max-height: 170px;
+      overflow: auto;
+      background: #0f1726;
+      border: 1px solid #304565;
+      border-radius: 12px;
+      padding: 10px 11px;
+      font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #bad1f0;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .timeline { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
+  <main class="layout">
+    <section class="panel">
+      <h1>Loom 更新弹窗（方案 B）</h1>
+      <p class="lead">
+        更克制的高级感方向：减少荧光、增强信息层级、保持状态流可解释性。
+        交互仍对齐 <code>useAppUpdateStore</code>。
+      </p>
 
-  <div class="container">
-    <div class="header-panel">
-      <h1>Loom 自动更新弹窗 (AppUpdateModal) 原型</h1>
-      <p>无缝集成 <code>tauri-plugin-updater</code> 与 <code>useAppUpdateStore</code> 运行时状态机</p>
-    </div>
+      <div class="state-toolbar" id="stateButtons">
+        <button data-state="available">可更新</button>
+        <button data-state="downloading">下载中</button>
+        <button data-state="installing">安装中</button>
+        <button data-state="restartRequired">重启生效</button>
+        <button data-state="error">失败</button>
+      </div>
 
-    <!-- 状态切换器 -->
-    <div class="state-controls">
-      <button class="state-btn active" onclick="switchState('available')">1. 新版本可用 (Available)</button>
-      <button class="state-btn" onclick="switchState('downloading')">2. 下载进度中 (Downloading)</button>
-      <button class="state-btn" onclick="switchState('restart')">3. 下载完成重启 (Restart Required)</button>
-      <button class="state-btn" onclick="switchState('error')">4. 更新异常 (Error)</button>
-    </div>
+      <div class="demo-space">
+        <article class="modal" aria-live="polite">
+          <header class="modal-top">
+            <div>
+              <div class="eyebrow">Loom Desktop Update</div>
+              <h2 class="modal-title" id="title">准备安装 v0.2.0</h2>
+              <p class="meta" id="meta">当前版本 v0.1.7 · 发布时间 2026-07-28</p>
+            </div>
+            <span class="status-pill" id="badge">可更新</span>
+          </header>
 
-    <!-- 弹窗展示视口 -->
-    <div class="modal-viewport">
-      <div class="update-modal-shell" id="modalShell">
-        <div class="update-modal-core">
-          <!-- 头部 -->
-          <div class="modal-header">
-            <div class="version-badge-group">
-              <div class="version-icon" id="modalIcon">🚀</div>
-              <div class="version-info">
-                <h3 id="modalTitle">发现新版本 Loom v0.1.6</h3>
-                <p id="modalSub">当前安装版本: v0.1.5 • 2026-07-28 发布</p>
+          <section class="modal-body">
+            <p class="desc" id="desc">本次更新包含连接稳定性修复、设置页体验优化与若干性能改进。</p>
+
+            <div class="timeline">
+              <div class="step"><strong>检查</strong>获取最新版本清单</div>
+              <div class="step"><strong>下载</strong>拉取并校验安装包</div>
+              <div class="step"><strong>完成</strong>安装并提示重启</div>
+            </div>
+
+            <div class="progress" id="progress">
+              <div class="progress-meta">
+                <span id="progressText">下载中</span>
+                <span id="progressNum">0%</span>
               </div>
+              <div class="track"><div class="fill" id="fill"></div></div>
             </div>
-            <span class="release-tag" id="modalTag">新版就绪</span>
-          </div>
 
-          <!-- 发版说明 -->
-          <div class="release-notes-box" id="modalNotes">
-            <h4>💡 更新亮点与修复日志：</h4>
-            <ul>
-              <li>🎨 <b>6 款高定主题系统</b>：新增暗夜极光、黑曜钛金、极光深蓝、绢白书卷、赛博赤红、竹韵抹绿。</li>
-              <li>⚡ <b>自动更新弹窗体系</b>：集成动态下载进度条与无缝后台静默更新。</li>
-              <li>🐞 <b>对比度与样式优化</b>：修复浅色模式下 Markdown 代码块与导航栏图标视效。</li>
-            </ul>
-          </div>
-
-          <!-- 进度条（动态） -->
-          <div class="progress-section" id="modalProgress" style="display: none;">
-            <div class="progress-meta">
-              <span id="progressText">正在下载更新包...</span>
-              <span id="progressPercent">65% (42.5 MB / 65.4 MB)</span>
+            <div class="release-note" id="notes">
+              <h4>发布摘要</h4>
+              <ul>
+                <li>更新流程新增“重试与状态提示”一致性处理。</li>
+                <li>内置模型连通性提示更明确，减少静默失败感知。</li>
+                <li>工具链响应渲染路径做了卡顿优化。</li>
+              </ul>
             </div>
-            <div class="progress-bar-track">
-              <div class="progress-bar-fill" id="progressFill" style="width: 65%;"></div>
-            </div>
-          </div>
 
-          <!-- 底部操作按钮栏 -->
-          <div class="modal-actions" id="modalActions">
-            <button class="btn-secondary" onclick="alert('已选择暂不更新')">稍后提醒</button>
-            <button class="btn-primary" onclick="switchState('downloading')">立即下载并更新</button>
-          </div>
-        </div>
+            <div class="error-box" id="error">
+              更新中断：未收到完整上游流响应，请检查网络后重试。
+            </div>
+          </section>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button class="ghost" id="laterBtn">稍后提醒</button>
+            </div>
+            <div class="right">
+              <button id="ignoreBtn">忽略此版本</button>
+              <button class="primary" id="mainBtn">立即更新</button>
+            </div>
+          </footer>
+        </article>
       </div>
-    </div>
+    </section>
 
-    <!-- 处理逻辑与架构文档 -->
-    <div class="architecture-doc">
-      <h2>⚙️ 软件更新处理逻辑架构 (AppUpdateModal Flow)</h2>
-      <div class="flow-steps">
-        <div class="flow-card">
-          <h3>1. 启动静默检测</h3>
-          <p>应用启动时根据 <code>checkForUpdatesOnStartup</code> 偏好在后台静默触发 <code>checkForUpdates({ silent: true })</code>，检测 GitHub Releases <code>latest.json</code>。</p>
-        </div>
-        <div class="flow-card">
-          <h3>2. 发现更新弹窗</h3>
-          <p>若检测到更高版本，<code>status</code> 转为 <code>available</code>，自动触发 <code>AppUpdateModal</code> 全局玻璃蒙层弹窗，展示版本号与 Release Notes。</p>
-        </div>
-        <div class="flow-card">
-          <h3>3. 流式进度监听</h3>
-          <p>用户点击“立即更新”后进入 <code>downloading</code> 状态，实时监听 <code>chunkLength</code> 字节流并动态推算下载百分比。</p>
-        </div>
-        <div class="flow-card">
-          <h3>4. 安装与无缝重启</h3>
-          <p>下载完成后自动解包安装（<code>installing</code>），状态变为 <code>restartRequired</code>，一键重启即刻体验新版本！</p>
-        </div>
-      </div>
-    </div>
-  </div>
+    <aside class="panel guide">
+      <h3>对接逻辑建议</h3>
+      <ol>
+        <li>应用启动后走 <code>checkForUpdates({ silent: true })</code>，避免打断当前任务。</li>
+        <li>当 <code>status=available</code> 且版本未被忽略时弹窗；忽略记录建议用版本号 key。</li>
+        <li>“立即更新”绑定 <code>downloadAndInstall()</code>，按 Started/Progress/Finished 驱动 UI。</li>
+        <li>进入 <code>installing</code> 后禁用主按钮，防止重复触发安装调用。</li>
+        <li><code>status=error</code> 时保留错误文本并提供“重试更新”。</li>
+      </ol>
+
+      <h3 style="margin-top: 14px;">交互日志</h3>
+      <div class="log" id="log"></div>
+    </aside>
+  </main>
 
   <script>
-    function switchState(state) {
-      document.querySelectorAll('.state-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+    const state = {
+      status: "available",
+      currentVersion: "0.1.7",
+      availableVersion: "0.2.0",
+      downloadedBytes: 0,
+      contentLength: 74 * 1024 * 1024
+    };
 
-      const modalTitle = document.getElementById('modalTitle');
-      const modalSub = document.getElementById('modalSub');
-      const modalTag = document.getElementById('modalTag');
-      const modalIcon = document.getElementById('modalIcon');
-      const modalProgress = document.getElementById('modalProgress');
-      const modalNotes = document.getElementById('modalNotes');
-      const modalActions = document.getElementById('modalActions');
-      const progressFill = document.getElementById('progressFill');
-      const progressPercent = document.getElementById('progressPercent');
+    const ui = {
+      title: document.getElementById("title"),
+      meta: document.getElementById("meta"),
+      badge: document.getElementById("badge"),
+      desc: document.getElementById("desc"),
+      progress: document.getElementById("progress"),
+      progressText: document.getElementById("progressText"),
+      progressNum: document.getElementById("progressNum"),
+      fill: document.getElementById("fill"),
+      notes: document.getElementById("notes"),
+      error: document.getElementById("error"),
+      mainBtn: document.getElementById("mainBtn"),
+      ignoreBtn: document.getElementById("ignoreBtn"),
+      laterBtn: document.getElementById("laterBtn"),
+      stateButtons: document.getElementById("stateButtons"),
+      log: document.getElementById("log")
+    };
 
-      if (state === 'available') {
-        modalIcon.innerText = '🚀';
-        modalTitle.innerText = '发现新版本 Loom v0.1.6';
-        modalSub.innerText = '当前安装版本: v0.1.5 • 2026-07-28 发布';
-        modalTag.innerText = '新版就绪';
-        modalProgress.style.display = 'none';
-        modalNotes.style.display = 'block';
-        modalActions.innerHTML = `
-          <button class="btn-secondary" onclick="alert('已忽略此版本')">忽略此版本</button>
-          <button class="btn-secondary" onclick="switchState('available')">稍后提醒</button>
-          <button class="btn-primary" onclick="switchState('downloading')">立即下载并更新</button>
-        `;
-      } else if (state === 'downloading') {
-        modalIcon.innerText = '⚡';
-        modalTitle.innerText = '正在下载 Loom v0.1.6...';
-        modalSub.innerText = '请保持网络连接，下载完成后将自动准备安装';
-        modalTag.innerText = '下载中';
-        modalProgress.style.display = 'flex';
-        modalNotes.style.display = 'none';
-        progressFill.style.width = '65%';
-        progressPercent.innerText = '65% (42.5 MB / 65.4 MB)';
-        modalActions.innerHTML = `
-          <button class="btn-secondary" disabled style="opacity:0.5">下载中...</button>
-        `;
-      } else if (state === 'restart') {
-        modalIcon.innerText = '🎉';
-        modalTitle.innerText = '更新已就绪，准备重启';
-        modalSub.innerText = 'Loom v0.1.6 已成功安装完成';
-        modalTag.innerText = '需要重启';
-        modalProgress.style.display = 'none';
-        modalNotes.style.display = 'block';
-        modalActions.innerHTML = `
-          <button class="btn-secondary" onclick="alert('已暂缓重启')">稍后手动重启</button>
-          <button class="btn-primary" onclick="alert('正在重启应用...')">立即重启应用</button>
-        `;
-      } else if (state === 'error') {
-        modalIcon.innerText = '⚠️';
-        modalTitle.innerText = '更新检查或下载失败';
-        modalSub.innerText = '网络连接超时或部署服务器响应异常';
-        modalTag.innerText = '更新异常';
-        modalProgress.style.display = 'none';
-        modalNotes.style.display = 'block';
-        modalNotes.innerHTML = `<p style="color: #FF5370">错误信息: Network timeout while fetching GitHub release assets.</p>`;
-        modalActions.innerHTML = `
-          <button class="btn-secondary" onclick="switchState('available')">关闭</button>
-          <button class="btn-primary" onclick="switchState('downloading')">重试更新</button>
-        `;
+    let timer = null;
+
+    function bytesToMB(v) {
+      return (v / 1024 / 1024).toFixed(1);
+    }
+
+    function log(msg) {
+      const t = new Date().toLocaleTimeString();
+      ui.log.innerHTML = `[${t}] ${msg}<br>` + ui.log.innerHTML;
+    }
+
+    function setStatus(next) {
+      state.status = next;
+      render();
+      log(`status -> ${next}`);
+    }
+
+    function beginDownload() {
+      clearInterval(timer);
+      state.downloadedBytes = 0;
+      setStatus("downloading");
+      timer = setInterval(() => {
+        state.downloadedBytes += Math.floor(Math.random() * 6 + 2) * 1024 * 1024;
+        if (state.downloadedBytes >= state.contentLength) {
+          state.downloadedBytes = state.contentLength;
+          clearInterval(timer);
+          setStatus("installing");
+          setTimeout(() => setStatus("restartRequired"), 1300);
+        }
+        render();
+      }, 520);
+    }
+
+    function render() {
+      const s = state.status;
+      const pct = Math.min(100, Math.round(state.downloadedBytes / state.contentLength * 100));
+      ui.meta.textContent = `当前版本 v${state.currentVersion} · 新版本 v${state.availableVersion}`;
+      ui.progress.classList.toggle("show", s === "downloading");
+      ui.error.classList.toggle("show", s === "error");
+      ui.notes.style.display = s === "error" ? "none" : "block";
+      ui.fill.style.width = `${pct}%`;
+      ui.progressNum.textContent = `${pct}% (${bytesToMB(state.downloadedBytes)} MB / ${bytesToMB(state.contentLength)} MB)`;
+
+      if (s === "available") {
+        ui.title.textContent = `可安装更新 v${state.availableVersion}`;
+        ui.badge.textContent = "可更新";
+        ui.badge.style.color = "var(--ok)";
+        ui.desc.textContent = "更新后需要重启应用。建议在任务间隙执行。";
+        ui.mainBtn.textContent = "立即更新";
+        ui.mainBtn.disabled = false;
+        ui.ignoreBtn.style.display = "inline-block";
+      } else if (s === "downloading") {
+        ui.title.textContent = `下载中 v${state.availableVersion}`;
+        ui.badge.textContent = "下载中";
+        ui.badge.style.color = "var(--warn)";
+        ui.desc.textContent = "正在下载更新包，网络波动可能导致中断。";
+        ui.progressText.textContent = "下载进度";
+        ui.mainBtn.textContent = "下载中";
+        ui.mainBtn.disabled = true;
+        ui.ignoreBtn.style.display = "none";
+      } else if (s === "installing") {
+        ui.title.textContent = "正在安装";
+        ui.badge.textContent = "安装中";
+        ui.badge.style.color = "var(--warn)";
+        ui.desc.textContent = "安装准备中，请稍候。";
+        ui.mainBtn.textContent = "安装中";
+        ui.mainBtn.disabled = true;
+        ui.ignoreBtn.style.display = "none";
+      } else if (s === "restartRequired") {
+        ui.title.textContent = "更新已就绪";
+        ui.badge.textContent = "需重启";
+        ui.badge.style.color = "var(--ok)";
+        ui.desc.textContent = "安装完成，重启后生效。";
+        ui.mainBtn.textContent = "立即重启";
+        ui.mainBtn.disabled = false;
+        ui.ignoreBtn.style.display = "none";
+      } else if (s === "error") {
+        ui.title.textContent = "更新失败";
+        ui.badge.textContent = "异常";
+        ui.badge.style.color = "var(--err)";
+        ui.desc.textContent = "你可以重试，或稍后在设置页手动检查。";
+        ui.mainBtn.textContent = "重试更新";
+        ui.mainBtn.disabled = false;
+        ui.ignoreBtn.style.display = "none";
       }
     }
+
+    ui.mainBtn.addEventListener("click", () => {
+      if (state.status === "available") beginDownload();
+      else if (state.status === "error") beginDownload();
+      else if (state.status === "restartRequired") log("action: relaunch app");
+    });
+
+    ui.ignoreBtn.addEventListener("click", () => log("action: ignore version"));
+    ui.laterBtn.addEventListener("click", () => log("action: remind me later"));
+
+    ui.stateButtons.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-state]");
+      if (!btn) return;
+      clearInterval(timer);
+      if (btn.dataset.state === "downloading") {
+        beginDownload();
+        return;
+      }
+      state.downloadedBytes = btn.dataset.state === "installing" ? state.contentLength : 0;
+      setStatus(btn.dataset.state);
+    });
+
+    render();
+    log("prototype ready");
   </script>
 </body>
 </html>

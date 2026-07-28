@@ -7,6 +7,8 @@ import type { VisionCapability, AIProvider } from '../../utils/visionCapabilitie
 import {
   DEFAULT_VISION_CAPABILITIES,
   ALLOWED_IMAGE_MEDIA_TYPES,
+  collectClipboardImageFiles,
+  clipboardLooksLikeImage,
 } from '../../utils/visionCapabilities';
 import { logDebug } from '../../utils/errorHandling';
 import {
@@ -76,6 +78,12 @@ export function useChatAttachments({
 
       const capability =
         visionCapabilities[selectedProvider] || DEFAULT_VISION_CAPABILITIES[selectedProvider];
+
+      if (!capability.supportsVision || capability.visionMaxImages <= 0) {
+        setError(VISION_UNSUPPORTED_ERROR);
+        return;
+      }
+
       const existingCount = attachedImages.length;
       const slotsRemaining = Math.max(capability.visionMaxImages - existingCount, 0);
 
@@ -84,13 +92,14 @@ export function useChatAttachments({
         return;
       }
 
-      const imageFiles = files.filter((file) => ALLOWED_IMAGE_MEDIA_TYPES.has(file.type));
-      if (imageFiles.length === 0) {
+      const accepted = files.filter((file) => ALLOWED_IMAGE_MEDIA_TYPES.has(file.type));
+      if (accepted.length === 0) {
+        setError('不支持的图片类型');
         return;
       }
 
-      const limited = imageFiles.slice(0, slotsRemaining);
-      if (imageFiles.length > limited.length) {
+      const limited = accepted.slice(0, slotsRemaining);
+      if (accepted.length > limited.length) {
         setError(`图片数量超出限制，已截取前 ${limited.length} 张`);
       }
 
@@ -145,13 +154,12 @@ export function useChatAttachments({
   );
 
   const handleInputPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const clipboardItems = Array.from(e.clipboardData?.items || []);
-    const imageFiles = clipboardItems
-      .filter((item) => item.type.startsWith('image/'))
-      .map((item) => item.getAsFile())
-      .filter((file): file is File => !!file);
-
+    const imageFiles = collectClipboardImageFiles(e.clipboardData);
     if (imageFiles.length === 0) {
+      if (clipboardLooksLikeImage(e.clipboardData)) {
+        e.preventDefault();
+        setError('无法读取剪贴板中的图片');
+      }
       return;
     }
 
@@ -164,7 +172,7 @@ export function useChatAttachments({
       const capability =
         visionCapabilities[selectedProvider] || DEFAULT_VISION_CAPABILITIES[selectedProvider];
 
-      if (!capability.supportsVision) {
+      if (!capability.supportsVision || capability.visionMaxImages <= 0) {
         setError(VISION_UNSUPPORTED_ERROR);
         return;
       }

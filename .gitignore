@@ -42,3 +42,4 @@ src-tauri/binaries/.extract-tmp/
 
 # local release artifacts
 dist-release/
+/.freebuff

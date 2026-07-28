@@ -273,7 +273,7 @@ export const useSubagentStore = create<SubagentState>()(
         set((state) => {
           const run = state.runs[id];
           if (!run) return state;
-          const { pendingApproval, ...rest } = run;
+          const { pendingApproval: _pendingApproval, ...rest } = run;
           return {
             runs: {
               ...state.runs,

@@ -7,6 +7,8 @@ import {
   useUpdateToolCallDelay,
   useStreamSpeed,
   useUpdateStreamSpeed,
+  useChatSendDuringStreamingMode,
+  useUpdateChatSendDuringStreamingMode,
   useThinkingBlockAutoExpand,
   useUpdateThinkingBlockAutoExpand,
   useEnableSubagents,
@@ -17,7 +19,7 @@ import {
   showSuccess as globalShowSuccess,
 } from '../../utils/notification';
 import { useTranslation } from '../../i18n';
-import type { ToolCallDelay, StreamSpeed } from '../../types/settings';
+import type { ChatSendDuringStreamingMode, ToolCallDelay, StreamSpeed } from '../../types/settings';
 import pageStyles from './SettingsPage.module.css';
 import primitiveStyles from './SettingsPrimitives.module.css';
 import panelStyles from './AgentSettingsView.module.css';
@@ -69,6 +71,8 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
   const updateToolCallDelay = useUpdateToolCallDelay();
   const streamSpeed = useStreamSpeed();
   const updateStreamSpeed = useUpdateStreamSpeed();
+  const chatSendDuringStreamingMode = useChatSendDuringStreamingMode();
+  const updateChatSendDuringStreamingMode = useUpdateChatSendDuringStreamingMode();
   const thinkingBlockAutoExpand = useThinkingBlockAutoExpand();
   const updateThinkingBlockAutoExpand = useUpdateThinkingBlockAutoExpand();
   const enableSubagents = useEnableSubagents();
@@ -144,6 +148,10 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
     { value: 'normal', label: t.settingsAgent.streamSpeed.normal },
     { value: 'slow', label: t.settingsAgent.streamSpeed.slow },
   ];
+  const chatSendDuringStreamingOptions = [
+    { value: 'queue', label: t.settingsAgent.chatSendDuringStreaming.queue },
+    { value: 'interrupt', label: t.settingsAgent.chatSendDuringStreaming.interrupt },
+  ];
 
   const pageAccessModeOptions = accessModeOptions.map(({ value, label }) => ({ value, label }));
   const pageToolCallDelayOptions: { value: ToolCallDelay; label: string }[] = [
@@ -158,6 +166,10 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
     { value: 'fast', label: t.settingsAgent.streamSpeed.fast },
     { value: 'normal', label: t.settingsAgent.streamSpeed.normal },
     { value: 'slow', label: t.settingsAgent.streamSpeed.slow },
+  ];
+  const pageChatSendDuringStreamingOptions: { value: ChatSendDuringStreamingMode; label: string }[] = [
+    { value: 'queue', label: t.settingsAgent.chatSendDuringStreaming.queue },
+    { value: 'interrupt', label: t.settingsAgent.chatSendDuringStreaming.interrupt },
   ];
 
   const sectionTitle =
@@ -285,6 +297,21 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
                 }
               />
               <PanelSettingRow
+                title={t.settingsAgent.chatSendDuringStreaming.title}
+                description={t.settingsAgent.chatSendDuringStreaming.description}
+                control={
+                  <SettingsSelect
+                    value={chatSendDuringStreamingMode}
+                    options={chatSendDuringStreamingOptions}
+                    onChange={(value) =>
+                      withUpdate(() =>
+                        updateChatSendDuringStreamingMode(value as ChatSendDuringStreamingMode)
+                      )
+                    }
+                  />
+                }
+              />
+              <PanelSettingRow
                 title={t.settingsAgent.thinkingBlockAutoExpand.title}
                 description={t.settingsAgent.thinkingBlockAutoExpand.description}
                 control={
@@ -373,6 +400,17 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
                 value={toolCallDelay}
                 options={pageToolCallDelayOptions}
                 onChange={(delay) => withUpdate(() => updateToolCallDelay(delay))}
+              />
+            }
+          />
+          <SettingsRow
+            label={t.settingsAgent.chatSendDuringStreaming.title}
+            hint={t.settingsAgent.chatSendDuringStreaming.description}
+            control={
+              <SettingsSegmented<ChatSendDuringStreamingMode>
+                value={chatSendDuringStreamingMode}
+                options={pageChatSendDuringStreamingOptions}
+                onChange={(mode) => withUpdate(() => updateChatSendDuringStreamingMode(mode))}
               />
             }
           />

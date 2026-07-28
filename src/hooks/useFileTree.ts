@@ -415,7 +415,7 @@ export function useFileTree(): UseFileTreeReturn {
       if (isTauriCancellationError(error)) return;
       console.error(error);
     }
-  }, [setProjectName, setProjectPath, setFileTree, setExpandedDirs, setLoadingDirs]);
+  }, [setProjectName, setProjectPath, setFileTree, setLoadingDirs]);
 
   /**
    * 移动文件/文件夹

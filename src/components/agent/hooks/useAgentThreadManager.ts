@@ -232,7 +232,6 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
       onSaveDraftForSession,
       onSetDraftMessage,
       activeProjectKey,
-      projectPath,
     ]
   );
 

@@ -110,6 +110,8 @@ export interface UseAgentSendMessageOptions {
 
 export interface SendMessageOverrides {
   draftMessage?: string;
+  attachedFiles?: { id: string; path: string; name: string }[];
+  attachedImages?: PendingImageAttachment[];
 }
 
 export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
@@ -488,12 +490,16 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
   };
 
   const sendMessage = async (overrides?: SendMessageOverrides) => {
-    const rawDraft = (overrides?.draftMessage ?? draftMessage).trim();
+    const sourceDraft = overrides?.draftMessage ?? draftMessage;
+    const sourceAttachedFiles = overrides?.attachedFiles ?? attachedFiles;
+    const sourceAttachedImages = overrides?.attachedImages ?? attachedImages;
+    const clearComposerImmediately = !overrides;
+    const rawDraft = sourceDraft.trim();
     if (
-      (!rawDraft && attachedImages.length === 0 && attachedFiles.length === 0) ||
+      (!rawDraft && sourceAttachedImages.length === 0 && sourceAttachedFiles.length === 0) ||
       !selectedAgentId ||
       !selectedAgent ||
-      isSelectedSessionBusy
+      (isSelectedSessionBusy && !overrides)
     ) {
       return;
     }
@@ -557,12 +563,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
 
     const capability = visionCapabilities[provider] || DEFAULT_VISION_CAPABILITIES[provider];
 
-    if (attachedImages.length > 0 && !capability.supportsVision) {
+    if (sourceAttachedImages.length > 0 && !capability.supportsVision) {
       setError(visionUnsupportedError);
       return;
     }
 
-    if (attachedImages.length > capability.visionMaxImages) {
+    if (sourceAttachedImages.length > capability.visionMaxImages) {
       setError(`当前模型最多支持 ${capability.visionMaxImages} 张图片`);
       return;
     }
@@ -570,8 +576,8 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     setError(null);
 
     const fileAttachments: FileAttachment[] = [];
-    if (attachedFiles.length > 0) {
-      for (const file of attachedFiles) {
+    if (sourceAttachedFiles.length > 0) {
+      for (const file of sourceAttachedFiles) {
         try {
           const content = await invoke<string>('read_file_content', {
             filePath: file.path,
@@ -627,9 +633,9 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       role: 'user',
       text: text || '',
       ...(slashCommand ? { slashCommand } : {}),
-      ...(attachedImages.length > 0
+      ...(sourceAttachedImages.length > 0
         ? {
-            attachments: attachedImages.map(({ previewUrl: _, ...attachment }) => attachment),
+            attachments: sourceAttachedImages.map(({ previewUrl: _, ...attachment }) => attachment),
           }
         : {}),
       ...(fileAttachments.length > 0 ? { fileAttachments } : {}),
@@ -705,11 +711,13 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         conversations,
       };
     });
-    setDraftMessage('');
-    clearAttachedFiles();
-    clearAttachedImages();
-    if (draftTextareaRef.current) {
-      draftTextareaRef.current.style.height = 'auto';
+    if (clearComposerImmediately) {
+      setDraftMessage('');
+      clearAttachedFiles();
+      clearAttachedImages();
+      if (draftTextareaRef.current) {
+        draftTextareaRef.current.style.height = 'auto';
+      }
     }
 
     onUserMessageSent?.();

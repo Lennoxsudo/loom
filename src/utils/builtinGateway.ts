@@ -535,6 +535,6 @@ export function buildBuiltinProfileItem(apiKey: string, models: string[]) {
     apiKey,
     models: models.length > 0 ? models : [''],
     organizationId: undefined as string | undefined,
-    supportsVision: false,
+    supportsVision: true,
   };
 }

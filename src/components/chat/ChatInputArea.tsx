@@ -2,8 +2,10 @@ import { useCallback } from 'react';
 import { SendIcon, StopIcon, PlusIcon } from '../shared/Icons';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
 import SlashSkillMenu from '../shared/SlashSkillMenu';
+import ComposerSendQueue from '../shared/ComposerSendQueue';
 import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
 import type { SkillEntry } from '../../utils/skills';
+import type { QueuedComposerItem } from '../../hooks/useChatSendDuringStreamingDispatch';
 import { VISION_UNSUPPORTED_ERROR } from './types';
 import type { AttachedFile, PendingImageAttachment } from './types';
 import styles from './ChatInputArea.module.css';
@@ -21,6 +23,9 @@ export interface ChatInputAreaProps {
   isOverChatAttach: boolean;
   attachedFiles: AttachedFile[];
   attachedImages: PendingImageAttachment[];
+  queuedMessages?: QueuedComposerItem[];
+  onRestoreQueuedMessage?: (id: string) => void;
+  onRemoveQueuedMessage?: (id: string) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputCardRef: React.RefObject<HTMLDivElement | null>;
   setChatAttachRef: (node: HTMLDivElement | null) => void;
@@ -44,6 +49,12 @@ export interface ChatInputAreaProps {
       stopping: string;
       stopGenerating: string;
       attachFile: string;
+      sendQueueTitle: string;
+      sendQueueRestore: string;
+      sendQueueRemove: string;
+      sendQueueImages: string;
+      sendQueueFiles: string;
+      noText: string;
     };
     settingsSkills?: { title: string };
   };
@@ -52,7 +63,7 @@ export interface ChatInputAreaProps {
 export default function ChatInputArea({
   inputValue,
   setInputValue,
-  isLoading,
+  isLoading: _isLoading,
   isStopping,
   canSend,
   showStop,
@@ -62,6 +73,9 @@ export default function ChatInputArea({
   isOverChatAttach,
   attachedFiles,
   attachedImages,
+  queuedMessages = [],
+  onRestoreQueuedMessage,
+  onRemoveQueuedMessage,
   textareaRef,
   inputCardRef,
   setChatAttachRef,
@@ -81,7 +95,7 @@ export default function ChatInputArea({
   t,
 }: ChatInputAreaProps) {
   const dragActive = isDragOver || isOverChatAttach;
-  const disabled = isLoading || modelMissing;
+  const disabled = modelMissing;
 
   const getCursor = useCallback(
     () => textareaRef.current?.selectionStart ?? inputValue.length,
@@ -131,6 +145,17 @@ export default function ChatInputArea({
               label={t.settingsSkills?.title || 'Skills'}
             />
           )}
+          <ComposerSendQueue
+            items={queuedMessages}
+            onRestore={onRestoreQueuedMessage ?? (() => undefined)}
+            onRemove={onRemoveQueuedMessage ?? (() => undefined)}
+            title={t.chat.sendQueueTitle}
+            restoreLabel={t.chat.sendQueueRestore}
+            removeLabel={t.chat.sendQueueRemove}
+            noTextLabel={t.chat.noText}
+            imagesLabel={t.chat.sendQueueImages}
+            filesLabel={t.chat.sendQueueFiles}
+          />
           {(attachedFiles.length > 0 || attachedImages.length > 0) && (
             <div className={styles.attachments}>
               {attachedImages.length > 0 && (
@@ -185,7 +210,7 @@ export default function ChatInputArea({
               type="button"
               className={styles.attachButton}
               onClick={() => void onPickAttachFiles?.()}
-              disabled={!onPickAttachFiles || isLoading || modelMissing}
+              disabled={!onPickAttachFiles || modelMissing}
               title={t.chat.attachFile}
               aria-label={t.chat.attachFile}
             >

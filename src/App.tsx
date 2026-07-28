@@ -8,6 +8,7 @@ import type { RenamingItem } from './types/file';
 import TitleBar from './components/TitleBar';
 import SaveConfirmModal from './components/SaveConfirmModal';
 import ActivityBar from './components/ActivityBar';
+import { AppUpdateModal } from './components/AppUpdateModal';
 import { DragPreviewWindow } from './components/DragPreviewWindow';
 import { EditorContextMenu } from './components/editor/EditorContextMenu';
 import { EditorSplitView } from './components/editor/EditorSplitView';
@@ -803,7 +804,7 @@ function AppContent() {
         return changed ? next : prev;
       });
     },
-    [setExpandedDirs, setLoadingDirs]
+    []
   );
 
   const removeOpenPathsUnder = useCallback(
@@ -2170,7 +2171,10 @@ function AppWithSettings() {
             />
           </div>
         ) : (
-          <AppContent />
+          <>
+            <AppContent />
+            <AppUpdateModal />
+          </>
         )}
       </NotificationProvider>
     </I18nProvider>

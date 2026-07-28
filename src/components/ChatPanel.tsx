@@ -21,6 +21,7 @@ import {
   useStreamSpeed,
   useEnableCodeGraph,
   useEnableCdpBrowser,
+  useChatSendDuringStreamingMode,
 } from '../stores';
 import { estimateTokens, estimateMessageTokens } from '../utils/contextBudget';
 import { useTranslation } from '../i18n';
@@ -53,7 +54,8 @@ import { useChatStickToBottom } from './chat/useChatStickToBottom';
 import { useStopHandler, finalizeStoppedMessage } from './chat/useStopHandler';
 import { useToolCalls } from './chat/useToolCalls';
 import { useConversationManager } from './chat/useConversationManager';
-import { useSendMessage } from './chat/useSendMessage';
+import { useSendMessage, type QueuedDraftMessage } from './chat/useSendMessage';
+import { useChatSendDuringStreamingDispatch } from '../hooks/useChatSendDuringStreamingDispatch';
 import { buildChatContextUsage } from './chat/contextUsage';
 import ConversationSelector from './chat/ConversationSelector';
 import { ChatHeaderActions } from './chat/ChatHeaderActions';
@@ -87,6 +89,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const streamSpeed = useStreamSpeed();
   const agentAccessMode = useAgentAccessMode();
   const enableCdpBrowser = useEnableCdpBrowser();
+  const chatSendDuringStreamingMode = useChatSendDuringStreamingMode();
   const mcpTools = useToolStore((s) => s.mcpTools);
   const chatRules = useRulesStore((s) => s.chatRules);
   const imageGenConfig = useImageGenConfig();
@@ -700,7 +703,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     };
   }, []);
 
-  const { handleSendMessage, resendFromUserMessage } = useSendMessage({
+  const { handleSendMessage, handleSendQueuedMessage, resendFromUserMessage } = useSendMessage({
     inputValue,
     setInputValue,
     attachedFiles,
@@ -1409,8 +1412,67 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const hasVisionInput = attachedImages.length > 0;
   const hasInput = !!inputValue.trim() || attachedFiles.length > 0 || hasVisionInput;
   const visionBlocked = hasVisionInput && !currentVisionCapability.supportsVision;
-  const canSend = hasInput && !isLoading && !isStopping && !modelMissing && !visionBlocked;
-  const showStop = isLoading || isStopping;
+  const canSendWhileIdle = !modelMissing && !visionBlocked;
+
+  const snapshotComposer = useCallback(
+    (): QueuedDraftMessage => ({
+      inputValue,
+      attachedFiles,
+      attachedImages,
+    }),
+    [inputValue, attachedFiles, attachedImages]
+  );
+
+  const clearComposer = useCallback(() => {
+    setInputValue('');
+    setAttachedFiles([]);
+    clearAttachedImages();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [clearAttachedImages]);
+
+  const restoreComposer = useCallback(
+    (payload: QueuedDraftMessage) => {
+      setInputValue(payload.inputValue);
+      setAttachedFiles(payload.attachedFiles);
+      setAttachedImages(payload.attachedImages);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+    },
+    [setAttachedImages]
+  );
+
+  const sendComposerMessage = useCallback(
+    async (draft?: QueuedDraftMessage) => {
+      if (draft) {
+        await handleSendQueuedMessage(draft);
+      } else {
+        await handleSendMessage();
+      }
+    },
+    [handleSendMessage, handleSendQueuedMessage]
+  );
+
+  const { dispatchComposerSend, canSendComposer, showStopButton, queuedMessages, removeQueuedMessage, restoreQueuedMessage } =
+    useChatSendDuringStreamingDispatch({
+    mode: chatSendDuringStreamingMode,
+    isStreamingBusy: isLoading,
+    isStopping,
+    hasInput,
+    canSendWhileIdle,
+    snapshotComposer,
+    clearComposer,
+    restoreComposer,
+    sendMessage: sendComposerMessage,
+    stopStreaming: handleStop,
+    toSendOverrides: (payload) => payload,
+  });
+
+  const canSend = canSendComposer;
+  const showStop = showStopButton;
+  handleSendMessageRef.current = dispatchComposerSend;
   const isConversationSwitchLocked = isLoading || isStopping || isExecutingToolsRef.current;
 
   const chatConversationId = currentConversation?.id ?? '';
@@ -1667,6 +1729,9 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             isOverChatAttach={isOverChatAttach}
             attachedFiles={attachedFiles}
             attachedImages={attachedImages}
+            queuedMessages={queuedMessages}
+            onRestoreQueuedMessage={restoreQueuedMessage}
+            onRemoveQueuedMessage={removeQueuedMessage}
             textareaRef={textareaRef}
             inputCardRef={inputCardRef}
             setChatAttachRef={setChatAttachRef}
@@ -1676,7 +1741,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             handleInputPaste={handleInputPaste}
             removeFileFromContext={removeFileFromContext}
             removeImageFromContext={removeImageFromContext}
-            handleSendMessage={handleSendMessage}
+            handleSendMessage={dispatchComposerSend}
             handleStop={handleStop}
             onPickAttachFiles={handlePickAttachFiles}
             invocableSkills={invocableSkills}

@@ -195,13 +195,14 @@
 }
 
 .sendButtonStop {
-  background: color-mix(in srgb, var(--chat-stop-fg) 14%, transparent);
+  background: var(--chat-stop-bg);
   color: var(--chat-stop-fg);
   cursor: pointer;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--chat-stop-bg) 35%, transparent);
 }
 
 .sendButtonStop:hover {
-  background: color-mix(in srgb, var(--chat-stop-fg) 22%, transparent);
+  background: var(--chat-stop-bg-hover);
 }
 
 .sendButtonDisabled {

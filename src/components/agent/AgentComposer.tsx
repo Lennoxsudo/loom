@@ -6,6 +6,7 @@ import TokenRingIndicator from '../chat/TokenRingIndicator';
 import ApprovalModeMenu from './ApprovalModeMenu';
 import ChatModeToggle from '../chat/ChatModeToggle';
 import SlashSkillMenu from '../shared/SlashSkillMenu';
+import ComposerSendQueue from '../shared/ComposerSendQueue';
 import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
 import { useTranslation } from '../../i18n';
 import type { AgentProtocolSelection } from '../../utils/agentPersistence';
@@ -13,6 +14,7 @@ import type { ProviderProfileOption } from '../../utils/aiProviderRuntime';
 import type { SkillEntry } from '../../utils/skills';
 import type { AttachedFile } from '../chat/types';
 import type { PendingImageAttachment } from '../../types/chat';
+import type { QueuedComposerItem } from '../../hooks/useChatSendDuringStreamingDispatch';
 import styles from './AgentComposer.module.css';
 
 type SideCapsuleKind = 'skill' | 'mcp';
@@ -116,6 +118,9 @@ export interface AgentComposerProps {
   isDragOver: boolean;
   attachedFiles: AttachedFile[];
   attachedImages: PendingImageAttachment[];
+  queuedMessages?: QueuedComposerItem[];
+  onRestoreQueuedMessage?: (id: string) => void;
+  onRemoveQueuedMessage?: (id: string) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputCardRef: React.RefObject<HTMLDivElement | null>;
   imageInputRef: React.RefObject<HTMLInputElement | null>;
@@ -162,6 +167,9 @@ const AgentComposer = memo(function AgentComposer({
   isDragOver,
   attachedFiles,
   attachedImages,
+  queuedMessages = [],
+  onRestoreQueuedMessage,
+  onRemoveQueuedMessage,
   textareaRef,
   inputCardRef,
   imageInputRef,
@@ -313,6 +321,17 @@ const AgentComposer = memo(function AgentComposer({
             label={t.settingsSkills?.title || 'Skills'}
           />
         )}
+        <ComposerSendQueue
+          items={queuedMessages}
+          onRestore={onRestoreQueuedMessage ?? (() => undefined)}
+          onRemove={onRemoveQueuedMessage ?? (() => undefined)}
+          title={t.chat.sendQueueTitle}
+          restoreLabel={t.chat.sendQueueRestore}
+          removeLabel={t.chat.sendQueueRemove}
+          noTextLabel={t.chat.noText}
+          imagesLabel={t.chat.sendQueueImages}
+          filesLabel={t.chat.sendQueueFiles}
+        />
         {(attachedFiles.length > 0 || attachedImages.length > 0) && (
           <div className={styles.attachments}>
             {attachedImages.length > 0 && (
@@ -380,12 +399,12 @@ const AgentComposer = memo(function AgentComposer({
             onPaste={handleInputPaste}
             onKeyDown={(e) => {
               if (slash.onKeyDown(e)) return;
-              if (e.key === 'Enter' && !e.shiftKey && canSend) {
+              if (e.key === 'Enter' && !e.shiftKey && !disabled) {
                 e.preventDefault();
                 void handleSend();
               }
             }}
-            placeholder={disabled ? t.agent.aiResponding : t.agent.composerPlaceholder}
+            placeholder={disabled ? t.agent.selectAgentFirst : t.agent.composerPlaceholder}
             disabled={disabled}
             rows={1}
           />
@@ -441,7 +460,7 @@ const AgentComposer = memo(function AgentComposer({
               type="button"
               className={`${styles.sendButton} ${sendClass}`}
               onClick={() => (showStop ? void handleStop() : void handleSend())}
-              disabled={showStop ? isStopping : !canSend}
+              disabled={(!canSend && !showStop) || isStopping}
               title={showStop ? t.chat.stopGenerating : undefined}
               aria-label={showStop ? t.actions.stop : t.actions.send}
             >

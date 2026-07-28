@@ -52,6 +52,11 @@ export type RenderWhitespaceMode = 'none' | 'boundary' | 'selection' | 'all';
 export type StreamSpeed = 'fast' | 'normal' | 'slow';
 
 /**
+ * Behavior when sending while the assistant is still streaming.
+ */
+export type StreamSendMode = 'queue_after_stream' | 'interrupt_and_send';
+
+/**
  * Reasoning effort level for agent composer UI
  */
 export type ReasoningEffort = 'low' | 'medium' | 'high';
@@ -60,6 +65,11 @@ export type ReasoningEffort = 'low' | 'medium' | 'high';
  * Agent runtime mode (local vs cloud placeholder)
  */
 export type AgentRuntimeMode = 'local' | 'cloud';
+
+/**
+ * Behavior when user submits while assistant is still streaming
+ */
+export type ChatSendDuringStreamingMode = 'queue' | 'interrupt';
 
 /**
  * Recently opened workspace entry for agent nav sidebar
@@ -142,6 +152,8 @@ export interface SettingsState {
   foldersFirst: boolean;
   /** Stream output speed */
   streamSpeed: StreamSpeed;
+  /** Send behavior while assistant output is in progress */
+  streamSendMode: StreamSendMode;
   /** Application language */
   language: Language;
   /** Application theme mode */
@@ -174,6 +186,8 @@ export interface SettingsState {
   reasoningEffort: ReasoningEffort;
   /** Local vs cloud runtime mode (cloud is UI placeholder) */
   agentRuntimeMode: AgentRuntimeMode;
+  /** Sending behavior when AI is still replying */
+  chatSendDuringStreamingMode: ChatSendDuringStreamingMode;
   /** Recently opened workspaces for agent nav */
   recentWorkspaces: RecentWorkspace[];
   /** Enable built-in code knowledge graph (CBM) tools */
