@@ -49,6 +49,12 @@ import {
   expandSkillSlashCommand,
   formatSlashCommandDisplay,
 } from '../../../utils/skillSlashCommand';
+import {
+  mergeAnnotationsFromText,
+  serializeContextAnnotations,
+  splitPrefixedUserMessageContent,
+  type ContextAnnotation,
+} from '../../../utils/contextAnnotations';
 
 async function ensureBuiltinReadyForAgent(
   setError: (msg: string | null) => void,
@@ -78,6 +84,8 @@ export interface UseAgentSendMessageOptions {
   agentRuntimeRef: React.MutableRefObject<AgentRuntimeSnapshot>;
   attachedImages: PendingImageAttachment[];
   attachedFiles: { id: string; path: string; name: string }[];
+  contextAnnotations?: ContextAnnotation[];
+  clearContextAnnotations?: () => void;
   visionCapabilities: Record<string, { supportsVision: boolean; visionMaxImages: number }>;
   agentModesRef: React.MutableRefObject<Record<string, 'plan' | 'always-allow'>>;
   projectPathRef: React.MutableRefObject<string>;
@@ -112,6 +120,7 @@ export interface SendMessageOverrides {
   draftMessage?: string;
   attachedFiles?: { id: string; path: string; name: string }[];
   attachedImages?: PendingImageAttachment[];
+  contextAnnotations?: ContextAnnotation[];
 }
 
 export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
@@ -126,6 +135,8 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     agentRuntimeRef,
     attachedImages,
     attachedFiles,
+    contextAnnotations = [],
+    clearContextAnnotations,
     visionCapabilities,
     agentModesRef,
     projectPathRef,
@@ -247,11 +258,17 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       return next;
     });
 
+    const { prefix } = splitPrefixedUserMessageContent(original.text || '', [
+      t.chat.contextAnnotation,
+      t.chat.fileContext,
+    ]);
+    const nextText = `${prefix}${text}`;
+
     const keptMessages = conversation.messages.slice(0, msgIndex + 1).map((m, i) =>
       i === msgIndex
         ? {
             ...m,
-            text,
+            text: nextText,
             ...(slashCommand ? { slashCommand } : { slashCommand: undefined }),
             createdAt: Date.now(),
           }
@@ -493,10 +510,14 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     const sourceDraft = overrides?.draftMessage ?? draftMessage;
     const sourceAttachedFiles = overrides?.attachedFiles ?? attachedFiles;
     const sourceAttachedImages = overrides?.attachedImages ?? attachedImages;
+    const sourceAnnotations = overrides?.contextAnnotations ?? contextAnnotations;
     const clearComposerImmediately = !overrides;
     const rawDraft = sourceDraft.trim();
     if (
-      (!rawDraft && sourceAttachedImages.length === 0 && sourceAttachedFiles.length === 0) ||
+      (!rawDraft &&
+        sourceAttachedImages.length === 0 &&
+        sourceAttachedFiles.length === 0 &&
+        sourceAnnotations.length === 0) ||
       !selectedAgentId ||
       !selectedAgent ||
       (isSelectedSessionBusy && !overrides)
@@ -507,7 +528,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     const resolved = rawDraft
       ? await resolveUserText(rawDraft)
       : { text: '', slashCommand: undefined as undefined };
-    const text = resolved.text;
+    const annotationBlock = serializeContextAnnotations(
+      mergeAnnotationsFromText(sourceAnnotations, sourceDraft, projectPathRef.current),
+      projectPathRef.current,
+      t.chat.contextAnnotation
+    );
+    const text = `${annotationBlock}${resolved.text}`;
     const slashCommand = resolved.slashCommand;
 
     const resolvedRuntime = resolveAgentRequestRuntime(selectedAgent, agentRuntimeRef.current);
@@ -715,6 +741,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       setDraftMessage('');
       clearAttachedFiles();
       clearAttachedImages();
+      clearContextAnnotations?.();
       if (draftTextareaRef.current) {
         draftTextareaRef.current.style.height = 'auto';
       }

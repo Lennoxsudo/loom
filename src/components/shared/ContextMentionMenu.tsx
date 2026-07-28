@@ -1,38 +1,47 @@
 import { memo, useEffect, useRef } from 'react';
-import type { SkillEntry } from '../../utils/skills';
+import type { ContextAnnotationKind } from '../../utils/contextAnnotations';
 import styles from './SlashSkillMenu.module.css';
 
-export interface SlashSkillMenuProps {
-  skills: SkillEntry[];
+export interface ContextMentionItem {
+  kind: ContextAnnotationKind;
+  /** Token inserted after @ */
+  label: string;
+  /** Absolute or relative path stored in annotation */
+  path: string;
+  description?: string;
+}
+
+export interface ContextMentionMenuProps {
+  items: ContextMentionItem[];
   highlightIndex: number;
   onHighlight: (index: number) => void;
-  onSelect: (skill: SkillEntry) => void;
+  onSelect: (item: ContextMentionItem) => void;
   label?: string;
 }
 
-const SlashSkillMenu = memo(function SlashSkillMenu({
-  skills,
+const ContextMentionMenu = memo(function ContextMentionMenu({
+  items,
   highlightIndex,
   onHighlight,
   onSelect,
-  label = 'Skills',
-}: SlashSkillMenuProps) {
+  label = 'Context',
+}: ContextMentionMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const active = menuRef.current?.querySelector<HTMLElement>('[aria-selected="true"]');
     active?.scrollIntoView({ block: 'nearest' });
-  }, [highlightIndex, skills.length]);
+  }, [highlightIndex, items.length]);
 
-  if (skills.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <div ref={menuRef} className={styles.menu} role="listbox" aria-label={label}>
       <ul className={styles.list}>
-        {skills.map((skill, index) => {
+        {items.map((item, index) => {
           const active = index === highlightIndex;
           return (
-            <li key={`${skill.scope}:${skill.name}`} role="presentation">
+            <li key={`${item.kind}:${item.label}`} role="presentation">
               <button
                 type="button"
                 role="option"
@@ -40,20 +49,17 @@ const SlashSkillMenu = memo(function SlashSkillMenu({
                 className={`${styles.item} ${active ? styles.itemActive : ''}`}
                 onMouseEnter={() => onHighlight(index)}
                 onMouseDown={(e) => {
-                  // Prevent textarea blur before click selection.
                   e.preventDefault();
                 }}
-                onClick={() => onSelect(skill)}
+                onClick={() => onSelect(item)}
               >
                 <div className={styles.nameRow}>
-                  <span className={styles.name}>/{skill.name}</span>
-                  {skill.argumentHint ? (
-                    <span className={styles.hint}>{skill.argumentHint}</span>
-                  ) : null}
+                  <span className={styles.name}>@{item.label}</span>
+                  <span className={styles.hint}>{item.kind}</span>
                 </div>
-                {skill.description ? (
-                  <div className={styles.description} title={skill.description}>
-                    {skill.description}
+                {item.description ? (
+                  <div className={styles.description} title={item.description}>
+                    {item.description}
                   </div>
                 ) : null}
               </button>
@@ -65,4 +71,4 @@ const SlashSkillMenu = memo(function SlashSkillMenu({
   );
 });
 
-export default SlashSkillMenu;
+export default ContextMentionMenu;

@@ -276,12 +276,16 @@ export default function ChatMessageList({
 
   const pinnedPreviewText = useMemo(() => {
     if (!pinnedMessage) return '';
-    return getChatUserMessagePreviewText(
-      pinnedMessage,
-      t.agent.userMessageAttachmentOnly,
-      t.chat.fileContext
-    );
-  }, [pinnedMessage, t.agent.userMessageAttachmentOnly, t.chat.fileContext]);
+    return getChatUserMessagePreviewText(pinnedMessage, t.agent.userMessageAttachmentOnly, [
+      t.chat.contextAnnotation,
+      t.chat.fileContext,
+    ]);
+  }, [
+    pinnedMessage,
+    t.agent.userMessageAttachmentOnly,
+    t.chat.contextAnnotation,
+    t.chat.fileContext,
+  ]);
 
   const showPinnedOverlay = showStickyOverlay && pinnedPreviewText.length > 0;
 

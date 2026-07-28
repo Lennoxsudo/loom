@@ -479,6 +479,10 @@ export interface I18nMessages {
     imageSizeExceeded: string;
     noText: string;
     fileContext: string;
+    contextAnnotation: string;
+    contextAnnotationCodebase: string;
+    contextAnnotationEmpty: string;
+    contextAnnotationRemove: string;
     visionUnsupportedError: string;
     pendingChangesTitle: string;
     expandPendingChanges: string;

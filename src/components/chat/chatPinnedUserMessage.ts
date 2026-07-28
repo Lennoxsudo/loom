@@ -12,15 +12,20 @@ export function isPinnableChatUserMessage(message: Message): boolean {
 export function getChatUserMessagePreviewText(
   message: Message,
   attachmentOnlyLabel: string,
-  fileContextPrefix?: string,
+  fileContextPrefix?: string | string[],
   maxLength = 240
 ): string {
   let text = message.content;
-  if (fileContextPrefix && text.startsWith(fileContextPrefix)) {
-    const splitIndex = text.lastIndexOf('\n---\n\n');
-    if (splitIndex !== -1) {
-      text = text.substring(splitIndex + 6);
-    }
+  const markers = Array.isArray(fileContextPrefix)
+    ? fileContextPrefix
+    : fileContextPrefix
+      ? [fileContextPrefix]
+      : [];
+  for (const marker of markers) {
+    if (!marker || !text.startsWith(marker)) continue;
+    const splitIndex = text.indexOf('\n---\n\n');
+    if (splitIndex === -1) break;
+    text = text.substring(splitIndex + '\n---\n\n'.length);
   }
 
   const trimmed = text.trim().replace(/\s+/g, ' ');

@@ -7,8 +7,13 @@ import { buildConversationPayload } from './conversationPersist';
 import {
   rebuildChatUserMessageContent,
   buildChatCheckpointSessionKey,
-  splitChatUserMessageContent,
 } from './chatUserMessageEdit';
+import {
+  mergeAnnotationsFromText,
+  serializeContextAnnotations,
+  splitPrefixedUserMessageContent,
+  type ContextAnnotation,
+} from '../../utils/contextAnnotations';
 import {
   reconcileChatRequestRuntime,
   syncChatRuntimeIfChanged,
@@ -58,6 +63,8 @@ export interface UseSendMessageOptions {
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
   attachedFiles: AttachedFile[];
   attachedImages: PendingImageAttachment[];
+  contextAnnotations?: ContextAnnotation[];
+  clearContextAnnotations?: () => void;
   isLoading: boolean;
   protocolSelection: ChatProtocolSelection;
   selectedModel: string;
@@ -109,7 +116,7 @@ export interface UseSendMessageOptions {
   t: {
     errors: { selectModelFirst: string };
     agent: { autoRoutingNotConfigured: string; changeReview: { restoreFailed: string } };
-    chat: { fileContext: string; newConversation: string };
+    chat: { fileContext: string; contextAnnotation: string; newConversation: string };
     settingsBuiltin?: { notActivated: string; unauthorized: string };
   };
 }
@@ -118,6 +125,7 @@ export interface QueuedDraftMessage {
   inputValue: string;
   attachedFiles: AttachedFile[];
   attachedImages: PendingImageAttachment[];
+  contextAnnotations?: ContextAnnotation[];
 }
 
 export function useSendMessage(opts: UseSendMessageOptions) {
@@ -202,7 +210,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     // Pending-change first-before snapshots are invalid after time travel
     opts.setPendingChanges([]);
 
-    const { prefix } = splitChatUserMessageContent(original.content, opts.t.chat.fileContext);
+    const { prefix } = splitPrefixedUserMessageContent(original.content, [
+      opts.t.chat.contextAnnotation,
+      opts.t.chat.fileContext,
+    ]);
     const nextContent = rebuildChatUserMessageContent(prefix, body);
     const nextTimestamp = Date.now();
 
@@ -396,11 +407,13 @@ export function useSendMessage(opts: UseSendMessageOptions) {
     const sourceInputValue = draft?.inputValue ?? opts.inputValue;
     const sourceAttachedFiles = draft?.attachedFiles ?? opts.attachedFiles;
     const sourceAttachedImages = draft?.attachedImages ?? opts.attachedImages;
+    const sourceAnnotations = draft?.contextAnnotations ?? opts.contextAnnotations ?? [];
     const clearComposerImmediately = !draft;
     if (
       (!sourceInputValue.trim() &&
         sourceAttachedFiles.length === 0 &&
-        sourceAttachedImages.length === 0) ||
+        sourceAttachedImages.length === 0 &&
+        sourceAnnotations.length === 0) ||
       (opts.isLoading && !draft)
     ) {
       return;
@@ -537,6 +550,13 @@ export function useSendMessage(opts: UseSendMessageOptions) {
 
     let messageContent = '';
 
+    const annotationBlock = serializeContextAnnotations(
+      mergeAnnotationsFromText(sourceAnnotations, sourceInputValue, opts.projectPathRef.current),
+      opts.projectPathRef.current,
+      opts.t.chat.contextAnnotation
+    );
+    messageContent += annotationBlock;
+
     if (sourceAttachedFiles.length > 0) {
       messageContent += opts.t.chat.fileContext;
 
@@ -580,6 +600,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
       opts.setInputValue('');
       opts.setAttachedFiles([]);
       opts.clearAttachedImages();
+      opts.clearContextAnnotations?.();
     }
     opts.setIsLoading(true);
     opts.setError(null);

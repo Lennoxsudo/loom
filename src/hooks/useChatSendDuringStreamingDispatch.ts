@@ -7,6 +7,7 @@ export interface QueuedComposerPayload {
   inputValue: string;
   attachedFiles: AttachedFile[];
   attachedImages: PendingImageAttachment[];
+  contextAnnotations?: import('../utils/contextAnnotations').ContextAnnotation[];
 }
 
 export interface QueuedComposerItem extends QueuedComposerPayload {

@@ -28,6 +28,7 @@ import { useTranslation } from '../i18n';
 import { logDebug, isTauriCancellationError } from '../utils/errorHandling';
 import { isBuiltinProtocol, resolveBuiltinStreamError } from '../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../stores/useBuiltinGatewayStore';
+import type { ContextAnnotation } from '../utils/contextAnnotations';
 import styles from './ChatPanel.module.css';
 import {
   type VisionCapability,
@@ -148,6 +149,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     }
     return 'always-allow';
   });
+  const [contextAnnotations, setContextAnnotations] = useState<ContextAnnotation[]>([]);
   const chatModeRef = useRef<'plan' | 'always-allow'>(chatMode);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const builtinModels = useBuiltinGatewayStore((s) => s.models);
@@ -708,6 +710,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     setInputValue,
     attachedFiles,
     attachedImages,
+    contextAnnotations,
+    clearContextAnnotations: () => setContextAnnotations([]),
     isLoading,
     protocolSelection,
     selectedModel,
@@ -1410,7 +1414,11 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const currentVisionCapability =
     visionCapabilities[effectiveProvider] || DEFAULT_VISION_CAPABILITIES[effectiveProvider];
   const hasVisionInput = attachedImages.length > 0;
-  const hasInput = !!inputValue.trim() || attachedFiles.length > 0 || hasVisionInput;
+  const hasInput =
+    !!inputValue.trim() ||
+    attachedFiles.length > 0 ||
+    hasVisionInput ||
+    contextAnnotations.length > 0;
   const visionBlocked = hasVisionInput && !currentVisionCapability.supportsVision;
   const canSendWhileIdle = !modelMissing && !visionBlocked;
 
@@ -1419,14 +1427,16 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       inputValue,
       attachedFiles,
       attachedImages,
+      contextAnnotations,
     }),
-    [inputValue, attachedFiles, attachedImages]
+    [inputValue, attachedFiles, attachedImages, contextAnnotations]
   );
 
   const clearComposer = useCallback(() => {
     setInputValue('');
     setAttachedFiles([]);
     clearAttachedImages();
+    setContextAnnotations([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -1437,6 +1447,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       setInputValue(payload.inputValue);
       setAttachedFiles(payload.attachedFiles);
       setAttachedImages(payload.attachedImages);
+      setContextAnnotations(payload.contextAnnotations ?? []);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -1729,6 +1740,9 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
             isOverChatAttach={isOverChatAttach}
             attachedFiles={attachedFiles}
             attachedImages={attachedImages}
+            contextAnnotations={contextAnnotations}
+            onContextAnnotationsChange={setContextAnnotations}
+            projectPath={projectPath}
             queuedMessages={queuedMessages}
             onRestoreQueuedMessage={restoreQueuedMessage}
             onRemoveQueuedMessage={removeQueuedMessage}

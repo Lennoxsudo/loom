@@ -6,8 +6,10 @@ import TokenRingIndicator from '../chat/TokenRingIndicator';
 import ApprovalModeMenu from './ApprovalModeMenu';
 import ChatModeToggle from '../chat/ChatModeToggle';
 import SlashSkillMenu from '../shared/SlashSkillMenu';
+import ContextMentionMenu from '../shared/ContextMentionMenu';
 import ComposerSendQueue from '../shared/ComposerSendQueue';
 import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
+import { useContextMentionAutocomplete } from '../../hooks/useContextMentionAutocomplete';
 import { useTranslation } from '../../i18n';
 import type { AgentProtocolSelection } from '../../utils/agentPersistence';
 import type { ProviderProfileOption } from '../../utils/aiProviderRuntime';
@@ -15,6 +17,8 @@ import type { SkillEntry } from '../../utils/skills';
 import type { AttachedFile } from '../chat/types';
 import type { PendingImageAttachment } from '../../types/chat';
 import type { QueuedComposerItem } from '../../hooks/useChatSendDuringStreamingDispatch';
+import type { ContextAnnotation } from '../../utils/contextAnnotations';
+import { dedupeContextAnnotations } from '../../utils/contextAnnotations';
 import styles from './AgentComposer.module.css';
 
 type SideCapsuleKind = 'skill' | 'mcp';
@@ -118,6 +122,9 @@ export interface AgentComposerProps {
   isDragOver: boolean;
   attachedFiles: AttachedFile[];
   attachedImages: PendingImageAttachment[];
+  contextAnnotations?: ContextAnnotation[];
+  onContextAnnotationsChange?: (next: ContextAnnotation[]) => void;
+  projectPath?: string;
   queuedMessages?: QueuedComposerItem[];
   onRestoreQueuedMessage?: (id: string) => void;
   onRemoveQueuedMessage?: (id: string) => void;
@@ -167,6 +174,9 @@ const AgentComposer = memo(function AgentComposer({
   isDragOver,
   attachedFiles,
   attachedImages,
+  contextAnnotations = [],
+  onContextAnnotationsChange,
+  projectPath = '',
   queuedMessages = [],
   onRestoreQueuedMessage,
   onRemoveQueuedMessage,
@@ -227,6 +237,34 @@ const AgentComposer = memo(function AgentComposer({
     getCursor,
     setValue: (next) => setInputValue(next),
     focusAndSetCursor,
+  });
+
+  const addContextAnnotation = useCallback(
+    (annotation: ContextAnnotation) => {
+      if (!onContextAnnotationsChange) return;
+      onContextAnnotationsChange(dedupeContextAnnotations([...contextAnnotations, annotation]));
+    },
+    [contextAnnotations, onContextAnnotationsChange]
+  );
+
+  const removeContextAnnotation = useCallback(
+    (id: string) => {
+      if (!onContextAnnotationsChange) return;
+      onContextAnnotationsChange(contextAnnotations.filter((a) => a.id !== id));
+    },
+    [contextAnnotations, onContextAnnotationsChange]
+  );
+
+  const mention = useContextMentionAutocomplete({
+    value: inputValue,
+    projectPath,
+    disabled: disabled || !projectPath.trim(),
+    suppress: slash.isOpen,
+    getCursor,
+    setValue: (next) => setInputValue(next),
+    focusAndSetCursor,
+    onAddAnnotation: addContextAnnotation,
+    codebaseDescription: t.chat.contextAnnotationCodebase,
   });
 
   useEffect(() => {
@@ -321,6 +359,15 @@ const AgentComposer = memo(function AgentComposer({
             label={t.settingsSkills?.title || 'Skills'}
           />
         )}
+        {!slash.isOpen && mention.isOpen && (
+          <ContextMentionMenu
+            items={mention.items}
+            highlightIndex={mention.highlightIndex}
+            onHighlight={mention.setHighlightIndex}
+            onSelect={mention.selectItem}
+            label={t.chat.contextAnnotation.replace(/^#\s*/, '').trim() || 'Context'}
+          />
+        )}
         <ComposerSendQueue
           items={queuedMessages}
           onRestore={onRestoreQueuedMessage ?? (() => undefined)}
@@ -332,7 +379,9 @@ const AgentComposer = memo(function AgentComposer({
           imagesLabel={t.chat.sendQueueImages}
           filesLabel={t.chat.sendQueueFiles}
         />
-        {(attachedFiles.length > 0 || attachedImages.length > 0) && (
+        {(attachedFiles.length > 0 ||
+          attachedImages.length > 0 ||
+          contextAnnotations.length > 0) && (
           <div className={styles.attachments}>
             {attachedImages.length > 0 && (
               <div className={styles.imageGrid}>
@@ -354,8 +403,21 @@ const AgentComposer = memo(function AgentComposer({
                 ))}
               </div>
             )}
-            {attachedFiles.length > 0 && (
+            {(attachedFiles.length > 0 || contextAnnotations.length > 0) && (
               <div className={styles.fileGrid}>
+                {contextAnnotations.map((ann) => (
+                  <div key={ann.id} className={styles.fileChip} title={ann.path}>
+                    <span className={styles.fileName}>@{ann.label}</span>
+                    <button
+                      type="button"
+                      className={styles.removeButton}
+                      aria-label={t.chat.contextAnnotationRemove}
+                      onClick={() => removeContextAnnotation(ann.id)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
                 {attachedFiles.map((file) => (
                   <div key={file.id} className={styles.fileChip}>
                     <FileTypeIcon name={file.name} size={11} />
@@ -391,14 +453,27 @@ const AgentComposer = memo(function AgentComposer({
             value={inputValue}
             onChange={(e) => {
               setInputValue(e.target.value);
-              requestAnimationFrame(() => slash.refreshCursor());
+              requestAnimationFrame(() => {
+                slash.refreshCursor();
+                mention.refreshCursor();
+              });
             }}
-            onClick={() => slash.refreshCursor()}
-            onKeyUp={() => slash.refreshCursor()}
-            onSelect={() => slash.refreshCursor()}
+            onClick={() => {
+              slash.refreshCursor();
+              mention.refreshCursor();
+            }}
+            onKeyUp={() => {
+              slash.refreshCursor();
+              mention.refreshCursor();
+            }}
+            onSelect={() => {
+              slash.refreshCursor();
+              mention.refreshCursor();
+            }}
             onPaste={handleInputPaste}
             onKeyDown={(e) => {
               if (slash.onKeyDown(e)) return;
+              if (mention.onKeyDown(e)) return;
               if (e.key === 'Enter' && !e.shiftKey && !disabled) {
                 e.preventDefault();
                 void handleSend();

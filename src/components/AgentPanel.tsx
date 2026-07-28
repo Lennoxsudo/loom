@@ -33,6 +33,7 @@ import AgentProjectDeleteDialog from './agent/AgentProjectDeleteDialog';
 import AgentComposer from './agent/AgentComposer';
 import AgentContextBar from './agent/AgentContextBar';
 import AgentWelcomeState from './agent/AgentWelcomeState';
+import type { ContextAnnotation } from '../utils/contextAnnotations';
 import ChangeReviewPanel from './agent/ChangeReviewPanel';
 import { useAgentApproval } from './agent/useAgentApproval';
 import { AgentContent, type AgentSettingsSection } from './settings/AgentContent';
@@ -275,6 +276,7 @@ export default function AgentPanel({
     Record<string, ProjectThreadSummary[]>
   >({});
   const [draftMessage, setDraftMessage] = useState('');
+  const [contextAnnotations, setContextAnnotations] = useState<ContextAnnotation[]>([]);
   const [currentBudget, setCurrentBudget] = useState<number>(0);
   const [currentTokens, setCurrentTokens] = useState<number>(0);
   const [agentModes, setAgentModes] = useState<Record<string, 'plan' | 'always-allow'>>(() => {
@@ -1812,6 +1814,8 @@ export default function AgentPanel({
     agentRuntimeRef,
     attachedImages,
     attachedFiles,
+    contextAnnotations,
+    clearContextAnnotations: () => setContextAnnotations([]),
     visionCapabilities,
     agentModesRef,
     projectPathRef,
@@ -1840,7 +1844,10 @@ export default function AgentPanel({
   });
 
   const hasComposerInput =
-    draftMessage.trim().length > 0 || attachedImages.length > 0 || attachedFiles.length > 0;
+    draftMessage.trim().length > 0 ||
+    attachedImages.length > 0 ||
+    attachedFiles.length > 0 ||
+    contextAnnotations.length > 0;
   const isComposerStopping = selectedPendingSessionKey
     ? isStopRequested(selectedPendingSessionKey)
     : false;
@@ -1851,14 +1858,16 @@ export default function AgentPanel({
       inputValue: draftMessage,
       attachedFiles,
       attachedImages,
+      contextAnnotations,
     }),
-    [draftMessage, attachedFiles, attachedImages]
+    [draftMessage, attachedFiles, attachedImages, contextAnnotations]
   );
 
   const clearComposer = useCallback(() => {
     setDraftMessage('');
     clearAttachedFiles();
     clearAttachedImages();
+    setContextAnnotations([]);
     if (draftTextareaRef.current) {
       draftTextareaRef.current.style.height = 'auto';
     }
@@ -1869,10 +1878,12 @@ export default function AgentPanel({
       inputValue: string;
       attachedFiles: typeof attachedFiles;
       attachedImages: typeof attachedImages;
+      contextAnnotations?: ContextAnnotation[];
     }) => {
       setDraftMessage(payload.inputValue);
       setAttachedFiles(payload.attachedFiles);
       setAttachedImages(payload.attachedImages);
+      setContextAnnotations(payload.contextAnnotations ?? []);
       if (draftTextareaRef.current) {
         draftTextareaRef.current.style.height = 'auto';
       }
@@ -1909,6 +1920,7 @@ export default function AgentPanel({
       draftMessage: payload.inputValue,
       attachedFiles: payload.attachedFiles,
       attachedImages: payload.attachedImages,
+      contextAnnotations: payload.contextAnnotations,
     }),
   });
 
@@ -2223,6 +2235,9 @@ export default function AgentPanel({
       isDragOver={isDragOver}
       attachedFiles={attachedFiles}
       attachedImages={attachedImages}
+      contextAnnotations={contextAnnotations}
+      onContextAnnotationsChange={setContextAnnotations}
+      projectPath={projectPath}
       queuedMessages={queuedMessages}
       onRestoreQueuedMessage={restoreQueuedMessage}
       onRemoveQueuedMessage={removeQueuedMessage}

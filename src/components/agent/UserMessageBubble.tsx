@@ -3,6 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
 import { useTranslation } from '../../i18n';
 import type { ChatMessage } from '../../types/chat';
+import {
+  extractAnnotationLabelsFromPrefix,
+  splitPrefixedUserMessageContent,
+} from '../../utils/contextAnnotations';
 import styles from './UserMessageBubble.module.css';
 
 export interface UserMessageBubbleProps {
@@ -19,13 +23,16 @@ export default function UserMessageBubble({
   editDisabled = false,
 }: UserMessageBubbleProps) {
   const t = useTranslation();
+  const markers = [t.chat.contextAnnotation, t.chat.fileContext];
+  const { prefix, body } = splitPrefixedUserMessageContent(message.text || '', markers);
+  const annotationLabels = extractAnnotationLabelsFromPrefix(prefix);
+  const displayText = message.slashCommand?.displayText ?? body;
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(message.slashCommand?.displayText ?? message.text);
+  const [draft, setDraft] = useState(displayText);
   const [isResending, setIsResending] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  const displayText = message.slashCommand?.displayText ?? message.text;
+  const hasBody = Boolean(displayText || editing);
 
   const beginEdit = useCallback(() => {
     if (editDisabled || !onResendFromUserMessage) return;
@@ -114,7 +121,10 @@ export default function UserMessageBubble({
                 display: 'flex',
                 gap: '8px',
                 flexWrap: 'wrap',
-                marginBottom: displayText || message.fileAttachments?.length ? '8px' : '0',
+                marginBottom:
+                  hasBody || message.fileAttachments?.length || annotationLabels.length
+                    ? '8px'
+                    : '0',
               }}
             >
               {message.attachments.map((att) => (
@@ -133,17 +143,45 @@ export default function UserMessageBubble({
               ))}
             </div>
           )}
-          {message.fileAttachments && message.fileAttachments.length > 0 && (
+          {(annotationLabels.length > 0 ||
+            (message.fileAttachments && message.fileAttachments.length > 0)) && (
             <div
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '4px',
-                marginBottom: displayText || editing ? '8px' : 0,
+                marginBottom: hasBody ? '8px' : 0,
                 whiteSpace: 'normal',
               }}
             >
-              {message.fileAttachments.map((file) => (
+              {annotationLabels.map((label) => (
+                <div
+                  key={label}
+                  title={label}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 7px',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '5px',
+                    fontSize: '11px',
+                    maxWidth: '200px',
+                  }}
+                >
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {label}
+                  </span>
+                </div>
+              ))}
+              {message.fileAttachments?.map((file) => (
                 <div
                   key={file.id}
                   style={{

@@ -12,7 +12,10 @@ import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers
 import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
 import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
 import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
-import { splitChatUserMessageContent } from './chatUserMessageEdit';
+import {
+  extractAnnotationLabelsFromPrefix,
+  splitPrefixedUserMessageContent,
+} from '../../utils/contextAnnotations';
 import type { Message } from './types';
 import userBubbleStyles from './ChatUserBubble.module.css';
 
@@ -50,15 +53,18 @@ function MessageBubble({
   const normalizeBr = (text?: string) => (text || '').replace(/<br\s*\/?\s*>/gi, '\n');
   // Model payload stays in message.content; bubble prefers slash short form for the body.
   const storedContent = message.content || '';
+  const prefixMarkers = [t.chat.contextAnnotation, t.chat.fileContext];
+  const { prefix: storedPrefix } = splitPrefixedUserMessageContent(
+    storedContent,
+    prefixMarkers
+  );
+  const annotationLabels = extractAnnotationLabelsFromPrefix(storedPrefix);
   const displaySeparation = isUser
     ? {
         text: message.slashCommand
-          ? (() => {
-              const { prefix } = splitChatUserMessageContent(storedContent, t.chat.fileContext);
-              return prefix
-                ? `${prefix}${message.slashCommand!.displayText}`
-                : message.slashCommand!.displayText;
-            })()
+          ? storedPrefix
+            ? `${storedPrefix}${message.slashCommand!.displayText}`
+            : message.slashCommand!.displayText
           : storedContent,
         thinking: '',
       }
@@ -89,34 +95,23 @@ function MessageBubble({
 
   const rawContent = displaySeparation.text || '';
   const imageAttachments = message.attachments || [];
-  const hasFileContext = isUser && rawContent.startsWith(t.chat.fileContext);
+  const hasContextPrefix =
+    isUser &&
+    (rawContent.startsWith(t.chat.contextAnnotation) || rawContent.startsWith(t.chat.fileContext));
   let displayedContent = rawContent;
-  const fileNames: string[] = [];
+  const fileNames: string[] = [...annotationLabels];
 
-  if (hasFileContext) {
-    const splitIndex = rawContent.lastIndexOf('\n---\n\n');
-    if (splitIndex !== -1) {
-      const contextPart = rawContent.substring(0, splitIndex);
-      displayedContent = rawContent.substring(splitIndex + 6);
-
-      const contextNoCode = contextPart.replace(/```[\s\S]*?```/g, '');
-      const headingMatches = contextNoCode.matchAll(/## (.+?)\n/g);
-      for (const match of headingMatches) {
-        fileNames.push(match[1].trim());
-      }
-
-      if (fileNames.length === 0) {
-        const listMatches = contextNoCode.matchAll(/^- (.+?) \(`[^`]+`\)$/gm);
-        for (const match of listMatches) {
-          fileNames.push(match[1].trim());
-        }
-      }
+  if (hasContextPrefix) {
+    const { prefix, body } = splitPrefixedUserMessageContent(rawContent, prefixMarkers);
+    displayedContent = body;
+    if (fileNames.length === 0) {
+      fileNames.push(...extractAnnotationLabelsFromPrefix(prefix));
     }
   }
 
   const editableBody = isUser
     ? (message.slashCommand?.displayText ??
-      splitChatUserMessageContent(storedContent, t.chat.fileContext).body)
+      splitPrefixedUserMessageContent(storedContent, prefixMarkers).body)
     : '';
 
   const beginEdit = useCallback(() => {
@@ -227,14 +222,14 @@ function MessageBubble({
   const showContent =
     hasTextContent ||
     imageAttachments.length > 0 ||
-    (hasFileContext && fileNames.length > 0) ||
+    fileNames.length > 0 ||
     editing;
 
   if (
     !editing &&
     !hasThinking &&
     !imageAttachments.length &&
-    !(hasFileContext && fileNames.length > 0) &&
+    fileNames.length === 0 &&
     cleanedNormalizedContent.trim().length === 0
   ) {
     return null;
@@ -340,7 +335,7 @@ function MessageBubble({
                   style={{
                     marginBottom:
                       cleanedNormalizedContent ||
-                      (hasFileContext && fileNames.length > 0) ||
+                      (fileNames.length > 0) ||
                       editing
                         ? '8px'
                         : '0',
@@ -396,7 +391,7 @@ function MessageBubble({
                 </div>
               )}
 
-              {hasFileContext && fileNames.length > 0 && (
+              {fileNames.length > 0 && (
                 <div
                   style={{
                     display: 'flex',
