@@ -386,6 +386,11 @@ export interface I18nMessages {
     commitMessageV2: string;
     commitSummaryPlaceholder: string;
     commitDescriptionPlaceholder: string;
+    generateCommitMessage: string;
+    generateCommitMessageBusy: string;
+    generateCommitMessageNoStaged: string;
+    generateCommitMessageFailed: string;
+    generateCommitMessageNoAi: string;
     aheadLabel: string;
     behindLabel: string;
     branchActionNew: string;

@@ -128,6 +128,120 @@ pub async fn generate_conversation_title(
     }
 }
 
+#[tauri::command]
+pub async fn generate_commit_message(
+    provider: String,
+    model: String,
+    diff_text: String,
+    file_summary: Option<String>,
+    profile_id: Option<String>,
+) -> Result<String, String> {
+    let diff = diff_text.trim();
+    if diff.is_empty() {
+        return Err("diff_text is empty".to_string());
+    }
+
+    let config_str = load_ai_config().map_err(|e| e.to_string())?;
+    if config_str.is_empty() {
+        return Err("AI config not found".to_string());
+    }
+
+    let config_json: serde_json::Value =
+        serde_json::from_str(&config_str).map_err(|e| format!("Invalid AI config: {}", e))?;
+
+    let mut ai_config: AIConfig = profile_id
+        .as_deref()
+        .filter(|id| !id.trim().is_empty())
+        .and_then(|id| get_profile_config_by_id(&config_json, &provider, id))
+        .or_else(|| get_active_profile_config(&config_json, &provider))
+        .or_else(|| {
+            config_json
+                .get("configs")
+                .and_then(|configs| configs.get(&provider))
+                .and_then(|provider_config| serde_json::from_value(provider_config.clone()).ok())
+        })
+        .ok_or_else(|| format!("No config for provider: {}", provider))?;
+
+    ai_config.model = model;
+    ensure_ai_model(&mut ai_config).map_err(|e| e.to_string())?;
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+
+    let mut prompt = String::new();
+    prompt.push_str("Write a Git commit message for the staged diff below.\n");
+    prompt.push_str("Requirements:\n");
+    prompt.push_str("- Use Conventional Commits: type(optional scope): subject\n");
+    prompt.push_str("- First line (subject) must be <= 72 characters\n");
+    prompt.push_str("- Optionally add a blank line then a short body with bullet points\n");
+    prompt.push_str("- Match the language of code comments/strings in the diff (Chinese or English)\n");
+    prompt.push_str("- Output ONLY the commit message text — no quotes, no markdown fences, no thinking tags, no explanation\n\n");
+
+    if let Some(summary) = file_summary
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        prompt.push_str("Changed files summary:\n");
+        prompt.push_str(summary);
+        prompt.push_str("\n\n");
+    }
+
+    prompt.push_str("Staged diff:\n");
+    prompt.push_str("```diff\n");
+    prompt.push_str(diff);
+    prompt.push_str("\n```\n");
+
+    let content = if provider == "anthropic" {
+        serde_json::json!([{"type":"text","text": prompt}])
+    } else {
+        serde_json::Value::String(prompt)
+    };
+
+    let messages = vec![ChatMessage {
+        role: "user".to_string(),
+        content,
+        attachments: None,
+        tool_calls: None,
+        tool_call_id: None,
+        tool_name: None,
+        tool_args: None,
+        thinking: None,
+        thinking_started_at: None,
+        thinking_ended_at: None,
+        thinking_signature: None,
+        is_error: None,
+        slash_command: None,
+    }];
+
+    let result = match provider.as_str() {
+        "openai" => send_openai_chat(&client, &ai_config, messages, 1).await,
+        "anthropic" => send_anthropic_chat(&client, &ai_config, messages, 1).await,
+        "ollama" => send_ollama_chat(&client, &ai_config, messages, 1).await,
+        _ => Err(format!("Unknown provider: {}", provider)),
+    };
+
+    result.map(|raw| strip_commit_message_noise(&raw))
+}
+
+fn strip_commit_message_noise(raw: &str) -> String {
+    let mut text = raw.trim().to_string();
+    if let Some(caps) = regex::Regex::new(r"(?is)```(?:\w+)?\s*([\s\S]*?)```")
+        .ok()
+        .and_then(|re| re.captures(&text))
+    {
+        if let Some(m) = caps.get(1) {
+            text = m.as_str().trim().to_string();
+        }
+    }
+    text.trim()
+        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+        .trim()
+        .to_string()
+}
+
 pub fn generate_default_title(user_text: &str, file_names: &Option<Vec<String>>) -> String {
     if let Some(files) = file_names {
         let names: Vec<&str> = files

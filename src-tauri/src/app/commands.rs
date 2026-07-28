@@ -187,6 +187,7 @@ pub fn attach_handlers(
         crate::image_gen::test_image_generation,
         crate::chat::generate_conversation_title,
         crate::chat::generate_compact_summary,
+        crate::chat::generate_commit_message,
         crate::chat::send_ai_chat_stream,
         crate::chat::cancel_ai_chat,
         // conversation

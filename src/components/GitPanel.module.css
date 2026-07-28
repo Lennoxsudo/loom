@@ -1379,8 +1379,15 @@
   gap: 8px;
 }
 
+.dockSummaryRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .dockSummaryInput {
-  width: 100%;
+  flex: 1;
   min-width: 0;
   height: 40px;
   padding: 0 12px;
@@ -1403,6 +1410,55 @@
 .dockSummaryInput:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.dockGenerateBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #3d9970 28%, var(--border-primary));
+  background: color-mix(in srgb, #3d9970 9%, var(--bg-input));
+  color: color-mix(in srgb, #3d9970 82%, var(--text-primary));
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.dockGenerateBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, #3d9970 16%, var(--bg-input));
+  border-color: color-mix(in srgb, #3d9970 42%, var(--border-primary));
+  color: color-mix(in srgb, #3d9970 92%, var(--text-primary));
+}
+
+.dockGenerateBtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.dockGenerateBtn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.dockGenerateBtnBusy {
+  pointer-events: none;
+}
+
+.dockGenerateBtnBusy svg {
+  animation: dockGenerateSpin 1.1s linear infinite;
+}
+
+@keyframes dockGenerateSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .stashSection {

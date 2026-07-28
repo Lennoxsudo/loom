@@ -8,14 +8,15 @@ import {
 } from '../coreSystemPrompt';
 
 describe('buildRuntimeIdentityPrompt', () => {
-  it('includes Loom app name and provider/model', () => {
+  it('includes Loom app name and model id', () => {
     const prompt = buildRuntimeIdentityPrompt({
       provider: 'openai',
       model: 'gpt-4o',
     });
 
     expect(prompt).toContain(APP_DISPLAY_NAME);
-    expect(prompt).toContain('openai/gpt-4o');
+    expect(prompt).toContain('You are the active model: gpt-4o.');
+    expect(prompt).not.toContain('openai/gpt-4o');
     expect(prompt).toContain('## Runtime Context');
   });
 });

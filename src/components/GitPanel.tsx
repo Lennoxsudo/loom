@@ -18,6 +18,10 @@ import {
 } from '../utils/friendlyGitError';
 import { formatGitPushFailureMessage } from '../utils/friendlyGitPushError';
 import {
+  GenerateCommitMessageError,
+  generateCommitMessageFromStagedDiff,
+} from '../utils/generateCommitMessage';
+import {
   formatBlameEpochDate,
   isUnmergedBranchDeleteError,
   isValidBranchName,
@@ -29,6 +33,7 @@ import {
 } from '../utils/gitPathDisplay';
 import { getLanguage } from '../utils/editorUtils';
 import { normalizePathForCompare } from '../utils/pathUtils';
+import { SparklesIcon } from './shared/Icons';
 import { GitPanelContextMenu, type GitPanelMenuEntry } from './GitPanelContextMenu';
 import { GitBranchSelect } from './GitBranchSelect';
 import styles from './GitPanel.module.css';
@@ -672,6 +677,7 @@ export default function GitPanel({
   const [branchFormValue, setBranchFormValue] = useState('');
   const [branchFormTarget, setBranchFormTarget] = useState('');
   const [commitsLoadingMore, setCommitsLoadingMore] = useState(false);
+  const [generateCommitBusy, setGenerateCommitBusy] = useState(false);
   const [hasMoreCommits, setHasMoreCommits] = useState(true);
   const [changesTab, setChangesTab] = useState<ChangesTab>('unstaged');
   const [showAllCommits, setShowAllCommits] = useState(true);
@@ -1512,6 +1518,40 @@ export default function GitPanel({
       await afterMutation();
     } catch (e) {
       showError(formatGitCommitFailureMessage(String(e), t.git));
+    }
+  };
+
+  const handleGenerateCommitMessage = async () => {
+    if (!projectPath || !hasStaged || generateCommitBusy || loading) return;
+    setGenerateCommitBusy(true);
+    try {
+      const draft = await generateCommitMessageFromStagedDiff(projectPath);
+      setCommitSummary(draft.summary);
+      setCommitDescription(draft.description);
+      setGitPanelDraft(projectPath, {
+        commitSummary: draft.summary,
+        commitDescription: draft.description,
+        recentCommitNotice,
+      });
+    } catch (e) {
+      if (e instanceof GenerateCommitMessageError) {
+        if (e.code === 'NO_STAGED') {
+          showWarning(t.git.generateCommitMessageNoStaged);
+        } else if (e.code === 'NO_AI_CONFIG') {
+          showWarning(t.git.generateCommitMessageNoAi);
+        } else {
+          showError(t.git.generateCommitMessageFailed.replace('{error}', e.message));
+        }
+      } else {
+        showError(
+          t.git.generateCommitMessageFailed.replace(
+            '{error}',
+            e instanceof Error ? e.message : String(e)
+          )
+        );
+      }
+    } finally {
+      setGenerateCommitBusy(false);
     }
   };
 
@@ -2515,26 +2555,48 @@ export default function GitPanel({
       {isGitRepo === true && status && (
         <div className={styles.bottomDock}>
           <div className={styles.dockCommitForm}>
-            <input
-              className={styles.dockSummaryInput}
-              type="text"
-              value={commitSummary}
-              placeholder={t.git.commitSummaryPlaceholder}
-              disabled={loading || gitOpsDisabled}
-              aria-label={t.git.commitSummaryPlaceholder}
-              onChange={(e) => setCommitSummary(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                  e.preventDefault();
-                  void handleCommit();
+            <div className={styles.dockSummaryRow}>
+              <input
+                className={styles.dockSummaryInput}
+                type="text"
+                value={commitSummary}
+                placeholder={t.git.commitSummaryPlaceholder}
+                disabled={loading || gitOpsDisabled || generateCommitBusy}
+                aria-label={t.git.commitSummaryPlaceholder}
+                onChange={(e) => setCommitSummary(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleCommit();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className={`${styles.dockGenerateBtn} ${
+                  generateCommitBusy ? styles.dockGenerateBtnBusy : ''
+                }`}
+                onClick={() => void handleGenerateCommitMessage()}
+                disabled={!hasStaged || loading || gitOpsDisabled || generateCommitBusy}
+                title={
+                  generateCommitBusy
+                    ? t.git.generateCommitMessageBusy
+                    : t.git.generateCommitMessage
                 }
-              }}
-            />
+                aria-label={
+                  generateCommitBusy
+                    ? t.git.generateCommitMessageBusy
+                    : t.git.generateCommitMessage
+                }
+              >
+                <SparklesIcon size={16} style={{ stroke: 'currentColor', opacity: 1 }} />
+              </button>
+            </div>
             <textarea
               className={styles.dockCommitField}
               placeholder={t.git.commitDescriptionPlaceholder}
               value={commitDescription}
-              disabled={loading || gitOpsDisabled}
+              disabled={loading || gitOpsDisabled || generateCommitBusy}
               aria-label={t.git.commitDescriptionPlaceholder}
               onChange={(e) => setCommitDescription(e.target.value)}
               onKeyDown={(e) => {
@@ -2550,7 +2612,7 @@ export default function GitPanel({
               type="button"
               className={styles.dockPrimaryBtn}
               onClick={() => void handleCommit()}
-              disabled={!hasStaged || loading}
+              disabled={!hasStaged || loading || generateCommitBusy}
             >
               {t.git.commit}
             </button>

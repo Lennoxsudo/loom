@@ -35,8 +35,9 @@ pub use message_builder::{
 };
 
 pub use send::{
-    __cmd__cancel_ai_chat, __cmd__generate_compact_summary, __cmd__generate_conversation_title,
-    cancel_ai_chat, generate_compact_summary, generate_conversation_title,
+    __cmd__cancel_ai_chat, __cmd__generate_compact_summary, __cmd__generate_commit_message,
+    __cmd__generate_conversation_title, cancel_ai_chat, generate_compact_summary,
+    generate_commit_message, generate_conversation_title,
 };
 
 pub use stream::{__cmd__send_ai_chat_stream, send_ai_chat_stream};
