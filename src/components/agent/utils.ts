@@ -33,10 +33,7 @@ import {
   type AutoRoutingResolveOptions,
   type LoadedAiConfig,
 } from '../../utils/aiProviderRuntime';
-import {
-  BUILTIN_PROFILE_ID,
-  isBuiltinProtocol,
-} from '../../utils/builtinGateway';
+import { BUILTIN_PROFILE_ID, isBuiltinProtocol } from '../../utils/builtinGateway';
 import type { AgentRoutingMode } from '../../utils/agentPersistence';
 
 export { parseProviderAndModel };

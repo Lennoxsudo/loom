@@ -31,9 +31,7 @@ export const TOOL_RESULT_AGED_SUFFIX =
 const LEGACY_TOOL_RESULT_AGED_SUFFIX = '... [tool result aged to save context]';
 
 export function isAgedToolResultText(text: string): boolean {
-  return (
-    text.includes(TOOL_RESULT_AGED_SUFFIX) || text.includes(LEGACY_TOOL_RESULT_AGED_SUFFIX)
-  );
+  return text.includes(TOOL_RESULT_AGED_SUFFIX) || text.includes(LEGACY_TOOL_RESULT_AGED_SUFFIX);
 }
 
 /**

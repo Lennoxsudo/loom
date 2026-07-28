@@ -56,7 +56,7 @@ describe('streamChunkSeparation', () => {
     test('promotes Gemini <thought> tags into the thinking bubble', () => {
       const result = applyTrustedStreamSeparation({
         rawContent:
-          '<thought>\n**Acknowledge User\'s Greeting**\nI registered the greeting.\n</thought>\n你好！有什么可以帮你？',
+          "<thought>\n**Acknowledge User's Greeting**\nI registered the greeting.\n</thought>\n你好！有什么可以帮你？",
         rawThinking: '',
         chunk_type: 'content',
         chunk: '你好！有什么可以帮你？',
@@ -75,8 +75,7 @@ describe('streamChunkSeparation', () => {
     test('does not discard <thought> when native flag is set but rawThinking is empty', () => {
       // Regression: strip-from-body + thinking:'' discarded Gemini thoughts after tag parsing was fixed.
       const result = applyTrustedStreamSeparation({
-        rawContent:
-          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        rawContent: '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
         rawThinking: '',
         chunk_type: 'content',
         chunk: '你好！请问有什么可以帮你？',
@@ -142,8 +141,7 @@ describe('streamChunkSeparation', () => {
     });
 
     test('keeps a single native segment when </thinking> separates alternate paraphrases', () => {
-      const first =
-        '用户问我是什么人。这是一个比较开放的问题，我需要基于我观察到的信息来回答。';
+      const first = '用户问我是什么人。这是一个比较开放的问题，我需要基于我观察到的信息来回答。';
       const second =
         '用户问我“你觉得我是什么人”。这是一个比较主观的问题。让我看看我能从当前环境中获取什么信息。';
       const rawThinking = `${first}\n</thinking>\n\n${second}`;
@@ -199,8 +197,7 @@ describe('streamChunkSeparation', () => {
     test('finalize with native reasoning ignores bilingual content <thinking> tags', () => {
       const nativeEnglish = 'The user asked who I think they are.';
       const result = finalizeStreamMessage({
-        rawContent:
-          '<thinking>\n用户在问我是什么人。\n</thinking>\n\n坦白说，我对你几乎一无所知。',
+        rawContent: '<thinking>\n用户在问我是什么人。\n</thinking>\n\n坦白说，我对你几乎一无所知。',
         rawThinking: nativeEnglish,
         streamContent: '坦白说，我对你几乎一无所知。',
         streamThinking: nativeEnglish,
@@ -214,11 +211,9 @@ describe('streamChunkSeparation', () => {
 
     test('finalize promotes Gemini <thought> tags without native reasoning stream', () => {
       const result = finalizeStreamMessage({
-        rawContent:
-          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        rawContent: '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
         rawThinking: '',
-        streamContent:
-          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        streamContent: '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
         streamThinking: '',
         receivedThinkingChunks: false,
       });
@@ -229,11 +224,9 @@ describe('streamChunkSeparation', () => {
 
     test('finalize does not discard <thought> when receivedThinkingChunks is true but thinking empty', () => {
       const result = finalizeStreamMessage({
-        rawContent:
-          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        rawContent: '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
         rawThinking: '',
-        streamContent:
-          '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
+        streamContent: '<thought>\nPlan the greeting.\n</thought>\n\n你好！请问有什么可以帮你？',
         streamThinking: '',
         receivedThinkingChunks: true,
       });
@@ -244,8 +237,7 @@ describe('streamChunkSeparation', () => {
 
     test('finalize does not concatenate divergent native thinking paraphrases', () => {
       const streamed = '用户问我是什么人。这是一个比较开放的问题。';
-      const raw =
-        '用户问我“你觉得我是什么人”。这是一个比较主观的问题。让我看看环境信息。';
+      const raw = '用户问我“你觉得我是什么人”。这是一个比较主观的问题。让我看看环境信息。';
       const result = finalizeStreamMessage({
         rawContent: '坦白说，我对你几乎一无所知。',
         rawThinking: raw,

@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  appendReadFilesSection,
-  collectReadFilePathsFromMessages,
-} from '../readFilePaths';
+import { appendReadFilesSection, collectReadFilePathsFromMessages } from '../readFilePaths';
 import type { CompactableMessage } from '../types';
 
 describe('compact/readFilePaths', () => {
@@ -22,10 +19,7 @@ describe('compact/readFilePaths', () => {
       },
     ];
 
-    expect(collectReadFilePathsFromMessages(messages)).toEqual([
-      'src/App.tsx',
-      'src/main.ts',
-    ]);
+    expect(collectReadFilePathsFromMessages(messages)).toEqual(['src/App.tsx', 'src/main.ts']);
   });
 
   it('collects paths from assistant read tool_calls', () => {

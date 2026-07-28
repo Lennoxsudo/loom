@@ -125,7 +125,7 @@ export function applyTrustedStreamSeparation(
 
   const fromContent = separateContentChannelThinking(rawContent);
   let content = fromContent.text;
-  let thinking = '';
+  let thinking: string;
 
   if (nextReceivedThinkingChunks) {
     // Prefer native stream, but never drop Gemini <thought> left in content.

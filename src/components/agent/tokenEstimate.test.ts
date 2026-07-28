@@ -355,7 +355,7 @@ function computeTokenBreakdown(
   let skillsTokens = 0;
   let agentDescTokens = 0;
   let projectPathTokens = 0;
-  let thinkingTokens = 0;
+  const thinkingTokens = 0;
   let rulesTokens = 0;
   let planModeTokens = 0;
   let userMsgTokens = 0;

@@ -94,11 +94,7 @@ export default function AgentApp({ projectPath: initialProjectPath }: AgentAppPr
 
     const applyDocumentTheme = () => {
       const resolvedTheme =
-        themeMode === 'system'
-          ? mediaQuery?.matches
-            ? 'oled-void'
-            : 'studio-paper'
-          : themeMode;
+        themeMode === 'system' ? (mediaQuery?.matches ? 'oled-void' : 'studio-paper') : themeMode;
       const baseColorScheme = resolveThemeFromMode(resolvedTheme);
       document.documentElement.dataset.theme = resolvedTheme;
       document.documentElement.style.colorScheme = baseColorScheme;

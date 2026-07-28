@@ -38,8 +38,7 @@ export function extractThinkingContent(
   const thoughtRegex = /<thought[\s\S]*?>([\s\S]*?)<\/thought>/i;
   const thinkRegex = /<think>([\s\S]*?)<\/think>/i;
 
-  let thinkingMatch =
-    thinkingRegex.exec(text) || thoughtRegex.exec(text) || thinkRegex.exec(text);
+  let thinkingMatch = thinkingRegex.exec(text) || thoughtRegex.exec(text) || thinkRegex.exec(text);
 
   // 如果没有匹配到标准标签，尝试中文标签
   if (!thinkingMatch) {
@@ -1220,12 +1219,7 @@ export function mergeDistinctTextSegments(prefixText: string, existingText: stri
   return `${prefix}\n\n${existing}`.trim();
 }
 
-const CLOSING_THINK_TAG_LITERALS = [
-  '</thinking>',
-  '</thought>',
-  '</think>',
-  '思考结束',
-] as const;
+const CLOSING_THINK_TAG_LITERALS = ['</thinking>', '</thought>', '</think>', '思考结束'] as const;
 
 /**
  * Remove stray think-tag artifacts from display text (does not split at closing tags).
