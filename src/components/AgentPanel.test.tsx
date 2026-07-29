@@ -318,8 +318,8 @@ test('AgentPanel 空白态展示桌面端欢迎语与 composer', async () => {
   expect(await screen.findByText(/What should we build in/i)).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Type freely')).toBeInTheDocument();
   expect(
-    screen.queryByRole('button', { name: 'Explain this project structure' })
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Explain this project structure' })
+  ).toBeInTheDocument();
 });
 
 test('AgentPanel shows project-scoped threads in sidebar', async () => {

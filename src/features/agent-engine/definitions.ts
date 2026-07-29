@@ -24,7 +24,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         command: {
           type: 'string',
           description:
-            'The command to execute. Required for the run action. Ignored for other actions.',
+            'The command to execute. Required for the run action. Ignored for other actions. ' +
+            'On Windows PowerShell, top-level bash-style && / || chains are rewritten automatically.',
         },
         tid: {
           type: 'string',
@@ -629,7 +630,7 @@ export const AI_TOOLS: ToolDefinition[] = [
         url: {
           type: 'string',
           description:
-            'The URL to fetch. Must be publicly accessible (http/https). HTTP is auto-upgraded to HTTPS.',
+            'The URL to fetch (http/https).',
         },
         method: {
           type: 'string',
@@ -994,6 +995,7 @@ export const AI_TOOLS: ToolDefinition[] = [
       '\n' +
       'Pick ONE action — typical scenarios:\n' +
       '  search  — Find symbol definitions by name. Scenario: "where is AuthService defined?" / Go-to-Symbol.\n' +
+      "             Prefer this over root-level filesystem search when the project is indexed.\n" +
       "  snippet — Read one symbol's source code. Scenario: after search, view the function body.\n" +
       '  code    — Grep text inside symbol bodies. Scenario: "which functions mention TODO or use deprecated API?"\n' +
       '  schema  — List graph entity types (labels, edge types). Scenario: before writing a Cypher query, learn what exists.\n' +
@@ -1097,6 +1099,8 @@ export const AI_TOOLS: ToolDefinition[] = [
       '\n' +
       'action=architecture — text report of project structure: packages (fan-in/out), entry points, inferred layers,\n' +
       '  language breakdown, node/edge counts. NOT a rendered diagram.\n' +
+      '  Prefer this over root-level search/finfo when orienting in an unfamiliar indexed project,\n' +
+      '  unless the user already pointed at specific files.\n' +
       '\n' +
       'action=changes — compares current DISK files vs last index snapshot (NOT git). Lists changed files + impacted symbols.\n' +
       '  Optional function_name filters changed_files by path substring (e.g. "products.ts"). node_modules/vendor/dist excluded by default.\n' +

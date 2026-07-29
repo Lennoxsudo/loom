@@ -93,24 +93,56 @@ describe('filterToolsForSubagentType (方法 14)', () => {
       makeTool('read'),
       makeTool('read_file'),
       makeTool('search'),
-      makeTool('glob'),
-      makeTool('grep'),
+      makeTool('finfo'),
+      makeTool('sym'),
       makeTool('get_file_tree'),
       makeTool('write'),
       makeTool('edit'),
-      makeTool('terminal'),
+      makeTool('term'),
     ];
     const result = filterToolsForSubagentType(tools, 'research');
     const names = result.map((t) => t.name);
     expect(names).toContain('read');
     expect(names).toContain('search');
-    expect(names).toContain('glob');
-    expect(names).toContain('grep');
+    expect(names).toContain('finfo');
+    expect(names).toContain('sym');
     expect(names).toContain('get_file_tree');
     // Write tools should be excluded for research
     expect(names).not.toContain('write');
     expect(names).not.toContain('edit');
-    expect(names).not.toContain('terminal');
+    expect(names).not.toContain('term');
+  });
+
+  it('applies the same read-only preset for Explore and Plan', () => {
+    const tools = [
+      makeTool('read'),
+      makeTool('search'),
+      makeTool('finfo'),
+      makeTool('graph_query'),
+      makeTool('write'),
+      makeTool('term'),
+    ];
+    for (const type of ['Explore', 'Plan'] as const) {
+      const names = filterToolsForSubagentType(tools, type).map((t) => t.name);
+      expect(names).toEqual(['read', 'search', 'finfo', 'graph_query']);
+    }
+  });
+
+  it('does not drop search when only canonical search exists (no legacy glob/grep tools)', () => {
+    const tools = [
+      makeTool('read'),
+      makeTool('search'),
+      makeTool('glob'),
+      makeTool('grep'),
+      makeTool('write'),
+    ];
+    for (const type of ['Explore', 'Plan', 'research'] as const) {
+      const names = filterToolsForSubagentType(tools, type).map((t) => t.name);
+      expect(names).toContain('search');
+      expect(names).not.toContain('glob');
+      expect(names).not.toContain('grep');
+      expect(names).not.toContain('write');
+    }
   });
 
   it('includes write tools for coder type', () => {
@@ -119,7 +151,7 @@ describe('filterToolsForSubagentType (方法 14)', () => {
       makeTool('write'),
       makeTool('edit'),
       makeTool('search'),
-      makeTool('terminal'),
+      makeTool('term'),
       makeTool('generate_image'),
     ];
     const result = filterToolsForSubagentType(tools, 'coder');
@@ -128,8 +160,7 @@ describe('filterToolsForSubagentType (方法 14)', () => {
     expect(names).toContain('write');
     expect(names).toContain('edit');
     expect(names).toContain('search');
-    // terminal and image_gen not in coder preset
-    expect(names).not.toContain('terminal');
+    expect(names).toContain('term');
     expect(names).not.toContain('generate_image');
   });
 

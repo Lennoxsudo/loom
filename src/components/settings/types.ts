@@ -4,7 +4,6 @@ export type SettingsTab =
   | 'skills'
   | 'plugins'
   | 'rules'
-  | 'ai-management'
   | 'ai-config'
   | 'mcp-config'
   | 'preferences'

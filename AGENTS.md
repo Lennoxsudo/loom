@@ -6,7 +6,7 @@
 
 Loom 是本地运行的 AI 辅助 IDE：在同一工作流中整合代码编辑、项目检索、Agent、MCP、终端、内嵌浏览器、Live Server、Git 工作区与代码图谱。
 
-- **版本**：`0.1.5`（manifest）；活跃开发中
+- **版本**：`0.1.13`（manifest）；活跃开发中
 - **仓库**：https://github.com/Lennoxsudo/loom
 
 ## 技术栈
@@ -35,41 +35,58 @@ Loom 是本地运行的 AI 辅助 IDE：在同一工作流中整合代码编辑�
 
 `tauri-plugin-dialog`、`tauri-plugin-shell`、`tauri-plugin-opener`、`tauri-plugin-updater`
 
+### 内置 Sidecar
+
+| Sidecar | 用途 | 下载脚本 |
+|---------|------|----------|
+| `codebase-memory` | 代码图谱（CBM） | `npm run fetch:cbm` |
+| `whisper-cli` | 本地离线语音转文字（STT） | `npm run fetch:whisper` |
+
 ## 目录结构
 
 ```text
 loom/
 ├── src/
 │   ├── components/
-│   │   ├── agent/       # Agent 面板、工具调用、审批、子代理、变更审查
+│   │   ├── agent/       # Agent 面板、工具调用、审批、子代理、变更审查、检查点时间线
 │   │   ├── chat/        # Chat 面板（含 streamCompletionCoordinator）
-│   │   ├── editor/      # Monaco 宿主、标签、分屏
-│   │   ├── settings/    # 设置页各选项卡（含 UpdateContent 版本更新）
-│   │   ├── shared/      # 共享 UI（Markdown、图谱结果卡片等）
+│   │   ├── editor/      # Monaco 宿主、标签、分屏、Git Blame
+│   │   ├── settings/    # 设置页各选项卡（含 UpdateContent / BuiltinGatewayContent）
+│   │   ├── shared/      # 共享 UI（Markdown、图谱结果卡片、ContextMentionMenu）
 │   │   └── ...
 │   ├── hooks/
-│   ├── stores/          # Zustand stores（含 useAppUpdateStore / useUsageStore 等）
+│   ├── stores/          # Zustand stores（含 useAppUpdateStore / useUsageStore / useCheckpointStore / useBuiltinGatewayStore）
 │   ├── features/
 │   │   └── agent-engine/  # 工具 schema、Handler、执行器、引擎事件
 │   ├── shared/lib/        # pathUtils、projectPath、imageGenSizes
 │   ├── utils/
 │   │   ├── subagents/   # 子代理注册、spawn、嵌套
+│   │   ├── compact/     # 上下文自动压缩
 │   │   ├── runAgentLoop.ts
 │   │   ├── coreSystemPrompt.ts
-│   │   ├── contextBudget.ts / contextCompressor.ts
+│   │   ├── contextBudget.ts
+│   │   ├── checkpointService.ts / checkpointTimeline.ts
+│   │   ├── generateCommitMessage.ts
+│   │   ├── voiceRecording.ts
+│   │   ├── contextAnnotations.ts
+│   │   ├── builtinGateway.ts
 │   │   └── ...
 │   ├── i18n/            # zh-CN / en-US
 │   └── types/
 ├── src-tauri/
 │   ├── src/
 │   │   ├── domain/      # 领域模块（ai/chat、integration/cdp_browser 等）
-│   │   ├── cbm/         # 代码图谱 sidecar 集成
+│   │   │   ├── ai/chat/ # 含 builtin_gateway、gateway_sign
+│   │   │   └── integration/ # 含 cbm、whisper、checkpoint
+│   │   ├── security/   # sandbox、audit_log、context
 │   │   └── ...
 │   ├── capabilities/    # Tauri 权限（含 updater:default）
-│   └── binaries/        # codebase-memory sidecar（gitignore，fetch:cbm 下载）
+│   ├── binaries/        # codebase-memory + whisper-cli sidecar（gitignore，脚本下载）
+│   └── resources/whisper/  # whisper 模型与运行时 DLL
 ├── docs/releases/       # 发版与自动更新说明
 ├── scripts/
 │   ├── fetch-cbm-sidecar.mjs
+│   ├── fetch-whisper-sidecar.mjs
 │   └── check-release-version.mjs
 ├── .github/workflows/   # ci.yml、release-windows.yml
 └── package.json
@@ -87,9 +104,11 @@ loom/
 ### Provider 与路由
 
 - 支持 openai、anthropic、ollama
+- **内置网关（Gateway-X）**：无需配置 API Key 即可使用 AI；`builtin_gateway.rs` 提供 health / activate / list_models / get_quota / get_notice 命令
 - 协议配置：每协议多 profile；可复制配置；可按模型单独测试连接（`AIConfigContent`）
 - 自动路由：设置页配置 fallback 链；新消息从链首开始
 - Anthropic Extended Thinking + Prompt Caching（`src-tauri/src/domain/ai/chat/`）
+- Gemini `<thought>` 标签自动提升为 thinking 流
 
 ### 内置 CDP 浏览器
 
@@ -136,9 +155,20 @@ loom/
 
 多服务器启停、tools/resources/prompts、配置持久化。UI 展示时剥离 `mcp_` 前缀。
 
-### 变更审查
+### 变更审查与检查点
 
-位于 `components/agent/`：`ChangeReviewPanel`、`ChangeReviewDiffView` 等；后端 stage/commit/rollback。
+位于 `components/agent/`：`ChangeReviewPanel`、`ChangeReviewDiffView`、`CheckpointTimeline`、`CheckpointFilePreview` 等；后端 stage/commit/rollback + checkpoint create/restore。
+
+### 安全沙箱
+
+- Rust：`src-tauri/src/security/` — sandbox、sandbox_os、context、audit_log
+- **CallSource**：区分 `User` 与 `Ai` 来源调用；AI 调用受沙箱约束，用户操作不受限
+- **CommandDecision**：`Allow` / `Block` / `NeedsApproval` 三级命令安全判定
+- **平台隔离**：Windows 用 Job Object（进程生命周期）；Linux 用 Landlock（内核级文件系统隔离）
+- **审计日志**：`audit_log.rs` — `get_audit_logs`、`clear_audit_logs`、`audit_log_count`、`audit_path_denied`
+- **检查点**：`src-tauri/src/domain/integration/checkpoint.rs` — `checkpoint_create`、`checkpoint_list`、`checkpoint_restore`、`checkpoint_clear_session`
+- **Whisper STT**：`src-tauri/src/domain/integration/whisper.rs` — `transcribe_audio`、`whisper_available`
+- 前端配合：`agentSandbox.ts`、`checkpointService.ts`
 
 ### Windows 自动更新
 
@@ -157,15 +187,16 @@ loom/
 | `useEditorStore` | 标签页、分屏 |
 | `useFileStore` | 文件树 |
 | `useLayoutStore` | 面板布局 |
-| `useSettingsStore` | 设置与审批策略（含 `checkForUpdatesOnStartup`） |
+| `useSettingsStore` | 设置与审批策略（含 `agentAccessMode`、`toolCallDelay`、`streamSpeed` 等） |
 | `useRulesStore` | Rules |
 | `useToolStore` | MCP 工具 |
 | `useSubagentStore` | 子代理运行状态 |
 | `useAutomationStore` | 自动化规则 |
 | `useCbmStore` | 代码图谱状态 |
 | `useAppUpdateStore` | Windows 更新检查 / 下载安装运行时状态（不持久化） |
-| `useUsageStore` | 用量统计 |
-| `useCheckpointStore` | 检查点 |
+| `useUsageStore` | 用量统计与成本追踪（含消费上限） |
+| `useCheckpointStore` | 检查点状态 |
+| `useBuiltinGatewayStore` | 内置网关激活 / 配额状态 |
 
 ## 开发约定
 
@@ -213,6 +244,25 @@ loom/
 
 `types/settings.ts` → `useSettingsStore` → `components/settings/` → `i18n/*`
 
+关键设置项：
+
+| 设置 | 类型 | 说明 |
+|------|------|------|
+| `agentAccessMode` | `read_only` / `auto` / `full_access` | Agent 访问层级 |
+| `themeMode` | 9 种预设 | 主题模式 |
+| `voiceInputLanguage` | `auto` / `zh` / `en` | STT 语言 |
+| `streamSpeed` | `fast` / `normal` / `slow` | 流式输出速度 |
+| `streamSendMode` | `queue_after_stream` / `interrupt_and_send` | 流式中发送行为 |
+| `toolCallDelay` | `0` / `500` / `1000` / `2000` / `3000` / `5000` | 工具调用后延迟 |
+| `gitBlameInEditor` | `boolean` | 编辑器内 Git Blame |
+| `thinkingBlockAutoExpand` | `boolean` | 思考块自动展开 |
+| `enableUsageTracking` | `boolean` | 用量追踪总开关 |
+| `enableSpendCap` / `spendCap` | `boolean` / `number` | 消费上限 |
+| `reasoningEffort` | `low` / `medium` / `high` | 推理努力级别 |
+| `enableCdpBrowser` | `boolean` | CDP 浏览器开关 |
+| `enableCodeGraph` | `boolean` | 代码图谱开关 |
+| `enableSubagents` | `boolean` | 子代理开关 |
+
 ### Agent 相关改动
 
 优先查阅：`agentPersistence.ts`、`aiTools/`、`rulesInjector.ts`、`contextBudget.ts`、`coreSystemPrompt.ts`、`runAgentLoop.ts`
@@ -235,7 +285,8 @@ loom/
 
 ```bash
 npm install
-npm run fetch:cbm          # sidecar（开发/打包前）
+npm run fetch:cbm          # CBM sidecar（开发/打包前）
+npm run fetch:whisper      # Whisper sidecar + 模型（开发/打包前）
 npm run tauri dev          # 开发
 npm run tauri:build        # 打包（发版签名需 TAURI_SIGNING_PRIVATE_KEY*）
 npm test                   # Vitest

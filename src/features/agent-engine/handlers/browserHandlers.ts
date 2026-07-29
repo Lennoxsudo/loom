@@ -255,12 +255,12 @@ class FetchWebContentHandler implements ToolHandler<'fetch'> {
         throw ToolError.missingParam('url');
       }
 
-      // 1. URL 验证（长度、格式、公网、无凭据、HTTPS 升级）
+      // 1. URL 验证（长度、格式、协议、无凭据）
       const validation = validateFetchUrl(args.url);
       if (!validation.valid) {
         return { tool_call_id: '', output: '', error: validation.error };
       }
-      const url = validation.upgradedUrl ?? args.url;
+      const url = args.url;
 
       // 2. 查 LRU 缓存
       const cached = getCachedContent(url);

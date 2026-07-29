@@ -20,7 +20,7 @@
 
 <!-- TODO: 在此处放一张应用截图或演示 GIF，例如 ![Loom](docs/assets/screenshot.png) -->
 
-> **状态：** 开源版本 · `v0.1.5` · 持续活跃开发中，变化较快。
+> **状态：** 开源版本 · `v0.1.13` · 持续活跃开发中，变化较快。
 
 Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 辅助的 IDE：Agent 可以读写你的代码、调用工具、编排子代理，并通过内置的代码知识图谱理解你的项目。
 
@@ -54,15 +54,22 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 - 多 Provider：**OpenAI、Anthropic、Ollama** — 流式输出、工具调用、思考块、图片附件
 - 单 Agent 全局配置；**按项目分会话，磁盘为唯一真相源**
 - **AI 协议配置**：同一协议下多份 Endpoint 配置、**复制配置**、**按模型单独测试连接**
-- **工具审批模式** — 执行前如何对待工具调用：
-  - `always` — 自动执行，不询问
-  - `request` — 先征求用户同意
-  - `deny` — 禁止调用
+- **Agent 访问层级** — 三级工具审批策略：
+  - `read_only` — 仅允许只读工具（read、search、finfo、sym、fetch、web_search、graph_query、graph_trace）
+  - `auto` — 只读工具自动执行；写/执行工具需征求用户同意
+  - `full_access` — 所有工具自动执行，不询问
 - **Agent 能力开关** — 控制 Agent 可使用的权限：
   - `canExecuteCommands` · `canAccessBrowser` · `canUseGit` · `canUseMcp`
 - 自动模型路由与 fallback 链
 - Anthropic Extended Thinking + Prompt Caching；自动上下文压缩与会话持久化
-- 聊天体验：用户气泡与 AI 输出间距更清晰；思考中标签**逐字闪光**
+- **内置模型网关** — 无需配置自己的 API Key 即可使用 AI；在设置 → **网关** 中激活
+- **语音输入** — 内置 whisper.cpp sidecar 实现本地离线语音转文字；STT 语言可独立于界面语言配置
+- **AI 生成 commit message** — 一键从暂存 diff 生成 Conventional Commits 格式的提交消息
+- **编辑器内 Git Blame** — 在 Monaco 编辑器中直接显示 blame 标注
+- **上下文 @提及** — 在聊天输入框中输入 `@` 可提及文件、技能或符号，支持自动补全
+- **流式中发送** — 在 AI 正在回复时发送新消息，可选择排队或打断
+- **用量追踪** — 追踪 token 用量与成本，可选消费上限
+- 聊天体验：用户气泡与 AI 输出间距更清晰；思考中标签**逐字闪光**；9 种主题预设；可配置流式速度与工具调用延迟
 
 ### 👥 子代理编排
 
@@ -89,6 +96,9 @@ Loom 提供 **22 个统一 Agent 工具**，按类别划分如下：
 ### 🌿 Git 与自动化
 
 - 可视化 Git 工作区：暂存/提交/推送、分支、Stash、Log、Blame、合并
+- **AI 生成 commit message** — 从暂存 diff 一键生成
+- **编辑器内 Git Blame** — 在 Monaco 编辑器中直接显示
+- **检查点** — 在工具调用前后快照与恢复文件状态；可视化时间线 UI
 - **自动化规则** — 触发器类型：
   - `interval` — 按固定间隔执行
   - `cron` — 按 cron 表达式定时执行
@@ -124,13 +134,14 @@ git clone https://github.com/Lennoxsudo/loom.git
 cd loom
 npm install
 npm run fetch:cbm      # 下载代码图谱 sidecar（开发/打包前必需）
+npm run fetch:whisper  # 下载 whisper.cpp sidecar + 模型（开发/打包前必需）
 npm run tauri dev      # 启动开发模式（Vite + Tauri）
 ```
 
 ### 构建与测试
 
 ```bash
-npm run tauri:build          # 打包桌面应用（自动 fetch CBM）
+npm run tauri:build          # 打包桌面应用（自动 fetch CBM + Whisper）
 npm test                     # 前端测试（Vitest）
 npm run lint                 # ESLint
 npm run format               # Prettier
@@ -139,7 +150,7 @@ cd src-tauri && cargo test   # Rust 测试
 
 ## 配置
 
-首次启动后，在 **设置 → AI** 中填入所用模型的 API Key 与 Endpoint。MCP 服务器在 **设置 → MCP** 配置，代码图谱在 **设置 → 代码图谱** 配置。
+首次启动后，在 **设置 → AI** 中填入所用模型的 API Key 与 Endpoint。也可在 **设置 → 网关** 中激活**内置模型网关**，无需配置自己的 API Key 即可使用 AI。MCP 服务器在 **设置 → MCP** 配置，代码图谱在 **设置 → 代码图谱** 配置。语音输入（Whisper STT）随应用内置模型开箱即用，可在 **设置 → 通用** 中配置 STT 语言。
 
 ## 本地数据
 
@@ -152,6 +163,7 @@ cd src-tauri && cargo test   # Rust 测试
 | 代码图谱索引缓存 | `%APPDATA%\Loom\cbm\` |
 | CDP 浏览器配置（固定复用） | `%USERPROFILE%\.loom\cdp-browser-profile\` |
 | CDP 截图 | `%USERPROFILE%\.loom\cdp-screenshots\` |
+| Whisper 模型与运行时 | 随应用资源打包（`resources/whisper/`） |
 
 API Key 与凭据仅保存在本地。旧版本遗留的 `cdp-browser-profile-<pid>-…` 目录会在启动浏览器时尝试清理，也可手动删除。
 
@@ -201,7 +213,7 @@ API Key 与凭据仅保存在本地。旧版本遗留的 `cdp-browser-profile-<p
 
 ## 路线图
 
-当前发布：**v0.1.5**。规划中 / 考虑中：
+当前发布：**v0.1.13**。规划中 / 考虑中：
 
 - 数据库连接器（MySQL / PostgreSQL / Redis）
 - 插件市场扩展

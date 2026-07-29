@@ -357,6 +357,23 @@ fn adapt_ai_terminal_input(data: &str) -> String {
     rewrite_powershell_command_chain(data)
 }
 
+/// Whether the selected shell needs Windows PowerShell 5.1-compatible `&&` / `||` rewriting.
+fn shell_needs_powershell_chain_rewrite(shell: &Option<String>) -> bool {
+    let shell_str = shell.as_deref().unwrap_or("").to_ascii_lowercase();
+    if shell_str.is_empty() {
+        return cfg!(target_os = "windows");
+    }
+    matches!(shell_str.as_str(), "powershell" | "ps" | "pwsh")
+}
+
+fn prepare_shell_command(shell: &Option<String>, command: &str) -> String {
+    if shell_needs_powershell_chain_rewrite(shell) {
+        rewrite_powershell_command_chain(command)
+    } else {
+        command.to_string()
+    }
+}
+
 fn enrich_terminal_path() -> String {
     let current_path = std::env::var("PATH").unwrap_or_default();
     let mut extra_dirs: Vec<String> = Vec::new();
@@ -1153,6 +1170,7 @@ async fn read_stream_chunks(
 /// Supported values: "powershell", "pwsh", "cmd", "bash", "sh", "zsh", "fish".
 /// Falls back to platform default (powershell on Windows, bash elsewhere) if not specified.
 fn shell_program_and_args(shell: &Option<String>, command: &str) -> (String, Vec<String>) {
+    let command = prepare_shell_command(shell, command);
     let shell_str = shell.as_deref().unwrap_or("").to_lowercase();
     let (program, prefix_args): (&str, &[&str]) = if !shell_str.is_empty() {
         match shell_str.as_str() {
@@ -1171,7 +1189,7 @@ fn shell_program_and_args(shell: &Option<String>, command: &str) -> (String, Vec
         ("bash", &["-c"][..])
     };
     let mut args: Vec<String> = prefix_args.iter().map(|s| s.to_string()).collect();
-    args.push(command.to_string());
+    args.push(command);
     (program.to_string(), args)
 }
 

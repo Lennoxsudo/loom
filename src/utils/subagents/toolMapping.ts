@@ -1,7 +1,7 @@
 import type { ToolDefinition } from '../../types/ai';
 import { AI_TOOLS } from '../../features/agent-engine/definitions';
 
-/** Claude Code tool name → Loom canonical tool name */
+/** Claude Code / legacy tool name → Loom canonical tool name */
 export const CLAUDE_TO_AI_TOOL: Record<string, string> = {
   Read: 'read',
   Write: 'write',
@@ -9,7 +9,9 @@ export const CLAUDE_TO_AI_TOOL: Record<string, string> = {
   Bash: 'term',
   bash: 'term',
   Grep: 'search',
+  grep: 'search',
   Glob: 'search',
+  glob: 'search',
   Agent: 'Agent',
   Task: 'Agent',
   WebFetch: 'fetch',

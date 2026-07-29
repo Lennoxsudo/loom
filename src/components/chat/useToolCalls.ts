@@ -10,6 +10,7 @@ import {
   ToolResult,
   toAnthropicTools,
   toOpenAITools,
+  filterToolsByContext,
 } from '../../features/agent-engine';
 import { useSubagentStore } from '../../stores/useSubagentStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
@@ -87,6 +88,11 @@ export interface UseToolCallsOptions {
   chatRuntimeRef: React.MutableRefObject<ChatRuntimeSnapshot>;
   toolsEnabled: boolean;
   allConfiguredTools: ToolDefinition[];
+  toolFilterContextRef: React.MutableRefObject<{
+    isGitRepo: boolean;
+    hasBrowserCapability: boolean;
+    enableCodeGraph: boolean;
+  }>;
   chatModeRef: React.MutableRefObject<'plan' | 'always-allow'>;
   projectPathRef: React.MutableRefObject<string>;
   currentConversationRef: React.MutableRefObject<import('./types').Conversation | null>;
@@ -331,6 +337,7 @@ export function useToolCalls({
   chatRuntimeRef,
   toolsEnabled,
   allConfiguredTools,
+  toolFilterContextRef,
   chatModeRef,
   projectPathRef,
   currentConversationRef,
@@ -390,11 +397,14 @@ export function useToolCalls({
   const getProviderToolsForChat = (
     provider: AIProvider,
     tools: typeof allConfiguredTools,
-    _chatMode: 'plan' | 'always-allow',
+    chatMode: 'plan' | 'always-allow',
     enabled: boolean
   ) => {
     if (!enabled) return undefined;
-    const filteredTools = tools;
+    let filteredTools = filterToolsByContext(tools, toolFilterContextRef.current);
+    if (chatMode === 'plan') {
+      filteredTools = filteredTools.filter((tool) => !isToolBlockedInPlanMode(tool.name));
+    }
     if (provider === 'anthropic') {
       return toAnthropicTools(filteredTools);
     }

@@ -11,19 +11,16 @@ import { isPreapprovedUrl } from './webFetchPreapproved';
 interface UrlValidationResult {
   valid: boolean;
   error?: string;
-  upgradedUrl?: string; // HTTP→HTTPS 升级后的 URL
 }
 
 /**
- * 验证 URL 是否可用于 fetch_web_content。
+ * 验证 URL 是否可用于 fetch。
  *
  * 规则：
  *   - 能被 new URL() 解析
  *   - 长度 ≤ 2000 字符
  *   - 协议为 http 或 https
- *   - hostname 至少有 2 个点分部分
  *   - URL 中不含用户名/密码
- *   - HTTP 自动升级为 HTTPS
  */
 export function validateFetchUrl(url: string): UrlValidationResult {
   // 长度检查
@@ -45,10 +42,8 @@ export function validateFetchUrl(url: string): UrlValidationResult {
     return { valid: false, error: `不支持的协议: ${parsedUrl.protocol}。仅支持 http/https。` };
   }
 
-  // Hostname 公网可解析（至少 2 个点分部分）
-  const hostname = parsedUrl.hostname;
-  if (hostname.split('.').length < 2) {
-    return { valid: false, error: `主机名不是有效的公网域名: ${hostname}` };
+  if (!parsedUrl.hostname) {
+    return { valid: false, error: 'URL 缺少主机名' };
   }
 
   // 检查用户名/密码
@@ -56,13 +51,7 @@ export function validateFetchUrl(url: string): UrlValidationResult {
     return { valid: false, error: 'URL 不能包含用户名或密码' };
   }
 
-  // HTTP 自动升级为 HTTPS
-  let upgradedUrl: string | undefined;
-  if (parsedUrl.protocol === 'http:') {
-    upgradedUrl = url.replace(/^http:\/\//i, 'https://');
-  }
-
-  return { valid: true, upgradedUrl };
+  return { valid: true };
 }
 
 // ── 权限模型 ──

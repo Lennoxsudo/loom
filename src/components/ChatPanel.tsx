@@ -104,6 +104,21 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     // Recompute when CDP plugin toggles so browser action enum updates.
     [imageGenConfig, mcpTools, enableCdpBrowser]
   );
+  const hasBrowserCapability = useMemo(
+    () =>
+      allConfiguredTools.some((tool) =>
+        ['browser', 'fetch', 'web_search', 'control_browser', 'fetch_web_content'].includes(
+          tool.name
+        )
+      ),
+    [allConfiguredTools]
+  );
+  const [isGitRepo, setIsGitRepo] = useState(true);
+  const toolFilterContextRef = useRef({
+    isGitRepo: true,
+    hasBrowserCapability: true,
+    enableCodeGraph: true,
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -161,6 +176,11 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const [toolsEnabled] = useState(true);
   const enableCodeGraph = useEnableCodeGraph();
   const cbmGraphEnabled = useCbmGraphReady(enableCodeGraph);
+  toolFilterContextRef.current = {
+    isGitRepo,
+    hasBrowserCapability,
+    enableCodeGraph: cbmGraphEnabled,
+  };
   const [visionCapabilities, setVisionCapabilities] = useState<
     Record<AIProvider, VisionCapability>
   >(DEFAULT_VISION_CAPABILITIES);
@@ -208,6 +228,23 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   const onFilesChangedRef = useRef<ChatPanelProps['onFilesChanged']>(onFilesChanged);
   const projectPathRef = useRef<string>(projectPath);
   projectPathRef.current = projectPath;
+
+  useEffect(() => {
+    if (!projectPath) {
+      setIsGitRepo(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const result = await invoke<boolean>('check_git_repo', { path: projectPath }).catch(
+        () => true
+      );
+      if (!cancelled) setIsGitRepo(result);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectPath]);
   const appDataPathRef = useRef<string | null>(null);
   const getAppDataPath = useCallback(async () => {
     if (appDataPathRef.current) return appDataPathRef.current;
@@ -450,6 +487,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     chatRuntimeRef,
     toolsEnabled,
     allConfiguredTools,
+    toolFilterContextRef,
     chatModeRef,
     projectPathRef,
     currentConversationRef,
@@ -506,8 +544,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     (provider: AIProvider) => {
       if (!toolsEnabled) return undefined;
       let tools = filterToolsByContext(allConfiguredTools, {
-        isGitRepo: true,
-        hasBrowserCapability: true,
+        isGitRepo,
+        hasBrowserCapability,
         enableCodeGraph: cbmGraphEnabled,
       });
       if (chatMode === 'plan') {
@@ -519,7 +557,14 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
       }
       return toOpenAITools(tools);
     },
-    [allConfiguredTools, cbmGraphEnabled, chatMode, toolsEnabled]
+    [
+      allConfiguredTools,
+      cbmGraphEnabled,
+      chatMode,
+      hasBrowserCapability,
+      isGitRepo,
+      toolsEnabled,
+    ]
   );
 
   useEffect(() => {

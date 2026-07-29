@@ -171,7 +171,7 @@ const FETCH_TOOL: ToolDefinition = {
       url: {
         type: 'string',
         description:
-          'The URL to fetch. Must be publicly accessible (http/https). HTTP is auto-upgraded to HTTPS.',
+          'The URL to fetch (http/https).',
       },
       method: {
         type: 'string',

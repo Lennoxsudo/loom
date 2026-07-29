@@ -6,7 +6,6 @@ import { AgentContent } from './settings/AgentContent';
 import { SkillsContent } from './settings/SkillsContent';
 import { PluginsContent } from './settings/PluginsContent';
 import { RulesContent } from './settings/RulesContent';
-import { AIManagementContent } from './settings/AIManagementContent';
 import { AIConfigContent } from './settings/AIConfigContent';
 import { MCPConfigContent } from './settings/MCPConfigContent';
 import { PreferencesContent } from './settings/PreferencesContent';
@@ -77,11 +76,6 @@ export default function SettingsView() {
           onClick={() => setActiveTab('rules')}
         />
         <TabItem
-          label={t.settingsTabs.aiManagement}
-          isActive={activeTab === 'ai-management'}
-          onClick={() => setActiveTab('ai-management')}
-        />
-        <TabItem
           label={t.settingsTabs.aiConfig}
           isActive={activeTab === 'ai-config'}
           onClick={() => setActiveTab('ai-config')}
@@ -139,7 +133,6 @@ export default function SettingsView() {
         {activeTab === 'skills' && <SkillsContent />}
         {activeTab === 'plugins' && <PluginsContent />}
         {activeTab === 'rules' && <RulesContent />}
-        {activeTab === 'ai-management' && <AIManagementContent />}
         {activeTab === 'ai-config' && <AIConfigContent />}
         {activeTab === 'mcp-config' && <MCPConfigContent />}
         {activeTab === 'preferences' && <PreferencesContent />}

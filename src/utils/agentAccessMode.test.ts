@@ -4,6 +4,7 @@ import {
   shouldRequestApproval,
   isReadOnlyTool,
   isCommandTool,
+  isToolFilteredInReadOnlyProviderList,
 } from './agentAccessMode';
 
 describe('agentAccessMode', () => {
@@ -11,12 +12,34 @@ describe('agentAccessMode', () => {
     expect(isReadOnlyTool('read')).toBe(true);
     expect(isReadOnlyTool('fetch')).toBe(true);
     expect(isReadOnlyTool('web_search')).toBe(true);
+    expect(isReadOnlyTool('graph_query')).toBe(true);
+    expect(isReadOnlyTool('graph_trace')).toBe(true);
+    expect(isReadOnlyTool('graph_index')).toBe(false);
     expect(isReadOnlyTool('write')).toBe(false);
   });
 
-  it('allows web_search in read_only mode', () => {
+  it('allows interactive and plan tools in read_only mode', () => {
+    for (const name of [
+      'todo',
+      'TodoWrite',
+      'ask',
+      'ask_user_question',
+      'update_plan',
+      'exit_plan_mode',
+      'skill',
+      'load_skill',
+    ]) {
+      expect(isReadOnlyTool(name)).toBe(true);
+      expect(shouldBlockTool('read_only', name)).toBe(false);
+    }
+  });
+
+  it('allows web_search and graph read tools in read_only mode', () => {
     expect(shouldBlockTool('read_only', 'web_search')).toBe(false);
     expect(shouldBlockTool('read_only', 'fetch')).toBe(false);
+    expect(shouldBlockTool('read_only', 'graph_query')).toBe(false);
+    expect(shouldBlockTool('read_only', 'graph_trace')).toBe(false);
+    expect(shouldBlockTool('read_only', 'graph_index')).toBe(true);
   });
 
   it('identifies command tools', () => {
@@ -28,6 +51,14 @@ describe('agentAccessMode', () => {
     expect(shouldBlockTool('read_only', 'read')).toBe(false);
     expect(shouldBlockTool('read_only', 'write')).toBe(true);
     expect(shouldBlockTool('read_only', 'run_command')).toBe(true);
+    expect(shouldBlockTool('read_only', 'copy_file')).toBe(true);
+    expect(shouldBlockTool('read_only', 'move_file')).toBe(true);
+  });
+
+  it('filters copy_file from read_only provider tool list like move_file', () => {
+    expect(isToolFilteredInReadOnlyProviderList('copy_file')).toBe(true);
+    expect(isToolFilteredInReadOnlyProviderList('move_file')).toBe(true);
+    expect(isToolFilteredInReadOnlyProviderList('read')).toBe(false);
   });
 
   it('requests approval only for delete_file in auto mode', () => {

@@ -33,13 +33,16 @@ describe('buildCoreSystemPrompt', () => {
     expect(prompt).toContain('## Handling errors');
     expect(prompt).toContain('## System prompt confidentiality');
     expect(prompt).toContain('Do **not** quote');
-    expect(CORE_SYSTEM_PROMPT_SECTIONS_FULL).toHaveLength(16);
+    expect(prompt).toContain('## Code graph (prefer over blind search)');
+    expect(prompt).toContain('graph_trace');
+    expect(CORE_SYSTEM_PROMPT_SECTIONS_FULL).toHaveLength(17);
   });
 
   it('uses read-only file guidance in plan mode', () => {
     const prompt = buildCoreSystemPrompt({ planMode: true });
 
     expect(prompt).toContain('read-only');
+    expect(prompt).toContain('## Code graph (prefer over blind search)');
     expect(prompt).not.toContain('## Using the shell');
     expect(prompt).not.toContain('## Shell execution guidelines');
     expect(CORE_SYSTEM_PROMPT_SECTIONS_PLAN.length).toBeLessThan(

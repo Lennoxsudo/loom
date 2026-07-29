@@ -211,37 +211,49 @@ function buildParentContextSummary(messages: ChatMessage[]): string {
  * 方法 14：子代理工具预设。
  *
  * 根据子代理类型自动裁剪工具集，减少工具定义的 token 占用。
- * - research 类：只读工具（read/search/glob/grep/get_file_tree）
- * - coder 类：读写工具（read/write/edit/search/glob/grep）
+ * - Explore / Plan / research：只读（read/search/finfo/sym/…；旧 glob/grep 已并入 search）
+ * - coder / parallel-exec：读写 + term
  * - 其他类：不做预设裁剪，由 agent 定义的 tools/disallowedTools 控制
  */
+const READ_ONLY_TOOL_PRESET = new Set([
+  'read',
+  'read_file',
+  'search',
+  'search_content',
+  'search_files',
+  'search_both',
+  'finfo',
+  'file_info',
+  'get_file_info',
+  'get_file_tree',
+  'list_directory',
+  'list_dir',
+  'sym',
+  'get_symbol_definition',
+  'fetch',
+  'fetch_web_content',
+  'web_search',
+  'graph_query',
+  'graph_trace',
+]);
+
+const CODER_TOOL_PRESET = new Set([
+  ...READ_ONLY_TOOL_PRESET,
+  'write',
+  'write_file',
+  'edit',
+  'edit_file',
+  'term',
+  'terminal',
+  'run_command',
+]);
+
 const TOOL_PRESETS: Record<string, Set<string>> = {
-  research: new Set([
-    'read',
-    'read_file',
-    'search',
-    'search_content',
-    'glob',
-    'grep',
-    'get_file_tree',
-    'list_directory',
-    'list_dir',
-  ]),
-  coder: new Set([
-    'read',
-    'read_file',
-    'write',
-    'write_file',
-    'edit',
-    'edit_file',
-    'search',
-    'search_content',
-    'glob',
-    'grep',
-    'get_file_tree',
-    'list_directory',
-    'list_dir',
-  ]),
+  research: READ_ONLY_TOOL_PRESET,
+  Explore: READ_ONLY_TOOL_PRESET,
+  Plan: READ_ONLY_TOOL_PRESET,
+  coder: CODER_TOOL_PRESET,
+  'parallel-exec': CODER_TOOL_PRESET,
 };
 
 /** 永远不需要的子代理工具（在所有预设中排除） */
@@ -251,7 +263,7 @@ const SUBAGENT_EXCLUDED_TOOLS = new Set(['generate_image', 'image_gen']);
  * 方法 14：根据子代理类型裁剪工具定义。
  *
  * @param tools 原始工具定义列表
- * @param subagentType 子代理类型名称（如 "research", "coder"）
+ * @param subagentType 子代理类型名称（如 "Explore", "Plan", "research", "coder"）
  * @returns 裁剪后的工具定义列表
  */
 export function filterToolsForSubagentType<T extends { name: string }>(

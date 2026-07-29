@@ -117,7 +117,6 @@ export interface I18nMessages {
     problems: string;
     output: string;
     debug: string;
-    conversationStorage: string;
     errorDetails: string;
     userError: string;
     systemError: string;
@@ -139,7 +138,6 @@ export interface I18nMessages {
     openFile: string;
     openFolder: string;
     general: string;
-    aiConfigManagement: string;
     aiProtocolCustom: string;
     mcpConfig: string;
     generalSettings: string;
@@ -546,13 +544,6 @@ export interface I18nMessages {
     emptyStateRefactorCode: string;
     emptyStateAddTests: string;
     emptyStateReadRules: string;
-    emptyStateCapabilitiesLabel: string;
-    emptyStateReadWriteFiles: string;
-    emptyStateReadOnlyFiles: string;
-    emptyStateExecuteCommands: string;
-    emptyStateUseGit: string;
-    emptyStateConnectMcp: string;
-    emptyStateCurrentMode: string;
     aiResponding: string;
     executingTools: string;
     streamingContinuing: string;
@@ -943,7 +934,6 @@ export interface I18nMessages {
     skills: string;
     plugins: string;
     rules: string;
-    aiManagement: string;
     aiConfig: string;
     mcpConfig: string;
     preferences: string;
@@ -1467,24 +1457,6 @@ export interface I18nMessages {
     subagent: {
       title: string;
     };
-  };
-  settingsAiManagement: {
-    errors: {
-      loadFailed: string;
-      saveFailed: string;
-      nameRequired: string;
-    };
-    title: string;
-    listTitle: string;
-    newPrompt: string;
-    createPrompt: string;
-    editPrompt: string;
-    promptNamePlaceholder: string;
-    promptContentPlaceholder: string;
-    noPrompts: string;
-    noPromptsHint: string;
-    copyPath: string;
-    pathCopied: string;
   };
   settingsMcp: {
     errors: {

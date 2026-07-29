@@ -282,14 +282,11 @@ pub fn attach_handlers(
         crate::mcp::get_claude_config_path,
         crate::mcp::open_claude_config_file,
         crate::mcp::save_claude_config,
-        // editor / prompts
+        // editor / usage
         crate::editor_settings::save_editor_settings,
         crate::editor_settings::load_editor_settings,
         crate::usage_tracking::save_usage,
         crate::usage_tracking::load_usage,
-        crate::chat::save_prompts,
-        crate::chat::load_prompts,
-        crate::chat::get_prompts_config_path,
         crate::chat::get_app_data_path,
         // app windows
         open_agent_window,

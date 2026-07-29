@@ -104,10 +104,6 @@ pub fn resolve_ai_config_path() -> Result<PathBuf, String> {
     Ok(resolve_user_data_config_dir()?.join("ai-config.json"))
 }
 
-pub fn resolve_prompts_path() -> Result<PathBuf, String> {
-    Ok(resolve_user_data_config_dir()?.join("prompts.json"))
-}
-
 /// Resolve an APPDATA subdir, falling back to the legacy Aiasprrato name.
 pub fn resolve_app_data_subdir(dir_name: &str) -> Result<PathBuf, String> {
     let app_data = std::env::var("APPDATA")

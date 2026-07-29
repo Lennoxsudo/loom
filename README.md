@@ -20,7 +20,7 @@ Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-i
 
 <!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-> **Status:** Open-source · `v0.1.5` · Under active development — expect rapid changes.
+> **Status:** Open-source · `v0.1.13` · Under active development — expect rapid changes.
 
 Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
@@ -54,15 +54,22 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 - Multiple providers: **OpenAI, Anthropic, Ollama** — streaming output, tool calls, thinking blocks, vision/image attachments
 - Single global agent config; **per-project conversations with disk as the single source of truth**
 - **AI protocol profiles**: multiple endpoints per provider, **duplicate profile**, **per-model connection test**
-- **Tool approval** — how each tool runs before execution:
-  - `always` — run without asking
-  - `request` — ask for approval first
-  - `deny` — block the tool
+- **Agent access tiers** — three-level tool approval policy:
+  - `read_only` — only read-only tools (read, search, finfo, sym, fetch, web_search, graph_query, graph_trace)
+  - `auto` — read-only tools run automatically; write/execute tools ask for approval
+  - `full_access` — all tools run without asking
 - **Agent capability switches** — what the agent is allowed to do:
   - `canExecuteCommands` · `canAccessBrowser` · `canUseGit` · `canUseMcp`
 - Auto model routing with a configurable fallback chain
 - Anthropic Extended Thinking + Prompt Caching; automatic context compaction with session persistence
-- Chat UX polish: clearer spacing after user bubbles, **shimmer “Thinking…”** label while reasoning runs
+- **Built-in model gateway** — use AI without configuring your own API keys; activate in Settings → **Gateway**
+- **Voice input** — local offline speech-to-text via bundled whisper.cpp sidecar; configurable STT language independent from UI language
+- **AI-generated commit messages** — draft Conventional Commits messages from staged diff with one click
+- **Inline Git blame** — toggle blame annotations directly in the Monaco editor
+- **Context @-mentions** — type `@` in the chat composer to mention files, skills, or symbols with autocomplete
+- **Send-while-streaming** — choose to queue or interrupt when sending a new message while the AI is still replying
+- **Usage tracking** — track token usage and costs with an optional spending cap
+- Chat UX polish: clearer spacing after user bubbles, **shimmer "Thinking…"** label while reasoning runs, 9 theme presets, configurable stream speed and tool-call delay
 
 ### 👥 Sub-agent Orchestration
 
@@ -89,6 +96,9 @@ Loom exposes **22 unified agent tools**, grouped as follows:
 ### 🌿 Git & Automation
 
 - Visual Git workspace: stage/commit/push, branches, stash, log, blame, merge
+- **AI-generated commit messages** from staged diff
+- **Inline Git blame** in the Monaco editor
+- **Checkpoints** — snapshot and restore file states before/after tool calls; visual timeline UI
 - **Automation rules** — trigger types:
   - `interval` — run on a fixed interval
   - `cron` — run on a cron schedule
@@ -124,13 +134,14 @@ git clone https://github.com/Lennoxsudo/loom.git
 cd loom
 npm install
 npm run fetch:cbm      # download the code-graph sidecar (required before dev/build)
+npm run fetch:whisper  # download the whisper.cpp sidecar + model (required before dev/build)
 npm run tauri dev      # start the app in dev mode (Vite + Tauri)
 ```
 
 ### Build & test
 
 ```bash
-npm run tauri:build          # package the desktop app (auto-fetches CBM)
+npm run tauri:build          # package the desktop app (auto-fetches CBM + Whisper)
 npm test                     # frontend tests (Vitest)
 npm run lint                 # ESLint
 npm run format               # Prettier
@@ -139,7 +150,7 @@ cd src-tauri && cargo test   # Rust tests
 
 ## Configuration
 
-On first launch, open **Settings → AI** and add the API key / endpoint for each provider you use. MCP servers are configured under **Settings → MCP**, and the code graph under **Settings → Code Graph**.
+On first launch, open **Settings → AI** and add the API key / endpoint for each provider you use. Alternatively, activate the **built-in gateway** in **Settings → Gateway** to use AI without your own API keys. MCP servers are configured under **Settings → MCP**, and the code graph under **Settings → Code Graph**. Voice input (Whisper STT) works out of the box with the bundled model — configure the STT language in **Settings → General**.
 
 ## Local Data
 
@@ -152,6 +163,7 @@ User data stays on your machine and is never committed to the repository:
 | Code graph index cache | `%APPDATA%\Loom\cbm\` |
 | CDP browser profile (stable, reused) | `%USERPROFILE%\.loom\cdp-browser-profile\` |
 | CDP screenshots | `%USERPROFILE%\.loom\cdp-screenshots\` |
+| Whisper model & runtime | Bundled in app resources (`resources/whisper/`) |
 
 API keys and provider credentials are stored locally only. Legacy `cdp-browser-profile-<pid>-…` folders from older builds are cleaned up on browser start and are safe to delete manually.
 
@@ -201,7 +213,7 @@ Release / signing procedure for maintainers: [docs/releases/windows-auto-update.
 
 ## Roadmap
 
-Active release: **v0.1.5**. Planned / under consideration:
+Active release: **v0.1.13**. Planned / under consideration:
 
 - Database connectors (MySQL / PostgreSQL / Redis)
 - Plugin marketplace expansion

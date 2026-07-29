@@ -106,70 +106,24 @@ pub async fn fetch_web_content_v3(
         return Err(format!("URL 长度超过限制 ({} 字符)", MAX_URL_LENGTH));
     }
 
-    let mut parsed_url: reqwest::Url = url.parse().map_err(|e| format!("无效的 URL: {}", e))?;
+    let parsed_url: reqwest::Url = url.parse().map_err(|e| format!("无效的 URL: {}", e))?;
 
     let scheme = parsed_url.scheme().to_lowercase();
     if scheme != "http" && scheme != "https" {
         return Err(format!("不支持的协议: {}。仅支持 http/https。", scheme));
     }
 
-    let hostname = parsed_url
-        .host_str()
-        .ok_or_else(|| "URL 缺少主机名".to_string())?;
-    is_safe_hostname_async(hostname).await?;
+    if parsed_url.host_str().is_none() {
+        return Err("URL 缺少主机名".to_string());
+    }
 
     if parsed_url.username() != "" || parsed_url.password().is_some() {
         return Err("URL 不能包含用户名或密码".to_string());
     }
 
-    // HTTP auto-upgrade
-    if parsed_url.scheme() == "http" {
-        let https_url = url.replacen("http://", "https://", 1);
-        parsed_url = https_url
-            .parse()
-            .map_err(|e| format!("HTTPS 升级后 URL 无效: {}", e))?;
-    }
-
     // ── 2. 创建 HTTP 客户端 ──
     let redirect_policy = if should_follow_redirects {
-        reqwest::redirect::Policy::custom(|attempt| {
-            let next_url = attempt.url();
-            let hostname = match next_url.host_str() {
-                Some(h) => h,
-                None => return attempt.stop(),
-            };
-            
-            // Check if hostname is safe (synchronously)
-            if let Ok(ip) = hostname.parse::<std::net::IpAddr>() {
-                if !is_safe_ip(ip) {
-                    return attempt.stop();
-                }
-            } else {
-                let addr_str = format!("{}:80", hostname);
-                if let Ok(mut addrs) = std::net::ToSocketAddrs::to_socket_addrs(&addr_str) {
-                    let mut resolved_any = false;
-                    let mut all_safe = true;
-                    while let Some(addr) = addrs.next() {
-                        resolved_any = true;
-                        if !is_safe_ip(addr.ip()) {
-                            all_safe = false;
-                            break;
-                        }
-                    }
-                    if !resolved_any || !all_safe {
-                        return attempt.stop();
-                    }
-                } else {
-                    return attempt.stop();
-                }
-            }
-            
-            if attempt.previous().len() >= 10 {
-                attempt.stop()
-            } else {
-                attempt.follow()
-            }
-        })
+        reqwest::redirect::Policy::limited(10)
     } else {
         reqwest::redirect::Policy::none()
     };
@@ -435,161 +389,3 @@ pub async fn fetch_web_content_v3(
     })
 }
 
-// ── SSRF Security Helpers ──
-
-fn is_safe_ip(ip: std::net::IpAddr) -> bool {
-    match ip {
-        std::net::IpAddr::V4(ipv4) => {
-            if ipv4.is_loopback() {
-                return false;
-            }
-            if ipv4.is_private() {
-                return false;
-            }
-            if ipv4.is_link_local() {
-                return false;
-            }
-            if ipv4.is_unspecified() {
-                return false;
-            }
-            if ipv4.is_broadcast() {
-                return false;
-            }
-            let octets = ipv4.octets();
-            if octets[0] == 192 && octets[1] == 0 && octets[2] == 2 {
-                return false;
-            }
-            if octets[0] == 198 && octets[1] == 51 && octets[2] == 100 {
-                return false;
-            }
-            if octets[0] == 203 && octets[1] == 0 && octets[2] == 113 {
-                return false;
-            }
-            if octets[0] >= 240 {
-                return false;
-            }
-            true
-        }
-        std::net::IpAddr::V6(ipv6) => {
-            if ipv6.is_loopback() {
-                return false;
-            }
-            if ipv6.is_unspecified() {
-                return false;
-            }
-            let segments = ipv6.segments();
-            let first_word = segments[0];
-            if (first_word & 0xfe00) == 0xfc00 {
-                return false;
-            }
-            if (first_word & 0xffc0) == 0xfe80 {
-                return false;
-            }
-            let octets = ipv6.octets();
-            if octets[0..10] == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] && octets[10] == 0xff && octets[11] == 0xff {
-                let ipv4 = std::net::Ipv4Addr::new(octets[12], octets[13], octets[14], octets[15]);
-                return is_safe_ip(std::net::IpAddr::V4(ipv4));
-            }
-            true
-        }
-    }
-}
-
-async fn is_safe_hostname_async(hostname: &str) -> Result<(), String> {
-    if let Ok(ip) = hostname.parse::<std::net::IpAddr>() {
-        if is_safe_ip(ip) {
-            return Ok(());
-        } else {
-            return Err(format!("禁止访问私有或非公网 IP: {}", hostname));
-        }
-    }
-
-    let addr_str = format!("{}:80", hostname);
-    match tokio::net::lookup_host(addr_str).await {
-        Ok(addrs) => {
-            let mut resolved_any = false;
-            for addr in addrs {
-                resolved_any = true;
-                if !is_safe_ip(addr.ip()) {
-                    return Err(format!(
-                        "禁止访问私有或非公网 IP (主机名 {} 解析为 {})",
-                        hostname,
-                        addr.ip()
-                    ));
-                }
-            }
-            if !resolved_any {
-                return Err(format!("无法解析主机名: {}", hostname));
-            }
-            Ok(())
-        }
-        Err(e) => Err(format!("主机名 '{}' 解析失败: {}", hostname, e)),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_safe_ip() {
-        use std::net::IpAddr;
-
-        // Loopback IPv4
-        assert!(!is_safe_ip("127.0.0.1".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("127.255.255.255".parse::<IpAddr>().unwrap()));
-
-        // Private IPv4
-        assert!(!is_safe_ip("10.0.0.1".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("172.16.5.5".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("192.168.1.100".parse::<IpAddr>().unwrap()));
-
-        // Link-Local IPv4
-        assert!(!is_safe_ip("169.254.169.254".parse::<IpAddr>().unwrap()));
-
-        // Broadcast/Unspecified IPv4
-        assert!(!is_safe_ip("0.0.0.0".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("255.255.255.255".parse::<IpAddr>().unwrap()));
-
-        // Reserved/Test IPv4
-        assert!(!is_safe_ip("192.0.2.1".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("198.51.100.2".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("203.0.113.3".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("245.0.0.1".parse::<IpAddr>().unwrap()));
-
-        // Public IPv4
-        assert!(is_safe_ip("8.8.8.8".parse::<IpAddr>().unwrap()));
-        assert!(is_safe_ip("1.1.1.1".parse::<IpAddr>().unwrap()));
-        assert!(is_safe_ip("142.250.190.46".parse::<IpAddr>().unwrap()));
-
-        // Loopback/Unspecified IPv6
-        assert!(!is_safe_ip("::1".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("::".parse::<IpAddr>().unwrap()));
-
-        // ULA / Link-Local IPv6
-        assert!(!is_safe_ip("fc00::1".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("fdff::ffff".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("fe80::1".parse::<IpAddr>().unwrap()));
-
-        // IPv4-mapped IPv6 loopback / private
-        assert!(!is_safe_ip("::ffff:127.0.0.1".parse::<IpAddr>().unwrap()));
-        assert!(!is_safe_ip("::ffff:192.168.1.1".parse::<IpAddr>().unwrap()));
-
-        // Public IPv6
-        assert!(is_safe_ip("2001:4860:4860::8888".parse::<IpAddr>().unwrap()));
-    }
-
-    #[tokio::test]
-    async fn test_is_safe_hostname_async() {
-        // Safe hostname
-        assert!(is_safe_hostname_async("google.com").await.is_ok());
-
-        // Unsafe hostname / IP literals
-        assert!(is_safe_hostname_async("localhost").await.is_err());
-        assert!(is_safe_hostname_async("127.0.0.1").await.is_err());
-        assert!(is_safe_hostname_async("192.168.1.1").await.is_err());
-
-        // DNS resolution failures / invalid domain names
-        assert!(is_safe_hostname_async("invalid-hostname-that-does-not-exist.test").await.is_err());
-    }
-}

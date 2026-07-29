@@ -90,6 +90,7 @@ export const DEFAULT_GUARD_POLICY: GuardPolicy = {
       edit_file: { windowMs: 60000, maxCalls: 30 },
       delete_file: { windowMs: 60000, maxCalls: 10 },
       move_file: { windowMs: 60000, maxCalls: 15 },
+      copy_file: { windowMs: 60000, maxCalls: 15 },
       run_command: { windowMs: 60000, maxCalls: 40 },
       get_git_diff: { windowMs: 60000, maxCalls: 30 },
       search_files: { windowMs: 60000, maxCalls: 40 },
@@ -116,6 +117,12 @@ export const DEFAULT_GUARD_POLICY: GuardPolicy = {
       riskLevel: 'medium',
       requiresConfirmation: false,
       description: '移动文件',
+    },
+    {
+      name: 'copy_file',
+      riskLevel: 'medium',
+      requiresConfirmation: false,
+      description: '复制文件',
     },
     {
       name: 'run_command',
@@ -244,7 +251,9 @@ export function requiresConfirmation(
   const modePolicy = policy.accessModePolicies[accessMode];
   if (
     modePolicy.confirmWrites &&
-    ['write', 'write_file', 'edit', 'edit_file', 'delete_file', 'move_file'].includes(resolvedName)
+    ['write', 'write_file', 'edit', 'edit_file', 'delete_file', 'move_file', 'copy_file'].includes(
+      resolvedName
+    )
   ) {
     return true;
   }

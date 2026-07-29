@@ -14,6 +14,21 @@ describe('toolMapping', () => {
     expect(mapClaudeToolName('Agent')).toBe('Agent');
   });
 
+  it('maps legacy lowercase glob/grep to search', () => {
+    expect(mapClaudeToolName('glob')).toBe('search');
+    expect(mapClaudeToolName('grep')).toBe('search');
+    expect(mapClaudeToolName('Glob')).toBe('search');
+    expect(mapClaudeToolName('Grep')).toBe('search');
+  });
+
+  it('keeps search when Explore tools list still uses legacy glob/grep', () => {
+    const names = resolveSubagentToolNames(
+      { tools: ['read', 'glob', 'grep', 'finfo'] },
+      ['read', 'search', 'finfo', 'write', 'term']
+    );
+    expect(names).toEqual(['read', 'search', 'finfo']);
+  });
+
   it('intersects definition tools with parent tool pool', () => {
     const explore = BUILTIN_SUBAGENTS.find((a) => a.name === 'Explore')!;
     const names = resolveSubagentToolNames(explore, ['read', 'write', 'term', 'mcp_foo__bar']);

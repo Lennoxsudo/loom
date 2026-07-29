@@ -28,7 +28,12 @@ export const BROWSER_TOOLS = new Set([
 
 export const GIT_TOOLS = new Set(['get_git_diff', 'undo_changes', 'git']);
 
-export const CREATE_DELETE_TOOLS = new Set(['create_folder', 'move_file', 'delete_file']);
+export const CREATE_DELETE_TOOLS = new Set([
+  'create_folder',
+  'move_file',
+  'copy_file',
+  'delete_file',
+]);
 
 export const WRITE_TOOLS = new Set(['write_file', 'edit_file', 'write', 'edit', 'generate_image']);
 
@@ -41,6 +46,7 @@ const PLAN_MODE_BLOCKED_TOOLS = new Set([
   'terminal',
   'create_folder',
   'move_file',
+  'copy_file',
   'delete_file',
   // New short names
   'write',

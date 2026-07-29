@@ -2462,6 +2462,10 @@ export default function AgentPanel({
         ) : isEmptyConversationState ? (
           <AgentWelcomeState
             projectName={projectName}
+            onPromptSelect={(prompt) => {
+              setDraftMessage(prompt);
+              draftTextareaRef.current?.focus();
+            }}
             composer={
               <ComposerQuestionAnchor
                 questions={pendingQuestions}

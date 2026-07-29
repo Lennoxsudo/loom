@@ -242,7 +242,7 @@ async function runOneSubagentWithDefinition(
   );
 
   // 方法 14：根据子代理类型裁剪工具集，减少工具定义 token 占用。
-  // research 类只保留只读工具，coder 类保留读写工具，其他类型不裁剪。
+  // Explore/Plan/research 只保留只读工具；coder/parallel-exec 保留读写 + term。
   const filteredTools = filterToolsForSubagentType(resolvedTools, def.name);
 
   const modelToResolve = options.model || def.model || 'inherit';

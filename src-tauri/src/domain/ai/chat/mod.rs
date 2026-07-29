@@ -14,9 +14,8 @@ mod web_search;
 pub use types::{ChatImageAttachment, ChatMessage, ChatTaskMap, ToolCall, ToolCallFunction};
 
 pub use config::{
-    __cmd__get_app_data_path, __cmd__get_prompts_config_path, __cmd__load_ai_config, __cmd__load_prompts,
-    __cmd__save_ai_config, __cmd__save_prompts, get_app_data_path, get_prompts_config_path, load_ai_config,
-    load_ai_config_json, load_prompts, save_ai_config, save_prompts,
+    __cmd__get_app_data_path, __cmd__load_ai_config, __cmd__save_ai_config, get_app_data_path,
+    load_ai_config, load_ai_config_json, save_ai_config,
 };
 
 pub use test_connection::{__cmd__test_ai_connection, test_ai_connection};

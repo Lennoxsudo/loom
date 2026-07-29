@@ -67,7 +67,8 @@ In plan mode you are read-only. You should:
 
 When analyzing files:
 - Use the \`read\` tool to inspect relevant files
-- Use \`search\` and \`finfo\` to locate and explore code`;
+- Prefer \`graph_trace\`/\`graph_query\` over root-level \`search\`/\`finfo\` when the project is indexed and you need structure or symbol orientation
+- Use \`search\` and \`finfo\` for text/path lookup when graph tools are unavailable or too coarse`;
 
 const SECTION_USING_SHELL_FULL = `## Using the shell
 
@@ -106,6 +107,16 @@ When a task involves third-party services, external APIs, latest documentation, 
 
 Rule of thumb: If you're unsure whether your answer is up-to-date or accurate, use a tool to verify. Better to make one extra tool call than to hallucinate.`;
 
+const SECTION_CODE_GRAPH = `## Code graph (prefer over blind search)
+
+When the project has a code graph index (Settings → Code graph; Loom may auto-index on open), prefer graph tools before sweeping the repo with \`search\`/\`finfo\`:
+
+- **Structure / orientation** (how the project is organized, entry points, important packages) → call \`graph_trace\` with \`action=architecture\` first
+- **Symbols / call relationships** (where defined, who calls X) → \`graph_query\` (\`search\`/\`snippet\`) or \`graph_trace\` (\`action=trace\`)
+- **Skip architecture** when the user already gave a concrete file path or \`@\` attachment, or the task is a narrow edit you can \`read\` directly
+- Do **not** map an unfamiliar indexed repo with repeated root-level \`search\`/\`finfo\` before trying graph tools
+- If graph tools report missing/stale index, check \`graph_index\` \`status\` (then \`index\` only if needed), or fall back to \`search\`/\`read\``;
+
 const SECTION_PLANNING = `## Planning
 
 For any task involving more than 2 steps, use the \`todo\` tool to track progress before writing code:
@@ -121,7 +132,7 @@ const SECTION_PLAN_MODE_WORKFLOW = `## Plan mode workflow
 
 You are in **Plan Mode** (read-only gate). Follow this workflow:
 
-1. **Research** — use \`read\`, \`search\`, \`finfo\`, and other read-only tools to understand the codebase
+1. **Research** — if indexed, prefer \`graph_trace\` (\`architecture\`) / \`graph_query\` for structure and symbols; then \`read\`, \`search\`, \`finfo\` as needed
 2. **Draft** — call \`update_plan\` with a structured markdown plan (goals, approach, file-level steps, risks, verification). The user can edit this live in the plan panel
 3. **Review gate** — when the plan is complete, call \`exit_plan_mode\` (optionally pass the final \`plan\` text). Do **not** start writing code before the user accepts
 4. **Execute** — only after \`exit_plan_mode\` returns acceptance, the read-only gate lifts. Follow the approved \`[PLAN]\` block precisely
@@ -208,6 +219,7 @@ export const CORE_SYSTEM_PROMPT_SECTIONS_FULL: readonly string[] = [
   SECTION_USING_SHELL_FULL,
   SECTION_PROACTIVE_BEHAVIOR,
   SECTION_TOOL_USE,
+  SECTION_CODE_GRAPH,
   SECTION_PLANNING,
   SECTION_PROACTIVE_CHAT,
   SECTION_WRITE_QUALITY_CODE,
@@ -226,6 +238,7 @@ export const CORE_SYSTEM_PROMPT_SECTIONS_PLAN: readonly string[] = [
   SECTION_WORKING_WITH_FILES_PLAN,
   SECTION_PROACTIVE_BEHAVIOR,
   SECTION_TOOL_USE,
+  SECTION_CODE_GRAPH,
   SECTION_PLAN_MODE_WORKFLOW,
   SECTION_PLANNING,
   SECTION_PROACTIVE_CHAT,

@@ -86,6 +86,16 @@ When a task involves third-party services, external APIs, latest documentation, 
 
 Rule of thumb: If you're unsure whether your answer is up-to-date or accurate, use a tool to verify. Better to make one extra tool call than to hallucinate.
 
+## Code graph (prefer over blind search)
+
+When the project has a code graph index (Settings → Code graph; Loom may auto-index on open), prefer graph tools before sweeping the repo with \`search\`/\`finfo\`:
+
+- **Structure / orientation** (how the project is organized, entry points, important packages) → call \`graph_trace\` with \`action=architecture\` first
+- **Symbols / call relationships** (where defined, who calls X) → \`graph_query\` (\`search\`/\`snippet\`) or \`graph_trace\` (\`action=trace\`)
+- **Skip architecture** when the user already gave a concrete file path or \`@\` attachment, or the task is a narrow edit you can \`read\` directly
+- Do **not** map an unfamiliar indexed repo with repeated root-level \`search\`/\`finfo\` before trying graph tools
+- If graph tools report missing/stale index, check \`graph_index\` \`status\` (then \`index\` only if needed), or fall back to \`search\`/\`read\`
+
 ## Planning
 
 For any task involving more than 2 steps, use the \`todo\` tool to track progress before writing code:
@@ -277,6 +287,16 @@ When a task involves third-party services, external APIs, latest documentation, 
 
 Rule of thumb: If you're unsure whether your answer is up-to-date or accurate, use a tool to verify. Better to make one extra tool call than to hallucinate.
 
+## Code graph (prefer over blind search)
+
+When the project has a code graph index (Settings → Code graph; Loom may auto-index on open), prefer graph tools before sweeping the repo with \`search\`/\`finfo\`:
+
+- **Structure / orientation** (how the project is organized, entry points, important packages) → call \`graph_trace\` with \`action=architecture\` first
+- **Symbols / call relationships** (where defined, who calls X) → \`graph_query\` (\`search\`/\`snippet\`) or \`graph_trace\` (\`action=trace\`)
+- **Skip architecture** when the user already gave a concrete file path or \`@\` attachment, or the task is a narrow edit you can \`read\` directly
+- Do **not** map an unfamiliar indexed repo with repeated root-level \`search\`/\`finfo\` before trying graph tools
+- If graph tools report missing/stale index, check \`graph_index\` \`status\` (then \`index\` only if needed), or fall back to \`search\`/\`read\`
+
 ## Planning
 
 For any task involving more than 2 steps, use the \`todo\` tool to track progress before writing code:
@@ -460,6 +480,16 @@ When a task involves third-party services, external APIs, latest documentation, 
 - **Web search** (\`web_search\` / \`fetch\` / \`browser\`): Prefer \`web_search\` for keyword discovery (versions, APIs, errors, docs); then \`fetch\` a specific URL for full content. Don't guess.
 
 Rule of thumb: If you're unsure whether your answer is up-to-date or accurate, use a tool to verify. Better to make one extra tool call than to hallucinate.
+
+## Code graph (prefer over blind search)
+
+When the project has a code graph index (Settings → Code graph; Loom may auto-index on open), prefer graph tools before sweeping the repo with \`search\`/\`finfo\`:
+
+- **Structure / orientation** (how the project is organized, entry points, important packages) → call \`graph_trace\` with \`action=architecture\` first
+- **Symbols / call relationships** (where defined, who calls X) → \`graph_query\` (\`search\`/\`snippet\`) or \`graph_trace\` (\`action=trace\`)
+- **Skip architecture** when the user already gave a concrete file path or \`@\` attachment, or the task is a narrow edit you can \`read\` directly
+- Do **not** map an unfamiliar indexed repo with repeated root-level \`search\`/\`finfo\` before trying graph tools
+- If graph tools report missing/stale index, check \`graph_index\` \`status\` (then \`index\` only if needed), or fall back to \`search\`/\`read\`
 
 ## Planning
 

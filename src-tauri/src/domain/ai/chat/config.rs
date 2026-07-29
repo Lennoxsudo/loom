@@ -356,51 +356,6 @@ pub fn load_ai_config() -> Result<String, String> {
     fs::read_to_string(config_path).map_err(|e| format!("读取配置失败: {}", e))
 }
 
-pub fn get_prompts_path() -> String {
-    crate::config_paths::resolve_prompts_path()
-        .map(|path| path.to_string_lossy().into_owned())
-        .unwrap_or_else(|_| {
-            crate::config_paths::user_data_config_dir()
-                .map(|path| path.join("prompts.json").to_string_lossy().into_owned())
-                .unwrap_or_else(|_| String::new())
-        })
-}
-
-#[tauri::command]
-pub fn get_prompts_config_path() -> Result<String, String> {
-    Ok(get_prompts_path())
-}
-
-#[tauri::command]
-pub fn save_prompts(prompts: String) -> Result<String, String> {
-    let config_dir = crate::config_paths::user_data_config_dir()?;
-
-    fs::create_dir_all(&config_dir).map_err(|e| format!("创建目录失败: {}", e))?;
-
-    let json_value: serde_json::Value =
-        serde_json::from_str(&prompts).map_err(|e| format!("JSON解析失败: {}", e))?;
-
-    let formatted_json =
-        serde_json::to_string_pretty(&json_value).map_err(|e| format!("JSON格式化失败: {}", e))?;
-
-    let config_path = config_dir.join("prompts.json");
-
-    fs::write(&config_path, formatted_json).map_err(|e| format!("保存提示词失败: {}", e))?;
-
-    Ok("提示词已保存".to_string())
-}
-
-#[tauri::command]
-pub fn load_prompts() -> Result<String, String> {
-    let config_path = get_prompts_path();
-
-    if !Path::new(&config_path).exists() {
-        return Ok("[]".to_string());
-    }
-
-    fs::read_to_string(config_path).map_err(|e| format!("读取提示词失败: {}", e))
-}
-
 #[tauri::command]
 pub fn get_app_data_path(app: tauri::AppHandle) -> Result<String, String> {
     let app_data_dir = app
