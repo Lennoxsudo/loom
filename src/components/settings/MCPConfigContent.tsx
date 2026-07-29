@@ -447,7 +447,7 @@ export function MCPConfigContent() {
                     onClick={() => void handleRestartServer(server.id)}
                     title={t.settingsMcp.servers.restart}
                   >
-                    {busyServerId === server.id && displayState === 'starting'
+                    {busyServerId === server.id
                       ? t.settingsMcp.servers.reconnecting
                       : t.settingsMcp.servers.restart}
                   </button>

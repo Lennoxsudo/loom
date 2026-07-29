@@ -1526,6 +1526,7 @@ struct BackgroundTaskState {
     pid: u32,
     command: String,
     duration_ms: Option<u64>,
+    conversation_id: Option<String>,
 }
 
 pub struct BackgroundTasks {
@@ -1582,6 +1583,7 @@ pub fn execute_command_bg(
     bg_state: State<'_, BackgroundTasks>,
     shell: Option<String>,
     sandbox_state: State<'_, SandboxState>,
+    conversation_id: Option<String>,
 ) -> Result<ExecuteCommandBgResult, String> {
     use std::process::Stdio;
     use std::time::Instant;
@@ -1676,6 +1678,7 @@ pub fn execute_command_bg(
         pid,
         command: command.clone(),
         duration_ms: None,
+        conversation_id: conversation_id.filter(|value| !value.trim().is_empty()),
     }));
 
     // Register the task
@@ -1874,6 +1877,8 @@ pub struct BackgroundTaskSummary {
     pub completed: bool,
     pub exit_code: Option<i32>,
     pub duration_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation_id: Option<String>,
 }
 
 /// List all background tasks.
@@ -1896,6 +1901,7 @@ pub fn list_background_commands(
                 completed: s.completed,
                 exit_code: s.exit_code,
                 duration_ms: s.duration_ms,
+                conversation_id: s.conversation_id.clone(),
             });
         }
     }

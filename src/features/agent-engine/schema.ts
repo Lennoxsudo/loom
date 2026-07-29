@@ -219,11 +219,15 @@ const ControlBrowserSchema = ToolParametersSchema.extend({
     'back',
     'forward',
     'click',
+    'hover',
     'type',
     'press_key',
     'content',
     'evaluate',
     'wait',
+    'scroll',
+    'select',
+    'handle_alert',
     'screenshot',
   ]),
   url: z.string().url().optional(),
@@ -234,6 +238,15 @@ const ControlBrowserSchema = ToolParametersSchema.extend({
   clear: z.boolean().optional(),
   expression: z.string().min(1).optional(),
   timeout_ms: z.number().int().positive().max(60_000).optional(),
+  wait_until: z.enum(['domcontentloaded', 'load']).optional(),
+  dialog_action: z.enum(['accept', 'dismiss', 'get_text']).optional(),
+  prompt_text: z.string().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  scroll_mode: z.enum(['to', 'by']).optional(),
+  value: z.string().optional(),
+  index: z.number().int().nonnegative().optional(),
+  label: z.string().optional(),
   full_page: z.boolean().optional(),
   include_base64: z.boolean().optional(),
 }).refine(
@@ -241,7 +254,7 @@ const ControlBrowserSchema = ToolParametersSchema.extend({
     if (['open', 'navigate'].includes(data.action) && !data.url) {
       return false;
     }
-    if (['click', 'type', 'wait'].includes(data.action) && !data.selector) {
+    if (['click', 'hover', 'type', 'select'].includes(data.action) && !data.selector) {
       return false;
     }
     if (data.action === 'type' && data.text == null) {
@@ -253,11 +266,38 @@ const ControlBrowserSchema = ToolParametersSchema.extend({
     if (data.action === 'evaluate' && !data.expression) {
       return false;
     }
+    if (data.action === 'scroll') {
+      const hasSelector = Boolean(data.selector?.trim());
+      const hasCoords = data.x !== undefined || data.y !== undefined;
+      if (!hasSelector && !hasCoords) {
+        return false;
+      }
+    }
+    if (data.action === 'select') {
+      const hasValue = Boolean(data.value?.trim());
+      const hasIndex = data.index !== undefined && data.index !== null;
+      const hasLabel = Boolean(data.label?.trim());
+      const hasText = Boolean(data.text?.trim());
+      // text/value may be equal after aliasing; treat identical pair as one choice
+      const textEqualsValue =
+        hasText && hasValue && data.text!.trim() === data.value!.trim();
+      const chosen =
+        (hasValue && !textEqualsValue ? 1 : 0) +
+        (hasIndex ? 1 : 0) +
+        (hasLabel ? 1 : 0) +
+        (hasText ? 1 : 0);
+      if (chosen !== 1) {
+        return false;
+      }
+    }
+    if (data.action === 'handle_alert' && !data.dialog_action) {
+      return false;
+    }
     return true;
   },
   {
     message:
-      'Missing required params for browser action (url / selector / text / key / expression)',
+      'Missing required params for browser action (url / selector / text / key / expression / scroll coords / select option / dialog_action)',
     path: ['action'],
   }
 );

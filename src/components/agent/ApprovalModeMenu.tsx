@@ -7,7 +7,15 @@ import styles from './ApprovalModeMenu.module.css';
 
 const MODE_ORDER: AgentAccessMode[] = ['read_only', 'auto', 'full_access'];
 
-const ApprovalModeMenu = memo(function ApprovalModeMenu() {
+export interface ApprovalModeMenuProps {
+  variant?: 'dropdown' | 'inline';
+  onSelect?: () => void;
+}
+
+const ApprovalModeMenu = memo(function ApprovalModeMenu({
+  variant = 'dropdown',
+  onSelect,
+}: ApprovalModeMenuProps) {
   const t = useTranslation();
   const accessMode = useAgentAccessMode();
   const updateAccessMode = useUpdateAgentAccessMode();
@@ -30,12 +38,27 @@ const ApprovalModeMenu = memo(function ApprovalModeMenu() {
     (mode: AgentAccessMode) => {
       void updateAccessMode(mode);
       setIsOpen(false);
+      onSelect?.();
     },
-    [updateAccessMode]
+    [onSelect, updateAccessMode]
   );
 
+  const renderItems = () =>
+    MODE_ORDER.map((mode) => (
+      <button
+        key={mode}
+        type="button"
+        role="menuitem"
+        className={`${styles.item} ${accessMode === mode ? styles.itemActive : ''}`}
+        onClick={() => handleSelect(mode)}
+      >
+        <span>{labels[mode]}</span>
+        <span className={styles.itemBadge}>{badges[mode]}</span>
+      </button>
+    ));
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (variant !== 'dropdown' || !isOpen) return;
     const onMouseDown = (event: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -50,7 +73,15 @@ const ApprovalModeMenu = memo(function ApprovalModeMenu() {
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, variant]);
+
+  if (variant === 'inline') {
+    return (
+      <div className={styles.inlineList} role="menu">
+        {renderItems()}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.menuWrap} ref={wrapRef}>
@@ -67,18 +98,7 @@ const ApprovalModeMenu = memo(function ApprovalModeMenu() {
       </button>
       {isOpen && (
         <div className={styles.dropdown} role="menu">
-          {MODE_ORDER.map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              role="menuitem"
-              className={`${styles.item} ${accessMode === mode ? styles.itemActive : ''}`}
-              onClick={() => handleSelect(mode)}
-            >
-              <span>{labels[mode]}</span>
-              <span className={styles.itemBadge}>{badges[mode]}</span>
-            </button>
-          ))}
+          {renderItems()}
         </div>
       )}
     </div>

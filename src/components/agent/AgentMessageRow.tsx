@@ -22,7 +22,9 @@ interface AgentMessageRowProps {
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
   /** Edit + resend a user message (rolls back later file changes / AI output). */
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  onForkFromUserMessage?: (messageId: string) => void | Promise<void>;
   userMessageEditDisabled?: boolean;
+  userMessageForkDisabled?: boolean;
   planSlot?: React.ReactNode;
 }
 
@@ -153,7 +155,9 @@ export default function AgentMessageRow({
   onRejectTool,
   onUserMessageLayout,
   onResendFromUserMessage,
+  onForkFromUserMessage,
   userMessageEditDisabled = false,
+  userMessageForkDisabled = false,
   planSlot,
 }: AgentMessageRowProps) {
   if (item.kind === 'plan') {
@@ -215,7 +219,9 @@ export default function AgentMessageRow({
         message={message}
         onUserMessageLayout={onUserMessageLayout}
         onResendFromUserMessage={onResendFromUserMessage}
+        onForkFromUserMessage={onForkFromUserMessage}
         editDisabled={userMessageEditDisabled}
+        forkDisabled={userMessageForkDisabled}
       />
     );
   }

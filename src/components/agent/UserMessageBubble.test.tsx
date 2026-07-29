@@ -74,4 +74,13 @@ describe('UserMessageBubble', () => {
     expect(writeTextSpy).toHaveBeenCalledWith('original task');
     writeTextSpy.mockRestore();
   });
+
+  it('forks from user message when fork handler is provided', async () => {
+    const user = userEvent.setup();
+    const onFork = vi.fn();
+    renderBubble({ onForkFromUserMessage: onFork });
+
+    await user.click(screen.getByTestId('user-message-fork'));
+    expect(onFork).toHaveBeenCalledWith('u-1');
+  });
 });

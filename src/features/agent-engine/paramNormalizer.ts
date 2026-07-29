@@ -254,6 +254,11 @@ const PARAM_ALIASES: ParamAliasConfig[] = [
     description: 'Timeout in milliseconds',
   },
   {
+    canonical: 'full_page',
+    aliases: ['full_page', 'fullPage', 'fullpage'],
+    description: 'Capture full scrollable page in screenshot',
+  },
+  {
     canonical: 'description',
     aliases: ['description', 'desc', 'purpose'],
     description: 'Brief description of what the command does',
@@ -704,6 +709,47 @@ function applyMergedToolNormalizations(result: Record<string, unknown>, toolName
     if (result.num_results === undefined && result.limit !== undefined) {
       result.num_results = result.limit;
     }
+  }
+  if (toolName === 'browser' || toolName === 'control_browser') {
+    normalizeBrowserSelectArgs(result);
+  }
+}
+
+/**
+ * Global alias map remaps `text` → `value`. For browser select, `text` means
+ * visible option label — undo that alias and accept option/select_option aliases.
+ */
+function normalizeBrowserSelectArgs(result: Record<string, unknown>): void {
+  const action = String(result.action ?? '').toLowerCase();
+  if (action !== 'select') {
+    return;
+  }
+
+  // option / select_option / option_text → text (visible label)
+  if (result.text === undefined) {
+    for (const key of ['option', 'select_option', 'option_text', 'optionText'] as const) {
+      if (typeof result[key] === 'string' && result[key].trim()) {
+        result.text = result[key];
+        break;
+      }
+    }
+  }
+
+  // Coerce string index from model JSON
+  if (typeof result.index === 'string' && result.index.trim() !== '') {
+    const n = Number(result.index);
+    if (Number.isInteger(n) && n >= 0) {
+      result.index = n;
+    }
+  }
+
+  // Undo text→value alias when both are the same (normalizer copied text into value)
+  if (
+    typeof result.text === 'string' &&
+    typeof result.value === 'string' &&
+    result.text === result.value
+  ) {
+    delete result.value;
   }
 }
 

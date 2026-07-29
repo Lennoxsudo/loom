@@ -298,6 +298,80 @@
   cursor: not-allowed;
 }
 
+.attachButtonOpen {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+}
+
+.plusDrawerWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.plusDrawer {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 208px;
+  max-width: min(208px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  background: var(--bg-dropdown);
+  box-shadow: var(--shadow-md);
+  z-index: 240;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drawerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.drawerSectionTitle {
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.drawerDivider {
+  height: 1px;
+  margin: 0 2px;
+  background: var(--border-subtle);
+}
+
+.drawerAction {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background-color var(--transition-fast);
+}
+
+.drawerAction:hover:not(:disabled) {
+  background: var(--bg-list-hover);
+}
+
+.drawerAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .textarea {
   flex: 1;
   background: transparent;

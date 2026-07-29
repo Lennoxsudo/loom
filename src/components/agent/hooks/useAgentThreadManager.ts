@@ -64,6 +64,7 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
     onSetDraftMessage,
     projectPath,
     activeProjectKey,
+    branchName,
     onClearSessionExtras,
   });
 
@@ -235,6 +236,36 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
     ]
   );
 
+  const handleForkThread = useCallback(
+    (anchorMessageId: string, forkTitleSuffix: string): boolean => {
+      if (!selectedThreadId) return false;
+      persistCurrentThreadBeforeSwitch();
+      const forked = conversationApi.handleForkConversation(
+        selectedThreadId,
+        anchorMessageId,
+        forkTitleSuffix
+      );
+      if (!forked) return false;
+      onHydrateThreadSettings(forked.threadSettings);
+      if (activeProjectKey) {
+        const sessionKey = resolveDraftSessionKey(activeProjectKey, forked.id);
+        onSetDraftMessage(onLoadDraftForSession(sessionKey));
+      } else {
+        onSetDraftMessage('');
+      }
+      return true;
+    },
+    [
+      selectedThreadId,
+      persistCurrentThreadBeforeSwitch,
+      conversationApi,
+      onHydrateThreadSettings,
+      activeProjectKey,
+      onLoadDraftForSession,
+      onSetDraftMessage,
+    ]
+  );
+
   const requestDeleteThread = useCallback((thread: AgentThreadListItem) => {
     setPendingDeleteThread(thread);
   }, []);
@@ -289,6 +320,7 @@ export function useAgentThreadManager(options: UseAgentThreadManagerOptions) {
     setPendingDeleteThread,
     isDeletingThread,
     handleNewThread,
+    handleForkThread,
     handleSelectThread,
     requestDeleteThread,
     confirmDeleteThread,

@@ -16,6 +16,10 @@ import {
   resolveDraftSessionKey,
   createAssistantMessageId,
   createUserMessageId,
+  forkAgentConversation,
+  cloneMessagesForFork,
+  createAgentConversation,
+  conversationToThreadListItem,
 } from './utils';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
 import type { ProviderRequestMessage, ChatMessage } from '../../types/chat';
@@ -1131,5 +1135,88 @@ describe('message id factories', () => {
     for (const id of ids) {
       expect(id).toMatch(/^u-[0-9a-f-]{36}$/);
     }
+  });
+});
+
+describe('conversationToThreadListItem branch metadata', () => {
+  it('uses stored branch only and flags mismatch against current branch', () => {
+    const conversation = {
+      ...createAgentConversation('a', 'Agent', 'D:\\proj', 'feature-a'),
+      messages: [{ id: 'u1', role: 'user' as const, text: 'hi', createdAt: 1 }],
+    };
+    const item = conversationToThreadListItem(conversation, 'proj-key', 'main');
+    expect(item.branchName).toBe('feature-a');
+    expect(item.branchMismatch).toBe(true);
+  });
+
+  it('does not fall back to current branch for display', () => {
+    const conversation = createAgentConversation('a', 'Agent', 'D:\\proj');
+    const item = conversationToThreadListItem(conversation, 'proj-key', 'main');
+    expect(item.branchName).toBeUndefined();
+    expect(item.branchMismatch).toBe(false);
+  });
+});
+
+describe('forkAgentConversation', () => {
+  it('copies messages through the anchor user message into a new thread', () => {
+    const source = {
+      ...createAgentConversation('a', 'Agent', 'D:\\proj'),
+      id: 'conv-src',
+      title: 'Main thread',
+      messages: [
+        { id: 'u1', role: 'user' as const, text: 'first', createdAt: 1 },
+        { id: 'a1', role: 'assistant' as const, text: 'reply', createdAt: 2 },
+        { id: 'u2', role: 'user' as const, text: 'second', createdAt: 3 },
+        { id: 'a2', role: 'assistant' as const, text: 'later', createdAt: 4 },
+      ],
+    };
+
+    const forked = forkAgentConversation(source, 'u1', { forkTitleSuffix: ' (fork)' });
+    expect(forked).not.toBeNull();
+    expect(forked!.id).not.toBe(source.id);
+    expect(forked!.title).toBe('Main thread (fork)');
+    expect(forked!.messages.map((m) => m.id)).toEqual(['u1', 'a1']);
+    expect(forked!.projectPath).toBe(source.projectPath);
+  });
+
+  it('records the current branch on fork when provided', () => {
+    const source = {
+      ...createAgentConversation('a', 'Agent', 'D:\\proj', 'old-branch'),
+      id: 'conv-src',
+      messages: [{ id: 'u1', role: 'user' as const, text: 'first', createdAt: 1 }],
+    };
+
+    const forked = forkAgentConversation(source, 'u1', {
+      forkTitleSuffix: ' (fork)',
+      branchName: 'new-branch',
+    });
+    expect(forked?.branchName).toBe('new-branch');
+  });
+
+  it('includes the full assistant turn when forking the last user message', () => {
+    const source = {
+      ...createAgentConversation('a', 'Agent', 'D:\\proj'),
+      id: 'conv-src',
+      title: 'Main thread',
+      messages: [
+        { id: 'u1', role: 'user' as const, text: 'first', createdAt: 1 },
+        { id: 'a1', role: 'assistant' as const, text: 'reply', createdAt: 2 },
+        { id: 't1', role: 'tool' as const, text: 'ok', tool_call_id: 'tc1', createdAt: 3 },
+        { id: 'u2', role: 'user' as const, text: 'second', createdAt: 4 },
+        { id: 'a2', role: 'assistant' as const, text: 'done', createdAt: 5 },
+      ],
+    };
+
+    const forked = forkAgentConversation(source, 'u2', { forkTitleSuffix: ' (fork)' });
+    expect(forked!.messages.map((m) => m.id)).toEqual(['u1', 'a1', 't1', 'u2', 'a2']);
+  });
+
+  it('strips streaming messages when cloning', () => {
+    const cloned = cloneMessagesForFork([
+      { id: 'u1', role: 'user', text: 'hi', createdAt: 1 },
+      { id: 'a1', role: 'assistant', text: '', createdAt: 2, isStreaming: true },
+    ]);
+    expect(cloned).toHaveLength(1);
+    expect(cloned[0]?.id).toBe('u1');
   });
 });

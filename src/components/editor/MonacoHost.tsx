@@ -57,6 +57,7 @@ export interface MonacoDiffHostProps {
   bracketPairColorization?: boolean;
   readOnly?: boolean;
   renderSideBySide?: boolean;
+  useInlineViewWhenSpaceIsLimited?: boolean;
 }
 
 const viewStates = new Map<string, Monaco.editor.ICodeEditorViewState | null>();
@@ -365,6 +366,7 @@ export function MonacoDiffHost(props: MonacoDiffHostProps) {
     bracketPairColorization = true,
     readOnly,
     renderSideBySide,
+    useInlineViewWhenSpaceIsLimited,
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -429,6 +431,7 @@ export function MonacoDiffHost(props: MonacoDiffHostProps) {
       bracketPairColorization: { enabled: bracketPairColorization },
       matchBrackets: bracketPairColorization ? 'always' : 'never',
       renderSideBySide: renderSideBySide ?? true,
+      useInlineViewWhenSpaceIsLimited: useInlineViewWhenSpaceIsLimited ?? true,
       readOnly: readOnly ?? false,
       dimension: initialDimension,
     });
@@ -493,6 +496,7 @@ export function MonacoDiffHost(props: MonacoDiffHostProps) {
     bracketPairColorization,
     readOnly,
     renderSideBySide,
+    useInlineViewWhenSpaceIsLimited,
     isLanguageReady, // 添加依赖
   ]);
 

@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n';
 import { CloseIcon } from '../shared/Icons';
 import ChangeReviewDiffView from './ChangeReviewDiffView';
 import ChangeReviewFilePreview from './ChangeReviewFilePreview';
+import CheckpointFilePreview from './CheckpointFilePreview';
 import CheckpointTimeline from './CheckpointTimeline';
 import type { PendingFileChange } from './utils';
 import type { AgentCheckpoint } from '../../utils/checkpointTimeline';
@@ -56,6 +57,9 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
   const [previewChangeId, setPreviewChangeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ReviewTab>('files');
   const [selectedCheckpointId, setSelectedCheckpointId] = useState<string | null>(null);
+  const [selectedCheckpointFilePath, setSelectedCheckpointFilePath] = useState<string | null>(
+    null
+  );
 
   const previewChange = useMemo(
     () => pendingChanges.find((change) => change.id === previewChangeId) ?? null,
@@ -66,6 +70,13 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
     () => checkpoints.find((c) => c.id === selectedCheckpointId) ?? null,
     [checkpoints, selectedCheckpointId]
   );
+
+  const selectedCheckpointFile = useMemo(() => {
+    if (!selectedCheckpoint || !selectedCheckpointFilePath) return null;
+    return (
+      selectedCheckpoint.files.find((f) => f.path === selectedCheckpointFilePath) ?? null
+    );
+  }, [selectedCheckpoint, selectedCheckpointFilePath]);
 
   const [isClosing, setIsClosing] = useState(false);
 
@@ -82,6 +93,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
       setIsClosing(false);
       setPreviewChangeId(null);
       setSelectedCheckpointId(null);
+      setSelectedCheckpointFilePath(null);
     }
   }, [collapsed]);
 
@@ -94,8 +106,19 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
   useEffect(() => {
     if (selectedCheckpointId && !checkpoints.some((c) => c.id === selectedCheckpointId)) {
       setSelectedCheckpointId(null);
+      setSelectedCheckpointFilePath(null);
     }
   }, [checkpoints, selectedCheckpointId]);
+
+  useEffect(() => {
+    if (
+      selectedCheckpointFilePath &&
+      selectedCheckpoint &&
+      !selectedCheckpoint.files.some((f) => f.path === selectedCheckpointFilePath)
+    ) {
+      setSelectedCheckpointFilePath(null);
+    }
+  }, [selectedCheckpoint, selectedCheckpointFilePath]);
 
   const handleSelectPreview = useCallback((change: PendingFileChange) => {
     setPreviewChangeId(change.id);
@@ -105,11 +128,17 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
   const handleClosePreview = useCallback(() => {
     setPreviewChangeId(null);
     setSelectedCheckpointId(null);
+    setSelectedCheckpointFilePath(null);
   }, []);
 
   const handleSelectCheckpoint = useCallback((cp: AgentCheckpoint) => {
     setSelectedCheckpointId(cp.id);
+    setSelectedCheckpointFilePath(cp.files[0]?.path ?? null);
     setPreviewChangeId(null);
+  }, []);
+
+  const handleSelectCheckpointFile = useCallback((filePath: string) => {
+    setSelectedCheckpointFilePath(filePath);
   }, []);
 
   const handleRestore = useCallback(
@@ -117,6 +146,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
       if (!onRestoreCheckpoint) return;
       await onRestoreCheckpoint(cp);
       setSelectedCheckpointId(null);
+      setSelectedCheckpointFilePath(null);
     },
     [onRestoreCheckpoint]
   );
@@ -280,7 +310,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
       {selectedCheckpoint && !previewChange ? (
         <aside className={styles.previewPanel} data-testid="checkpoint-detail-preview">
           <div className={styles.header}>
-            <span className={styles.title}>{t.agent.changeReview.checkpointDetail}</span>
+            <span className={styles.title}>{t.agent.changeReview.checkpointPreviewTitle}</span>
             <div className={styles.headerActions}>
               <button
                 type="button"
@@ -288,30 +318,61 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
                 onClick={handleClosePreview}
                 title={t.agent.changeReview.closePreview}
                 aria-label={t.agent.changeReview.closePreview}
+                data-testid="checkpoint-close-preview"
               >
                 <CloseIcon size={14} />
               </button>
             </div>
           </div>
-          <div className={styles.checkpointFileList}>
-            <div>
-              <strong>{selectedCheckpoint.label}</strong>
+
+          <div className={styles.checkpointPreviewLayout}>
+            <div className={styles.checkpointFileList}>
+              <div>
+                <strong>{selectedCheckpoint.label}</strong>
+              </div>
             </div>
-            <div>
-              {t.agent.changeReview.checkpointFiles}: {selectedCheckpoint.files.length}
+
+            {selectedCheckpoint.files.length > 1 ? (
+              <div className={styles.checkpointFileRows}>
+                {selectedCheckpoint.files.map((f) => {
+                  const isSelected = selectedCheckpointFilePath === f.path;
+                  const suffix = f.isBinary ? ` (${t.agent.changeReview.binarySkipped})` : '';
+
+                  return (
+                    <div
+                      key={f.path}
+                      className={`${styles.row} ${isSelected ? styles.rowSelected : ''}`}
+                      data-testid="checkpoint-file-row"
+                    >
+                      <button
+                        type="button"
+                        className={styles.fileNameButton}
+                        title={f.path}
+                        onClick={() => handleSelectCheckpointFile(f.path)}
+                        data-testid="checkpoint-file-name"
+                      >
+                        {shortFileName(f.path)}
+                        {suffix}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className={styles.checkpointDiffArea}>
+              {selectedCheckpointFile ? (
+                <div className={styles.previewBody}>
+                  <CheckpointFilePreview
+                    checkpoint={selectedCheckpoint}
+                    file={selectedCheckpointFile}
+                    onClose={() => setSelectedCheckpointFilePath(null)}
+                  />
+                </div>
+              ) : (
+                <div className={styles.empty}>{t.agent.changeReview.selectCheckpointFile}</div>
+              )}
             </div>
-            <ul>
-              {selectedCheckpoint.files.map((f) => (
-                <li key={f.path}>
-                  {shortFileName(f.path)}
-                  {!f.existed
-                    ? ` (${t.agent.changeReview.fileDidNotExist})`
-                    : f.isBinary
-                      ? ` (${t.agent.changeReview.binarySkipped})`
-                      : ''}
-                </li>
-              ))}
-            </ul>
           </div>
         </aside>
       ) : null}

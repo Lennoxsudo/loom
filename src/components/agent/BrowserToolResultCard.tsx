@@ -91,6 +91,7 @@ const BrowserToolResultCard = memo(function BrowserToolResultCard({
     scroll: 'Scroll',
     hover: 'Hover',
     select: 'Select',
+    handle_alert: 'Alert',
   };
   const actionLabel = isControlBrowser
     ? browserActionLabels[action] || action || 'Browser'

@@ -10,7 +10,7 @@ import { CopyIcon, CheckIcon } from '../shared/Icons';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
 import { markdownComponents, cleanupFileTree } from '../shared/MarkdownRenderers';
 import { lightMarkdownComponents } from '../shared/LightMarkdownRenderer';
-import { normalizeAssistantMarkdown } from '../../utils/assistantMarkdownNormalizer';
+import { normalizeAssistantMarkdown, normalizeAssistantMarkdownStreaming } from '../../utils/assistantMarkdownNormalizer';
 import { stripStrayThinkTags } from '../../utils/thinkingExtractor';
 import {
   extractAnnotationLabelsFromPrefix,
@@ -216,7 +216,7 @@ function MessageBubble({
   const markdownReadyContent = isUser
     ? cleanedNormalizedContent
     : message.isStreaming
-      ? cleanedNormalizedContent
+      ? normalizeAssistantMarkdownStreaming(cleanedNormalizedContent)
       : normalizeAssistantMarkdown(cleanedNormalizedContent);
   const hasTextContent = cleanedNormalizedContent.trim().length > 0;
   const showContent =

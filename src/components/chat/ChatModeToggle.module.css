@@ -83,3 +83,45 @@
 .composerModePill:hover {
   filter: brightness(1.06);
 }
+
+.drawerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.drawerItem {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.drawerItem:hover,
+.drawerItemActive {
+  background: var(--bg-list-hover);
+}
+
+.drawerBadge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-hover) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-primary) 60%, transparent);
+}

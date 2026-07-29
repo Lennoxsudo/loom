@@ -217,7 +217,9 @@ function formatFenceBlock(language: string, lines: string[]): string {
     trimmedLines.pop();
   }
   if (trimmedLines.length === 0) {
-    return '';
+    // Empty fence with a language tag is almost always the model naming a
+    // parameter/language inline (e.g. ```text``` → `text`), not a real block.
+    return language ? `\`${language}\`` : '';
   }
 
   const body = trimmedLines.join('\n');
@@ -283,10 +285,20 @@ function processAndSegmentFence(rawLanguage: string, rawBody: string): string {
   }
 
   if (!body.trim()) {
-    return language ? `\`\`\`${language}\n\`\`\`` : '```\n```';
+    return language ? `\`${language}\`` : '';
   }
 
   return splitFenceBodyAtBoundaries(language, body);
+}
+
+/** Collapse leftover empty fences (```text``` / ``` ```) into inline code or remove them. */
+function collapseEmptyFencedBlocks(content: string): string {
+  return content
+    .replace(/```([a-zA-Z0-9#+_-]*)[ \t]*\r?\n[ \t]*```/g, (_match, lang: string) => {
+      const language = (lang || '').trim();
+      return language ? `\`${language}\`` : '';
+    })
+    .replace(/```([a-zA-Z0-9#+_-]+)[ \t]*```/g, '`$1`');
 }
 
 function resegmentAllFencedCodeBlocks(content: string): string {
@@ -604,6 +616,10 @@ export function normalizeAssistantMarkdown(content: string): string {
 
   let normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+  // Collapse empty fences early — mid-line ```text\n``` in tables otherwise
+  // leaves a stray ``` that opens an anonymous fence and swallows following prose.
+  normalized = collapseEmptyFencedBlocks(normalized);
+
   const lines = normalized.split('\n');
   const processedLines: string[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -630,6 +646,7 @@ export function normalizeAssistantMarkdown(content: string): string {
     keepTextFencesInProse: true,
   });
   normalized = unwrapNaturalLanguageTextFences(normalized);
+  normalized = collapseEmptyFencedBlocks(normalized);
 
   normalized = normalized
     .replace(/([^\n])\n?```/g, '$1\n\n```')
@@ -637,5 +654,16 @@ export function normalizeAssistantMarkdown(content: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
+  // Fence spacing pass can recreate empty blocks — collapse again.
+  normalized = collapseEmptyFencedBlocks(normalized);
+
   return normalized;
+}
+
+/** Lightweight normalize for streaming: only collapse empty fences (cheap, stable). */
+export function normalizeAssistantMarkdownStreaming(content: string): string {
+  if (!content) {
+    return content;
+  }
+  return collapseEmptyFencedBlocks(content.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
 }

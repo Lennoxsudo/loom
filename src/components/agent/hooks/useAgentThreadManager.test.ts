@@ -158,6 +158,19 @@ describe('useAgentThreadManager', () => {
     expect(result.current.selectedThreadId).toBe('thread-a');
   });
 
+  it('flags branch mismatch when stored thread branch differs from current branch', () => {
+    const conversationState = createConversationState();
+    conversationState.conversations[0] = {
+      ...conversationState.conversations[0],
+      branchName: 'feature-a',
+    };
+    const { options } = createHookOptions({ conversationState });
+    const { result } = renderHook(() => useAgentThreadManager(options));
+
+    expect(result.current.threadListItems[0]?.branchName).toBe('feature-a');
+    expect(result.current.threadListItems[0]?.branchMismatch).toBe(true);
+  });
+
   it('groups threads by project path', () => {
     const { options } = createHookOptions();
     const { result } = renderHook(() => useAgentThreadManager(options));
@@ -500,5 +513,34 @@ describe('useAgentThreadManager', () => {
     expect(state.selectedConversationId).toBeNull();
     expect(state.selectedConversationIdByProject?.[otherKey]).toBeNull();
     expect(result.current.selectedThreadId).toBeNull();
+  });
+
+  it('forks the current thread at a user message and selects the new thread', () => {
+    const conversationState = createConversationState();
+    conversationState.conversations[0]!.messages = [
+      { id: 'u1', role: 'user', text: 'Hello from A', createdAt: 1 },
+      { id: 'a1', role: 'assistant', text: 'Hi', createdAt: 2 },
+      { id: 'u2', role: 'user', text: 'Follow up', createdAt: 3 },
+    ];
+    const onHydrateThreadSettings = vi.fn();
+    const { options, getConversationState } = createHookOptions({
+      conversationState,
+      onHydrateThreadSettings,
+    });
+    const { result } = renderHook(() => useAgentThreadManager(options));
+
+    let forked = false;
+    act(() => {
+      forked = result.current.handleForkThread('u1', ' (fork)');
+    });
+
+    expect(forked).toBe(true);
+    const state = getConversationState();
+    expect(state.conversations).toHaveLength(3);
+    const newThread = state.conversations.find((c) => c.id !== 'thread-a' && c.id !== 'thread-b');
+    expect(newThread?.title).toBe('Thread A (fork)');
+    expect(newThread?.messages.map((m) => m.id)).toEqual(['u1', 'a1']);
+    expect(state.selectedConversationId).toBe(newThread?.id);
+    expect(onHydrateThreadSettings).toHaveBeenCalled();
   });
 });

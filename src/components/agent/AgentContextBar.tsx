@@ -83,6 +83,7 @@ const AgentContextBar = memo(function AgentContextBar({
   const t = useTranslation();
   const recentWorkspaces = useRecentWorkspaces();
   const touchRecentWorkspace = useTouchRecentWorkspace();
+  const sideCapsulesRef = useRef<HTMLDivElement>(null);
 
   const [projectOpen, setProjectOpen] = useState(false);
   const [openSideCapsule, setOpenSideCapsule] = useState<'skill' | 'mcp' | null>(null);
@@ -107,6 +108,17 @@ const AgentContextBar = memo(function AgentContextBar({
     if (!projectPath) return;
     void touchRecentWorkspace(projectPath, projectName);
   }, [projectPath, projectName, touchRecentWorkspace]);
+
+  useEffect(() => {
+    if (!openSideCapsule) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (sideCapsulesRef.current && !sideCapsulesRef.current.contains(event.target as Node)) {
+        setOpenSideCapsule(null);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [openSideCapsule]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,7 +157,7 @@ const AgentContextBar = memo(function AgentContextBar({
   return (
     <div className={styles.bar} style={centered ? undefined : { maxWidth: 'none' }}>
       {centered && (
-        <>
+        <div ref={sideCapsulesRef} style={{ display: 'contents' }}>
           <SideResourceCapsule
             label="SKILL"
             count={skillsCount}
@@ -170,7 +182,7 @@ const AgentContextBar = memo(function AgentContextBar({
             disabled={disabled}
             centered
           />
-        </>
+        </div>
       )}
 
       <PillDropdown

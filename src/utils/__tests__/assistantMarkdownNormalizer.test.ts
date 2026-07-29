@@ -120,4 +120,36 @@ const API_BASE = import.meta.env.VITE_API_BASE`;
     expect(result).toContain('#### 3. 敏感信息保护');
     expect(result).toContain('import.meta.env.VITE_API_BASE');
   });
+
+  test('collapses empty text fences to inline code', () => {
+    const input =
+      '唯一的小问题是 `select` 的\n```text\n```\n匹配模式还没支持。';
+
+    const result = normalizeAssistantMarkdown(input);
+
+    expect(result).toContain('`text`');
+    expect(result).not.toMatch(/```text/);
+    expect(result).toContain('匹配模式还没支持');
+  });
+
+  test('collapses empty language fences inside table cells', () => {
+    const input = `| 问题 | 详情 |
+| --- | --- |
+| \`select\` 不支持 | \`\`\`text
+\`\`\`
+传入 text: "Banana" |`;
+
+    const result = normalizeAssistantMarkdown(input);
+
+    expect(result).toContain('`text`');
+    expect(result).not.toMatch(/```text/);
+  });
+
+  test('removes empty anonymous fences', () => {
+    const input = 'before\n```\n```\nafter';
+    const result = normalizeAssistantMarkdown(input);
+    expect(result).not.toMatch(/```/);
+    expect(result).toContain('before');
+    expect(result).toContain('after');
+  });
 });

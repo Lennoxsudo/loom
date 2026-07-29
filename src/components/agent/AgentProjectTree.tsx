@@ -5,6 +5,7 @@ import type { RecentWorkspace } from '../../types/settings';
 import type { AgentThreadListItem } from './utils';
 import { normalizeProjectPath } from './utils';
 import SessionStreamingLoader from './SessionStreamingLoader';
+import ThreadBranchMeta from './ThreadBranchMeta';
 import { GitPanelContextMenu, type GitPanelMenuEntry } from '../GitPanelContextMenu';
 import styles from './AgentProjectTree.module.css';
 
@@ -273,13 +274,10 @@ const AgentProjectTree = memo(function AgentProjectTree({
                                       {formatRelativeTime(thread.updatedAt, language)}
                                     </span>
                                   ) : null}
-                                  {thread.branchName ? (
-                                    <span
-                                      className={styles.branchIcon}
-                                      title={thread.branchName}
-                                      aria-hidden
-                                    />
-                                  ) : null}
+                                  <ThreadBranchMeta
+                                    branchName={thread.branchName}
+                                    branchMismatch={thread.branchMismatch}
+                                  />
                                 </span>
                               </button>
                             )}

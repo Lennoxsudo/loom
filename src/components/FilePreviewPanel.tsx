@@ -316,6 +316,16 @@ export default function FilePreviewPanel({
 
   const isMarkdownFile = detectedLanguage === 'markdown';
 
+  const surfaceBg = embedded ? 'var(--bg-secondary)' : '#1c1c1c';
+  const surfaceMuted = embedded ? 'var(--bg-hover)' : '#111';
+  const textPrimary = embedded ? 'var(--text-primary)' : '#e0e0e0';
+  const textSecondary = embedded ? 'var(--text-secondary)' : '#888';
+  const textActive = embedded ? 'var(--text-primary)' : '#ffffff';
+  const surfaceActive = embedded ? 'var(--bg-panel)' : '#333';
+  const tabActiveBg = embedded ? 'var(--bg-panel)' : '#2d2d2d';
+  const emptyColor = embedded ? 'var(--text-secondary)' : '#555';
+  const borderSubtle = 'var(--border-subtle, #333)';
+
   useEffect(() => {
     setMonacoEditor(null);
   }, [activeFile.filePath, mode, mdRendered, isMarkdownFile]);
@@ -355,13 +365,13 @@ export default function FilePreviewPanel({
     alignItems: 'center',
     gap: '4px',
     padding: '6px 8px',
-    backgroundColor: '#111',
+    backgroundColor: surfaceMuted,
     overflowX: 'auto',
     overflowY: 'hidden',
-    borderBottom: '1px solid #222',
+    borderBottom: `1px solid ${borderSubtle}`,
     flexShrink: 0,
     scrollbarWidth: 'thin',
-    scrollbarColor: '#3a3a3a transparent',
+    scrollbarColor: embedded ? 'var(--bg-scrollbar-thumb) transparent' : '#3a3a3a transparent',
     WebkitOverflowScrolling: 'touch',
   };
 
@@ -369,15 +379,15 @@ export default function FilePreviewPanel({
     padding: '4px 10px',
     borderRadius: '4px',
     fontSize: '11px',
-    color: isActive ? '#fff' : '#888',
-    backgroundColor: isActive ? '#2d2d2d' : 'transparent',
+    color: isActive ? textActive : textSecondary,
+    backgroundColor: isActive ? tabActiveBg : 'transparent',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
     transition: 'all 0.15s ease',
-    border: `1px solid ${isActive ? 'rgba(255,255,255,0.08)' : 'transparent'}`,
+    border: `1px solid ${isActive ? borderSubtle : 'transparent'}`,
     flexShrink: 0,
   });
 
@@ -386,8 +396,8 @@ export default function FilePreviewPanel({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '8px 12px',
-    borderBottom: '1px solid var(--border-subtle, #333)',
-    backgroundColor: '#1c1c1c',
+    borderBottom: `1px solid ${borderSubtle}`,
+    backgroundColor: surfaceBg,
     flexShrink: 0,
   };
 
@@ -402,7 +412,7 @@ export default function FilePreviewPanel({
   const fileNameStyle: CSSProperties = {
     fontSize: '12px',
     fontWeight: 600,
-    color: '#e0e0e0',
+    color: textPrimary,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -413,7 +423,7 @@ export default function FilePreviewPanel({
     display: 'flex',
     alignItems: 'center',
     gap: '2px',
-    backgroundColor: '#111',
+    backgroundColor: surfaceMuted,
     padding: '2px',
     borderRadius: '6px',
     marginRight: '8px',
@@ -432,8 +442,8 @@ export default function FilePreviewPanel({
     fontSize: '11px',
     fontWeight: 500,
     cursor: 'pointer',
-    color: isActive ? '#ffffff' : '#888',
-    backgroundColor: isActive ? '#333' : 'transparent',
+    color: isActive ? textActive : textSecondary,
+    backgroundColor: isActive ? surfaceActive : 'transparent',
     transition: 'all 0.15s ease',
   });
 
@@ -465,7 +475,7 @@ export default function FilePreviewPanel({
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    color: '#555',
+    color: emptyColor,
     fontSize: '12px',
     gap: '12px',
   };
@@ -529,7 +539,7 @@ export default function FilePreviewPanel({
               <div
                 style={{
                   fontSize: '10px',
-                  color: '#888',
+                  color: textSecondary,
                   marginTop: '2px',
                   display: 'flex',
                   gap: '8px',
@@ -542,7 +552,7 @@ export default function FilePreviewPanel({
                   <span style={{ color: '#f48771' }}>-{diffStats.removed}</span>
                 )}
                 {diffStats.added === 0 && diffStats.removed === 0 && (
-                  <span style={{ color: '#888' }}>{t.preview.noChanges}</span>
+                  <span style={{ color: textSecondary }}>{t.preview.noChanges}</span>
                 )}
               </div>
             )}
@@ -616,7 +626,7 @@ export default function FilePreviewPanel({
           <div style={emptyStateStyle}>
             <FileIcon />
             <span>{t.preview.noContent}</span>
-            <span style={{ fontSize: '11px', color: '#555' }}>{t.preview.selectToPreview}</span>
+            <span style={{ fontSize: '11px', color: emptyColor }}>{t.preview.selectToPreview}</span>
           </div>
         ) : mode === 'preview' && isMarkdownFile && mdRendered ? (
           <div
@@ -626,7 +636,7 @@ export default function FilePreviewPanel({
               padding: '20px 24px',
               fontSize: '14px',
               lineHeight: '1.7',
-              color: '#d4d4d4',
+              color: textPrimary,
               fontFamily:
                 '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
             }}
@@ -849,10 +859,11 @@ export default function FilePreviewPanel({
             language={detectedLanguage}
             readOnly={true}
             renderSideBySide={true}
+            useInlineViewWhenSpaceIsLimited={!embedded}
             fontSize={13}
             wordWrap={true}
             lineNumbers={true}
-            minimap={true}
+            minimap={!embedded}
             tabSize={4}
             themeMode={themeMode}
           />

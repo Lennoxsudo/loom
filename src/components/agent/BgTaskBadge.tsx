@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation } from '../../i18n';
 import type { BackgroundTaskSummary } from '../../types/ai';
@@ -6,13 +6,27 @@ import styles from './BgTaskBadge.module.css';
 
 const POLL_INTERVAL = 5000;
 
-const BgTaskBadge = memo(function BgTaskBadge() {
+export interface BgTaskBadgeProps {
+  conversationId?: string | null;
+}
+
+export function filterBackgroundTasksForConversation(
+  tasks: BackgroundTaskSummary[],
+  conversationId?: string | null
+): BackgroundTaskSummary[] {
+  const running = tasks.filter((task) => !task.completed);
+  const currentId = conversationId?.trim();
+  if (!currentId) {
+    return running.filter((task) => !task.conversation_id?.trim());
+  }
+  return running.filter((task) => task.conversation_id?.trim() === currentId);
+}
+
+const BgTaskBadge = memo(function BgTaskBadge({ conversationId = null }: BgTaskBadgeProps) {
   const t = useTranslation();
   const [tasks, setTasks] = useState<BackgroundTaskSummary[]>([]);
   const [expanded, setExpanded] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-
-  // ── 所有 hooks 必须在任何 early return 之前 ──
 
   useEffect(() => {
     let cancelled = false;
@@ -20,7 +34,7 @@ const BgTaskBadge = memo(function BgTaskBadge() {
       try {
         const result = await invoke<BackgroundTaskSummary[]>('list_background_commands');
         if (!cancelled) {
-          setTasks(result.filter((t) => !t.completed));
+          setTasks(result.filter((task) => !task.completed));
         }
       } catch {
         // ignore
@@ -34,7 +48,6 @@ const BgTaskBadge = memo(function BgTaskBadge() {
     };
   }, []);
 
-  // 点击外部关闭浮层
   useEffect(() => {
     if (!expanded) return;
     const onMouseDown = (e: MouseEvent) => {
@@ -53,26 +66,29 @@ const BgTaskBadge = memo(function BgTaskBadge() {
     };
   }, [expanded]);
 
+  const runningTasks = useMemo(
+    () => filterBackgroundTasksForConversation(tasks, conversationId),
+    [tasks, conversationId]
+  );
+
   const handleKill = useCallback(async (taskId: string) => {
     try {
       await invoke('kill_background_command', { taskId });
-      setTasks((prev) => prev.filter((t) => t.task_id !== taskId));
+      setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
     } catch {
       // ignore
     }
   }, []);
 
   const handleKillAll = useCallback(async () => {
-    for (const task of tasks) {
-      if (!task.completed) {
-        await invoke('kill_background_command', { taskId: task.task_id });
-      }
+    for (const task of runningTasks) {
+      await invoke('kill_background_command', { taskId: task.task_id });
     }
-    setTasks([]);
+    const killedIds = new Set(runningTasks.map((task) => task.task_id));
+    setTasks((prev) => prev.filter((task) => !killedIds.has(task.task_id)));
     setExpanded(false);
-  }, [tasks]);
+  }, [runningTasks]);
 
-  const runningTasks = tasks.filter((t) => !t.completed);
   if (runningTasks.length === 0) return null;
 
   return (
@@ -80,7 +96,7 @@ const BgTaskBadge = memo(function BgTaskBadge() {
       <button
         type="button"
         className={styles.badge}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => setExpanded((value) => !value)}
         title={`${runningTasks.length} ${t.agent.bgTask.running}`}
       >
         <span className={styles.dot} aria-hidden="true" />

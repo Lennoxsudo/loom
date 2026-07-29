@@ -13,6 +13,7 @@ const threads: AgentThreadListItem[] = [
     updatedAt: Date.now() - 3600000,
     preview: 'Review login flow',
     branchName: 'main',
+    branchMismatch: true,
     sessionKey: 'agent-1::thread-1',
     projectPath: 'D:\\test\\project',
   },
@@ -63,7 +64,8 @@ describe('AgentThreadList', () => {
     expect(screen.getByTestId('agent-thread-list')).toBeInTheDocument();
     expect(screen.getByText('Auth refactor')).toBeInTheDocument();
     expect(screen.getByText('Review login flow')).toBeInTheDocument();
-    expect(screen.getByText(/Branch: main/)).toBeInTheDocument();
+    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.getByTestId('thread-branch-mismatch')).toHaveTextContent('Wrong branch');
     expect(screen.getByTitle('Running')).toBeInTheDocument();
     expect(screen.getByTestId('session-streaming-loader')).toBeInTheDocument();
   });

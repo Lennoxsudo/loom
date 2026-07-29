@@ -11,6 +11,12 @@ vi.mock('./ChangeReviewFilePreview', () => ({
   ),
 }));
 
+vi.mock('./CheckpointFilePreview', () => ({
+  default: ({ file }: { file: { path: string } }) => (
+    <div data-testid="checkpoint-file-preview">{file.path}</div>
+  ),
+}));
+
 const pendingChange: PendingFileChange = {
   id: 'pc-1',
   agentId: 'agent-1',
@@ -125,5 +131,36 @@ describe('ChangeReviewPanel', () => {
     await user.click(screen.getAllByTestId('review-file-name')[1]);
 
     expect(screen.getByTestId('change-review-file-preview')).toHaveTextContent('src/other.ts');
+  });
+
+  it('opens checkpoint diff preview when selecting a checkpoint file', async () => {
+    const user = userEvent.setup();
+    const checkpoints = [
+      {
+        id: 'cp-1',
+        sessionKey: 's',
+        projectPath: 'D:\\project',
+        toolName: 'write',
+        label: 'write · demo.ts',
+        createdAt: Date.now(),
+        files: [
+          {
+            path: 'src/demo.ts',
+            existed: true,
+            isBinary: false,
+            byteLen: 10,
+            blob: 'x',
+          },
+        ],
+      },
+    ];
+    renderPanel({ checkpoints });
+
+    await user.click(screen.getByTestId('change-review-tab-timeline'));
+    await user.click(screen.getByText('write · demo.ts'));
+
+    expect(screen.getByTestId('checkpoint-detail-preview')).toBeInTheDocument();
+    expect(screen.getByText('Checkpoint preview')).toBeInTheDocument();
+    expect(screen.getByTestId('checkpoint-file-preview')).toHaveTextContent('src/demo.ts');
   });
 });

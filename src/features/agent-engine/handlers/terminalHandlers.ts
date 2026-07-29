@@ -31,6 +31,11 @@ function clampTimeout(ms: number | undefined): number {
   return Math.min(ms, MAX_TIMEOUT_MS);
 }
 
+function bgTaskConversationArg(context?: ToolContext) {
+  const conversationId = context?.conversationId?.trim();
+  return conversationId ? { conversationId } : {};
+}
+
 // ---------------------------------------------------------------------------
 // Output formatting (claude-code mapToolResultToToolResultBlockParam style)
 // ---------------------------------------------------------------------------
@@ -123,6 +128,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
           workingDir: workingDir || undefined,
           timeoutMs,
           shell: args.shell || undefined,
+          ...bgTaskConversationArg(context),
         });
 
         return {
@@ -167,6 +173,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
             workingDir: workingDir || undefined,
             timeoutMs: DEFAULT_TIMEOUT_MS,
             shell: args.shell || undefined,
+            ...bgTaskConversationArg(context),
           });
           bgTaskId = bgResult.task_id;
         } catch {
@@ -195,6 +202,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
             workingDir: workingDir || undefined,
             timeoutMs: DEFAULT_TIMEOUT_MS,
             shell: args.shell || undefined,
+            ...bgTaskConversationArg(context),
           });
 
           return {

@@ -482,22 +482,36 @@ export interface AgentThreadListItem {
   updatedAt?: number;
   preview?: string;
   branchName?: string;
+  branchMismatch?: boolean;
   sessionKey: string;
   projectPath: string;
+}
+
+export function isThreadBranchMismatch(
+  threadBranchName: string | undefined,
+  currentBranchName?: string | null
+): boolean {
+  const stored = threadBranchName?.trim();
+  if (!stored) return false;
+  const current = currentBranchName?.trim();
+  if (!current) return false;
+  return stored !== current;
 }
 
 export function conversationToThreadListItem(
   conversation: AgentConversation,
   projectKey: string,
-  fallbackBranchName?: string | null
+  currentBranchName?: string | null
 ): AgentThreadListItem {
   const lastUser = [...conversation.messages].reverse().find((m) => m.role === 'user');
+  const branchName = conversation.branchName?.trim() || undefined;
   return {
     id: conversation.id,
     title: conversation.title,
     updatedAt: conversation.updatedAt,
     preview: lastUser?.text?.slice(0, 48),
-    branchName: conversation.branchName ?? fallbackBranchName ?? undefined,
+    branchName,
+    branchMismatch: isThreadBranchMismatch(branchName, currentBranchName),
     sessionKey: buildPendingSessionKey(projectKey, conversation.id),
     projectPath: conversation.projectPath ?? '',
   };
@@ -507,14 +521,14 @@ export function groupThreadsByProject(
   state: AgentConversationState | undefined,
   projectPaths: string[],
   projectKeysByPath: Record<string, string>,
-  fallbackBranchName?: string | null
+  currentBranchName?: string | null
 ): Record<string, AgentThreadListItem[]> {
   const grouped: Record<string, AgentThreadListItem[]> = {};
   for (const projectPath of projectPaths) {
     const pathKey = normalizeProjectPath(projectPath);
     const storageKey = projectKeysByPath[pathKey] ?? pathKey;
     grouped[pathKey] = filterThreadsByProject(state, projectPath).map((conversation) =>
-      conversationToThreadListItem(conversation, storageKey, fallbackBranchName)
+      conversationToThreadListItem(conversation, storageKey, currentBranchName)
     );
   }
   return grouped;
@@ -650,6 +664,69 @@ export function createAgentConversation(
     previewHistory: [],
     currentPreviewIndex: 0,
     titleGenerated: false,
+  };
+}
+
+/** Strip ephemeral fields before copying messages into a forked thread. */
+export function cloneMessagesForFork(messages: ChatMessage[]): ChatMessage[] {
+  return messages
+    .filter((msg) => !msg.isStreaming)
+    .map((msg) => {
+      const {
+        isStreaming: _isStreaming,
+        isThinking: _isThinking,
+        isProcessingTools: _isProcessingTools,
+        approvalStatus: _approvalStatus,
+        approvalSummary: _approvalSummary,
+        ...rest
+      } = msg;
+      return rest;
+    });
+}
+
+/** Include the anchor user turn: user message + following assistant/tool messages until the next user. */
+export function resolveForkMessageSliceEnd(messages: ChatMessage[], userMsgIndex: number): number {
+  let end = userMsgIndex;
+  for (let i = userMsgIndex + 1; i < messages.length; i++) {
+    if (messages[i]?.role === 'user') break;
+    end = i;
+  }
+  return end;
+}
+
+/**
+ * Fork a thread at a user message: copy history through that user turn into a new thread.
+ * Workspace files are unchanged (no checkpoint rollback).
+ */
+export function forkAgentConversation(
+  source: AgentConversation,
+  anchorMessageId: string,
+  options: { branchName?: string | null; forkTitleSuffix: string }
+): AgentConversation | null {
+  const msgIndex = source.messages.findIndex((m) => m.id === anchorMessageId);
+  if (msgIndex < 0) return null;
+  const anchor = source.messages[msgIndex];
+  if (anchor.role !== 'user') return null;
+
+  const sliceEnd = resolveForkMessageSliceEnd(source.messages, msgIndex);
+  const messages = cloneMessagesForFork(source.messages.slice(0, sliceEnd + 1));
+  const baseTitle = source.title.trim() || '会话';
+  const now = Date.now();
+
+  return {
+    ...createAgentConversation(
+      '',
+      '',
+      source.projectPath ?? '',
+      options.branchName ?? source.branchName,
+      source.threadSettings ? { ...source.threadSettings } : undefined
+    ),
+    title: `${baseTitle}${options.forkTitleSuffix}`,
+    titleGenerated: true,
+    messages,
+    contextInjected: source.contextInjected ? { ...source.contextInjected } : undefined,
+    createdAt: now,
+    updatedAt: now,
   };
 }
 

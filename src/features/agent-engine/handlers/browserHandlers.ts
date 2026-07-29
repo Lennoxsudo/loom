@@ -97,11 +97,15 @@ class ControlBrowserHandler implements ToolHandler<'browser'> {
       const cdpEnabled = isCdpBrowserEnabled();
       const cdpActions = new Set([
         'click',
+        'hover',
         'type',
         'press_key',
         'content',
         'evaluate',
         'wait',
+        'scroll',
+        'select',
+        'handle_alert',
         'screenshot',
         'close',
       ]);
@@ -120,11 +124,18 @@ class ControlBrowserHandler implements ToolHandler<'browser'> {
       if (cdpEnabled) {
         switch (args.action) {
           case 'open':
-            return invokeCdp('cdp_browser_start', { url: args.url || 'about:blank' });
+            return invokeCdp('cdp_browser_start', {
+              url: args.url || 'about:blank',
+              waitUntil: args.wait_until,
+              timeoutMs: args.timeout_ms ?? 30_000,
+            });
           case 'navigate':
             if (!args.url) throw ToolError.missingParam('url');
-            // start creates a session if needed; if already running it navigates.
-            return invokeCdp('cdp_browser_start', { url: args.url });
+            return invokeCdp('cdp_browser_start', {
+              url: args.url,
+              waitUntil: args.wait_until,
+              timeoutMs: args.timeout_ms ?? 30_000,
+            });
           case 'refresh':
             return invokeCdp('cdp_browser_refresh');
           case 'close':
@@ -132,6 +143,12 @@ class ControlBrowserHandler implements ToolHandler<'browser'> {
           case 'click':
             if (!args.selector) throw ToolError.missingParam('selector');
             return invokeCdp('cdp_browser_click', { selector: args.selector });
+          case 'hover':
+            if (!args.selector) throw ToolError.missingParam('selector');
+            return invokeCdp('cdp_browser_hover', {
+              selector: args.selector,
+              timeoutMs: args.timeout_ms ?? 10_000,
+            });
           case 'type':
             if (!args.selector) throw ToolError.missingParam('selector');
             if (args.text == null) throw ToolError.missingParam('text');
@@ -139,6 +156,7 @@ class ControlBrowserHandler implements ToolHandler<'browser'> {
               selector: args.selector,
               text: args.text,
               clear: args.clear ?? false,
+              timeoutMs: args.timeout_ms ?? 10_000,
             });
           case 'press_key':
             if (!args.key) throw ToolError.missingParam('key');
@@ -147,12 +165,39 @@ class ControlBrowserHandler implements ToolHandler<'browser'> {
             return invokeCdp('cdp_browser_content');
           case 'evaluate':
             if (!args.expression) throw ToolError.missingParam('expression');
-            return invokeCdp('cdp_browser_evaluate', { expression: args.expression });
+            return invokeCdp('cdp_browser_evaluate', {
+              expression: args.expression,
+              handleDialog: args.handle_dialog ?? true,
+            });
           case 'wait':
-            if (!args.selector) throw ToolError.missingParam('selector');
             return invokeCdp('cdp_browser_wait_for_selector', {
-              selector: args.selector,
+              selector: args.selector?.trim() || undefined,
               timeoutMs: args.timeout_ms ?? 10_000,
+            });
+          case 'scroll':
+            return invokeCdp('cdp_browser_scroll', {
+              selector: args.selector?.trim() || undefined,
+              x: args.x,
+              y: args.y,
+              scrollMode: args.scroll_mode,
+              timeoutMs: args.timeout_ms ?? 10_000,
+            });
+          case 'select':
+            if (!args.selector) throw ToolError.missingParam('selector');
+            return invokeCdp('cdp_browser_select', {
+              selector: args.selector,
+              value: args.value?.trim() || undefined,
+              index: args.index,
+              label: args.label?.trim() || undefined,
+              text: args.text?.trim() || undefined,
+              timeoutMs: args.timeout_ms ?? 10_000,
+            });
+          case 'handle_alert':
+            if (!args.dialog_action) throw ToolError.missingParam('dialog_action');
+            return invokeCdp('cdp_browser_handle_alert', {
+              dialogAction: args.dialog_action,
+              promptText: args.prompt_text,
+              timeoutMs: args.timeout_ms ?? 5_000,
             });
           case 'screenshot':
             return invokeCdp('cdp_browser_screenshot', {

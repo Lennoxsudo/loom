@@ -85,6 +85,7 @@
 
 .meta {
   display: flex;
+  align-items: center;
   gap: 8px;
   font-size: 10px;
   color: var(--text-secondary);

@@ -12,6 +12,7 @@ import {
   normalizeProjectPath,
   parseStorageProjectKeyFromSessionKey,
   projectStateToAgentConversationState,
+  forkAgentConversation,
   type AgentThreadListItem,
 } from '../utils';
 import {
@@ -19,13 +20,14 @@ import {
   removeProjectStateBackupFromLocalStorage,
 } from './useAgentInit';
 import { type Agent } from '../../../utils/agentPersistence';
-import type { AgentConversationState } from '../../../types/chat';
+import type { AgentConversation, AgentConversationState } from '../../../types/chat';
 import type { PendingFileChange } from '../utils';
 import { clearPlan } from '../../../features/agent-engine/planStore';
 
 export interface UseAgentConversationsOptions {
   projectPath?: string;
   activeProjectKey: string;
+  branchName?: string | null;
   agent: Agent | null;
   conversationStateRef: React.MutableRefObject<AgentConversationState>;
   onSetConversationState: React.Dispatch<React.SetStateAction<AgentConversationState>>;
@@ -52,6 +54,11 @@ export interface UseAgentConversationsResult {
   cancelRenameConversation: () => void;
   commitRenameConversation: (conversationId: string) => void;
   handleDeleteConversation: (thread: AgentThreadListItem) => Promise<void>;
+  handleForkConversation: (
+    sourceConversationId: string,
+    anchorMessageId: string,
+    forkTitleSuffix: string
+  ) => AgentConversation | null;
 }
 
 export function useAgentConversations(
@@ -60,6 +67,7 @@ export function useAgentConversations(
   const {
     projectPath = '',
     activeProjectKey,
+    branchName = null,
     agent,
     conversationStateRef,
     onSetConversationState,
@@ -323,6 +331,58 @@ export function useAgentConversations(
     ]
   );
 
+  const handleForkConversation = useCallback(
+    (
+      sourceConversationId: string,
+      anchorMessageId: string,
+      forkTitleSuffix: string
+    ): AgentConversation | null => {
+      if (!agent) return null;
+      const source = conversationStateRef.current.conversations.find(
+        (conversation) => conversation.id === sourceConversationId
+      );
+      if (!source) return null;
+
+      const forked = forkAgentConversation(source, anchorMessageId, {
+        forkTitleSuffix,
+        branchName,
+      });
+      if (!forked) return null;
+
+      onSetRenamingConversationId(null);
+      onSetRenamingConversationTitle('');
+
+      const nextState = patchProjectSelection(
+        {
+          ...conversationStateRef.current,
+          conversations: [...conversationStateRef.current.conversations, forked],
+        },
+        forked.id,
+        forked.projectPath
+      );
+      onSetConversationState(nextState);
+      conversationStateRef.current = nextState;
+      onSetDraftMessage('');
+      onSetError(null);
+      if (draftTextareaRef.current) {
+        draftTextareaRef.current.style.height = 'auto';
+      }
+      return forked;
+    },
+    [
+      agent,
+      conversationStateRef,
+      patchProjectSelection,
+      onSetConversationState,
+      onSetDraftMessage,
+      onSetError,
+      onSetRenamingConversationId,
+      onSetRenamingConversationTitle,
+      draftTextareaRef,
+      branchName,
+    ]
+  );
+
   return {
     handleNewConversation,
     handleSelectConversation,
@@ -330,5 +390,6 @@ export function useAgentConversations(
     cancelRenameConversation,
     commitRenameConversation,
     handleDeleteConversation,
+    handleForkConversation,
   };
 }

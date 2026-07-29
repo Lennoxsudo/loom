@@ -4,7 +4,7 @@ import { FileTypeIcon } from '../shared/FileTypeIcon';
 import { ComposerVoiceButton } from '../shared/ComposerVoiceButton';
 import { ComposerVoiceLevelMeter } from '../shared/ComposerVoiceLevelMeter';
 import AgentProviderProfileModelSelector from './AgentProviderProfileModelSelector';
-import TokenRingIndicator from '../chat/TokenRingIndicator';
+import AgentContextUsagePopover from './AgentContextUsagePopover';
 import ApprovalModeMenu from './ApprovalModeMenu';
 import ChatModeToggle from '../chat/ChatModeToggle';
 import SlashSkillMenu from '../shared/SlashSkillMenu';
@@ -19,6 +19,7 @@ import type { ProviderProfileOption } from '../../utils/aiProviderRuntime';
 import type { SkillEntry } from '../../utils/skills';
 import type { AttachedFile } from '../chat/types';
 import type { PendingImageAttachment } from '../../types/chat';
+import type { AgentContextUsage } from './contextUsage';
 import type { QueuedComposerItem } from '../../hooks/useChatSendDuringStreamingDispatch';
 import type { ContextAnnotation } from '../../utils/contextAnnotations';
 import { dedupeContextAnnotations } from '../../utils/contextAnnotations';
@@ -161,6 +162,8 @@ export interface AgentComposerProps {
   safeTotalTokens: number;
   ctxPercent: number;
   maxContextTokens: number;
+  contextUsage?: AgentContextUsage | null;
+  conversationId?: string | null;
   centered?: boolean;
   skillsCount?: number;
   mcpCount?: number;
@@ -213,6 +216,8 @@ const AgentComposer = memo(function AgentComposer({
   safeTotalTokens,
   ctxPercent,
   maxContextTokens,
+  contextUsage = null,
+  conversationId = null,
   centered = false,
   skillsCount = 0,
   mcpCount = 0,
@@ -224,7 +229,9 @@ const AgentComposer = memo(function AgentComposer({
 }: AgentComposerProps) {
   const t = useTranslation();
   const [openSideCapsule, setOpenSideCapsule] = useState<SideCapsuleKind | null>(null);
+  const [isPlusDrawerOpen, setIsPlusDrawerOpen] = useState(false);
   const sideCapsulesRef = useRef<HTMLDivElement>(null);
+  const plusDrawerRef = useRef<HTMLDivElement>(null);
   const voiceLabels = useMemo(
     () => ({
       start: t.chat.voiceInputStart,
@@ -306,6 +313,24 @@ const AgentComposer = memo(function AgentComposer({
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
   }, [openSideCapsule]);
+
+  useEffect(() => {
+    if (!isPlusDrawerOpen) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (plusDrawerRef.current && !plusDrawerRef.current.contains(event.target as Node)) {
+        setIsPlusDrawerOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsPlusDrawerOpen(false);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isPlusDrawerOpen]);
 
   const toggleSideCapsule = (kind: SideCapsuleKind) => {
     setOpenSideCapsule((prev) => (prev === kind ? null : kind));
@@ -474,16 +499,51 @@ const AgentComposer = memo(function AgentComposer({
         />
 
         <div className={styles.inputRow}>
-          <button
-            type="button"
-            className={styles.attachButton}
-            onClick={() => imageInputRef.current?.click()}
-            disabled={disabled}
-            title={t.image.dragDropHint}
-            aria-label={t.image.dragDropHint}
-          >
-            <PlusIcon size={14} />
-          </button>
+          <div className={styles.plusDrawerWrap} ref={plusDrawerRef}>
+            <button
+              type="button"
+              className={`${styles.attachButton} ${isPlusDrawerOpen ? styles.attachButtonOpen : ''}`}
+              onClick={() => setIsPlusDrawerOpen((prev) => !prev)}
+              disabled={disabled}
+              title={t.agent.composerDrawer.title}
+              aria-label={t.agent.composerDrawer.title}
+              aria-expanded={isPlusDrawerOpen}
+              aria-haspopup="menu"
+            >
+              <PlusIcon size={14} />
+            </button>
+            {isPlusDrawerOpen && (
+              <div className={styles.plusDrawer} role="menu" aria-label={t.agent.composerDrawer.title}>
+                {onAgentModeChange && (
+                  <div className={styles.drawerSection}>
+                    <div className={styles.drawerSectionTitle}>
+                      {t.agent.composerDrawer.interactionMode}
+                    </div>
+                    <ChatModeToggle
+                      chatMode={agentMode}
+                      setChatMode={(next) => {
+                        const value = typeof next === 'function' ? next(agentMode) : next;
+                        onAgentModeChange(value);
+                      }}
+                      variant="drawer"
+                      t={t}
+                    />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={styles.drawerAction}
+                  onClick={() => {
+                    setIsPlusDrawerOpen(false);
+                    imageInputRef.current?.click();
+                  }}
+                  disabled={disabled}
+                >
+                  {t.agent.composerDrawer.attachHint}
+                </button>
+              </div>
+            )}
+          </div>
           <textarea
             ref={textareaRef}
             className={styles.textarea}
@@ -526,25 +586,13 @@ const AgentComposer = memo(function AgentComposer({
           <div className={styles.toolbarLeft}>
             {maxContextTokens > 0 && (
               <div className={styles.contextRing}>
-                <TokenRingIndicator
+                <AgentContextUsagePopover
+                  usage={contextUsage}
                   safeTotalTokens={safeTotalTokens}
                   ctxPercent={ctxPercent}
-                  MAX_CONTEXT_TOKENS={maxContextTokens}
-                  t={t}
+                  maxContextTokens={maxContextTokens}
                 />
               </div>
-            )}
-            {onAgentModeChange && (
-              <ChatModeToggle
-                chatMode={agentMode}
-                setChatMode={(next) => {
-                  const value = typeof next === 'function' ? next(agentMode) : next;
-                  onAgentModeChange(value);
-                }}
-                variant="composer"
-                compact
-                t={t}
-              />
             )}
             <ApprovalModeMenu />
           </div>

@@ -589,6 +589,19 @@ export interface I18nMessages {
     toolExecutionAborted: string;
     contextLabel: string;
     contextUsageRate: string;
+    contextUsageDetail: {
+      title: string;
+      openHint: string;
+      close: string;
+      loading: string;
+      percentFull: string;
+      tokenSummary: string;
+      system: string;
+      rules: string;
+      skills: string;
+      tools: string;
+      messages: string;
+    };
     toolCallIntercepted: string;
     duplicateToolCallIgnored: string;
     giveFinalAnswer: string;
@@ -601,9 +614,11 @@ export interface I18nMessages {
     planMode: string;
     planModeShort: string;
     planModeDesc: string;
+    planModeBadge: string;
     alwaysAllowMode: string;
     alwaysAllowModeShort: string;
     alwaysAllowModeDesc: string;
+    alwaysAllowModeBadge: string;
     planModeBlocked: string;
     planPanel: {
       planLabel: string;
@@ -658,6 +673,11 @@ export interface I18nMessages {
       fullAccess: string;
       menuLabel: string;
     };
+    composerDrawer: {
+      title: string;
+      interactionMode: string;
+      attachHint: string;
+    };
     contextBar: {
       project: string;
       runtimeMode: string;
@@ -679,6 +699,10 @@ export interface I18nMessages {
       lastActive: string;
       empty: string;
       cancel: string;
+      forkFromHere: string;
+      forkTitleSuffix: string;
+      branchMismatch: string;
+      branchMismatchHint: string;
     };
     changeReview: {
       title: string;
@@ -700,7 +724,6 @@ export interface I18nMessages {
       filesTab: string;
       timelineTab: string;
       noCheckpoints: string;
-      checkpointHint: string;
       restoreCheckpoint: string;
       confirmRestore: string;
       restoring: string;
@@ -708,7 +731,8 @@ export interface I18nMessages {
       restoreFailed: string;
       checkpointDetail: string;
       checkpointFiles: string;
-      fileDidNotExist: string;
+      checkpointPreviewTitle: string;
+      selectCheckpointFile: string;
       binarySkipped: string;
     };
     userMessage: {

@@ -376,14 +376,6 @@
   flex-direction: column;
 }
 
-.timelineHint {
-  padding: 8px 12px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
 .timelineList {
   list-style: none;
   margin: 0;
@@ -484,6 +476,28 @@
 .checkpointFileList strong {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.checkpointPreviewLayout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.checkpointFileRows {
+  flex-shrink: 0;
+  max-height: 140px;
+  overflow: auto;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.checkpointDiffArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .saveButton {

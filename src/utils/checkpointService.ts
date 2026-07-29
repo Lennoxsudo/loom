@@ -66,3 +66,15 @@ export async function clearCheckpointSession(sessionKey: string): Promise<void> 
   if (!sessionKey.trim()) return;
   await invoke('checkpoint_clear_session', { sessionKey });
 }
+
+export async function readCheckpointFileContent(options: {
+  sessionKey: string;
+  checkpointId: string;
+  filePath: string;
+}): Promise<string> {
+  return invoke<string>('checkpoint_read_file_content', {
+    sessionKey: options.sessionKey,
+    checkpointId: options.checkpointId,
+    filePath: options.filePath,
+  });
+}

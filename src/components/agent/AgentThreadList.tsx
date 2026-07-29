@@ -3,6 +3,7 @@ import { EditIcon, TrashIcon } from '../shared/Icons';
 import { useTranslation, useLocale } from '../../i18n';
 import type { AgentThreadListItem } from './hooks/useAgentThreadManager';
 import SessionStreamingLoader from './SessionStreamingLoader';
+import ThreadBranchMeta from './ThreadBranchMeta';
 import styles from './AgentThreadList.module.css';
 
 function formatRelativeTime(timestamp: number | undefined, locale: string): string {
@@ -101,11 +102,10 @@ const AgentThreadList = memo(function AgentThreadList({
                 </span>
                 {thread.preview && <span className={styles.preview}>{thread.preview}</span>}
                 <span className={styles.meta}>
-                  {thread.branchName && (
-                    <span>
-                      {t.agent.threads.branch}: {thread.branchName}
-                    </span>
-                  )}
+                  <ThreadBranchMeta
+                    branchName={thread.branchName}
+                    branchMismatch={thread.branchMismatch}
+                  />
                   {thread.updatedAt ? (
                     <span>{formatRelativeTime(thread.updatedAt, language)}</span>
                   ) : null}

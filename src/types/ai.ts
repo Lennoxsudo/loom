@@ -313,6 +313,7 @@ export interface BackgroundTaskSummary {
   completed: boolean;
   exit_code: number | null;
   duration_ms: number | null;
+  conversation_id?: string | null;
 }
 
 /**

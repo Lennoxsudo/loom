@@ -13,14 +13,18 @@ export interface UserMessageBubbleProps {
   message: ChatMessage;
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  onForkFromUserMessage?: (messageId: string) => void | Promise<void>;
   editDisabled?: boolean;
+  forkDisabled?: boolean;
 }
 
 export default function UserMessageBubble({
   message,
   onUserMessageLayout,
   onResendFromUserMessage,
+  onForkFromUserMessage,
   editDisabled = false,
+  forkDisabled = false,
 }: UserMessageBubbleProps) {
   const t = useTranslation();
   const markers = [t.chat.contextAnnotation, t.chat.fileContext];
@@ -106,6 +110,7 @@ export default function UserMessageBubble({
   }, [displayText, editing]);
 
   const canEdit = !!onResendFromUserMessage && !editDisabled;
+  const canFork = !!onForkFromUserMessage && !forkDisabled;
 
   return (
     <div
@@ -324,6 +329,34 @@ export default function UserMessageBubble({
                     stroke="currentColor"
                     strokeWidth="1.3"
                     strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+
+            {canFork && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={() => void onForkFromUserMessage?.(message.id)}
+                title={t.agent.threads.forkFromHere}
+                aria-label={t.agent.threads.forkFromHere}
+                data-testid="user-message-fork"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <circle cx="5" cy="4" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                  <circle cx="11" cy="4" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                  <path
+                    d="M6.5 4h3M5 5.5v5a2 2 0 0 0 2 2h2"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M11 5.5v5"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
                   />
                 </svg>
               </button>

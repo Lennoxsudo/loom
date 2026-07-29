@@ -3,7 +3,7 @@ import {
   estimateMessageTokens,
   estimateToolsTokens,
 } from '../../utils/contextBudget';
-import { shouldInjectRules, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
+import { shouldInjectRules, formatRulesContext, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
 import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import { shouldInjectProjectPath as checkShouldInjectProjectPath } from '../../hooks/useContextInjectionState';
 import { loadSkillsContext } from '../../utils/skills';
@@ -14,16 +14,26 @@ import {
   resolveAgentRequestRuntime,
   type AgentRuntimeSnapshot,
 } from './utils';
-import type {
-  AgentConversation,
-  CompactState,
-  PendingImageAttachment,
-  ProviderRequestMessage,
-  ChatMessage,
+import {
+  PROJECT_PATH_CONTEXT_PREFIX,
+  type AgentConversation,
+  type CompactState,
+  type PendingImageAttachment,
+  type ProviderRequestMessage,
+  type ChatMessage,
 } from '../../types/chat';
 import type { CompactableMessage } from '../../utils/compact';
-import { buildContextForRequestWithAiSummary, toProviderRequestMessages } from './utils';
+import {
+  buildContextForRequestWithAiSummary,
+  toProviderRequestMessages,
+} from './utils';
 import { maybeAutoCompactConversation } from '../../utils/compact';
+import { computeCompressionThreshold } from '../../utils/compact/autoCompact';
+import { estimateMessageListTokens } from '../../utils/compact/autoCompact';
+import {
+  buildCoreSystemPrompt,
+  buildRuntimeIdentityPrompt,
+} from '../../utils/coreSystemPrompt';
 
 export const AGENT_CONTEXT_RESERVE_TOKENS = 8192;
 
@@ -38,6 +48,14 @@ export interface BuildAgentContextUsageOptions {
   runtimeSnapshot?: AgentRuntimeSnapshotInput | null;
 }
 
+export interface AgentContextUsageBreakdown {
+  system: number;
+  rules: number;
+  skills: number;
+  tools: number;
+  messages: number;
+}
+
 export interface AgentContextUsage {
   maxContextTokens: number;
   availableContextTokens: number;
@@ -45,6 +63,10 @@ export interface AgentContextUsage {
   toolTokens: number;
   usedTokens: number;
   usagePercent: number;
+  breakdown: AgentContextUsageBreakdown;
+  compressionThresholdTokens: number;
+  messageTokensForCompact: number;
+  tokensUntilCompact: number;
 }
 
 export interface BuildAgentRequestContextOptions {
@@ -140,6 +162,77 @@ function buildAgentRequestMessages(
   return requestMessages;
 }
 
+function estimateTextTokens(text: string): number {
+  if (!text.trim()) return 0;
+  return estimateMessageTokens({ role: 'user', content: text });
+}
+
+function buildAgentContextBreakdown(options: {
+  agent: Agent;
+  provider: AIProvider;
+  model: string;
+  agentMode: 'plan' | 'always-allow';
+  projectPath: string;
+  conversation: AgentConversation | null;
+  skillsContext: string;
+  shouldInjectProjectPath: boolean;
+  preparedMessages: Array<{ role: string; content: unknown }>;
+  tools: unknown;
+}): AgentContextUsageBreakdown {
+  const {
+    agent,
+    provider,
+    model,
+    agentMode,
+    projectPath,
+    conversation,
+    skillsContext,
+    shouldInjectProjectPath,
+    preparedMessages,
+    tools,
+  } = options;
+
+  const needsRulesInjection = shouldInjectRules(
+    agent.rules ?? '',
+    !!conversation?.contextInjected?.rules?.injected,
+    conversation?.contextInjected?.rules?.contentHash
+  );
+
+  const systemText = [
+    buildRuntimeIdentityPrompt({ provider, model }),
+    buildCoreSystemPrompt({ planMode: agentMode === 'plan' }),
+    agent.description?.trim() ?? '',
+    shouldInjectProjectPath && projectPath.trim()
+      ? `${PROJECT_PATH_CONTEXT_PREFIX}${projectPath}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  const rulesTokens = needsRulesInjection
+    ? estimateTextTokens(formatRulesContext(agent.rules ?? ''))
+    : 0;
+  const skillsTokens = estimateTextTokens(skillsContext);
+  const systemTokens = estimateTextTokens(systemText);
+  const toolTokens = estimateToolsTokens(tools);
+
+  let preparedConversationTokens = 0;
+  for (const message of preparedMessages) {
+    if (message.role === 'system') continue;
+    preparedConversationTokens += estimateMessageTokens(message);
+  }
+
+  const messagesTokens = Math.max(0, preparedConversationTokens - rulesTokens);
+
+  return {
+    system: systemTokens,
+    rules: rulesTokens,
+    skills: skillsTokens,
+    tools: toolTokens,
+    messages: messagesTokens,
+  };
+}
+
 export async function buildAgentRequestContext(
   options: BuildAgentRequestContextOptions
 ): Promise<AgentRequestContext> {
@@ -223,6 +316,10 @@ export async function buildAgentContextUsage(
       toolTokens: 0,
       usedTokens: 0,
       usagePercent: 0,
+      breakdown: { system: 0, rules: 0, skills: 0, tools: 0, messages: 0 },
+      compressionThresholdTokens: 0,
+      messageTokensForCompact: 0,
+      tokensUntilCompact: 0,
     };
   }
 
@@ -231,6 +328,21 @@ export async function buildAgentContextUsage(
   const previousMessages = (conversation?.messages ?? []).filter((message) => !message.isStreaming);
   const draftUserMessage = buildDraftMessage(draftMessage, attachedImages);
   const allMessages = draftUserMessage ? [...previousMessages, draftUserMessage] : previousMessages;
+
+  const compactOutcome = await maybeAutoCompactConversation({
+    messages: allMessages as unknown as CompactableMessage[],
+    provider,
+    model,
+    profileId,
+    tools,
+    maxContextTokens,
+    reserveTokens: AGENT_CONTEXT_RESERVE_TOKENS,
+    compactState: conversation?.compactState,
+  });
+  const activeMessages = compactOutcome.messages as unknown as ChatMessage[];
+
+  const needsProjectPathInjection = checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
+  const skillsContext = (await loadSkillsContext(projectPath)) ?? '';
 
   const { preparedMessages } = await buildAgentRequestContext({
     agent,
@@ -254,6 +366,29 @@ export async function buildAgentContextUsage(
   const usedTokens = messageTokens + toolTokens;
   const usagePercent = availableContextTokens > 0 ? (usedTokens / availableContextTokens) * 100 : 0;
 
+  const breakdown = buildAgentContextBreakdown({
+    agent,
+    provider,
+    model,
+    agentMode,
+    projectPath,
+    conversation,
+    skillsContext,
+    shouldInjectProjectPath: needsProjectPathInjection,
+    preparedMessages: normalizedMessages,
+    tools,
+  });
+
+  const compressionThresholdTokens = computeCompressionThreshold({
+    maxContextTokens,
+    tools,
+    reserveTokens: AGENT_CONTEXT_RESERVE_TOKENS,
+  });
+  const messageTokensForCompact = estimateMessageListTokens(
+    activeMessages as unknown as CompactableMessage[]
+  );
+  const tokensUntilCompact = Math.max(0, compressionThresholdTokens - messageTokensForCompact);
+
   return {
     maxContextTokens,
     availableContextTokens,
@@ -261,5 +396,9 @@ export async function buildAgentContextUsage(
     toolTokens,
     usedTokens,
     usagePercent,
+    breakdown,
+    compressionThresholdTokens,
+    messageTokensForCompact,
+    tokensUntilCompact,
   };
 }

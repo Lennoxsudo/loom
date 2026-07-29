@@ -85,6 +85,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   enableSpendCap: false,
   spendCap: 0,
   enableUsageTracking: true,
+  gitBlameInEditor: true,
 };
 
 function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
@@ -839,6 +840,7 @@ describe('往返一致性 (serialize → parse → serialize)', () => {
       enableSpendCap: true,
       spendCap: 50,
       enableUsageTracking: false,
+      gitBlameInEditor: false,
     };
 
     const json1 = serializeSettings(original);

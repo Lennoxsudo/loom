@@ -53,6 +53,12 @@ pub struct CdpActionResult {
     pub value: Option<Value>,
 }
 
+struct PendingJsDialog {
+    message: String,
+    dialog_type: String,
+    default_prompt: Option<String>,
+}
+
 struct CdpSession {
     child: Child,
     port: u16,
@@ -66,6 +72,29 @@ struct CdpSession {
     /// Page target session id (flatten mode). Browser/Target commands omit this.
     session_id: Option<String>,
     current_url: Option<String>,
+    pending_dialog: Option<PendingJsDialog>,
+}
+
+#[derive(Clone, Copy)]
+enum PageLoadWait {
+    DomContentLoaded,
+    Load,
+}
+
+impl PageLoadWait {
+    fn from_str(s: Option<&str>) -> Self {
+        match s.map(str::trim).map(str::to_ascii_lowercase).as_deref() {
+            Some("domcontentloaded") => Self::DomContentLoaded,
+            _ => Self::Load,
+        }
+    }
+
+    fn is_ready(&self, ready_state: &str) -> bool {
+        match self {
+            Self::DomContentLoaded => ready_state == "interactive" || ready_state == "complete",
+            Self::Load => ready_state == "complete",
+        }
+    }
 }
 
 pub struct CdpBrowserState {
@@ -310,6 +339,41 @@ fn method_uses_page_session(method: &str) -> bool {
     !method.starts_with("Target.") && !method.starts_with("Browser.")
 }
 
+fn capture_cdp_event(session: &mut CdpSession, value: &Value) {
+    if value.get("method").and_then(|v| v.as_str()) != Some("Page.javascriptDialogOpening") {
+        return;
+    }
+    let Some(params) = value.get("params") else {
+        return;
+    };
+    let message = params
+        .get("message")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let dialog_type = params
+        .get("type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("alert")
+        .to_string();
+    let default_prompt = params
+        .get("defaultPrompt")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    session.pending_dialog = Some(PendingJsDialog {
+        message,
+        dialog_type,
+        default_prompt,
+    });
+}
+
+enum DialogWaitPolicy {
+    /// Ignore dialog events (caller handles later via handle_alert).
+    Ignore,
+    /// Auto-accept dialog so the in-flight command can finish.
+    AutoAccept,
+}
+
 async fn cdp_send(session: &mut CdpSession, method: &str, params: Value) -> Result<Value, String> {
     cdp_send_timeout(session, method, params, Duration::from_secs(30)).await
 }
@@ -320,7 +384,15 @@ async fn cdp_send_timeout(
     params: Value,
     timeout: Duration,
 ) -> Result<Value, String> {
-    let id = session.next_id.fetch_add(1, Ordering::SeqCst);
+    cdp_send_inner(session, method, params, timeout, DialogWaitPolicy::Ignore).await
+}
+
+async fn send_cdp_raw(
+    session: &mut CdpSession,
+    id: u64,
+    method: &str,
+    params: Value,
+) -> Result<(), String> {
     let mut msg = json!({
         "id": id,
         "method": method,
@@ -336,9 +408,21 @@ async fn cdp_send_timeout(
         .ws
         .send(Message::Text(text.into()))
         .await
-        .map_err(|e| format!("CDP 发送失败 ({method}): {e}"))?;
+        .map_err(|e| format!("CDP 发送失败 ({method}): {e}"))
+}
+
+async fn cdp_send_inner(
+    session: &mut CdpSession,
+    method: &str,
+    params: Value,
+    timeout: Duration,
+    dialog_policy: DialogWaitPolicy,
+) -> Result<Value, String> {
+    let id = session.next_id.fetch_add(1, Ordering::SeqCst);
+    send_cdp_raw(session, id, method, params).await?;
 
     let deadline = tokio::time::Instant::now() + timeout;
+    let mut pending_handle_id: Option<u64> = None;
     loop {
         let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
         if remaining.is_zero() {
@@ -354,18 +438,50 @@ async fn cdp_send_timeout(
             continue;
         };
         let value: Value = serde_json::from_str(&payload).map_err(|e| e.to_string())?;
-        if value.get("id").and_then(|v| v.as_u64()) != Some(id) {
-            // Event or unrelated response — ignore for v1.
+        let msg_id = value.get("id").and_then(|v| v.as_u64());
+
+        if msg_id == Some(id) {
+            if let Some(err) = value.get("error") {
+                let message = err
+                    .get("message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown CDP error");
+                return Err(format!("CDP 错误 ({method}): {message}"));
+            }
+            return Ok(value.get("result").cloned().unwrap_or(Value::Null));
+        }
+
+        if pending_handle_id.is_some() && msg_id == pending_handle_id {
+            pending_handle_id = None;
             continue;
         }
-        if let Some(err) = value.get("error") {
-            let message = err
-                .get("message")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown CDP error");
-            return Err(format!("CDP 错误 ({method}): {message}"));
+
+        if msg_id.is_some() {
+            // Unrelated command response — ignore while waiting.
+            continue;
         }
-        return Ok(value.get("result").cloned().unwrap_or(Value::Null));
+
+        let had_dialog = session.pending_dialog.is_some();
+        capture_cdp_event(session, &value);
+        if !had_dialog
+            && session.pending_dialog.is_some()
+            && matches!(dialog_policy, DialogWaitPolicy::AutoAccept)
+        {
+            let dialog = session.pending_dialog.as_ref().unwrap();
+            let mut handle_params = json!({ "accept": true });
+            if dialog.dialog_type == "prompt" {
+                if let Some(default) = dialog.default_prompt.as_ref() {
+                    handle_params["promptText"] = json!(default);
+                } else {
+                    handle_params["promptText"] = json!("");
+                }
+            }
+            let hid = session.next_id.fetch_add(1, Ordering::SeqCst);
+            pending_handle_id = Some(hid);
+            send_cdp_raw(session, hid, "Page.handleJavaScriptDialog", handle_params).await?;
+            // Dialog accepted — clear pending so later commands are not blocked.
+            session.pending_dialog = None;
+        }
     }
 }
 
@@ -411,11 +527,14 @@ async fn ensure_domains(session: &mut CdpSession) -> Result<(), String> {
     Ok(())
 }
 
-async fn page_navigate(session: &mut CdpSession, url: &str) -> Result<(), String> {
-    cdp_send(session, "Page.navigate", json!({ "url": url })).await?;
-    // Wait briefly for load event via Runtime.evaluate readyState.
-    for _ in 0..50 {
-        tokio::time::sleep(Duration::from_millis(100)).await;
+async fn wait_for_page_load(
+    session: &mut CdpSession,
+    wait_until: PageLoadWait,
+    timeout_ms: u64,
+) -> Result<(), String> {
+    let timeout_ms = timeout_ms.clamp(500, 60_000);
+    let deadline = tokio::time::Instant::now() + Duration::from_millis(timeout_ms);
+    loop {
         let ready = cdp_send(
             session,
             "Runtime.evaluate",
@@ -429,12 +548,107 @@ async fn page_navigate(session: &mut CdpSession, url: &str) -> Result<(), String
             .pointer("/result/value")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        if state == "interactive" || state == "complete" {
-            break;
+        if wait_until.is_ready(state) {
+            return Ok(());
         }
+        if tokio::time::Instant::now() >= deadline {
+            let label = match wait_until {
+                PageLoadWait::DomContentLoaded => "DOMContentLoaded",
+                PageLoadWait::Load => "load",
+            };
+            return Err(format!(
+                "等待页面 {label} 超时 ({timeout_ms}ms, readyState={state})"
+            ));
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
+}
+
+async fn page_navigate(
+    session: &mut CdpSession,
+    url: &str,
+    wait_until: PageLoadWait,
+    timeout_ms: u64,
+) -> Result<(), String> {
+    session.pending_dialog = None;
+    cdp_send(session, "Page.navigate", json!({ "url": url })).await?;
+    wait_for_page_load(session, wait_until, timeout_ms).await?;
     session.current_url = Some(url.to_string());
     Ok(())
+}
+
+async fn wait_for_javascript_dialog(session: &mut CdpSession, timeout_ms: u64) -> Result<(), String> {
+    if session.pending_dialog.is_some() {
+        return Ok(());
+    }
+    let timeout_ms = timeout_ms.clamp(100, 60_000);
+    let deadline = tokio::time::Instant::now() + Duration::from_millis(timeout_ms);
+    while session.pending_dialog.is_none() {
+        if tokio::time::Instant::now() >= deadline {
+            return Err(format!("等待 JavaScript 弹窗超时 ({timeout_ms}ms)"));
+        }
+        let _ = cdp_send_timeout(
+            session,
+            "Runtime.evaluate",
+            json!({ "expression": "1", "returnByValue": true }),
+            Duration::from_secs(2),
+        )
+        .await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    Ok(())
+}
+
+async fn handle_javascript_dialog(
+    session: &mut CdpSession,
+    dialog_action: &str,
+    prompt_text: Option<&str>,
+    timeout_ms: u64,
+) -> Result<CdpActionResult, String> {
+    wait_for_javascript_dialog(session, timeout_ms).await?;
+    let pending = session
+        .pending_dialog
+        .as_ref()
+        .ok_or_else(|| "未检测到 JavaScript 弹窗".to_string())?;
+
+    match dialog_action {
+        "get_text" => {
+            let mut result = ok_result(format!(
+                "弹窗类型: {}, 内容已读取",
+                pending.dialog_type
+            ));
+            result.content = Some(pending.message.clone());
+            Ok(result)
+        }
+        "accept" => {
+            let message = pending.message.clone();
+            let dialog_type = pending.dialog_type.clone();
+            let mut params = json!({ "accept": true });
+            if let Some(text) = prompt_text.filter(|s| !s.is_empty()) {
+                params["promptText"] = json!(text);
+            }
+            cdp_send(session, "Page.handleJavaScriptDialog", params).await?;
+            session.pending_dialog = None;
+            Ok(ok_result(format!(
+                "已确认弹窗 ({dialog_type}): {message}"
+            )))
+        }
+        "dismiss" => {
+            let message = pending.message.clone();
+            let dialog_type = pending.dialog_type.clone();
+            cdp_send(
+                session,
+                "Page.handleJavaScriptDialog",
+                json!({ "accept": false }),
+            )
+            .await?;
+            session.pending_dialog = None;
+            Ok(ok_result(format!(
+                "已取消弹窗 ({dialog_type}): {message}"
+            )))
+        }
+        other => Err(format!("未知 dialog_action: {other}")),
+    }
 }
 
 async fn page_url(session: &mut CdpSession) -> Result<String, String> {
@@ -496,6 +710,106 @@ fn js_string_literal(s: &str) -> String {
     serde_json::to_string(s).unwrap_or_else(|_| "\"\"".into())
 }
 
+const INTERACTIVE_ELEMENTS_JS: &str = r#"(function() {
+  const isVisible = (el) => {
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0
+      && rect.bottom > 0 && rect.right > 0
+      && rect.top < (window.innerHeight || 0)
+      && rect.left < (window.innerWidth || 0);
+  };
+  const trimText = (s) => {
+    const t = (s || '').trim().replace(/\s+/g, ' ');
+    return t.length > 50 ? t.slice(0, 50) + '…' : t;
+  };
+  const hint = (el) => {
+    if (el.id) return '#' + el.id;
+    if (el.name) return el.tagName.toLowerCase() + '[name="' + String(el.name).replace(/"/g, '\\"') + '"]';
+    const aria = el.getAttribute('aria-label');
+    if (aria) return el.tagName.toLowerCase() + '[aria-label="' + aria.replace(/"/g, '\\"') + '"]';
+    if (typeof el.className === 'string' && el.className.trim()) {
+      const cls = el.className.trim().split(/\s+/).slice(0, 2).join('.');
+      return el.tagName.toLowerCase() + '.' + cls;
+    }
+    return el.tagName.toLowerCase();
+  };
+  const queries = ['a[href]', 'button', 'input', 'select', 'textarea', '[role="button"]', '[role="link"]', '[contenteditable="true"]'];
+  const seen = new Set();
+  const out = [];
+  for (const q of queries) {
+    for (const el of document.querySelectorAll(q)) {
+      if (seen.has(el) || !isVisible(el)) continue;
+      seen.add(el);
+      const tag = el.tagName.toLowerCase();
+      const type = el.type ? ':' + el.type : '';
+      const text = trimText(el.innerText || el.textContent || el.value || el.getAttribute('placeholder') || '');
+      out.push({ hint: hint(el), tag: tag + type, text });
+      if (out.length >= 20) return out;
+    }
+  }
+  return out;
+})()"#;
+
+async fn interactive_elements_hint(session: &mut CdpSession) -> Option<String> {
+    let res = cdp_send(
+        session,
+        "Runtime.evaluate",
+        json!({
+            "expression": INTERACTIVE_ELEMENTS_JS,
+            "returnByValue": true,
+        }),
+    )
+    .await
+    .ok()?;
+    let items = res.pointer("/result/value")?.as_array()?;
+    if items.is_empty() {
+        return Some("当前视口内未发现可见交互元素。".into());
+    }
+    let mut lines = Vec::new();
+    for item in items {
+        let hint = item.get("hint").and_then(|v| v.as_str()).unwrap_or("?");
+        let tag = item.get("tag").and_then(|v| v.as_str()).unwrap_or("");
+        let text = item.get("text").and_then(|v| v.as_str()).unwrap_or("");
+        if text.is_empty() {
+            lines.push(format!("  - {hint} ({tag})"));
+        } else {
+            lines.push(format!("  - {hint} ({tag}) \"{text}\""));
+        }
+    }
+    Some(format!("可见交互元素 ({}):\n{}", lines.len(), lines.join("\n")))
+}
+
+fn should_attach_interactive_hint(detail: &str) -> bool {
+    detail.contains("element not found")
+}
+
+async fn selector_error(
+    session: &mut CdpSession,
+    prefix: &str,
+    target: &str,
+    detail: &str,
+) -> String {
+    let mut msg = format!("{prefix} ({target}): {detail}");
+    if should_attach_interactive_hint(detail) {
+        if let Some(hint) = interactive_elements_hint(session).await {
+            msg.push_str("\n\n");
+            msg.push_str(&hint);
+        }
+    }
+    msg
+}
+
+async fn append_interactive_hint(session: &mut CdpSession, msg: String) -> String {
+    let mut out = msg;
+    if let Some(hint) = interactive_elements_hint(session).await {
+        out.push_str("\n\n");
+        out.push_str(&hint);
+    }
+    out
+}
+
 async fn click_selector(session: &mut CdpSession, selector: &str) -> Result<(), String> {
     let expr = format!(
         r#"(function() {{
@@ -533,8 +847,91 @@ async fn click_selector(session: &mut CdpSession, selector: &str) -> Result<(), 
             .and_then(|v| v.get("error"))
             .and_then(|v| v.as_str())
             .unwrap_or("click failed");
-        return Err(format!("点击失败 ({selector}): {err}"));
+        return Err(selector_error(session, "点击失败", selector, err).await);
     }
+    Ok(())
+}
+
+async fn hover_selector(session: &mut CdpSession, selector: &str) -> Result<(), String> {
+    let expr = format!(
+        r#"(function() {{
+  const el = document.querySelector({sel});
+  if (!el) return {{ ok: false, error: 'element not found' }};
+  el.scrollIntoView({{ block: 'center', inline: 'center' }});
+  const rect = el.getBoundingClientRect();
+  return {{ ok: true, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }};
+}})()"#,
+        sel = js_string_literal(selector)
+    );
+    let res = cdp_send(
+        session,
+        "Runtime.evaluate",
+        json!({
+            "expression": expr,
+            "returnByValue": true,
+            "awaitPromise": true,
+        }),
+    )
+    .await?;
+    let value = res.get("result").and_then(|r| r.get("value")).cloned();
+    let ok = value
+        .as_ref()
+        .and_then(|v| v.get("ok"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !ok {
+        let err = value
+            .as_ref()
+            .and_then(|v| v.get("error"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("hover failed");
+        return Err(selector_error(session, "悬停失败", selector, err).await);
+    }
+    let x = value
+        .as_ref()
+        .and_then(|v| v.get("x"))
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0);
+    let y = value
+        .as_ref()
+        .and_then(|v| v.get("y"))
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0);
+
+    cdp_send(
+        session,
+        "Input.dispatchMouseEvent",
+        json!({
+            "type": "mouseMoved",
+            "x": x,
+            "y": y,
+        }),
+    )
+    .await?;
+
+    let dom_expr = format!(
+        r#"(function() {{
+  const el = document.querySelector({sel});
+  if (!el) return false;
+  const base = {{ cancelable: true, view: window, clientX: {x}, clientY: {y}, bubbles: true }};
+  el.dispatchEvent(new MouseEvent('mousemove', base));
+  el.dispatchEvent(new MouseEvent('mouseover', base));
+  el.dispatchEvent(new MouseEvent('mouseenter', {{ ...base, bubbles: false }}));
+  return true;
+}})()"#,
+        sel = js_string_literal(selector),
+        x = x,
+        y = y,
+    );
+    let _ = cdp_send(
+        session,
+        "Runtime.evaluate",
+        json!({
+            "expression": dom_expr,
+            "returnByValue": true,
+        }),
+    )
+    .await;
     Ok(())
 }
 
@@ -591,7 +988,157 @@ async fn type_selector(
             .pointer("/result/value/error")
             .and_then(|v| v.as_str())
             .unwrap_or("type failed");
-        return Err(format!("输入失败 ({selector}): {err}"));
+        return Err(selector_error(session, "输入失败", selector, err).await);
+    }
+    Ok(())
+}
+
+async fn scroll_page(
+    session: &mut CdpSession,
+    selector: Option<&str>,
+    x: Option<f64>,
+    y: Option<f64>,
+    scroll_by: bool,
+) -> Result<(), String> {
+    let expr = if let Some(sel) = selector {
+        format!(
+            r#"(function() {{
+  const el = document.querySelector({sel});
+  if (!el) return {{ ok: false, error: 'element not found' }};
+  el.scrollIntoView({{ block: 'center', inline: 'center', behavior: 'instant' }});
+  return {{ ok: true, mode: 'element', scrollX: window.scrollX, scrollY: window.scrollY }};
+}})()"#,
+            sel = js_string_literal(sel)
+        )
+    } else {
+        let x = x.unwrap_or(0.0);
+        let y = y.unwrap_or(0.0);
+        let mode = if scroll_by { "by" } else { "to" };
+        format!(
+            r#"(function() {{
+  const x = {x};
+  const y = {y};
+  if ({scroll_by}) {{
+    window.scrollBy(x, y);
+  }} else {{
+    window.scrollTo(x, y);
+  }}
+  return {{ ok: true, mode: '{mode}', scrollX: window.scrollX, scrollY: window.scrollY }};
+}})()"#,
+            x = x,
+            y = y,
+            scroll_by = if scroll_by { "true" } else { "false" },
+            mode = mode
+        )
+    };
+    let res = cdp_send(
+        session,
+        "Runtime.evaluate",
+        json!({
+            "expression": expr,
+            "returnByValue": true,
+            "awaitPromise": true,
+        }),
+    )
+    .await?;
+    let ok = res
+        .pointer("/result/value/ok")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !ok {
+        let err = res
+            .pointer("/result/value/error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("scroll failed");
+        let target = selector.unwrap_or("window");
+        if should_attach_interactive_hint(err) {
+            return Err(selector_error(session, "滚动失败", target, err).await);
+        }
+        return Err(format!("滚动失败 ({target}): {err}"));
+    }
+    Ok(())
+}
+
+async fn select_option(
+    session: &mut CdpSession,
+    selector: &str,
+    value: Option<&str>,
+    index: Option<i32>,
+    option_text: Option<&str>,
+) -> Result<(), String> {
+    let value_js = value
+        .map(js_string_literal)
+        .unwrap_or_else(|| "null".to_string());
+    let index_js = index
+        .map(|i| i.to_string())
+        .unwrap_or_else(|| "null".to_string());
+    let text_js = option_text
+        .map(js_string_literal)
+        .unwrap_or_else(|| "null".to_string());
+    let expr = format!(
+        r#"(function() {{
+  const el = document.querySelector({sel});
+  if (!el) return {{ ok: false, error: 'element not found' }};
+  if (!(el instanceof HTMLSelectElement)) return {{ ok: false, error: 'not a select element' }};
+  const value = {value_js};
+  const index = {index_js};
+  const optionText = {text_js};
+  const opts = Array.from(el.options);
+  const listOptions = () => opts.slice(0, 20).map((o) => '"' + o.text.trim() + '" (value=' + o.value + ')').join(', ');
+  const matchText = (needle) => {{
+    const n = needle.trim();
+    return opts.find((o) => o.text.trim() === n || o.label.trim() === n || o.value === n) || null;
+  }};
+  let target = null;
+  if (value !== null) {{
+    target = opts.find((o) => o.value === value) || matchText(value);
+    if (!target) return {{ ok: false, error: 'option not found: ' + value + '. available: ' + listOptions() }};
+    el.value = target.value;
+  }} else if (index !== null) {{
+    if (index < 0 || index >= opts.length) {{
+      return {{ ok: false, error: 'index out of range: ' + index + ' (options: ' + opts.length + '). available: ' + listOptions() }};
+    }}
+    el.selectedIndex = index;
+    target = opts[index];
+  }} else if (optionText !== null) {{
+    target = matchText(optionText);
+    if (!target) return {{ ok: false, error: 'option not found: ' + optionText + '. available: ' + listOptions() }};
+    el.value = target.value;
+  }} else {{
+    return {{ ok: false, error: 'missing value, index, label, or text' }};
+  }}
+  el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+  el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+  return {{ ok: true, value: el.value, label: target ? target.text : '' }};
+}})()"#,
+        sel = js_string_literal(selector),
+        value_js = value_js,
+        index_js = index_js,
+        text_js = text_js,
+    );
+    let res = cdp_send(
+        session,
+        "Runtime.evaluate",
+        json!({
+            "expression": expr,
+            "returnByValue": true,
+            "awaitPromise": true,
+        }),
+    )
+    .await?;
+    let ok = res
+        .pointer("/result/value/ok")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !ok {
+        let err = res
+            .pointer("/result/value/error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("select failed");
+        if should_attach_interactive_hint(err) {
+            return Err(selector_error(session, "选择失败", selector, err).await);
+        }
+        return Err(format!("选择失败 ({selector}): {err}"));
     }
     Ok(())
 }
@@ -746,7 +1293,7 @@ async fn dispatch_dom_key(session: &mut CdpSession, key: &str) -> Result<Value, 
         code = js_string_literal(code),
         key_code = key_code,
     );
-    evaluate_js(session, &expr).await
+    evaluate_js(session, &expr, true).await
 }
 
 async fn press_key(session: &mut CdpSession, key: &str) -> Result<(), String> {
@@ -758,6 +1305,11 @@ async fn press_key(session: &mut CdpSession, key: &str) -> Result<(), String> {
         tokio::time::sleep(Duration::from_millis(150)).await;
     }
     Ok(())
+}
+
+async fn sleep_ms(timeout_ms: u64) {
+    let timeout_ms = timeout_ms.clamp(100, 60_000);
+    tokio::time::sleep(Duration::from_millis(timeout_ms)).await;
 }
 
 async fn wait_for_selector(
@@ -789,7 +1341,13 @@ async fn wait_for_selector(
             return Ok(());
         }
         if started.elapsed().as_millis() as u64 >= timeout_ms {
-            return Err(format!("等待选择器超时 ({timeout_ms}ms): {selector}"));
+            return Err(
+                append_interactive_hint(
+                    session,
+                    format!("等待选择器超时 ({timeout_ms}ms): {selector}"),
+                )
+                .await,
+            );
         }
         tokio::time::sleep(Duration::from_millis(150)).await;
     }
@@ -950,35 +1508,153 @@ async fn capture_screenshot(
     Ok((path, b64))
 }
 
-async fn evaluate_js(session: &mut CdpSession, expression: &str) -> Result<Value, String> {
-    let res = cdp_send(
+/// Wrap user JS so sync alert/confirm/prompt do not open native dialogs
+/// (which would block Runtime.evaluate until dismissed).
+fn wrap_evaluate_expression(expression: &str) -> String {
+    let expr = js_string_literal(expression);
+    format!(
+        r#"(function() {{
+  var __dialogs = [];
+  var __alert = window.alert;
+  var __confirm = window.confirm;
+  var __prompt = window.prompt;
+  window.alert = function(msg) {{
+    __dialogs.push({{ type: 'alert', message: String(msg == null ? '' : msg) }});
+  }};
+  window.confirm = function(msg) {{
+    __dialogs.push({{ type: 'confirm', message: String(msg == null ? '' : msg) }});
+    return true;
+  }};
+  window.prompt = function(msg, def) {{
+    var d = def == null ? '' : String(def);
+    __dialogs.push({{ type: 'prompt', message: String(msg == null ? '' : msg), defaultPrompt: d }});
+    return d;
+  }};
+  function __restore() {{
+    window.alert = __alert;
+    window.confirm = __confirm;
+    window.prompt = __prompt;
+  }}
+  function __ok(v) {{
+    __restore();
+    return {{ ok: true, result: v, dialogs: __dialogs }};
+  }}
+  function __fail(e) {{
+    __restore();
+    var err = e && (e.stack || e.message) ? String(e.stack || e.message) : String(e);
+    return {{ ok: false, error: err, dialogs: __dialogs }};
+  }}
+  try {{
+    var __result = (0, eval)({expr});
+    if (__result && typeof __result.then === 'function') {{
+      return Promise.resolve(__result).then(__ok, __fail);
+    }}
+    return __ok(__result);
+  }} catch (e) {{
+    return __fail(e);
+  }}
+}})()"#
+    )
+}
+
+async fn evaluate_js(
+    session: &mut CdpSession,
+    expression: &str,
+    intercept_dialogs: bool,
+) -> Result<Value, String> {
+    if session.pending_dialog.is_some() {
+        return Err(
+            "已有未处理的 JavaScript 弹窗，请先调用 handle_alert 再继续 evaluate".into(),
+        );
+    }
+    if !intercept_dialogs {
+        // Raw evaluate — native dialogs will block until handle_alert is called.
+        let res = cdp_send_inner(
+            session,
+            "Runtime.evaluate",
+            json!({
+                "expression": expression,
+                "returnByValue": true,
+                "awaitPromise": true,
+            }),
+            Duration::from_secs(30),
+            DialogWaitPolicy::Ignore,
+        )
+        .await?;
+        if res.pointer("/exceptionDetails").is_some() {
+            let msg = res
+                .pointer("/exceptionDetails/text")
+                .and_then(|v| v.as_str())
+                .unwrap_or("JS exception");
+            return Err(format!("evaluate 失败: {msg}"));
+        }
+        return Ok(res.get("result").cloned().unwrap_or(Value::Null));
+    }
+
+    let wrapped = wrap_evaluate_expression(expression);
+    // AutoAccept: if a native dialog still opens (e.g. page code outside the wrap),
+    // accept it so evaluate can finish instead of timing out.
+    let res = cdp_send_inner(
         session,
         "Runtime.evaluate",
         json!({
-            "expression": expression,
+            "expression": wrapped,
             "returnByValue": true,
             "awaitPromise": true,
         }),
+        Duration::from_secs(30),
+        DialogWaitPolicy::AutoAccept,
     )
     .await?;
-    if res
-        .pointer("/exceptionDetails")
-        .is_some()
-    {
+    if res.pointer("/exceptionDetails").is_some() {
         let msg = res
             .pointer("/exceptionDetails/text")
             .and_then(|v| v.as_str())
             .unwrap_or("JS exception");
         return Err(format!("evaluate 失败: {msg}"));
     }
-    Ok(res.get("result").cloned().unwrap_or(Value::Null))
+    let remote = res.get("result").cloned().unwrap_or(Value::Null);
+    let Some(payload) = remote.get("value").cloned() else {
+        return Ok(remote);
+    };
+
+    if payload.get("ok").and_then(|v| v.as_bool()) == Some(false) {
+        let err = payload
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("JS exception");
+        return Err(format!("evaluate 失败: {err}"));
+    }
+
+    let dialogs = payload
+        .get("dialogs")
+        .cloned()
+        .unwrap_or_else(|| json!([]));
+    let dialog_count = dialogs.as_array().map(|a| a.len()).unwrap_or(0);
+    let result_value = payload.get("result").cloned().unwrap_or(Value::Null);
+
+    if dialog_count == 0 {
+        return Ok(result_value);
+    }
+
+    Ok(json!({
+        "result": result_value,
+        "dialogs": dialogs,
+        "dialogOpened": true,
+        "dialogAutoHandled": true,
+        "hint": "alert/confirm/prompt 已在 evaluate 内拦截并自动处理（confirm→true，prompt→默认值），无需再调用 handle_alert。"
+    }))
 }
 
 // ============================================================================
 // Session lifecycle
 // ============================================================================
 
-async fn start_session(url: Option<String>) -> Result<CdpSession, String> {
+async fn start_session(
+    url: Option<String>,
+    wait_until: PageLoadWait,
+    load_timeout_ms: u64,
+) -> Result<CdpSession, String> {
     let browser_path = find_browser_executable()?;
     let port = pick_debug_port();
     let (profile_dir, ephemeral_profile) = prepare_user_data_dir()?;
@@ -1078,6 +1754,7 @@ async fn start_session(url: Option<String>) -> Result<CdpSession, String> {
         next_id: AtomicU64::new(1),
         session_id: None,
         current_url: None,
+        pending_dialog: None,
     };
 
     if let Err(e) = attach_page_session(&mut session, &start_url).await {
@@ -1087,6 +1764,12 @@ async fn start_session(url: Option<String>) -> Result<CdpSession, String> {
     if let Err(e) = ensure_domains(&mut session).await {
         stop_session(&mut session).await;
         return Err(format!("启用 CDP 域失败: {e}"));
+    }
+    if start_url != "about:blank" {
+        if let Err(e) = wait_for_page_load(&mut session, wait_until, load_timeout_ms).await {
+            stop_session(&mut session).await;
+            return Err(e);
+        }
     }
     Ok(session)
 }
@@ -1153,12 +1836,16 @@ pub async fn cdp_browser_status(
 pub async fn cdp_browser_start(
     state: State<'_, CdpBrowserState>,
     url: Option<String>,
+    wait_until: Option<String>,
+    timeout_ms: Option<u64>,
 ) -> Result<CdpActionResult, String> {
+    let load_wait = PageLoadWait::from_str(wait_until.as_deref());
+    let load_timeout = timeout_ms.unwrap_or(30_000);
     let mut guard = state.inner.lock().await;
     if guard.is_some() {
         if let Some(u) = url.as_ref().filter(|s| !s.is_empty()) {
             let session = guard.as_mut().unwrap();
-            page_navigate(session, u).await?;
+            page_navigate(session, u, load_wait, load_timeout).await?;
             let title = page_title(session).await.unwrap_or_default();
             let mut result = ok_result(format!("已导航到: {u}"));
             result.url = Some(u.clone());
@@ -1171,7 +1858,7 @@ pub async fn cdp_browser_start(
         return Ok(result);
     }
 
-    let mut session = start_session(url.clone()).await?;
+    let mut session = start_session(url.clone(), load_wait, load_timeout).await?;
     if let Some(u) = url.as_ref().filter(|s| !s.is_empty() && *s != "about:blank") {
         // already opened with start_url
         let _ = u;
@@ -1204,17 +1891,45 @@ pub async fn cdp_browser_stop(state: State<'_, CdpBrowserState>) -> Result<CdpAc
 pub async fn cdp_browser_navigate(
     state: State<'_, CdpBrowserState>,
     url: String,
+    wait_until: Option<String>,
+    timeout_ms: Option<u64>,
 ) -> Result<CdpActionResult, String> {
     let mut guard = state.inner.lock().await;
     let session = guard
         .as_mut()
         .ok_or_else(|| "CDP 浏览器未启动，请先 open/start".to_string())?;
-    page_navigate(session, &url).await?;
+    page_navigate(
+        session,
+        &url,
+        PageLoadWait::from_str(wait_until.as_deref()),
+        timeout_ms.unwrap_or(30_000),
+    )
+    .await?;
     let title = page_title(session).await.unwrap_or_default();
     let mut result = ok_result(format!("已导航到: {url}"));
     result.url = Some(url);
     result.title = Some(title);
     Ok(result)
+}
+
+#[tauri::command]
+pub async fn cdp_browser_handle_alert(
+    state: State<'_, CdpBrowserState>,
+    dialog_action: String,
+    prompt_text: Option<String>,
+    timeout_ms: Option<u64>,
+) -> Result<CdpActionResult, String> {
+    let mut guard = state.inner.lock().await;
+    let session = guard
+        .as_mut()
+        .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
+    handle_javascript_dialog(
+        session,
+        dialog_action.trim(),
+        prompt_text.as_deref(),
+        timeout_ms.unwrap_or(5_000),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -1231,18 +1946,124 @@ pub async fn cdp_browser_click(
 }
 
 #[tauri::command]
-pub async fn cdp_browser_type(
+pub async fn cdp_browser_hover(
     state: State<'_, CdpBrowserState>,
     selector: String,
-    text: String,
-    clear: Option<bool>,
+    timeout_ms: Option<u64>,
 ) -> Result<CdpActionResult, String> {
     let mut guard = state.inner.lock().await;
     let session = guard
         .as_mut()
         .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
+    let wait_timeout = timeout_ms.unwrap_or(10_000);
+    wait_for_selector(session, &selector, wait_timeout).await?;
+    hover_selector(session, &selector).await?;
+    Ok(ok_result(format!("已悬停: {selector}")))
+}
+
+#[tauri::command]
+pub async fn cdp_browser_type(
+    state: State<'_, CdpBrowserState>,
+    selector: String,
+    text: String,
+    clear: Option<bool>,
+    timeout_ms: Option<u64>,
+) -> Result<CdpActionResult, String> {
+    let mut guard = state.inner.lock().await;
+    let session = guard
+        .as_mut()
+        .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
+    let wait_timeout = timeout_ms.unwrap_or(10_000);
+    wait_for_selector(session, &selector, wait_timeout).await?;
     type_selector(session, &selector, &text, clear.unwrap_or(false)).await?;
     Ok(ok_result(format!("已输入到 {selector}")))
+}
+
+#[tauri::command]
+pub async fn cdp_browser_scroll(
+    state: State<'_, CdpBrowserState>,
+    selector: Option<String>,
+    x: Option<f64>,
+    y: Option<f64>,
+    scroll_mode: Option<String>,
+    timeout_ms: Option<u64>,
+) -> Result<CdpActionResult, String> {
+    let mut guard = state.inner.lock().await;
+    let session = guard
+        .as_mut()
+        .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
+    let scroll_by = scroll_mode.as_deref().map(str::trim).eq(&Some("by"));
+    match selector.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(sel) => {
+            let wait_timeout = timeout_ms.unwrap_or(10_000);
+            wait_for_selector(session, sel, wait_timeout).await?;
+            scroll_page(session, Some(sel), None, None, false).await?;
+            Ok(ok_result(format!("已滚动到元素: {sel}")))
+        }
+        None => {
+            if x.is_none() && y.is_none() {
+                return Err("scroll 需要 selector 或 x/y 坐标".into());
+            }
+            scroll_page(session, None, x, y, scroll_by).await?;
+            let mode = if scroll_by { "scroll_by" } else { "scroll_to" };
+            Ok(ok_result(format!(
+                "已滚动 ({mode}): x={}, y={}",
+                x.unwrap_or(0.0),
+                y.unwrap_or(0.0)
+            )))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn cdp_browser_select(
+    state: State<'_, CdpBrowserState>,
+    selector: String,
+    value: Option<String>,
+    index: Option<i32>,
+    label: Option<String>,
+    text: Option<String>,
+    timeout_ms: Option<u64>,
+) -> Result<CdpActionResult, String> {
+    let has_value = value.as_deref().map(str::trim).is_some_and(|s| !s.is_empty());
+    let has_index = index.is_some();
+    let has_label = label.as_deref().map(str::trim).is_some_and(|s| !s.is_empty());
+    let has_text = text.as_deref().map(str::trim).is_some_and(|s| !s.is_empty());
+    let chosen = [has_value, has_index, has_label, has_text]
+        .into_iter()
+        .filter(|v| *v)
+        .count();
+    if chosen != 1 {
+        return Err("select 需要且只能指定 value、index、label 或 text 之一".into());
+    }
+
+    let option_text = if has_label {
+        label.as_deref().map(str::trim)
+    } else if has_text {
+        text.as_deref().map(str::trim)
+    } else {
+        None
+    };
+
+    let mut guard = state.inner.lock().await;
+    let session = guard
+        .as_mut()
+        .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
+    let wait_timeout = timeout_ms.unwrap_or(10_000);
+    wait_for_selector(session, &selector, wait_timeout).await?;
+    select_option(
+        session,
+        &selector,
+        if has_value {
+            value.as_deref().map(str::trim)
+        } else {
+            None
+        },
+        if has_index { index } else { None },
+        option_text,
+    )
+    .await?;
+    Ok(ok_result(format!("已选择: {selector}")))
 }
 
 #[tauri::command]
@@ -1280,13 +2101,44 @@ pub async fn cdp_browser_content(
 pub async fn cdp_browser_evaluate(
     state: State<'_, CdpBrowserState>,
     expression: String,
+    handle_dialog: Option<bool>,
 ) -> Result<CdpActionResult, String> {
     let mut guard = state.inner.lock().await;
     let session = guard
         .as_mut()
         .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
-    let value = evaluate_js(session, &expression).await?;
-    let mut result = ok_result("evaluate 完成");
+    let intercept = handle_dialog.unwrap_or(true);
+    let value = evaluate_js(session, &expression, intercept).await?;
+    let dialog_opened = value
+        .get("dialogOpened")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let dialog_auto = value
+        .get("dialogAutoHandled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let mut result = if dialog_opened && dialog_auto {
+        ok_result(
+            "evaluate 完成（已拦截 alert/confirm/prompt，无需 handle_alert）".to_string(),
+        )
+    } else if dialog_opened {
+        ok_result(
+            "evaluate 触发了 JavaScript 弹窗，请先调用 handle_alert 再继续".to_string(),
+        )
+    } else {
+        ok_result("evaluate 完成".to_string())
+    };
+    if dialog_opened {
+        if let Some(dialogs) = value.get("dialogs").and_then(|v| v.as_array()) {
+            if let Some(first) = dialogs.first() {
+                if let Some(msg) = first.get("message").and_then(|v| v.as_str()) {
+                    result.content = Some(msg.to_string());
+                }
+            }
+        } else if let Some(msg) = value.get("dialogMessage").and_then(|v| v.as_str()) {
+            result.content = Some(msg.to_string());
+        }
+    }
     result.value = Some(value);
     Ok(result)
 }
@@ -1294,15 +2146,24 @@ pub async fn cdp_browser_evaluate(
 #[tauri::command]
 pub async fn cdp_browser_wait_for_selector(
     state: State<'_, CdpBrowserState>,
-    selector: String,
+    selector: Option<String>,
     timeout_ms: Option<u64>,
 ) -> Result<CdpActionResult, String> {
+    let timeout = timeout_ms.unwrap_or(10_000);
     let mut guard = state.inner.lock().await;
     let session = guard
         .as_mut()
         .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
-    wait_for_selector(session, &selector, timeout_ms.unwrap_or(10_000)).await?;
-    Ok(ok_result(format!("选择器已出现: {selector}")))
+    match selector.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        None => {
+            sleep_ms(timeout).await;
+            Ok(ok_result(format!("已等待 {timeout}ms")))
+        }
+        Some(sel) => {
+            wait_for_selector(session, sel, timeout).await?;
+            Ok(ok_result(format!("选择器已出现: {sel}")))
+        }
+    }
 }
 
 #[tauri::command]
@@ -1315,8 +2176,10 @@ pub async fn cdp_browser_screenshot(
     let session = guard
         .as_mut()
         .ok_or_else(|| "CDP 浏览器未启动".to_string())?;
-    let (path, b64) = capture_screenshot(session, full_page.unwrap_or(false)).await?;
-    let mut result = ok_result(format!("截图已保存: {}", path.display()));
+    let full_page = full_page.unwrap_or(false);
+    let (path, b64) = capture_screenshot(session, full_page).await?;
+    let mode_label = if full_page { "整页" } else { "可见区域" };
+    let mut result = ok_result(format!("{mode_label}截图已保存: {}", path.display()));
     result.screenshot_path = Some(path.display().to_string());
     if include_base64.unwrap_or(false) {
         result.screenshot_base64 = Some(b64);

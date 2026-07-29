@@ -121,16 +121,20 @@ export type ControlBrowserArgs = {
     | 'navigate'
     | 'refresh'
     | 'click'
+    | 'hover'
     | 'type'
     | 'press_key'
     | 'content'
     | 'evaluate'
     | 'wait'
+    | 'scroll'
+    | 'select'
+    | 'handle_alert'
     | 'screenshot';
   url?: string;
-  /** CSS selector for click / type / wait */
+  /** CSS selector for click / hover / type / select; optional for wait (pure delay when omitted); scroll_to_element when set */
   selector?: string;
-  /** Text to type into the selected element */
+  /** Text to type (type action) or option visible text (select action) */
   text?: string;
   /** Key name for press_key (e.g. Enter, Tab, Escape) */
   key?: string;
@@ -138,9 +142,29 @@ export type ControlBrowserArgs = {
   clear?: boolean;
   /** JavaScript expression for evaluate */
   expression?: string;
-  /** Wait timeout in milliseconds (default 10000) */
+  /** evaluate: true (default) intercepts alert/confirm/prompt; false lets native dialogs through for handle_alert */
+  handle_dialog?: boolean;
+  /** Timeout in ms. navigate/open: page load wait (default 30000). wait/select/scroll/type: element wait (default 10000). handle_alert: dialog wait (default 5000). */
   timeout_ms?: number;
-  /** Capture full page screenshot */
+  /** Page load wait target for open/navigate: domcontentloaded or load (default load) */
+  wait_until?: 'domcontentloaded' | 'load';
+  /** handle_alert: accept, dismiss, or get_text */
+  dialog_action?: 'accept' | 'dismiss' | 'get_text';
+  /** handle_alert accept on prompt dialogs */
+  prompt_text?: string;
+  /** Horizontal scroll coordinate (scroll action) */
+  x?: number;
+  /** Vertical scroll coordinate (scroll action) */
+  y?: number;
+  /** scroll_to (default) or scroll_by when using x/y without selector */
+  scroll_mode?: 'to' | 'by';
+  /** Option value for select action */
+  value?: string;
+  /** Option index for select action (0-based) */
+  index?: number;
+  /** Option visible text for select action (alias: label) */
+  label?: string;
+  /** Capture full scrollable page (screenshot action; default false = visible viewport only) */
   full_page?: boolean;
   /** Include base64 payload in screenshot result */
   include_base64?: boolean;

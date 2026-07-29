@@ -144,6 +144,8 @@ const CodeBlockRenderer = ({
   // Clean up file-tree formatting (broken hierarchy from AI output)
   codeText = cleanupFileTree(codeText);
 
+  const displayCode = codeText.replace(/\n$/, '');
+  const isEmptyBlock = !displayCode.trim();
   const isInline = !match && !codeText.includes('\n') && !language;
   const [isCopied, setIsCopied] = useState(false);
 
@@ -153,6 +155,25 @@ const CodeBlockRenderer = ({
       document.documentElement.getAttribute('data-theme') === 'light');
 
   const syntaxTheme = isLight ? vs : vscDarkPlus;
+
+  // Empty fenced blocks (```text```) should not render as a full chrome card.
+  if (isEmptyBlock && (match || language)) {
+    return (
+      <code
+        {...rest}
+        style={{
+          backgroundColor: 'var(--surface-overlay-soft)',
+          color: 'var(--text-primary)',
+          padding: '2px 4px',
+          borderRadius: '4px',
+          fontFamily: 'monospace',
+          fontSize: '0.9em',
+        }}
+      >
+        {language || ''}
+      </code>
+    );
+  }
 
   if (isInline) {
     return (
@@ -173,7 +194,7 @@ const CodeBlockRenderer = ({
   }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(codeText.replace(/\n$/, ''));
+    navigator.clipboard.writeText(displayCode);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -225,7 +246,7 @@ const CodeBlockRenderer = ({
       <SyntaxHighlighter
         {...rest}
         PreTag="div"
-        children={codeText.replace(/\n$/, '')}
+        children={displayCode}
         language={language || undefined}
         style={syntaxTheme}
         customStyle={{

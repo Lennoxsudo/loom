@@ -4,15 +4,17 @@ export interface ChatModeToggleProps {
   chatMode: 'plan' | 'always-allow';
   setChatMode: React.Dispatch<React.SetStateAction<'plan' | 'always-allow'>>;
   compact?: boolean;
-  variant?: 'segmented' | 'composer';
+  variant?: 'segmented' | 'composer' | 'drawer';
   t: {
     agent: {
       planMode: string;
       planModeShort: string;
       planModeDesc: string;
+      planModeBadge: string;
       alwaysAllowMode: string;
       alwaysAllowModeShort: string;
       alwaysAllowModeDesc: string;
+      alwaysAllowModeBadge: string;
     };
   };
 }
@@ -43,6 +45,37 @@ export default function ChatModeToggle({
       >
         {activeLabel}
       </button>
+    );
+  }
+
+  if (variant === 'drawer') {
+    return (
+      <div className={styles.drawerList} role="listbox" aria-label={t.agent.planMode}>
+        <button
+          type="button"
+          role="option"
+          aria-selected={chatMode === 'plan'}
+          className={`${styles.drawerItem} ${chatMode === 'plan' ? styles.drawerItemActive : ''}`}
+          title={t.agent.planModeDesc}
+          onClick={() => setChatMode('plan')}
+        >
+          <span>{t.agent.planModeShort}</span>
+          <span className={styles.drawerBadge}>{t.agent.planModeBadge}</span>
+        </button>
+        <button
+          type="button"
+          role="option"
+          aria-selected={chatMode === 'always-allow'}
+          className={`${styles.drawerItem} ${
+            chatMode === 'always-allow' ? styles.drawerItemActive : ''
+          }`}
+          title={t.agent.alwaysAllowModeDesc}
+          onClick={() => setChatMode('always-allow')}
+        >
+          <span>{t.agent.alwaysAllowModeShort}</span>
+          <span className={styles.drawerBadge}>{t.agent.alwaysAllowModeBadge}</span>
+        </button>
+      </div>
     );
   }
 

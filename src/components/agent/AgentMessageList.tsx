@@ -17,7 +17,9 @@ interface AgentMessageListProps {
   onUserMessageLayout?: (messageId: string, element: HTMLElement | null) => void;
   getLayoutCache?: () => UserMessageLayoutCache;
   onResendFromUserMessage?: (messageId: string, newText: string) => void | Promise<void>;
+  onForkFromUserMessage?: (messageId: string) => void | Promise<void>;
   userMessageEditDisabled?: boolean;
+  userMessageForkDisabled?: boolean;
   /** Plan panel anchored after the plan tool turn */
   planSlot?: ReactNode;
 }
@@ -33,7 +35,9 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
       onUserMessageLayout,
       getLayoutCache,
       onResendFromUserMessage,
+      onForkFromUserMessage,
       userMessageEditDisabled,
+      userMessageForkDisabled,
       planSlot,
     },
     ref
@@ -113,7 +117,9 @@ const AgentMessageList = forwardRef<AgentMessageListHandle, AgentMessageListProp
             onRejectTool={onRejectTool}
             onUserMessageLayout={onUserMessageLayout}
             onResendFromUserMessage={onResendFromUserMessage}
+            onForkFromUserMessage={onForkFromUserMessage}
             userMessageEditDisabled={userMessageEditDisabled}
+            userMessageForkDisabled={userMessageForkDisabled}
             planSlot={planSlot}
           />
         ))}

@@ -1,0 +1,33 @@
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.branchCapsule,
+.warningCapsule {
+  display: inline-flex;
+  align-items: center;
+  max-width: 120px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.branchCapsule {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 18%, transparent);
+}
+
+.warningCapsule {
+  flex-shrink: 0;
+  color: #fbbf24;
+  background: color-mix(in srgb, #fbbf24 14%, transparent);
+  border: 1px solid color-mix(in srgb, #fbbf24 32%, transparent);
+}

@@ -147,5 +147,40 @@ describe('paramNormalizer', () => {
       const opts = qs[0].options as Array<{ label: string }>;
       expect(opts.map((o) => o.label)).toEqual(['是', '否']);
     });
+
+    it('browser select: keeps text as option label (does not leave duplicated value alias)', () => {
+      const result = normalizeToolArgs(
+        { action: 'select', selector: '#fruit', text: 'Banana' },
+        'browser'
+      );
+      expect(result.text).toBe('Banana');
+      expect(result.value).toBeUndefined();
+    });
+
+    it('browser select: maps option alias to text', () => {
+      const result = normalizeToolArgs(
+        { action: 'select', selector: '#fruit', option: 'Banana' },
+        'browser'
+      );
+      expect(result.text).toBe('Banana');
+      expect(result.value).toBeUndefined();
+    });
+
+    it('browser select: coerces string index to number', () => {
+      const result = normalizeToolArgs(
+        { action: 'select', selector: '#fruit', index: '1' },
+        'browser'
+      );
+      expect(result.index).toBe(1);
+    });
+
+    it('browser select: preserves explicit value without inventing text', () => {
+      const result = normalizeToolArgs(
+        { action: 'select', selector: '#fruit', value: 'b' },
+        'browser'
+      );
+      expect(result.value).toBe('b');
+      expect(result.text).toBeUndefined();
+    });
   });
 });

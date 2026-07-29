@@ -400,6 +400,47 @@ pub fn checkpoint_get(
         .ok_or_else(|| format!("检查点不存在: {checkpoint_id}"))
 }
 
+/// Read UTF-8 text snapshot for one file in a checkpoint (for UI diff preview).
+#[tauri::command]
+pub fn checkpoint_read_file_content(
+    session_key: String,
+    checkpoint_id: String,
+    file_path: String,
+) -> Result<String, String> {
+    let session_key = session_key.trim().to_string();
+    let checkpoint_id = checkpoint_id.trim().to_string();
+    let file_path = file_path.trim().to_string();
+    if session_key.is_empty() || checkpoint_id.is_empty() || file_path.is_empty() {
+        return Err("session_key / checkpoint_id / file_path 不能为空".to_string());
+    }
+
+    let session = session_dir(&session_key)?;
+    let index = load_index(&session)?;
+    let cp = index
+        .checkpoints
+        .iter()
+        .find(|c| c.id == checkpoint_id)
+        .ok_or_else(|| format!("检查点不存在: {checkpoint_id}"))?;
+
+    let file_key = normalize_path_key(&file_path);
+    let file = cp
+        .files
+        .iter()
+        .find(|f| normalize_path_key(&f.path) == file_key)
+        .ok_or_else(|| format!("文件不在检查点中: {file_path}"))?;
+
+    if !file.existed {
+        return Ok(String::new());
+    }
+    if file.is_binary || file.blob.is_empty() {
+        return Err("该文件快照不可预览（二进制或缺失）".to_string());
+    }
+
+    let blob_path = session.join(&checkpoint_id).join(&file.blob);
+    let bytes = fs::read(&blob_path).map_err(|e| format!("读取快照失败: {e}"))?;
+    String::from_utf8(bytes).map_err(|_| "快照不是有效的 UTF-8 文本".to_string())
+}
+
 /// Restore workspace files to the state captured at `checkpoint_id` (before that action).
 /// Truncates the checkpoint and all later ones from the session timeline.
 #[tauri::command]
@@ -575,6 +616,14 @@ mod tests {
         let list = checkpoint_list(session_key.clone()).unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].id, created.id);
+
+        let snapshot = checkpoint_read_file_content(
+            session_key.clone(),
+            created.id.clone(),
+            created.files[0].path.clone(),
+        )
+        .expect("read snapshot");
+        assert_eq!(snapshot, "v1");
 
         let result = checkpoint_restore(CheckpointRestoreRequest {
             session_key: session_key.clone(),

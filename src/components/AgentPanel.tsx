@@ -124,7 +124,7 @@ import {
   type LoadedAiConfig,
   type ProviderProfileOption,
 } from '../utils/aiProviderRuntime';
-import { buildAgentContextUsage } from './agent/contextUsage';
+import { buildAgentContextUsage, type AgentContextUsage } from './agent/contextUsage';
 import { smoothScrollToBottom } from '../utils/smoothScroll';
 import { scheduleScrollContainerToBottom } from '../utils/scheduleMessageListScroll';
 import { deleteProjectFromWorkspace } from '../utils/deleteProjectFromWorkspace';
@@ -279,6 +279,7 @@ export default function AgentPanel({
   const [contextAnnotations, setContextAnnotations] = useState<ContextAnnotation[]>([]);
   const [currentBudget, setCurrentBudget] = useState<number>(0);
   const [currentTokens, setCurrentTokens] = useState<number>(0);
+  const [contextUsage, setContextUsage] = useState<AgentContextUsage | null>(null);
   const [agentModes, setAgentModes] = useState<Record<string, 'plan' | 'always-allow'>>(() => {
     try {
       const stored = localStorage.getItem(AGENT_MODES_STORAGE_KEY);
@@ -1065,12 +1066,14 @@ export default function AgentPanel({
         });
 
         if (!cancelled) {
+          setContextUsage(usage);
           setCurrentBudget(usage.availableContextTokens);
           setCurrentTokens(usage.usedTokens);
         }
       } catch (error) {
         if (!cancelled) {
           console.warn('Failed to recalculate agent context usage:', error);
+          setContextUsage(null);
           setCurrentBudget(0);
           setCurrentTokens(0);
         }
@@ -1473,6 +1476,7 @@ export default function AgentPanel({
     pendingDeleteThread,
     isDeletingThread,
     handleNewThread,
+    handleForkThread,
     handleSelectThread,
     requestDeleteThread,
     confirmDeleteThread,
@@ -1944,6 +1948,13 @@ export default function AgentPanel({
     [resendFromUserMessage]
   );
 
+  const handleForkFromUserMessage = useCallback(
+    (messageId: string) => {
+      handleForkThread(messageId, t.agent.threads.forkTitleSuffix);
+    },
+    [handleForkThread, t.agent.threads.forkTitleSuffix]
+  );
+
   const handleSwitchProject = useCallback(
     async (
       path: string,
@@ -2289,6 +2300,7 @@ export default function AgentPanel({
       safeTotalTokens={totalTokens}
       ctxPercent={tokenPercentage}
       maxContextTokens={currentBudget}
+      contextUsage={contextUsage}
       centered={isEmptyConversationState}
       skillsCount={skillsCount}
       mcpCount={mcpTools.length}
@@ -2488,6 +2500,8 @@ export default function AgentPanel({
                           onApproveTool={approve}
                           onRejectTool={reject}
                           onResendFromUserMessage={handleResendFromUserMessage}
+                          onForkFromUserMessage={handleForkFromUserMessage}
+                          userMessageForkDisabled={isSelectedSessionBusy}
                           planSlot={
                             selectedConversationId && agentPlanVisible ? (
                               <PlanDocumentPanel
@@ -2534,7 +2548,7 @@ export default function AgentPanel({
                   pendingChanges={selectedPendingChanges}
                   onOpenReview={() => setChangeReviewCollapsed(false)}
                 />
-                <BgTaskBadge />
+                <BgTaskBadge conversationId={selectedConversationId} />
               </div>
 
               <div className={styles.composerDock}>
@@ -2579,7 +2593,7 @@ export default function AgentPanel({
             type="button"
             className={styles.errorToastClose}
             onClick={() => setError(null)}
-            title={t.common?.close || '关闭'}
+            title="关闭"
             aria-label="Dismiss error"
           >
             ✕

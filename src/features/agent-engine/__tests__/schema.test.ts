@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateToolParameters } from '../schema';
 import { normalizeToolArgs } from '../paramNormalizer';
+import { normalizeToolArgs } from '../paramNormalizer';
 
 describe('schema validation', () => {
   describe('validateToolParameters', () => {
@@ -168,6 +169,105 @@ describe('schema validation', () => {
       const result3 = validateToolParameters('control_browser', invalidBrowser);
       expect(result3.success).toBe(false);
       expect(result3.success ? null : result3.error).toContain('Validation failed');
+
+      // wait without selector — pure delay via timeout_ms
+      const waitDelayOnly = { action: 'wait', timeout_ms: 2000 };
+      expect(validateToolParameters('browser', waitDelayOnly).success).toBe(true);
+
+      // wait with selector still valid
+      const waitForSelector = { action: 'wait', selector: '#app', timeout_ms: 5000 };
+      expect(validateToolParameters('browser', waitForSelector).success).toBe(true);
+
+      // type still requires selector
+      const typeMissingSelector = { action: 'type', text: 'hello' };
+      expect(validateToolParameters('browser', typeMissingSelector).success).toBe(false);
+
+      // scroll to element
+      expect(
+        validateToolParameters('browser', { action: 'scroll', selector: '#footer' }).success
+      ).toBe(true);
+
+      // scroll_to coordinates
+      expect(
+        validateToolParameters('browser', { action: 'scroll', x: 0, y: 500 }).success
+      ).toBe(true);
+
+      // scroll_by delta
+      expect(
+        validateToolParameters('browser', {
+          action: 'scroll',
+          x: 0,
+          y: 300,
+          scroll_mode: 'by',
+        }).success
+      ).toBe(true);
+
+      // scroll without target invalid
+      expect(validateToolParameters('browser', { action: 'scroll' }).success).toBe(false);
+
+      // select by value
+      expect(
+        validateToolParameters('browser', {
+          action: 'select',
+          selector: '#country',
+          value: 'cn',
+        }).success
+      ).toBe(true);
+
+      // select by visible text
+      expect(
+        validateToolParameters('browser', {
+          action: 'select',
+          selector: '#fruit',
+          text: 'Banana',
+        }).success
+      ).toBe(true);
+
+      // select via executor path: normalize aliases then validate
+      const selectViaText = validateToolParameters(
+        'browser',
+        normalizeToolArgs({ action: 'select', selector: '#fruit', text: 'Banana' }, 'browser')
+      );
+      expect(selectViaText.success).toBe(true);
+
+      const selectViaOption = validateToolParameters(
+        'browser',
+        normalizeToolArgs({ action: 'select', selector: '#fruit', option: 'Banana' }, 'browser')
+      );
+      expect(selectViaOption.success).toBe(true);
+
+      const selectViaIndexString = validateToolParameters(
+        'browser',
+        normalizeToolArgs({ action: 'select', selector: '#fruit', index: '1' }, 'browser')
+      );
+      expect(selectViaIndexString.success).toBe(true);
+
+      // select must specify exactly one of value/index/label/text
+      expect(
+        validateToolParameters('browser', { action: 'select', selector: '#country' }).success
+      ).toBe(false);
+
+      // handle_alert get_text
+      expect(
+        validateToolParameters('browser', {
+          action: 'handle_alert',
+          dialog_action: 'get_text',
+        }).success
+      ).toBe(true);
+
+      // handle_alert requires dialog_action
+      expect(validateToolParameters('browser', { action: 'handle_alert' }).success).toBe(false);
+
+      // hover requires selector
+      expect(
+        validateToolParameters('browser', { action: 'hover', selector: '#menu' }).success
+      ).toBe(true);
+      expect(validateToolParameters('browser', { action: 'hover' }).success).toBe(false);
+
+      // screenshot full_page
+      expect(
+        validateToolParameters('browser', { action: 'screenshot', full_page: true }).success
+      ).toBe(true);
     });
 
     it('should validate fetch_web_content tool parameters correctly', () => {

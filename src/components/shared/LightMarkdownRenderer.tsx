@@ -172,6 +172,11 @@ export const lightMarkdownComponents = {
     const language = match ? match[1] : '';
     const code = String(children ?? '').replace(/\n$/, '');
 
+    // Empty fenced blocks (```text```) → inline, avoid empty chrome cards mid-prose.
+    if (match && !code.trim()) {
+      return <LightInlineCode>{language || ''}</LightInlineCode>;
+    }
+
     // 有语言标识或包含换行符，使用代码块渲染
     if (match || (code.includes('\n') && !className)) {
       return <LightCodeBlock language={language}>{code}</LightCodeBlock>;

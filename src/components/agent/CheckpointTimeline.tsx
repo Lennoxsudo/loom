@@ -57,7 +57,6 @@ const CheckpointTimeline = memo(function CheckpointTimeline({
 
   return (
     <div className={styles.timelineBody} data-testid="checkpoint-timeline">
-      <div className={styles.timelineHint}>{t.agent.changeReview.checkpointHint}</div>
       <ol className={styles.timelineList}>
         {ordered.map((cp, index) => {
           const isSelected = selectedId === cp.id;

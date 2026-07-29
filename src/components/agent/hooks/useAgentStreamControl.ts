@@ -145,7 +145,10 @@ export function useAgentStreamControl(
     if (!messageId && selectedAgentId) {
       const agentStreams = activeStreamMessageIdsByAgentRef.current[selectedAgentId];
       if (agentStreams && agentStreams.size > 0) {
-        messageId = agentStreams.values().next().value;
+        const first = agentStreams.values().next().value;
+        if (first !== undefined) {
+          messageId = first;
+        }
       }
     }
 

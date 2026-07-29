@@ -101,24 +101,6 @@ export const FolderIcon = ({ size = 14, style }: IconProps) => (
   </svg>
 );
 
-export const HistoryIcon = ({ size = 14, style }: IconProps) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={style}
-  >
-    <path d="M3 3v5h5" />
-    <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-    <path d="M12 7v5l4 2" />
-  </svg>
-);
-
 export const CopyIcon = ({ size = 14, style }: IconProps) => (
   <svg
     width={size}
@@ -294,26 +276,6 @@ export const ZapIcon = ({ size = 14, style, className }: IconProps) => (
     style={style}
   >
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-  </svg>
-);
-
-export const PlugIcon = ({ size = 14, style, className }: IconProps) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    style={style}
-  >
-    <path d="M12 22v-5"></path>
-    <path d="M9 8V2"></path>
-    <path d="M15 8V2"></path>
-    <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"></path>
   </svg>
 );
 

@@ -107,6 +107,10 @@ describe('buildAgentContextUsage', () => {
     expect(usage.messageTokens).toBeGreaterThan(0);
     expect(usage.usedTokens).toBe(usage.messageTokens + usage.toolTokens);
     expect(usage.usagePercent).toBeGreaterThan(0);
+    expect(usage.breakdown.system).toBeGreaterThan(0);
+    expect(usage.breakdown.tools).toBe(estimateToolsTokens(tools));
+    expect(usage.compressionThresholdTokens).toBeGreaterThan(0);
+    expect(usage.tokensUntilCompact).toBeGreaterThanOrEqual(0);
   });
 });
 

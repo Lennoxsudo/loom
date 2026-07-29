@@ -692,7 +692,7 @@ export const AI_TOOLS: ToolDefinition[] = [
     description:
       'Control the browser. Basic actions always work on the built-in preview: open, navigate, refresh. ' +
       'When the CDP browser plugin is enabled (Settings → Plugins), additional actions control system Chrome/Edge via CDP: ' +
-      'close, click, type, press_key, content, evaluate, wait, screenshot. ' +
+      'close, click, hover, type, press_key, content, evaluate, wait, scroll, select, handle_alert, screenshot. ' +
       'Prefer CDP actions for real DOM interaction and screenshots; use open/navigate/refresh for simple preview.',
     parameters: {
       type: 'object',
@@ -705,11 +705,15 @@ export const AI_TOOLS: ToolDefinition[] = [
             'navigate',
             'refresh',
             'click',
+            'hover',
             'type',
             'press_key',
             'content',
             'evaluate',
             'wait',
+            'scroll',
+            'select',
+            'handle_alert',
             'screenshot',
           ],
           description: 'The browser action to perform.',
@@ -720,11 +724,13 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         selector: {
           type: 'string',
-          description: 'CSS selector for click, type, and wait actions.',
+          description:
+            'CSS selector for click, hover, type, and select. For scroll: scroll element into view. Optional for wait — omit to sleep for timeout_ms only.',
         },
         text: {
           type: 'string',
-          description: 'Text to type into the element (type action).',
+          description:
+            'Text to type (type action), or option visible text for select (e.g. "Banana"). Aliases for select: option, label.',
         },
         key: {
           type: 'string',
@@ -736,15 +742,64 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         expression: {
           type: 'string',
-          description: 'JavaScript expression to evaluate in the page (evaluate action).',
+          description:
+            'JavaScript expression to evaluate (evaluate action). By default alert()/confirm()/prompt() are intercepted (confirm→true, prompt→default); result includes dialogs[]. Set handle_dialog:false to let native dialogs through for handle_alert.',
+        },
+        handle_dialog: {
+          type: 'boolean',
+          description:
+            'evaluate: true (default) auto-intercepts alert/confirm/prompt so evaluate returns immediately. false lets native dialogs block — call handle_alert afterward.',
         },
         timeout_ms: {
           type: 'number',
-          description: 'Timeout in ms for wait action (default 10000, max 60000).',
+          description:
+            'Timeout in ms (max 60000). open/navigate: page load wait (default 30000). type/select/scroll/wait: element wait (default 10000). handle_alert: dialog wait (default 5000).',
+        },
+        wait_until: {
+          type: 'string',
+          enum: ['domcontentloaded', 'load'],
+          description:
+            'Page load milestone for open/navigate. domcontentloaded (interactive) or load (complete, default).',
+        },
+        dialog_action: {
+          type: 'string',
+          enum: ['accept', 'dismiss', 'get_text'],
+          description: 'handle_alert: confirm, cancel, or read dialog text without closing.',
+        },
+        prompt_text: {
+          type: 'string',
+          description: 'handle_alert accept: text for prompt() dialogs.',
+        },
+        x: {
+          type: 'number',
+          description: 'Horizontal scroll position or delta (scroll action, with y).',
+        },
+        y: {
+          type: 'number',
+          description: 'Vertical scroll position or delta (scroll action, with x).',
+        },
+        scroll_mode: {
+          type: 'string',
+          enum: ['to', 'by'],
+          description:
+            'Scroll mode when using x/y without selector: scroll_to (default) or scroll_by.',
+        },
+        value: {
+          type: 'string',
+          description: 'Option value for select action.',
+        },
+        index: {
+          type: 'number',
+          description: 'Option index (0-based) for select action.',
+        },
+        label: {
+          type: 'string',
+          description: 'Option visible text for select action (same as text).',
         },
         full_page: {
           type: 'boolean',
-          description: 'Capture full-page screenshot when action is screenshot.',
+          description:
+            'screenshot only: set true to capture the entire scrollable page; false (default) captures the visible viewport only.',
         },
         include_base64: {
           type: 'boolean',
