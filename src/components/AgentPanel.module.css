@@ -51,16 +51,67 @@
 .errorToast {
   position: fixed;
   left: 50%;
-  bottom: 20px;
+  bottom: 24px;
   transform: translateX(-50%);
   z-index: 1300;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   padding: 10px 14px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--text-error, #c62828) 12%, var(--bg-panel));
-  border: 1px solid color-mix(in srgb, var(--text-error, #c62828) 35%, var(--border-subtle));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text-error, #c62828) 14%, var(--bg-panel));
+  border: 1px solid color-mix(in srgb, var(--text-error, #c62828) 38%, var(--border-subtle));
   color: var(--text-primary);
   font-size: 12px;
-  max-width: min(480px, calc(100vw - 32px));
+  line-height: 1.45;
+  max-width: min(520px, calc(100vw - 32px));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  will-change: transform, opacity;
+  animation: errorToastSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes errorToastSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.errorToastText {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.errorToastClose {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.65;
+  font-size: 11px;
+  color: inherit;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.errorToastClose:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--text-error, #c62828) 25%, transparent);
 }
 
 .header {

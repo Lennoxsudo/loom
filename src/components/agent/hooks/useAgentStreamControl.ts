@@ -140,13 +140,26 @@ export function useAgentStreamControl(
       delete activeTaskMessageIdsBySessionRef.current[selectedSessionKey];
     }
 
-    const messageId = activeStreamMessageIdsBySessionRef.current[selectedSessionKey];
-    const streamMeta = messageId ? streamMetaByMessageIdRef.current[messageId] : null;
-    const streamConversationId = streamMeta?.conversationId ?? null;
+    let messageId = activeStreamMessageIdsBySessionRef.current[selectedSessionKey];
+
+    if (!messageId && selectedAgentId) {
+      const agentStreams = activeStreamMessageIdsByAgentRef.current[selectedAgentId];
+      if (agentStreams && agentStreams.size > 0) {
+        messageId = agentStreams.values().next().value;
+      }
+    }
 
     if (!messageId) {
+      consumeStopRequest(selectedSessionKey);
+      if (!activeStreamMessageIdsBySessionRef.current[selectedSessionKey]) {
+        setSessionBusy(selectedSessionKey, false);
+      }
+      syncAgentBusyFromSessions(selectedAgentId);
       return;
     }
+
+    const streamMeta = streamMetaByMessageIdRef.current[messageId];
+    const streamConversationId = streamMeta?.conversationId ?? null;
 
     try {
       await invoke('cancel_ai_chat', { messageId });
@@ -194,6 +207,12 @@ export function useAgentStreamControl(
     }
 
     clearTrackedStream(messageId);
+
+    if (!activeStreamMessageIdsBySessionRef.current[selectedSessionKey]) {
+      setSessionBusy(selectedSessionKey, false);
+    }
+    consumeStopRequest(selectedSessionKey);
+    syncAgentBusyFromSessions(selectedAgentId);
     setError(null);
   };
 

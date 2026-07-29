@@ -320,6 +320,14 @@ export default function AgentPanel({
   const [projectBranchName, setProjectBranchName] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(() => {
+      setError(null);
+    }, 6000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
   const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
   const [renamingConversationTitle, setRenamingConversationTitle] = useState('');
   const [isAutomationsPanelOpen, setIsAutomationsPanelOpen] = useState(false);
@@ -2566,7 +2574,16 @@ export default function AgentPanel({
 
       {error && (
         <div className={styles.errorToast} role="alert">
-          {error}
+          <span className={styles.errorToastText}>{error}</span>
+          <button
+            type="button"
+            className={styles.errorToastClose}
+            onClick={() => setError(null)}
+            title={t.common?.close || '关闭'}
+            aria-label="Dismiss error"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>

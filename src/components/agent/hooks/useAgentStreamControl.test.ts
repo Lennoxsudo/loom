@@ -169,6 +169,7 @@ describe('useAgentStreamControl', () => {
 
     expect(invokeMock).toHaveBeenCalledTimes(1);
     expect(invokeMock).toHaveBeenCalledWith('cancel_ai_chat', { messageId: 'msg-b' });
+    expect(hook.result.current.isStopRequested('pk::conv-b')).toBe(false);
     expect(hook.result.current.isStopRequested('pk::conv-a')).toBe(false);
   });
 

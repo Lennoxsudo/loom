@@ -1092,6 +1092,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     if (isStopRequested(sessionKey)) {
       clearProcessingState(agentId, conversationId, assistantMessageId, toolMessages);
       clearTrackedStream(assistantMessageId);
+      consumeStopRequest(sessionKey);
       return;
     }
 
