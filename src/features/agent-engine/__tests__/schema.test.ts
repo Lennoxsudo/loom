@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateToolParameters } from '../schema';
 import { normalizeToolArgs } from '../paramNormalizer';
-import { normalizeToolArgs } from '../paramNormalizer';
 
 describe('schema validation', () => {
   describe('validateToolParameters', () => {

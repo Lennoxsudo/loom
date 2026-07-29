@@ -217,7 +217,6 @@ const AgentComposer = memo(function AgentComposer({
   ctxPercent,
   maxContextTokens,
   contextUsage = null,
-  conversationId = null,
   centered = false,
   skillsCount = 0,
   mcpCount = 0,
