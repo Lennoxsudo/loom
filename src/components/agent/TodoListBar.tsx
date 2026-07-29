@@ -217,12 +217,16 @@ const TodoListBar: React.FC<TodoListBarProps> = ({ conversationId, style, onLayo
         <div className={styles.summary}>
           {primaryInProgress ? (
             <>
+              <span className={styles.taskBadge}>TODO</span>
               <TodoInProgressIndicator />
               <span className={styles.summaryText}>{primaryInProgress.content}</span>
               {extraInProgress > 0 && <span className={styles.more}>+{extraInProgress}</span>}
             </>
           ) : (
-            <span className={styles.summaryMeta}>{metaSummary}</span>
+            <>
+              <span className={styles.taskBadge}>TODO</span>
+              <span className={styles.summaryMeta}>{metaSummary}</span>
+            </>
           )}
         </div>
 

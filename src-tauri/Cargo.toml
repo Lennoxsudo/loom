@@ -1,6 +1,6 @@
 [package]
 name = "loom"
-version = "0.1.10"
+version = "0.1.11"
 description = "AI-native desktop code editor and local development workbench built with Tauri 2, React and Rust."
 authors = ["Lennoxsudo"]
 license = "Apache-2.0"
@@ -48,6 +48,8 @@ encoding_rs = "0.8"
 once_cell = "1"
 log = "0.4"
 croner = "2"
+# Traditional → Simplified for Whisper STT (OpenCC rules; avoid GPL mediawiki tables)
+zhconv = { version = "0.3", default-features = false, features = ["compress", "opencc"] }
 
 # live server
 axum = "0.7"
@@ -61,6 +63,7 @@ tauri-plugin-updater = "2"
 # P1 sandbox: Windows Job Object for process lifecycle isolation
 # NOTE: Does NOT include filesystem/network isolation (write-restricted token is a future enhancement)
 [target.'cfg(windows)'.dependencies]
+webview2-com = "0.38"
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_System_JobObjects",

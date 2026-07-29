@@ -1134,6 +1134,7 @@ const ToolResultMessage = memo(function ToolResultMessage({
       fontSize: '12px',
       lineHeight: 1.45,
       color: TOOL_TEXT_MUTED,
+      paddingLeft: '14px',
     };
 
     const renderHiddenGroup = (

@@ -33,7 +33,7 @@ pub use core::{config_paths, debug_log};
 pub use domain::agent::{agent_store, automation, conversation};
 pub use domain::ai::{chat, image_gen};
 pub use domain::integration::{
-    browser, cdp_browser, checkpoint, git_diff, git_workspace, git_worktree, mcp,
+    browser, cdp_browser, checkpoint, git_diff, git_workspace, git_worktree, mcp, whisper,
 };
 /// Public for `bin/cbm_acceptance` and external tooling.
 pub use domain::integration::cbm;

@@ -61,4 +61,17 @@ describe('UserMessageBubble', () => {
 
     expect(onResend).toHaveBeenCalledWith('u-1', 'revised task');
   });
+
+  it('copies user message text to clipboard', async () => {
+    const user = userEvent.setup();
+    const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    renderBubble();
+
+    const copyBtn = screen.getByTestId('user-message-copy');
+    expect(copyBtn).toBeInTheDocument();
+    await user.click(copyBtn);
+
+    expect(writeTextSpy).toHaveBeenCalledWith('original task');
+    writeTextSpy.mockRestore();
+  });
 });

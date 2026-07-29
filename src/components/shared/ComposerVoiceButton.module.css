@@ -1,0 +1,176 @@
+.button {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: visible;
+  isolation: isolate;
+  transition:
+    width 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 180ms ease,
+    border-radius 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 140ms ease;
+}
+
+.button:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--border-focus, var(--text-accent)) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.recording {
+  color: var(--chat-stop-fg);
+  background: color-mix(in srgb, var(--chat-stop-bg) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chat-stop-bg) 40%, transparent);
+}
+
+.transcribing {
+  width: 58px;
+  height: 28px;
+  border-radius: 999px;
+  color: var(--text-accent, var(--text-primary));
+  background: color-mix(in srgb, var(--text-accent, var(--text-primary)) 8%, var(--bg-primary, transparent));
+  border: 1px solid color-mix(in srgb, var(--text-accent, var(--text-primary)) 22%, transparent);
+  animation: voiceCapsuleIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.transcribing:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.iconWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  z-index: 1;
+}
+
+.pulseRing {
+  position: absolute;
+  inset: -5px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--chat-stop-fg) 60%, transparent);
+  animation: voicePulse 1.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  pointer-events: none;
+}
+
+.pulseRingOuter {
+  inset: -9px;
+  opacity: 0.5;
+  animation-delay: 0.3s;
+  animation-duration: 1.6s;
+}
+
+.sonic {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 16px;
+}
+
+.sonicSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: currentColor;
+}
+
+.eqBar {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: eqBounce 0.85s ease-in-out infinite alternate;
+}
+
+.b1 { animation-delay: 0.0s; }
+.b2 { animation-delay: 0.22s; }
+.b3 { animation-delay: 0.44s; }
+.b4 { animation-delay: 0.12s; }
+.b5 { animation-delay: 0.31s; }
+
+@keyframes eqBounce {
+  0% {
+    transform: scaleY(0.25);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes voiceCapsuleIn {
+  from {
+    width: 28px;
+    border-radius: 7px;
+    opacity: 0.6;
+    transform: scale(0.92);
+  }
+  to {
+    width: 58px;
+    border-radius: 999px;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes voicePulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .pulseRing,
+  .transcribing,
+  .sonicTrack {
+    animation: none;
+  }
+
+  .transcribing {
+    width: 58px;
+    border-radius: 999px;
+  }
+
+  .sonicSvg {
+    width: 100%;
+  }
+}

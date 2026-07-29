@@ -68,7 +68,7 @@ async fn open_agent_window(app: tauri::AppHandle, project_path: String) -> Resul
         }
     };
 
-    let _webview_window = WebviewWindowBuilder::new(&app, label, webview_url)
+    let webview_window = WebviewWindowBuilder::new(&app, label, webview_url)
         .title("Agent")
         .inner_size(1400.0, 900.0)
         .min_inner_size(600.0, 400.0)
@@ -77,6 +77,11 @@ async fn open_agent_window(app: tauri::AppHandle, project_path: String) -> Resul
         .visible(false)
         .build()
         .map_err(|e| format!("创建 Agent 窗口失败: {}", e))?;
+
+    #[cfg(windows)]
+    {
+        super::setup::enable_media_permission_auto_allow(&webview_window);
+    }
 
     Ok(())
 }
@@ -314,6 +319,9 @@ pub fn attach_handlers(
         crate::cbm::commands::cbm_ui_status,
         crate::cbm::commands::cbm_start_ui,
         crate::cbm::commands::cbm_stop_ui,
+        // local STT (whisper.cpp)
+        crate::whisper::transcribe_audio,
+        crate::whisper::whisper_available,
         // audit
         crate::audit_log::get_audit_logs,
         crate::audit_log::clear_audit_logs,

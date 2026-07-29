@@ -1,49 +1,47 @@
-/* Adapted from uiverse.io/barisdogansutcu/light-rat-32 (MIT) — scaled for inline todo rows */
-.spinner {
+.indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
-.spinner svg {
+.waveSvg {
   width: 100%;
   height: 100%;
+  overflow: visible;
+}
+
+.bar1,
+.bar2,
+.bar3 {
+  fill: var(--text-accent, #3b82f6);
+  transform-box: fill-box;
   transform-origin: center;
-  animation: todoSpin 2s linear infinite;
 }
 
-.spinner circle {
-  fill: none;
-  stroke: color-mix(in srgb, var(--text-warning) 88%, var(--text-primary));
-  stroke-width: 5;
-  stroke-dasharray: 1, 200;
-  stroke-dashoffset: 0;
-  stroke-linecap: round;
-  animation: todoDash 1.5s ease-in-out infinite;
+.bar1 {
+  animation: waveMotion 1.1s ease-in-out infinite 0s;
 }
 
-@keyframes todoSpin {
+.bar2 {
+  animation: waveMotion 1.1s ease-in-out infinite 0.18s;
+}
+
+.bar3 {
+  animation: waveMotion 1.1s ease-in-out infinite 0.36s;
+}
+
+@keyframes waveMotion {
+  0%,
   100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes todoDash {
-  0% {
-    stroke-dasharray: 1, 200;
-    stroke-dashoffset: 0;
+    transform: scaleY(0.35);
+    opacity: 0.45;
   }
 
   50% {
-    stroke-dasharray: 90, 200;
-    stroke-dashoffset: -8px;
-  }
-
-  100% {
-    stroke-dashoffset: -28px;
+    transform: scaleY(1);
+    opacity: 1;
   }
 }

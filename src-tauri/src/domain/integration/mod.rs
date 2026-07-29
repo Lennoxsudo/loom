@@ -1,4 +1,4 @@
-//! Integration domain: MCP, CBM, Git, browser, checkpoints.
+//! Integration domain: MCP, CBM, Git, browser, checkpoints, local STT.
 
 pub mod browser;
 pub mod cbm;
@@ -8,3 +8,4 @@ pub mod git_diff;
 pub mod git_workspace;
 pub mod git_worktree;
 pub mod mcp;
+pub mod whisper;

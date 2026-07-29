@@ -19,6 +19,7 @@ import type {
   KeyBindings,
   SettingsState,
   Language,
+  VoiceInputLanguage,
   AgentCommandExecutionMode,
   AgentAccessMode,
   ToolCallDelay,
@@ -49,6 +50,7 @@ interface SettingsActions {
   updateFileSortBy: (sortBy: FileSortBy) => Promise<void>;
   updateFoldersFirst: (enabled: boolean) => Promise<void>;
   updateLanguage: (language: Language) => Promise<void>;
+  updateVoiceInputLanguage: (language: VoiceInputLanguage) => Promise<void>;
   updateThemeMode: (themeMode: ThemeMode) => Promise<void>;
   updateRenderWhitespace: (mode: RenderWhitespaceMode) => Promise<void>;
   updateCurrentLineHighlight: (enabled: boolean) => Promise<void>;
@@ -117,6 +119,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   spendCap: 0,
   enableUsageTracking: true,
   language: 'zh-CN',
+  voiceInputLanguage: 'auto',
   themeMode: 'system',
   renderWhitespace: 'none',
   currentLineHighlight: true,
@@ -162,6 +165,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     spendCap: state.spendCap,
     enableUsageTracking: state.enableUsageTracking,
     language: state.language,
+    voiceInputLanguage: state.voiceInputLanguage,
     themeMode: state.themeMode,
     renderWhitespace: state.renderWhitespace,
     currentLineHighlight: state.currentLineHighlight,
@@ -335,6 +339,10 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
     result.language = settings.language as Language;
   }
 
+  if (['auto', 'zh', 'en'].includes(settings.voiceInputLanguage as string)) {
+    result.voiceInputLanguage = settings.voiceInputLanguage as VoiceInputLanguage;
+  }
+
   if (['system', 'dark', 'light'].includes(settings.themeMode as string)) {
     result.themeMode = settings.themeMode as ThemeMode;
   }
@@ -501,6 +509,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 
       updateLanguage: async (language) => {
         set({ language });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateVoiceInputLanguage: async (voiceInputLanguage) => {
+        set({ voiceInputLanguage });
         const state = get();
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
@@ -749,6 +763,7 @@ export const useUpdateStreamSendMode = () =>
   useSettingsStore((state) => state.updateStreamSendMode);
 export const useKeyBindings = () => useSettingsStore((state) => state.keyBindings);
 export const useLanguage = () => useSettingsStore((state) => state.language);
+export const useVoiceInputLanguage = () => useSettingsStore((state) => state.voiceInputLanguage);
 export const useThemeMode = () => useSettingsStore((state) => state.themeMode);
 export const useRenderWhitespace = () => useSettingsStore((state) => state.renderWhitespace);
 export const useCurrentLineHighlight = () =>
@@ -790,6 +805,8 @@ export const useUpdateExcludePatterns = () =>
 export const useUpdateFileSortBy = () => useSettingsStore((state) => state.updateFileSortBy);
 export const useUpdateFoldersFirst = () => useSettingsStore((state) => state.updateFoldersFirst);
 export const useUpdateLanguage = () => useSettingsStore((state) => state.updateLanguage);
+export const useUpdateVoiceInputLanguage = () =>
+  useSettingsStore((state) => state.updateVoiceInputLanguage);
 export const useUpdateThemeMode = () => useSettingsStore((state) => state.updateThemeMode);
 export const useUpdateRenderWhitespace = () =>
   useSettingsStore((state) => state.updateRenderWhitespace);

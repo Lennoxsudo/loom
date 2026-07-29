@@ -28,6 +28,12 @@ export type FileSortBy = 'name' | 'type' | 'modified';
 export type Language = 'zh-CN' | 'en-US';
 
 /**
+ * Speech-to-text language (independent from UI language).
+ * `auto` follows the UI language.
+ */
+export type VoiceInputLanguage = 'auto' | 'zh' | 'en';
+
+/**
  * Application theme mode
  */
 export type ThemeMode =
@@ -156,6 +162,11 @@ export interface SettingsState {
   streamSendMode: StreamSendMode;
   /** Application language */
   language: Language;
+  /**
+   * Voice input / STT language.
+   * Independent from UI language; `auto` follows `language`.
+   */
+  voiceInputLanguage: VoiceInputLanguage;
   /** Application theme mode */
   themeMode: ThemeMode;
   /** Render whitespace characters */

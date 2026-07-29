@@ -130,6 +130,19 @@
 
 .settingsNavWrap {
   padding: 12px 10px 8px;
+  will-change: transform, opacity;
+  animation: sidebarContentFadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sidebarContentFadeIn {
+  0% {
+    opacity: 0.2;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .settingsButton {

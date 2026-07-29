@@ -472,6 +472,14 @@ export interface I18nMessages {
     attachFile: string;
     attachFileDesktopOnly: string;
     attachFileFailed: string;
+    voiceInputStart: string;
+    voiceInputStop: string;
+    voiceInputTranscribing: string;
+    voiceInputUnsupported: string;
+    voiceInputPermissionDenied: string;
+    voiceInputEmpty: string;
+    voiceInputFailed: string;
+    voiceInputDesktopOnly: string;
     stopping: string;
     stopGenerating: string;
     sendQueueTitle: string;
@@ -1085,6 +1093,13 @@ export interface I18nMessages {
       chinese: string;
       english: string;
       restartHint: string;
+    };
+    voiceInputLanguage: {
+      title: string;
+      auto: string;
+      chinese: string;
+      english: string;
+      description: string;
     };
     tabSize: {
       title: string;

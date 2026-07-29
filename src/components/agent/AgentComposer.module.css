@@ -2,9 +2,16 @@
   position: relative;
   width: 100%;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  order: 1;
 }
 
 .sideIndicators {
+  order: 2;
   position: absolute;
   right: 100%;
   bottom: 10px;
@@ -12,6 +19,19 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  gap: 8px;
+  z-index: 12;
+}
+
+.sideIndicatorsCentered {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  margin-right: 0;
+  margin-top: 10px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   gap: 8px;
   z-index: 12;
 }
@@ -100,6 +120,13 @@
   background: var(--bg-dropdown);
   box-shadow: var(--shadow-md);
   z-index: 220;
+}
+
+.sideIndicatorDropdownCentered {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 6px);
 }
 
 .sideIndicatorList {

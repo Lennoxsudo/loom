@@ -1,0 +1,36 @@
+.meter {
+  display: flex;
+  align-items: center;
+  justify-content: stretch;
+  gap: 2px;
+  height: 48px;
+  width: 100%;
+  padding: 10px 16px 8px;
+  box-sizing: border-box;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle, var(--border-primary)) 55%, transparent);
+  /* Older samples dissolve toward the left as they drift away. */
+  mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 100%);
+}
+
+.bar {
+  flex: 1 1 0;
+  min-width: 1px;
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 48%, transparent);
+  transform-origin: center center;
+  will-change: transform, opacity;
+  transition:
+    transform 60ms cubic-bezier(0.2, 0.8, 0.4, 1),
+    opacity 60ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    transition: none;
+  }
+
+  .meter {
+    mask-image: none;
+  }
+}

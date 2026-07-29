@@ -1,11 +1,14 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SendIcon, StopIcon, PlusIcon } from '../shared/Icons';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
+import { ComposerVoiceButton } from '../shared/ComposerVoiceButton';
+import { ComposerVoiceLevelMeter } from '../shared/ComposerVoiceLevelMeter';
 import SlashSkillMenu from '../shared/SlashSkillMenu';
 import ContextMentionMenu from '../shared/ContextMentionMenu';
 import ComposerSendQueue from '../shared/ComposerSendQueue';
 import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
 import { useContextMentionAutocomplete } from '../../hooks/useContextMentionAutocomplete';
+import { useComposerVoiceInput } from '../../hooks/useComposerVoiceInput';
 import type { SkillEntry } from '../../utils/skills';
 import type { QueuedComposerItem } from '../../hooks/useChatSendDuringStreamingDispatch';
 import type { ContextAnnotation } from '../../utils/contextAnnotations';
@@ -56,6 +59,14 @@ export interface ChatInputAreaProps {
       stopping: string;
       stopGenerating: string;
       attachFile: string;
+      voiceInputStart: string;
+      voiceInputStop: string;
+      voiceInputTranscribing: string;
+      voiceInputUnsupported: string;
+      voiceInputPermissionDenied: string;
+      voiceInputEmpty: string;
+      voiceInputFailed: string;
+      voiceInputDesktopOnly: string;
       sendQueueTitle: string;
       sendQueueRestore: string;
       sendQueueRemove: string;
@@ -109,6 +120,26 @@ export default function ChatInputArea({
 }: ChatInputAreaProps) {
   const dragActive = isDragOver || isOverChatAttach;
   const disabled = modelMissing;
+  const voiceLabels = useMemo(
+    () => ({
+      start: t.chat.voiceInputStart,
+      stop: t.chat.voiceInputStop,
+      transcribing: t.chat.voiceInputTranscribing,
+      unsupported: t.chat.voiceInputUnsupported,
+      permissionDenied: t.chat.voiceInputPermissionDenied,
+      emptyRecording: t.chat.voiceInputEmpty,
+      transcribeFailed: t.chat.voiceInputFailed,
+      desktopOnly: t.chat.voiceInputDesktopOnly,
+    }),
+    [t.chat]
+  );
+  const voice = useComposerVoiceInput({
+    disabled,
+    inputValue,
+    setInputValue,
+    textareaRef,
+    labels: voiceLabels,
+  });
 
   const getCursor = useCallback(
     () => textareaRef.current?.selectionStart ?? inputValue.length,
@@ -270,6 +301,12 @@ export default function ChatInputArea({
             </div>
           )}
 
+          <ComposerVoiceLevelMeter
+            active={voice.isRecording}
+            levels={voice.levels}
+            label={voice.title}
+          />
+
           <div className={styles.inputRow}>
             <button
               type="button"
@@ -316,6 +353,12 @@ export default function ChatInputArea({
               placeholder={modelMissing ? t.errors.selectModelFirst : t.chat.enterYourQuestion}
               disabled={disabled}
               rows={1}
+            />
+            <ComposerVoiceButton
+              state={voice.state}
+              title={voice.title}
+              disabled={disabled}
+              onClick={voice.toggle}
             />
             <button
               type="button"

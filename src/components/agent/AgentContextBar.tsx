@@ -4,6 +4,7 @@ import { ChevronDownIcon } from '../shared/Icons';
 import { useTranslation } from '../../i18n';
 import { useRecentWorkspaces, useTouchRecentWorkspace } from '../../stores';
 import type { RecentWorkspace } from '../../types/settings';
+import { SideResourceCapsule } from './AgentComposer';
 import styles from './AgentContextBar.module.css';
 
 export interface AgentContextBarProps {
@@ -11,6 +12,12 @@ export interface AgentContextBarProps {
   projectName: string;
   onSwitchProject: (path: string) => void;
   centered?: boolean;
+  skillsCount?: number;
+  mcpCount?: number;
+  skillNames?: string[];
+  mcpToolNames?: string[];
+  onSelectMention?: (item: string) => void;
+  disabled?: boolean;
 }
 
 function PillDropdown({
@@ -66,12 +73,19 @@ const AgentContextBar = memo(function AgentContextBar({
   projectName,
   onSwitchProject,
   centered = false,
+  skillsCount = 0,
+  mcpCount = 0,
+  skillNames = [],
+  mcpToolNames = [],
+  onSelectMention,
+  disabled = false,
 }: AgentContextBarProps) {
   const t = useTranslation();
   const recentWorkspaces = useRecentWorkspaces();
   const touchRecentWorkspace = useTouchRecentWorkspace();
 
   const [projectOpen, setProjectOpen] = useState(false);
+  const [openSideCapsule, setOpenSideCapsule] = useState<'skill' | 'mcp' | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
 
   const projects: RecentWorkspace[] = (() => {
@@ -130,6 +144,35 @@ const AgentContextBar = memo(function AgentContextBar({
 
   return (
     <div className={styles.bar} style={centered ? undefined : { maxWidth: 'none' }}>
+      {centered && (
+        <>
+          <SideResourceCapsule
+            label="SKILL"
+            count={skillsCount}
+            items={skillNames}
+            emptyLabel={t.agent.sideCapsules.noSkills}
+            title={t.settingsSkills?.title || 'Skills'}
+            isOpen={openSideCapsule === 'skill'}
+            onToggle={() => setOpenSideCapsule((prev) => (prev === 'skill' ? null : 'skill'))}
+            onSelectItem={onSelectMention ?? (() => {})}
+            disabled={disabled}
+            centered
+          />
+          <SideResourceCapsule
+            label="MCP"
+            count={mcpCount}
+            items={mcpToolNames}
+            emptyLabel={t.agent.sideCapsules.noMcp}
+            title="MCP"
+            isOpen={openSideCapsule === 'mcp'}
+            onToggle={() => setOpenSideCapsule((prev) => (prev === 'mcp' ? null : 'mcp'))}
+            onSelectItem={onSelectMention ?? (() => {})}
+            disabled={disabled}
+            centered
+          />
+        </>
+      )}
+
       <PillDropdown
         label={t.agent.contextBar.project}
         value={projectName || projectPath.split(/[\\/]/).pop() || '—'}

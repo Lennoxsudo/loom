@@ -44,6 +44,7 @@
   width: 100%;
   max-width: var(--agent-content-max-width);
   margin-inline: auto;
+  margin-left: max(104px, calc((100% - var(--agent-content-max-width)) / 2));
   overflow: visible;
 }
 

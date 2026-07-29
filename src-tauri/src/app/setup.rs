@@ -30,6 +30,14 @@ pub fn run(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Auto-allow microphone (and camera) permission prompts inside the app webview.
+    // This suppresses the WebView2 "localhost wants to use your microphone" dialog
+    // for first-party UI; OS-level microphone privacy settings still apply.
+    #[cfg(windows)]
+    {
+        install_media_permission_auto_allow(app);
+    }
+
     // Automation scheduler (background thread, interval/cron)
     crate::automation::start_automation_scheduler(app.handle().clone());
 
@@ -37,4 +45,50 @@ pub fn run(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     crate::automation::refresh_file_change_watchers(app.handle());
 
     Ok(())
+}
+
+/// Install WebView2 PermissionRequested auto-allow for microphone/camera on a window.
+#[cfg(windows)]
+pub fn enable_media_permission_auto_allow(window: &tauri::WebviewWindow) {
+    use webview2_com::{
+        Microsoft::Web::WebView2::Win32::{
+            COREWEBVIEW2_PERMISSION_KIND_CAMERA, COREWEBVIEW2_PERMISSION_KIND_MICROPHONE,
+            COREWEBVIEW2_PERMISSION_STATE_ALLOW,
+        },
+        PermissionRequestedEventHandler,
+    };
+
+    let _ = window.with_webview(|platform| {
+        let controller = platform.controller();
+        unsafe {
+            let Ok(webview) = controller.CoreWebView2() else {
+                return;
+            };
+            // Keep a token so the handler stays registered for the webview lifetime.
+            let mut token = 0i64;
+            let handler = PermissionRequestedEventHandler::create(Box::new(move |_sender, args| {
+                let Some(args) = args else {
+                    return Ok(());
+                };
+                let mut kind = Default::default();
+                args.PermissionKind(&mut kind)?;
+                if kind == COREWEBVIEW2_PERMISSION_KIND_MICROPHONE
+                    || kind == COREWEBVIEW2_PERMISSION_KIND_CAMERA
+                {
+                    // Auto-allow first-party media capture prompts.
+                    // OS privacy settings still gate actual device access.
+                    args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)?;
+                }
+                Ok(())
+            }));
+            let _ = webview.add_PermissionRequested(&handler, &mut token);
+        }
+    });
+}
+
+#[cfg(windows)]
+fn install_media_permission_auto_allow(app: &tauri::App) {
+    if let Some(main) = app.get_webview_window("main") {
+        enable_media_permission_auto_allow(&main);
+    }
 }

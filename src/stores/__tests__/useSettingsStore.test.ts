@@ -27,6 +27,7 @@ import type {
   FileSortBy,
   StreamSpeed,
   Language,
+  VoiceInputLanguage,
   AgentCommandExecutionMode,
   AgentAccessMode,
   ToolCallDelay,
@@ -73,6 +74,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   graphAutoIndexOnOpen: true,
   graphAutoIndexMaxFiles: 50_000,
   language: 'zh-CN',
+  voiceInputLanguage: 'auto',
   themeMode: 'system',
   renderWhitespace: 'none',
   currentLineHighlight: true,
@@ -107,6 +109,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     thinkingBlockAutoExpand: state.thinkingBlockAutoExpand,
     enableSubagents: state.enableSubagents,
     language: state.language,
+    voiceInputLanguage: state.voiceInputLanguage,
     themeMode: state.themeMode,
     renderWhitespace: state.renderWhitespace,
     currentLineHighlight: state.currentLineHighlight,
@@ -207,6 +210,10 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (['zh-CN', 'en-US'].includes(settings.language as string)) {
     result.language = settings.language as Language;
+  }
+
+  if (['auto', 'zh', 'en'].includes(settings.voiceInputLanguage as string)) {
+    result.voiceInputLanguage = settings.voiceInputLanguage as VoiceInputLanguage;
   }
 
   if (['system', 'dark', 'light'].includes(settings.themeMode as string)) {
@@ -563,6 +570,20 @@ describe('parseLoadedSettings', () => {
     });
   });
 
+  // ---- voiceInputLanguage ----
+
+  describe('voiceInputLanguage 解析', () => {
+    it.each(['auto', 'zh', 'en'] as VoiceInputLanguage[])('合法值 "%s" 被保留', (value) => {
+      const result = parseLoadedSettings({ voiceInputLanguage: value });
+      expect(result.voiceInputLanguage).toBe(value);
+    });
+
+    it.each(['ja', 'fr', '', 'zh-CN'])('非法值 "%s" 被忽略', (value) => {
+      const result = parseLoadedSettings({ voiceInputLanguage: value });
+      expect(result.voiceInputLanguage).toBeUndefined();
+    });
+  });
+
   // ---- 完整对象解析 ----
 
   describe('完整对象解析', () => {
@@ -700,6 +721,7 @@ describe('serializeSettings', () => {
       'thinkingBlockAutoExpand',
       'enableSubagents',
       'language',
+      'voiceInputLanguage',
       'themeMode',
       'renderWhitespace',
       'currentLineHighlight',
@@ -806,6 +828,7 @@ describe('往返一致性 (serialize → parse → serialize)', () => {
       graphAutoIndexOnOpen: false,
       graphAutoIndexMaxFiles: 10_000,
       language: 'en-US',
+      voiceInputLanguage: 'zh',
       themeMode: 'light',
       renderWhitespace: 'all',
       currentLineHighlight: false,

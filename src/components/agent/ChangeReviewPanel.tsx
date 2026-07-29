@@ -67,8 +67,19 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
     [checkpoints, selectedCheckpointId]
   );
 
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleCollapse = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onToggleCollapsed();
+      setIsClosing(false);
+    }, 220);
+  }, [onToggleCollapsed]);
+
   useEffect(() => {
     if (collapsed) {
+      setIsClosing(false);
       setPreviewChangeId(null);
       setSelectedCheckpointId(null);
     }
@@ -153,6 +164,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
         }}
       >
         <aside
+          key="collapsed-aside"
           className={`${styles.panel} ${styles.panelCollapsed}`}
           data-testid="change-review-panel"
         >
@@ -172,7 +184,11 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
 
   return (
     <div className={styles.dock} data-testid="change-review-dock">
-      <aside className={styles.panel} data-testid="change-review-panel">
+      <aside
+        key="expanded-aside"
+        className={`${styles.panel} ${isClosing ? styles.panelClosing : ''}`}
+        data-testid="change-review-panel"
+      >
         <div className={styles.header}>
           <span className={styles.title}>
             {t.agent.changeReview.title}
@@ -182,7 +198,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
             <button
               type="button"
               className={styles.toggleButton}
-              onClick={onToggleCollapsed}
+              onClick={handleCollapse}
               title={t.agent.changeReview.collapse}
               aria-label={t.agent.changeReview.collapse}
             >

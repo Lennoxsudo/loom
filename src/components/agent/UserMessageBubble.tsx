@@ -30,9 +30,18 @@ export default function UserMessageBubble({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(displayText);
   const [isResending, setIsResending] = useState(false);
+  const [copied, setCopied] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const hasBody = Boolean(displayText || editing);
+
+  const handleCopy = useCallback(() => {
+    const textToCopy = displayText || message.text || '';
+    if (!textToCopy) return;
+    void navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [displayText, message.text]);
 
   const beginEdit = useCallback(() => {
     if (editDisabled || !onResendFromUserMessage) return;
@@ -259,27 +268,68 @@ export default function UserMessageBubble({
           )}
         </div>
 
-        {!editing && canEdit ? (
+        {!editing && (
           <div className={styles.actions}>
             <button
               type="button"
               className={styles.iconButton}
-              onClick={beginEdit}
-              title={t.agent.userMessage.edit}
-              aria-label={t.agent.userMessage.edit}
-              data-testid="user-message-edit"
+              onClick={handleCopy}
+              title={copied ? (t.common?.copied || '已复制') : (t.common?.copy || '复制')}
+              aria-label={copied ? (t.common?.copied || '已复制') : (t.common?.copy || '复制')}
+              data-testid="user-message-copy"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path
-                  d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5.8 12.2 3 13l.8-2.8L11.5 2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              {copied ? (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path
+                    d="M13.5 4.5L6.5 11.5L3 8"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <rect
+                    x="5.5"
+                    y="5.5"
+                    width="7"
+                    height="7"
+                    rx="1.5"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                  />
+                  <path
+                    d="M3.5 10.5V4A1.5 1.5 0 0 1 5 2.5h6.5"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
             </button>
+
+            {canEdit && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={beginEdit}
+                title={t.agent.userMessage.edit}
+                aria-label={t.agent.userMessage.edit}
+                data-testid="user-message-edit"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path
+                    d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5.8 12.2 3 13l.8-2.8L11.5 2.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

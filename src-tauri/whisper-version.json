@@ -1,0 +1,5 @@
+{
+  "version": "1.9.1",
+  "model": "ggml-small-q5_1.bin",
+  "modelUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin"
+}

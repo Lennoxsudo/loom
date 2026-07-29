@@ -30,7 +30,7 @@ import { BUILTIN_PROFILE_ID, BUILTIN_PROFILE_NAME } from '../utils/builtinGatewa
 import AgentNavSidebar from './agent/AgentNavSidebar';
 import AgentThreadDeleteDialog from './agent/AgentThreadDeleteDialog';
 import AgentProjectDeleteDialog from './agent/AgentProjectDeleteDialog';
-import AgentComposer from './agent/AgentComposer';
+import AgentComposer, { insertComposerMention } from './agent/AgentComposer';
 import AgentContextBar from './agent/AgentContextBar';
 import AgentWelcomeState from './agent/AgentWelcomeState';
 import type { ContextAnnotation } from '../utils/contextAnnotations';
@@ -2223,6 +2223,22 @@ export default function AgentPanel({
     return activeProfileId;
   }, [activeProfileId, availableProfiles, t.common.defaultConfig]);
 
+  const handleSelectMention = useCallback(
+    (item: string) => {
+      const textarea = draftTextareaRef.current;
+      const selectionStart = textarea?.selectionStart ?? draftMessage.length;
+      const selectionEnd = textarea?.selectionEnd ?? draftMessage.length;
+      const { nextValue } = insertComposerMention(
+        draftMessage,
+        item,
+        selectionStart,
+        selectionEnd
+      );
+      setDraftMessage(nextValue);
+    },
+    [draftMessage]
+  );
+
   const composerNode = (
     <AgentComposer
       inputValue={draftMessage}
@@ -2282,6 +2298,11 @@ export default function AgentPanel({
       projectName={projectName}
       onSwitchProject={handleSwitchProject}
       centered={isEmptyConversationState}
+      skillsCount={skillsCount}
+      mcpCount={mcpTools.length}
+      skillNames={skillNames}
+      mcpToolNames={mcpToolNames}
+      onSelectMention={handleSelectMention}
     />
   );
 

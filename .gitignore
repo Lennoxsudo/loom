@@ -34,7 +34,13 @@ aux
 # Tool-generated temp directories
 src-tauri/tmp_tool_dir/
 src-tauri/binaries/codebase-memory*
+src-tauri/binaries/whisper-cli*
 src-tauri/binaries/.extract-tmp/
+src-tauri/binaries/.whisper-extract-tmp/
+src-tauri/resources/whisper/ggml-tiny.bin
+src-tauri/resources/whisper/ggml-small-q5_1.bin
+src-tauri/resources/whisper/*.bin
+src-tauri/resources/whisper/runtime/
 *.pdb
 .arts/
 .aiasprrato/

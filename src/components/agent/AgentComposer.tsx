@@ -1,6 +1,8 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SendIcon, StopIcon, PlusIcon, ChevronDownIcon } from '../shared/Icons';
 import { FileTypeIcon } from '../shared/FileTypeIcon';
+import { ComposerVoiceButton } from '../shared/ComposerVoiceButton';
+import { ComposerVoiceLevelMeter } from '../shared/ComposerVoiceLevelMeter';
 import AgentProviderProfileModelSelector from './AgentProviderProfileModelSelector';
 import TokenRingIndicator from '../chat/TokenRingIndicator';
 import ApprovalModeMenu from './ApprovalModeMenu';
@@ -10,6 +12,7 @@ import ContextMentionMenu from '../shared/ContextMentionMenu';
 import ComposerSendQueue from '../shared/ComposerSendQueue';
 import { useSlashSkillAutocomplete } from '../../hooks/useSlashSkillAutocomplete';
 import { useContextMentionAutocomplete } from '../../hooks/useContextMentionAutocomplete';
+import { useComposerVoiceInput } from '../../hooks/useComposerVoiceInput';
 import { useTranslation } from '../../i18n';
 import type { AgentProtocolSelection } from '../../utils/agentPersistence';
 import type { ProviderProfileOption } from '../../utils/aiProviderRuntime';
@@ -40,7 +43,7 @@ export function insertComposerMention(
   return { nextValue, cursor };
 }
 
-interface SideResourceCapsuleProps {
+export interface SideResourceCapsuleProps {
   label: string;
   count: number;
   items: string[];
@@ -50,9 +53,10 @@ interface SideResourceCapsuleProps {
   onToggle: () => void;
   onSelectItem: (item: string) => void;
   disabled?: boolean;
+  centered?: boolean;
 }
 
-const SideResourceCapsule = memo(function SideResourceCapsule({
+export const SideResourceCapsule = memo(function SideResourceCapsule({
   label,
   count,
   items,
@@ -62,6 +66,7 @@ const SideResourceCapsule = memo(function SideResourceCapsule({
   onToggle,
   onSelectItem,
   disabled = false,
+  centered = false,
 }: SideResourceCapsuleProps) {
   return (
     <div className={styles.sideIndicatorWrap}>
@@ -84,7 +89,11 @@ const SideResourceCapsule = memo(function SideResourceCapsule({
         </span>
       </button>
       {isOpen && (
-        <div className={styles.sideIndicatorDropdown} role="listbox" aria-label={title}>
+        <div
+          className={`${styles.sideIndicatorDropdown} ${centered ? styles.sideIndicatorDropdownCentered : ''}`}
+          role="listbox"
+          aria-label={title}
+        >
           {items.length === 0 ? (
             <div className={styles.sideIndicatorEmpty}>{emptyLabel}</div>
           ) : (
@@ -216,6 +225,26 @@ const AgentComposer = memo(function AgentComposer({
   const t = useTranslation();
   const [openSideCapsule, setOpenSideCapsule] = useState<SideCapsuleKind | null>(null);
   const sideCapsulesRef = useRef<HTMLDivElement>(null);
+  const voiceLabels = useMemo(
+    () => ({
+      start: t.chat.voiceInputStart,
+      stop: t.chat.voiceInputStop,
+      transcribing: t.chat.voiceInputTranscribing,
+      unsupported: t.chat.voiceInputUnsupported,
+      permissionDenied: t.chat.voiceInputPermissionDenied,
+      emptyRecording: t.chat.voiceInputEmpty,
+      transcribeFailed: t.chat.voiceInputFailed,
+      desktopOnly: t.chat.voiceInputDesktopOnly,
+    }),
+    [t.chat]
+  );
+  const voice = useComposerVoiceInput({
+    disabled,
+    inputValue,
+    setInputValue,
+    textareaRef,
+    labels: voiceLabels,
+  });
 
   const getCursor = useCallback(
     () => textareaRef.current?.selectionStart ?? inputValue.length,
@@ -318,30 +347,32 @@ const AgentComposer = memo(function AgentComposer({
         onChange={handleImageInputChange}
         style={{ display: 'none' }}
       />
-      <div className={styles.sideIndicators} ref={sideCapsulesRef}>
-        <SideResourceCapsule
-          label="SKILL"
-          count={skillsCount}
-          items={skillNames}
-          emptyLabel={t.agent.sideCapsules.noSkills}
-          title={t.settingsSkills?.title || 'Skills'}
-          isOpen={openSideCapsule === 'skill'}
-          onToggle={() => toggleSideCapsule('skill')}
-          onSelectItem={handleSelectMention}
-          disabled={disabled}
-        />
-        <SideResourceCapsule
-          label="MCP"
-          count={mcpCount}
-          items={mcpToolNames}
-          emptyLabel={t.agent.sideCapsules.noMcp}
-          title="MCP"
-          isOpen={openSideCapsule === 'mcp'}
-          onToggle={() => toggleSideCapsule('mcp')}
-          onSelectItem={handleSelectMention}
-          disabled={disabled}
-        />
-      </div>
+      {!centered && (
+        <div className={styles.sideIndicators} ref={sideCapsulesRef}>
+          <SideResourceCapsule
+            label="SKILL"
+            count={skillsCount}
+            items={skillNames}
+            emptyLabel={t.agent.sideCapsules.noSkills}
+            title={t.settingsSkills?.title || 'Skills'}
+            isOpen={openSideCapsule === 'skill'}
+            onToggle={() => toggleSideCapsule('skill')}
+            onSelectItem={handleSelectMention}
+            disabled={disabled}
+          />
+          <SideResourceCapsule
+            label="MCP"
+            count={mcpCount}
+            items={mcpToolNames}
+            emptyLabel={t.agent.sideCapsules.noMcp}
+            title="MCP"
+            isOpen={openSideCapsule === 'mcp'}
+            onToggle={() => toggleSideCapsule('mcp')}
+            onSelectItem={handleSelectMention}
+            disabled={disabled}
+          />
+        </div>
+      )}
       <div
         ref={inputCardRef}
         className={`${styles.card} ${isDragOver ? styles.cardDragOver : ''}`}
@@ -435,6 +466,12 @@ const AgentComposer = memo(function AgentComposer({
             )}
           </div>
         )}
+
+        <ComposerVoiceLevelMeter
+          active={voice.isRecording}
+          levels={voice.levels}
+          label={voice.title}
+        />
 
         <div className={styles.inputRow}>
           <button
@@ -531,6 +568,12 @@ const AgentComposer = memo(function AgentComposer({
             />
           </div>
           <div className={styles.toolbarRight}>
+            <ComposerVoiceButton
+              state={voice.state}
+              title={voice.title}
+              disabled={disabled}
+              onClick={voice.toggle}
+            />
             <button
               type="button"
               className={`${styles.sendButton} ${sendClass}`}
