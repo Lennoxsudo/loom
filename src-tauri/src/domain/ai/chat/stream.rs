@@ -525,14 +525,15 @@ pub async fn run_stream_with_tool_chain(
             }),
         );
 
-		        // Build tool result messages and append to conversation
-		        let tool_result_messages = tool_executor::build_tool_result_messages(
-		            "", // content is already streamed to frontend
-		            &sr.tool_calls,
-		            &results,
-		            &current_provider,
-		            &sr.thinking_blocks, // thinking blocks collected from stream
-		        );
+        // Build tool result messages and append to conversation
+        let tool_result_messages = tool_executor::build_tool_result_messages(
+            sr.captured_thinking.as_deref().unwrap_or(""),
+            &sr.tool_calls,
+            &results,
+            &current_provider,
+            &sr.thinking_blocks, // thinking blocks collected from stream
+            sr.captured_thinking_signature.as_deref(),
+        );
         messages.extend(tool_result_messages);
 
         // Post-tool-call delay: allow frontend to display tool results
@@ -1169,7 +1170,13 @@ pub async fn send_anthropic_stream(
         }
     }
 
-    Ok(StreamResult { tool_calls, usage: captured_usage, thinking_blocks: collected_thinking_blocks })
+    Ok(StreamResult {
+        tool_calls,
+        usage: captured_usage,
+        thinking_blocks: collected_thinking_blocks,
+        captured_thinking: None,
+        captured_thinking_signature: None,
+    })
 }
 
 // OpenAI流式API (支持工具调用)
@@ -1252,8 +1259,8 @@ pub async fn send_openai_stream(
     let mut reasoning_state = ReasoningStreamState::new();
     let mut tool_calls: Vec<serde_json::Value> = Vec::new();
     let mut complete_emitted = false;
-    // 方法 11/12：OpenAI 流式响应在最后一个 chunk 中返回 usage
     let mut captured_usage: Option<TokenUsage> = None;
+    let mut captured_thought_sig: Option<String> = None;
 
     while let Some(chunk_result) = stream.next().await {
         match chunk_result {
@@ -1297,6 +1304,18 @@ pub async fn send_openai_stream(
                                     }
                                 }
 
+                                // Inject captured thought_signature into the first tool_call's extra_content
+                                // if not already present (Gemini requires this for multi-turn tool calls)
+                                if let Some(ref sig) = captured_thought_sig {
+                                    if let Some(first_tc) = tool_calls.first_mut() {
+                                        if first_tc.get("extra_content").map_or(true, |v| v.is_null()) {
+                                            first_tc["extra_content"] = serde_json::json!({
+                                                "google": { "thought_signature": sig }
+                                            });
+                                        }
+                                    }
+                                }
+
                                 // 发送完成事件，包含工具调用信息（如果有）
                                 let mut complete_data = serde_json::json!({
                                     "message_id": message_id
@@ -1304,6 +1323,10 @@ pub async fn send_openai_stream(
 
                                 if !tool_calls.is_empty() {
                                     complete_data["tool_calls"] = serde_json::json!(tool_calls);
+                                }
+
+                                if let Some(ref sig) = captured_thought_sig {
+                                    complete_data["thinking_signature"] = serde_json::json!(sig);
                                 }
 
                                 // 方法 11/12：附加 usage 信息
@@ -1324,6 +1347,42 @@ pub async fn send_openai_stream(
                             }
 
                             if let Ok(event) = serde_json::from_str::<serde_json::Value>(json_str) {
+                                if let Some(sig) = event["choices"][0]["delta"]["thought_signature"].as_str()
+                                    .or_else(|| event["choices"][0]["message"]["thought_signature"].as_str())
+                                    .or_else(|| event["choices"][0]["delta"]["extra_content"]["thought_signature"].as_str())
+                                    .or_else(|| event["choices"][0]["message"]["extra_content"]["thought_signature"].as_str())
+                                    .or_else(|| event["choices"][0]["delta"]["extra_content"]["google"]["thought_signature"].as_str())
+                                    .or_else(|| event["choices"][0]["message"]["extra_content"]["google"]["thought_signature"].as_str())
+                                    .or_else(|| event["thought_signature"].as_str())
+                                {
+                                    if !sig.is_empty() {
+                                        captured_thought_sig = Some(sig.to_string());
+                                    }
+                                }
+
+                                // Also extract thought_signature from tool_calls[*].extra_content
+                                if captured_thought_sig.is_none() {
+                                    let tc_sources = [
+                                        &event["choices"][0]["delta"]["tool_calls"],
+                                        &event["choices"][0]["message"]["tool_calls"],
+                                    ];
+                                    for source in &tc_sources {
+                                        if let Some(arr) = source.as_array() {
+                                            for tc in arr {
+                                                if let Some(sig) = tc["extra_content"]["google"]["thought_signature"].as_str()
+                                                    .or_else(|| tc["extra_content"]["thought_signature"].as_str())
+                                                {
+                                                    if !sig.is_empty() {
+                                                        captured_thought_sig = Some(sig.to_string());
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            if captured_thought_sig.is_some() { break; }
+                                        }
+                                    }
+                                }
+
                                 // 方法 11/12：提取 usage（OpenAI 在最后一个 chunk 中返回）
                                 if let Some(usage) = event.get("usage") {
                                     if !usage.is_null() {
@@ -1344,45 +1403,61 @@ pub async fn send_openai_stream(
                                     event["choices"][0]["delta"]["tool_calls"].as_array()
                                 {
                                     for tool_call_delta in delta_tool_calls {
-                                        if let Some(index) = tool_call_delta["index"].as_u64() {
-                                            let idx = index as usize;
+                                        let idx = tool_call_delta["index"]
+                                            .as_u64()
+                                            .map(|i| i as usize)
+                                            .unwrap_or(0);
 
-                                            // 确保tool_calls数组足够大
-                                            while tool_calls.len() <= idx {
-                                                tool_calls.push(serde_json::json!({
-                                                    "id": "",
-                                                    "type": "function",
-                                                    "function": {
-                                                        "name": "",
-                                                        "arguments": ""
-                                                    }
-                                                }));
-                                            }
+                                        // 确保tool_calls数组足够大
+                                        while tool_calls.len() <= idx {
+                                            tool_calls.push(serde_json::json!({
+                                                "id": "",
+                                                "type": "function",
+                                                "function": {
+                                                    "name": "",
+                                                    "arguments": ""
+                                                }
+                                            }));
+                                        }
 
-                                            // 累积工具调用信息
-                                            if let Some(id) = tool_call_delta["id"].as_str() {
+                                        // 累积工具调用信息
+                                        if let Some(id) = tool_call_delta["id"].as_str() {
+                                            if !id.is_empty() {
                                                 tool_calls[idx]["id"] = serde_json::json!(id);
                                             }
-                                            if let Some(func) =
-                                                tool_call_delta["function"].as_object()
+                                        }
+                                        // Preserve extra_content (Gemini thought_signature)
+                                        if let Some(ec) = tool_call_delta.get("extra_content") {
+                                            if !ec.is_null() {
+                                                tool_calls[idx]["extra_content"] = ec.clone();
+                                            }
+                                        }
+                                        if let Some(func) =
+                                            tool_call_delta["function"].as_object()
+                                        {
+                                            if let Some(name) =
+                                                func.get("name").and_then(|v| v.as_str())
                                             {
-                                                if let Some(name) =
-                                                    func.get("name").and_then(|v| v.as_str())
-                                                {
-                                                    if !name.is_empty() {
-                                                        tool_calls[idx]["function"]["name"] =
-                                                            serde_json::json!(name);
-                                                    }
+                                                if !name.is_empty() {
+                                                    tool_calls[idx]["function"]["name"] =
+                                                        serde_json::json!(name);
                                                 }
-                                                if let Some(args) =
-                                                    func.get("arguments").and_then(|v| v.as_str())
-                                                {
+                                            }
+                                            if let Some(args_val) = func.get("arguments") {
+                                                let args_str = if let Some(s) = args_val.as_str() {
+                                                    s.to_string()
+                                                } else if args_val.is_object() || args_val.is_array() {
+                                                    args_val.to_string()
+                                                } else {
+                                                    String::new()
+                                                };
+                                                if !args_str.is_empty() {
                                                     let current_args = tool_calls[idx]["function"]
                                                         ["arguments"]
                                                         .as_str()
                                                         .unwrap_or("");
                                                     tool_calls[idx]["function"]["arguments"] = serde_json::json!(
-                                                        format!("{}{}", current_args, args)
+                                                        format!("{}{}", current_args, args_str)
                                                     );
                                                 }
                                             }
@@ -1394,7 +1469,19 @@ pub async fn send_openai_stream(
                                     event["choices"][0]["message"]["tool_calls"].as_array()
                                 {
                                     if !message_tool_calls.is_empty() {
-                                        tool_calls = message_tool_calls.clone();
+                                        let mut normalized_calls = Vec::new();
+                                        for tc in message_tool_calls {
+                                            let mut tc_cloned = tc.clone();
+                                            if let Some(func) = tc_cloned.get_mut("function") {
+                                                if let Some(args_val) = func.get("arguments").cloned() {
+                                                    if args_val.is_object() || args_val.is_array() {
+                                                        func["arguments"] = serde_json::json!(args_val.to_string());
+                                                    }
+                                                }
+                                            }
+                                            normalized_calls.push(tc_cloned);
+                                        }
+                                        tool_calls = normalized_calls;
                                     }
                                 }
 
@@ -1471,12 +1558,25 @@ pub async fn send_openai_stream(
                         }
                     }
 
+                    if let Some(ref sig) = captured_thought_sig {
+                        if let Some(first_tc) = tool_calls.first_mut() {
+                            if first_tc.get("extra_content").map_or(true, |v| v.is_null()) {
+                                first_tc["extra_content"] = serde_json::json!({
+                                    "google": { "thought_signature": sig }
+                                });
+                            }
+                        }
+                    }
+
                     // 发送完成事件
                     let mut complete_data = serde_json::json!({
                         "message_id": message_id
                     });
                     if !tool_calls.is_empty() {
                         complete_data["tool_calls"] = serde_json::json!(tool_calls);
+                    }
+                    if let Some(ref sig) = captured_thought_sig {
+                        complete_data["thinking_signature"] = serde_json::json!(sig);
                     }
                     // 方法 11/12：附加 usage 信息
                     if let Some(ref usage) = captured_usage {
@@ -1496,36 +1596,46 @@ pub async fn send_openai_stream(
                         event["choices"][0]["delta"]["tool_calls"].as_array()
                     {
                         for tool_call_delta in delta_tool_calls {
-                            if let Some(index) = tool_call_delta["index"].as_u64() {
-                                let idx = index as usize;
-                                while tool_calls.len() <= idx {
-                                    tool_calls.push(serde_json::json!({
-                                        "id": "",
-                                        "type": "function",
-                                        "function": {
-                                            "name": "",
-                                            "arguments": ""
-                                        }
-                                    }));
-                                }
-                                if let Some(id) = tool_call_delta["id"].as_str() {
+                            let idx = tool_call_delta["index"]
+                                .as_u64()
+                                .map(|i| i as usize)
+                                .unwrap_or(0);
+                            while tool_calls.len() <= idx {
+                                tool_calls.push(serde_json::json!({
+                                    "id": "",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "",
+                                        "arguments": ""
+                                    }
+                                }));
+                            }
+                            if let Some(id) = tool_call_delta["id"].as_str() {
+                                if !id.is_empty() {
                                     tool_calls[idx]["id"] = serde_json::json!(id);
                                 }
-                                if let Some(func) = tool_call_delta["function"].as_object() {
-                                    if let Some(name) = func.get("name").and_then(|v| v.as_str()) {
-                                        if !name.is_empty() {
-                                            tool_calls[idx]["function"]["name"] =
-                                                serde_json::json!(name);
-                                        }
+                            }
+                            if let Some(func) = tool_call_delta["function"].as_object() {
+                                if let Some(name) = func.get("name").and_then(|v| v.as_str()) {
+                                    if !name.is_empty() {
+                                        tool_calls[idx]["function"]["name"] =
+                                            serde_json::json!(name);
                                     }
-                                    if let Some(args) =
-                                        func.get("arguments").and_then(|v| v.as_str())
-                                    {
+                                }
+                                if let Some(args_val) = func.get("arguments") {
+                                    let args_str = if let Some(s) = args_val.as_str() {
+                                        s.to_string()
+                                    } else if args_val.is_object() || args_val.is_array() {
+                                        args_val.to_string()
+                                    } else {
+                                        String::new()
+                                    };
+                                    if !args_str.is_empty() {
                                         let current_args = tool_calls[idx]["function"]["arguments"]
                                             .as_str()
                                             .unwrap_or("");
                                         tool_calls[idx]["function"]["arguments"] =
-                                            serde_json::json!(format!("{}{}", current_args, args));
+                                            serde_json::json!(format!("{}{}", current_args, args_str));
                                     }
                                 }
                             }
@@ -1536,7 +1646,19 @@ pub async fn send_openai_stream(
                         event["choices"][0]["message"]["tool_calls"].as_array()
                     {
                         if !message_tool_calls.is_empty() {
-                            tool_calls = message_tool_calls.clone();
+                            let mut normalized_calls = Vec::new();
+                            for tc in message_tool_calls {
+                                let mut tc_cloned = tc.clone();
+                                if let Some(func) = tc_cloned.get_mut("function") {
+                                    if let Some(args_val) = func.get("arguments").cloned() {
+                                        if args_val.is_object() || args_val.is_array() {
+                                            func["arguments"] = serde_json::json!(args_val.to_string());
+                                        }
+                                    }
+                                }
+                                normalized_calls.push(tc_cloned);
+                            }
+                            tool_calls = normalized_calls;
                         }
                     }
 
@@ -1583,23 +1705,36 @@ pub async fn send_openai_stream(
 
     thinking_tags.flush_pending(app, message_id);
 
-    if !complete_emitted {
-        // 为缺少 id 的 tool_calls 生成唯一 id（部分 OpenAI 兼容 API 可能不返回 id）
-        for (i, tc) in tool_calls.iter_mut().enumerate() {
-            if tc["id"].as_str().unwrap_or("").is_empty() {
-                tc["id"] = serde_json::json!(format!(
-                    "call_{}{}",
-                    message_id.replace("-", "").replace("_", ""),
-                    i
-                ));
+    // 保证返回前所有 tool_calls 都有唯一 id
+    for (i, tc) in tool_calls.iter_mut().enumerate() {
+        if tc["id"].as_str().unwrap_or("").is_empty() {
+            tc["id"] = serde_json::json!(format!(
+                "call_{}{}",
+                message_id.replace("-", "").replace("_", ""),
+                i
+            ));
+        }
+    }
+
+    if let Some(ref sig) = captured_thought_sig {
+        if let Some(first_tc) = tool_calls.first_mut() {
+            if first_tc.get("extra_content").map_or(true, |v| v.is_null()) {
+                first_tc["extra_content"] = serde_json::json!({
+                    "google": { "thought_signature": sig }
+                });
             }
         }
+    }
 
+    if !complete_emitted {
         let mut complete_data = serde_json::json!({
             "message_id": message_id
         });
         if !tool_calls.is_empty() {
             complete_data["tool_calls"] = serde_json::json!(tool_calls);
+        }
+        if let Some(ref sig) = captured_thought_sig {
+            complete_data["thinking_signature"] = serde_json::json!(sig);
         }
         // 方法 11/12：附加 usage 信息
         if let Some(ref usage) = captured_usage {
@@ -1615,7 +1750,19 @@ pub async fn send_openai_stream(
         }
     }
 
-    Ok(StreamResult { tool_calls, usage: captured_usage, thinking_blocks: Vec::new() })
+    let captured_thinking = if !reasoning_state.accumulated().is_empty() {
+        Some(reasoning_state.accumulated().to_string())
+    } else {
+        None
+    };
+
+    Ok(StreamResult {
+        tool_calls,
+        usage: captured_usage,
+        thinking_blocks: Vec::new(),
+        captured_thinking,
+        captured_thinking_signature: captured_thought_sig,
+    })
 }
 
 // Ollama流式API (使用OpenAI兼容格式)
@@ -1897,5 +2044,11 @@ pub async fn send_ollama_stream(
         }
     }
 
-    Ok(StreamResult { tool_calls, usage: captured_usage, thinking_blocks: Vec::new() })
+    Ok(StreamResult {
+        tool_calls,
+        usage: captured_usage,
+        thinking_blocks: Vec::new(),
+        captured_thinking: None,
+        captured_thinking_signature: None,
+    })
 }

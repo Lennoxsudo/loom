@@ -666,12 +666,6 @@ export const enUS: I18nMessages = {
         'A conversation is still streaming. Try again when it finishes.',
       deleteProjectFailed: 'Failed to delete project',
     },
-    placeholder: {
-      search: 'Search coming soon',
-      plugins: 'Plugins coming soon',
-      automation: 'Automation coming soon',
-      cloudMode: 'Cloud mode coming soon',
-    },
     approvalMode: {
       readOnly: 'Read only',
       auto: 'Approve for me',
@@ -1171,6 +1165,9 @@ export const enUS: I18nMessages = {
     minimap: {
       title: 'Code Minimap',
     },
+    gitBlameInEditor: {
+      title: 'Git blame annotations',
+    },
     renderWhitespace: {
       title: 'Render Whitespace',
       none: 'None',
@@ -1543,6 +1540,12 @@ export const enUS: I18nMessages = {
       disabled: 'Disabled',
       running: 'Running',
       stopped: 'Stopped',
+      disconnected: 'Disconnected',
+      reconnecting: 'Reconnecting...',
+      restart: 'Restart',
+      restartFailed: 'Failed to restart "{name}": {error}',
+      healthSummary: '{running}/{total} servers connected',
+      noTools: 'No tools available. Ensure the MCP server is running.',
       delete: 'Delete',
       openConfig: 'Open Config File',
       confirmDelete: 'Delete "{name}"?',

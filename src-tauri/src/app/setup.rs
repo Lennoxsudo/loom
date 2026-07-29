@@ -30,12 +30,12 @@ pub fn run(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Auto-allow microphone (and camera) permission prompts inside the app webview.
-    // This suppresses the WebView2 "localhost wants to use your microphone" dialog
-    // for first-party UI; OS-level microphone privacy settings still apply.
+    // Auto-allow microphone, camera, and clipboard-read prompts inside the app webview.
+    // This suppresses WebView2 permission dialogs for first-party UI; OS-level privacy
+    // settings still apply for device access.
     #[cfg(windows)]
     {
-        install_media_permission_auto_allow(app);
+        install_webview_permission_auto_allow(app);
     }
 
     // Automation scheduler (background thread, interval/cron)
@@ -47,13 +47,13 @@ pub fn run(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Install WebView2 PermissionRequested auto-allow for microphone/camera on a window.
+/// Install WebView2 PermissionRequested auto-allow for first-party prompts on a window.
 #[cfg(windows)]
-pub fn enable_media_permission_auto_allow(window: &tauri::WebviewWindow) {
+pub fn enable_webview_permission_auto_allow(window: &tauri::WebviewWindow) {
     use webview2_com::{
         Microsoft::Web::WebView2::Win32::{
-            COREWEBVIEW2_PERMISSION_KIND_CAMERA, COREWEBVIEW2_PERMISSION_KIND_MICROPHONE,
-            COREWEBVIEW2_PERMISSION_STATE_ALLOW,
+            COREWEBVIEW2_PERMISSION_KIND_CAMERA, COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ,
+            COREWEBVIEW2_PERMISSION_KIND_MICROPHONE, COREWEBVIEW2_PERMISSION_STATE_ALLOW,
         },
         PermissionRequestedEventHandler,
     };
@@ -74,9 +74,8 @@ pub fn enable_media_permission_auto_allow(window: &tauri::WebviewWindow) {
                 args.PermissionKind(&mut kind)?;
                 if kind == COREWEBVIEW2_PERMISSION_KIND_MICROPHONE
                     || kind == COREWEBVIEW2_PERMISSION_KIND_CAMERA
+                    || kind == COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ
                 {
-                    // Auto-allow first-party media capture prompts.
-                    // OS privacy settings still gate actual device access.
                     args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)?;
                 }
                 Ok(())
@@ -86,9 +85,15 @@ pub fn enable_media_permission_auto_allow(window: &tauri::WebviewWindow) {
     });
 }
 
+/// Backward-compatible alias for secondary webview windows.
 #[cfg(windows)]
-fn install_media_permission_auto_allow(app: &tauri::App) {
+pub fn enable_media_permission_auto_allow(window: &tauri::WebviewWindow) {
+    enable_webview_permission_auto_allow(window);
+}
+
+#[cfg(windows)]
+fn install_webview_permission_auto_allow(app: &tauri::App) {
     if let Some(main) = app.get_webview_window("main") {
-        enable_media_permission_auto_allow(&main);
+        enable_webview_permission_auto_allow(&main);
     }
 }

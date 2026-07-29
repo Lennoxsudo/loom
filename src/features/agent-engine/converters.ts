@@ -84,29 +84,30 @@ function compactSchema(schema: Record<string, unknown>, depth = 0): Record<strin
  * 安全地处理工具参数，确保它是有效的JSON Schema对象
  */
 function safeProcessParameters(parameters: ToolDefinition['parameters']): Record<string, unknown> {
-  // 如果参数已经是对象，直接使用
+  let result: Record<string, unknown>;
+  // 如果参数已经是对象，解构后使用
   if (parameters && typeof parameters === 'object' && !Array.isArray(parameters)) {
-    return parameters as Record<string, unknown>;
-  }
-
-  // 如果参数是字符串，尝试解析为JSON
-  if (typeof parameters === 'string') {
+    result = { ...(parameters as Record<string, unknown>) };
+  } else if (typeof parameters === 'string') {
     try {
       const parsed = JSON.parse(parameters);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed;
+        result = parsed;
+      } else {
+        result = { type: 'object', properties: {}, required: [] };
       }
     } catch {
-      // 如果解析失败，返回默认的schema
+      result = { type: 'object', properties: {}, required: [] };
     }
+  } else {
+    result = { type: 'object', properties: {}, required: [] };
   }
 
-  // 返回默认的schema
-  return {
-    type: 'object',
-    properties: {},
-    required: [],
-  };
+  if (!result.type) {
+    result.type = 'object';
+  }
+
+  return result;
 }
 
 function capTools(tools: ToolDefinition[], maxCount: number): ToolDefinition[] {

@@ -27,6 +27,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { loadSkillsContext } from '../../utils/skills';
 import { invoke } from '@tauri-apps/api/core';
+import { maybeAutoCompactConversation } from '../../utils/compact';
 
 const baseAgent: Agent = {
   id: 'agent-1',
@@ -112,6 +113,12 @@ describe('buildAgentContextUsage', () => {
 describe('buildAgentRequestContext', () => {
   beforeEach(() => {
     vi.mocked(loadSkillsContext).mockResolvedValue('');
+    vi.mocked(maybeAutoCompactConversation).mockImplementation(async ({ messages }) => ({
+      messages,
+      compacted: false,
+      compactState: { turnsSincePreviousCompact: 0 },
+      result: null,
+    }));
   });
 
   it('uses the reconciled runtime model in the system prompt instead of agent.model', async () => {
@@ -139,7 +146,82 @@ describe('buildAgentRequestContext', () => {
     );
 
     expect(system?.content).toContain(`${APP_DISPLAY_NAME}`);
-    expect(system?.content).toContain('openai/deepseek-v4-flash');
+    expect(system?.content).toContain('You are the active model: deepseek-v4-flash.');
     expect(system?.content).not.toContain('anthropic/claude-sonnet-4-20250514');
+  });
+
+  it('runs AI compact on assembled request context before provider formatting', async () => {
+    vi.mocked(maybeAutoCompactConversation)
+      .mockResolvedValueOnce({
+        compacted: false,
+        compactState: { turnsSincePreviousCompact: 0 },
+        result: null,
+        messages: [
+          {
+            id: 'm1',
+            role: 'user',
+            text: 'Explain the current code.',
+            createdAt: 1,
+          },
+          {
+            id: 'm2',
+            role: 'assistant',
+            text: 'older reply',
+            createdAt: 2,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        compacted: true,
+        compactState: { turnsSincePreviousCompact: 0 },
+        result: null,
+        messages: [
+          {
+            id: 'sys-1',
+            role: 'system',
+            text: 'system prompt',
+          },
+          {
+            id: 'summary-1',
+            role: 'user',
+            text: '[AI compact summary]',
+            compactSummary: true,
+          },
+          {
+            id: 'tail-1',
+            role: 'user',
+            text: 'latest user turn',
+          },
+        ],
+      });
+
+    const { preparedMessages } = await buildAgentRequestContext({
+      agent: baseAgent,
+      provider: 'openai',
+      model: 'gpt-4o',
+      conversation: baseConversation,
+      messages: [
+        ...baseConversation.messages,
+        {
+          id: 'm2',
+          role: 'assistant',
+          text: 'older reply',
+          createdAt: 2,
+        },
+      ],
+      projectPath: 'D:\\project\\Loom\\Loom',
+      agentMode: 'always-allow',
+    });
+
+    expect(vi.mocked(maybeAutoCompactConversation)).toHaveBeenCalled();
+    expect(
+      preparedMessages.some(
+        (message) =>
+          typeof message === 'object' &&
+          message !== null &&
+          'content' in message &&
+          (message as { content?: unknown }).content === '[AI compact summary]'
+      )
+    ).toBe(true);
   });
 });

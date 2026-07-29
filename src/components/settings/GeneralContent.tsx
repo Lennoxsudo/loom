@@ -6,6 +6,7 @@ import {
   useWordWrap,
   useLineNumbers,
   useMinimap,
+  useGitBlameInEditor,
   useCursorStyle,
   useCursorBlinking,
   useFormatOnSave,
@@ -27,6 +28,7 @@ import {
   useUpdateWordWrap,
   useUpdateLineNumbers,
   useUpdateMinimap,
+  useUpdateGitBlameInEditor,
   useUpdateCursorStyle,
   useUpdateCursorBlinking,
   useUpdateFormatOnSave,
@@ -69,6 +71,7 @@ export function GeneralContent() {
   const wordWrap = useWordWrap();
   const lineNumbers = useLineNumbers();
   const minimap = useMinimap();
+  const gitBlameInEditor = useGitBlameInEditor();
   const cursorStyle = useCursorStyle();
   const cursorBlinking = useCursorBlinking();
   const formatOnSave = useFormatOnSave();
@@ -90,6 +93,7 @@ export function GeneralContent() {
   const updateWordWrap = useUpdateWordWrap();
   const updateLineNumbers = useUpdateLineNumbers();
   const updateMinimap = useUpdateMinimap();
+  const updateGitBlameInEditor = useUpdateGitBlameInEditor();
   const updateCursorStyle = useUpdateCursorStyle();
   const updateCursorBlinking = useUpdateCursorBlinking();
   const updateFormatOnSave = useUpdateFormatOnSave();
@@ -183,6 +187,16 @@ export function GeneralContent() {
                 checked={minimap}
                 ariaLabel={t.settingsGeneral.minimap.title}
                 onChange={(enabled) => withUpdate(() => updateMinimap(enabled))}
+              />
+            }
+          />
+          <SettingsRow
+            label={t.settingsGeneral.gitBlameInEditor.title}
+            control={
+              <SettingsToggle
+                checked={gitBlameInEditor}
+                ariaLabel={t.settingsGeneral.gitBlameInEditor.title}
+                onChange={(enabled) => withUpdate(() => updateGitBlameInEditor(enabled))}
               />
             }
           />

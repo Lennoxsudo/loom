@@ -4,7 +4,7 @@ import {
   executeToolCall,
   normalizeToolArgs,
   parseToolArguments,
-  resolvePathWithBaseDir,
+  resolvePathForTool,
   resolveUnderlyingToolName,
   sanitizeMessagesForIpc,
   ToolResult,
@@ -599,16 +599,17 @@ export function useToolCalls({
               ? normalizedArgs.file
               : '';
       const baseDir = projectPathRef.current?.trim() || undefined;
+      const pathContext = { baseDir, allowExternalPaths: true as const };
       const resolvedWriteTargetPath =
         isWriteTool && changedFilePath
           ? baseDir
-            ? resolvePathWithBaseDir(changedFilePath.trim(), baseDir)
+            ? resolvePathForTool(changedFilePath.trim(), pathContext)
             : changedFilePath.trim()
           : '';
       const resolvedInfoTargetPath =
         !resolvedWriteTargetPath && changedFilePath
           ? baseDir
-            ? resolvePathWithBaseDir(changedFilePath.trim(), baseDir)
+            ? resolvePathForTool(changedFilePath.trim(), pathContext)
             : changedFilePath.trim()
           : resolvedWriteTargetPath;
 
@@ -770,7 +771,7 @@ export function useToolCalls({
             parsedArgs as Record<string, unknown>
           );
           const resolvedPaths = argPaths.map((p) =>
-            resolvePathWithBaseDir(String(p).trim(), baseDir)
+            resolvePathForTool(String(p).trim(), { baseDir, allowExternalPaths: true })
           );
           const snapshots: CheckpointFileSnapshot[] = [];
           for (const resolvedPath of resolvedPaths) {
@@ -866,6 +867,7 @@ export function useToolCalls({
           execute: () =>
             executeToolCall(toolCall, {
               baseDir: projectPathRef.current || undefined,
+              allowExternalPaths: true,
               agentId: currentConversationRef.current?.id,
               conversationId: currentConversationRef.current?.id,
               parentProvider: chatRuntimeRef.current.provider,
@@ -1181,6 +1183,7 @@ export function useToolCalls({
         sessionId: conversationId,
         label: 'chat-tools',
         projectPath: projectPathRef.current?.trim() || undefined,
+        includeUserHomeReadable: true,
       });
 
       const preparedCalls = await prepareToolCalls(toolCallsToExecute);

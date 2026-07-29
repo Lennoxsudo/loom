@@ -22,7 +22,7 @@ import type {
   ChatMessage,
 } from '../../types/chat';
 import type { CompactableMessage } from '../../utils/compact';
-import { buildContextForRequest, toProviderRequestMessages } from './utils';
+import { buildContextForRequestWithAiSummary, toProviderRequestMessages } from './utils';
 import { maybeAutoCompactConversation } from '../../utils/compact';
 
 export const AGENT_CONTEXT_RESERVE_TOKENS = 8192;
@@ -176,19 +176,20 @@ export async function buildAgentRequestContext(
     shouldInjectProjectPath ?? checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
   const skillsContext = await loadSkillsContext(projectPath);
 
-  const { messages: preparedMessages, tools: resolvedTools } = buildContextForRequest({
-    systemPrompt: agent.description,
-    projectPath,
-    shouldInjectProjectPath: needsProjectPathInjection,
-    skillsContext,
-    subagentCatalog,
-    requestMessages,
-    provider,
-    model,
-    tools,
-    maxContextTokens,
-    interactionMode: agentMode,
-  });
+  const { messages: preparedMessages, tools: resolvedTools } =
+    await buildContextForRequestWithAiSummary({
+      systemPrompt: agent.description,
+      projectPath,
+      shouldInjectProjectPath: needsProjectPathInjection,
+      skillsContext,
+      subagentCatalog,
+      requestMessages,
+      provider,
+      model,
+      tools,
+      maxContextTokens,
+      interactionMode: agentMode,
+    });
 
   return {
     preparedMessages,

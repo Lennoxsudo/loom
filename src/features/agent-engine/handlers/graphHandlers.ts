@@ -7,7 +7,7 @@ import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
 import type { GraphIndexArgs, GraphQueryArgs, GraphTraceArgs } from '../toolArgs';
 import { ToolError, ToolErrorCode, handleToolError } from '../errors';
-import { resolvePathWithBaseDir } from '../argsParser';
+import { resolvePathForTool } from '../argsParser';
 import {
   formatCbmQueryCell,
   formatGraphQueryValidationHint,
@@ -36,7 +36,7 @@ async function invokeCbmRaw(
 ): Promise<string> {
   const repoPathRaw = (args.repo_path as string | undefined) ?? context?.baseDir;
   const repo_path = repoPathRaw
-    ? resolvePathWithBaseDir(repoPathRaw, context?.baseDir)
+    ? resolvePathForTool(repoPathRaw, context)
     : context?.baseDir;
 
   const { action, ...rest } = args;

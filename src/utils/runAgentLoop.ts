@@ -1,13 +1,17 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
-import type { ChatMessage, ProviderRequestMessage } from '../types/chat';
+import type { ChatMessage, CompactState, ProviderRequestMessage } from '../types/chat';
 import type { ToolDefinition, ToolResult } from '../types/ai';
 import type { ToolCall } from '../features/agent-engine';
 import { executeToolCall } from '../features/agent-engine';
 import { toAnthropicTools, toOpenAITools } from '../features/agent-engine/converters';
 import { subagentResourceLock } from '../features/agent-engine/subagentResourceLock';
 import type { ToolContext } from '../features/agent-engine/types';
-import { toProviderRequestMessages, buildContextForRequest } from '../components/agent/utils';
+import {
+  toProviderRequestMessages,
+  buildContextForRequestWithAiSummary,
+} from '../components/agent/utils';
+import { maybeAutoCompactConversation } from './compact';
 import { loadSkillsContext } from './skills';
 import type { AIProvider } from './agentPersistence';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -29,6 +33,7 @@ const PSEUDO_TOOL_CORRECTION_MESSAGE =
   ' / Detected pseudo tool call in message body: use native function calling / tool_calls instead of writing tool invocation JSON in your reply.';
 
 const MAX_PSEUDO_TOOL_CORRECTIONS = 2;
+const SUBAGENT_CONTEXT_RESERVE_TOKENS = 8192;
 
 function parseToolCallArgs(raw: unknown): Record<string, unknown> {
   if (typeof raw === 'string') {
@@ -345,6 +350,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
   let steps = 0;
   let accumulatedPromptTokens = 0;
   let accumulatedCompletionTokens = 0;
+  let compactState: CompactState | null = null;
 
   const taskUserMessage: ChatMessage = {
     id: `sub-msg-user-${Date.now()}`,
@@ -455,14 +461,36 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
 
     try {
       // 1. Prepare request messages using utils helpers
-      const requestMessages: ProviderRequestMessage[] = toProviderRequestMessages(messages);
       const skillsContext =
         skillsContextOverride !== undefined
           ? skillsContextOverride
           : await loadSkillsContext(context.baseDir || '');
       const providerTools = formatToolsForProvider(provider, tools);
 
-      const { messages: providerMessages } = buildContextForRequest({
+      const compactOutcome: Awaited<
+        ReturnType<typeof maybeAutoCompactConversation<import('./compact').CompactableMessage>>
+      > = await maybeAutoCompactConversation({
+        messages: messages as unknown as import('./compact').CompactableMessage[],
+        provider,
+        model,
+        profileId: context.profileId,
+        tools: providerTools,
+        maxContextTokens: context.maxContextTokens,
+        reserveTokens: SUBAGENT_CONTEXT_RESERVE_TOKENS,
+        compactState,
+      });
+
+      compactState = compactOutcome.compactState;
+      if (compactOutcome.compacted) {
+        messages.splice(0, messages.length, ...(compactOutcome.messages as unknown as ChatMessage[]));
+      }
+      if (messageCountAtRoundStart > messages.length) {
+        messageCountAtRoundStart = messages.length;
+      }
+
+      const requestMessages: ProviderRequestMessage[] = toProviderRequestMessages(messages);
+
+      const { messages: providerMessages } = await buildContextForRequestWithAiSummary({
         systemPrompt,
         projectPath: context.baseDir || '',
         shouldInjectProjectPath: rounds === 0, // Only inject project path first time
@@ -471,6 +499,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
         provider,
         model,
         tools: providerTools,
+        maxContextTokens: context.maxContextTokens,
         includeCoreSystemPrompt: false,
       });
 
@@ -544,6 +573,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
           sessionId: context.conversationId,
           label: 'agent-loop',
           projectPath: context.baseDir,
+          includeUserHomeReadable: true,
         });
         let executedNewToolThisRound = false;
 
@@ -696,7 +726,12 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
                   result = await subagentResourceLock.runExclusive(
                     resolvedToolName,
                     parsedArgs,
-                    () => executeToolCall(toolCall, { ...context, spawnParentTaskId: taskId })
+                    () =>
+                      executeToolCall(toolCall, {
+                        ...context,
+                        allowExternalPaths: true,
+                        spawnParentTaskId: taskId,
+                      })
                   );
                 } else {
                   result = {
@@ -709,7 +744,11 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<{
                 }
               } else {
                 result = await subagentResourceLock.runExclusive(resolvedToolName, parsedArgs, () =>
-                  executeToolCall(toolCall, { ...context, spawnParentTaskId: taskId })
+                  executeToolCall(toolCall, {
+                    ...context,
+                    allowExternalPaths: true,
+                    spawnParentTaskId: taskId,
+                  })
                 );
               }
             }

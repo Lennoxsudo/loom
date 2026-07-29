@@ -44,15 +44,30 @@ pub fn build_openai_message_content(message: &ChatMessage) -> Result<serde_json:
         .as_ref()
         .map(|v| v.as_slice())
         .unwrap_or(&[]);
-    if attachments.is_empty() {
-        if message.content.is_string() {
-            return Ok(message.content.clone());
+
+    let mut text = content_as_text(&message.content);
+
+    // 如果是 assistant 消息，且存在 thinking 内容，但 text 中尚未包含 <thought> 标签，
+    // 则为 Gemini / Reasoning 模型在 content 中包含 <thought> thinking </thought>，
+    // 以防止 Gemini API 在多轮 tool_calls 中报 Missing thought_signature 错误 (400)。
+    if message.role == "assistant" {
+        if let Some(ref thinking) = message.thinking {
+            let t = thinking.trim();
+            if !t.is_empty() && !text.contains("<thought") {
+                if text.trim().is_empty() {
+                    text = format!("<thought>\n{}\n</thought>", t);
+                } else {
+                    text = format!("<thought>\n{}\n</thought>\n\n{}", t, text);
+                }
+            }
         }
-        return Ok(serde_json::Value::String(content_as_text(&message.content)));
+    }
+
+    if attachments.is_empty() {
+        return Ok(serde_json::Value::String(text));
     }
 
     let mut parts: Vec<serde_json::Value> = Vec::new();
-    let text = content_as_text(&message.content);
     if !text.trim().is_empty() {
         parts.push(serde_json::json!({
             "type": "text",
@@ -357,11 +372,28 @@ pub fn build_openai_messages_payload(
 
     let mut messages_json: Vec<OpenAIMessage> = Vec::new();
     for m in &filtered_messages {
+        let effective_thought_sig = m.thinking_signature.clone();
+
+        // Inject thought_signature into the first ToolCall's extra_content
+        // (Gemini requires extra_content.google.thought_signature on tool_call level)
+        let mut tool_calls_out = m.tool_calls.clone();
+        if let (Some(ref sig), Some(ref mut tcs)) = (&effective_thought_sig, &mut tool_calls_out) {
+            if let Some(first_tc) = tcs.first_mut() {
+                if first_tc.extra_content.is_none() {
+                    first_tc.extra_content = Some(serde_json::json!({
+                        "google": { "thought_signature": sig }
+                    }));
+                }
+            }
+        }
+
         messages_json.push(OpenAIMessage {
             role: m.role.clone(),
             content: build_openai_message_content(m)?,
             tool_call_id: m.tool_call_id.clone(),
-            tool_calls: m.tool_calls.clone(),
+            tool_calls: tool_calls_out,
+            thought_signature: effective_thought_sig,
+            extra_content: None,
         });
 
         if m.role == "assistant" {
@@ -373,6 +405,8 @@ pub fn build_openai_messages_payload(
                             content: serde_json::Value::String("操作已取消".to_string()),
                             tool_call_id: Some(tc.id.clone()),
                             tool_calls: None,
+                            thought_signature: None,
+                            extra_content: None,
                         });
                         seen_tool_result_ids.insert(tc.id.clone());
                     }
@@ -427,5 +461,27 @@ mod tests {
             }
             _ => panic!("Expected ToolResult block"),
         }
+    }
+
+    #[test]
+    fn test_build_openai_message_content_preserves_thinking() {
+        let msg = ChatMessage {
+            role: "assistant".to_string(),
+            content: serde_json::Value::String("".to_string()),
+            attachments: None,
+            tool_calls: None,
+            tool_call_id: None,
+            tool_name: None,
+            tool_args: None,
+            thinking: Some("Thinking step 1".to_string()),
+            thinking_started_at: None,
+            thinking_ended_at: None,
+            thinking_signature: None,
+            is_error: None,
+            slash_command: None,
+        };
+
+        let result = build_openai_message_content(&msg).unwrap();
+        assert_eq!(result.as_str().unwrap(), "<thought>\nThinking step 1\n</thought>");
     }
 }

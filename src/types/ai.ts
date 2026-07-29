@@ -56,6 +56,8 @@ export interface ToolCall {
     /** JSON-encoded arguments string */
     arguments: string;
   };
+  /** Provider-specific extra content (e.g. Gemini thought_signature) */
+  extra_content?: Record<string, unknown>;
 }
 
 /**

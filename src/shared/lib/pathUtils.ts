@@ -143,7 +143,12 @@ export function normalizeLexicalPath(path: string): string {
  * 对以 `/` 开头的「伪绝对路径」（模型常写成 `/project/...`）会尽量映射回工作区，
  * 而不是一律拒绝——例如 `/loom` + base=`D:\...\loom` → 工作区根。
  */
-export function resolveContainedPath(path: string, baseDir: string): string {
+export function resolveContainedPath(
+  path: string,
+  baseDir: string,
+  options?: { allowExternalPaths?: boolean }
+): string {
+  const allowExternal = options?.allowExternalPaths ?? false;
   const base = baseDir.trim();
   if (!base) {
     throw new Error('baseDir is required for path containment');
@@ -157,6 +162,9 @@ export function resolveContainedPath(path: string, baseDir: string): string {
   if (isAbsolutePath(p)) {
     candidate = normalizeLexicalPath(p);
     if (isPathUnderRoot(candidate, base)) {
+      return candidate;
+    }
+    if (allowExternal) {
       return candidate;
     }
     const remapped = remapPseudoAbsoluteUnderWorkspace(candidate, base);

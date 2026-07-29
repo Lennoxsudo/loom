@@ -42,6 +42,7 @@ interface SettingsActions {
   updateWordWrap: (enabled: boolean) => Promise<void>;
   updateLineNumbers: (enabled: boolean) => Promise<void>;
   updateMinimap: (enabled: boolean) => Promise<void>;
+  updateGitBlameInEditor: (enabled: boolean) => Promise<void>;
   updateCursorStyle: (style: CursorStyle) => Promise<void>;
   updateCursorBlinking: (blinking: CursorBlinking) => Promise<void>;
   updateFormatOnSave: (enabled: boolean) => Promise<void>;
@@ -86,6 +87,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   wordWrap: false,
   lineNumbers: true,
   minimap: true,
+  gitBlameInEditor: true,
   cursorStyle: 'line',
   cursorBlinking: 'blink',
   formatOnSave: false,
@@ -137,6 +139,7 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     wordWrap: state.wordWrap,
     lineNumbers: state.lineNumbers,
     minimap: state.minimap,
+    gitBlameInEditor: state.gitBlameInEditor,
     cursorStyle: state.cursorStyle,
     cursorBlinking: state.cursorBlinking,
     formatOnSave: state.formatOnSave,
@@ -197,6 +200,9 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
   if (typeof settings.wordWrap === 'boolean') result.wordWrap = settings.wordWrap;
   if (typeof settings.lineNumbers === 'boolean') result.lineNumbers = settings.lineNumbers;
   if (typeof settings.minimap === 'boolean') result.minimap = settings.minimap;
+  if (typeof settings.gitBlameInEditor === 'boolean') {
+    result.gitBlameInEditor = settings.gitBlameInEditor;
+  }
   if (typeof settings.formatOnSave === 'boolean') result.formatOnSave = settings.formatOnSave;
   if (typeof settings.foldersFirst === 'boolean') result.foldersFirst = settings.foldersFirst;
 
@@ -461,6 +467,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 
       updateMinimap: async (minimap) => {
         set({ minimap });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateGitBlameInEditor: async (gitBlameInEditor) => {
+        set({ gitBlameInEditor });
         const state = get();
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
@@ -749,6 +761,7 @@ export const useFontSize = () => useSettingsStore((state) => state.fontSize);
 export const useWordWrap = () => useSettingsStore((state) => state.wordWrap);
 export const useLineNumbers = () => useSettingsStore((state) => state.lineNumbers);
 export const useMinimap = () => useSettingsStore((state) => state.minimap);
+export const useGitBlameInEditor = () => useSettingsStore((state) => state.gitBlameInEditor);
 export const useCursorStyle = () => useSettingsStore((state) => state.cursorStyle);
 export const useCursorBlinking = () => useSettingsStore((state) => state.cursorBlinking);
 export const useFormatOnSave = () => useSettingsStore((state) => state.formatOnSave);
@@ -794,6 +807,8 @@ export const useUpdateFontSize = () => useSettingsStore((state) => state.updateF
 export const useUpdateWordWrap = () => useSettingsStore((state) => state.updateWordWrap);
 export const useUpdateLineNumbers = () => useSettingsStore((state) => state.updateLineNumbers);
 export const useUpdateMinimap = () => useSettingsStore((state) => state.updateMinimap);
+export const useUpdateGitBlameInEditor = () =>
+  useSettingsStore((state) => state.updateGitBlameInEditor);
 export const useUpdateCursorStyle = () => useSettingsStore((state) => state.updateCursorStyle);
 export const useUpdateCursorBlinking = () =>
   useSettingsStore((state) => state.updateCursorBlinking);

@@ -26,6 +26,10 @@ export async function beginSandboxExecution(options: {
   sessionId?: string;
   label?: string;
   projectPath?: string;
+  /** Extra directories allowed for read (e.g. user home in Chat). */
+  extraReadableRoots?: string[];
+  /** When true, Rust adds the user home directory to readable roots. */
+  includeUserHomeReadable?: boolean;
 }): Promise<void> {
   if (!isTauri()) {
     return;
@@ -33,6 +37,13 @@ export async function beginSandboxExecution(options: {
 
   const mode = useSettingsStore.getState().agentAccessMode;
   const trimmedPath = options.projectPath?.trim();
+  const extraRoots = (options.extraReadableRoots ?? [])
+    .map((root) => root.trim())
+    .filter(Boolean);
+  const readableRoots = [
+    ...(trimmedPath ? [trimmedPath] : []),
+    ...extraRoots.filter((root) => root !== trimmedPath),
+  ];
 
   // Ensure workspace policy is up to date, then pin an execution snapshot.
   await setSandboxContext(trimmedPath);
@@ -43,8 +54,9 @@ export async function beginSandboxExecution(options: {
     label: options.label ?? null,
     accessMode: mode,
     writableRoots: trimmedPath ? [trimmedPath] : null,
-    readableRoots: trimmedPath ? [trimmedPath] : null,
+    readableRoots: readableRoots.length > 0 ? readableRoots : null,
     networkEnabled: mode === 'full_access',
+    includeUserHomeReadable: options.includeUserHomeReadable ?? false,
   });
 }
 

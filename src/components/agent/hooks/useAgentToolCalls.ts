@@ -4,7 +4,7 @@ import { type Agent, type AIProvider } from '../../../utils/agentPersistence';
 import {
   executeToolCall,
   normalizeToolArgs,
-  resolvePathWithBaseDir,
+  resolvePathForTool,
   resolveUnderlyingToolName,
   type ToolCall,
 } from '../../../features/agent-engine';
@@ -558,6 +558,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       sessionId: conversationId,
       label: 'agent-panel',
       projectPath: projectPathRef.current?.trim() || undefined,
+      includeUserHomeReadable: true,
     });
 
     try {
@@ -725,12 +726,13 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
           const changedFilePath = isWriteTool
             ? ((parsedArgs.file_path ?? parsedArgs.file ?? parsedArgs.path ?? '') as string)
             : '';
-          /** 与 fileHandlers 内 resolvePathWithBaseDir 一致，保证快照路径与 files_changed 一致 */
+          /** 与 fileHandlers 内 resolvePathForTool 一致，保证快照路径与 files_changed 一致 */
           let resolvedWriteTargetPath = '';
           const baseDir = projectPathRef.current?.trim() || undefined;
+          const pathContext = { baseDir, allowExternalPaths: true as const };
           if (isWriteTool && changedFilePath) {
             resolvedWriteTargetPath = baseDir
-              ? resolvePathWithBaseDir(String(changedFilePath).trim(), baseDir)
+              ? resolvePathForTool(String(changedFilePath).trim(), pathContext)
               : String(changedFilePath).trim();
 
             try {
@@ -758,7 +760,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
               parsedArgs as Record<string, unknown>
             );
             const resolvedPaths = argPaths.map((p) =>
-              resolvePathWithBaseDir(String(p).trim(), baseDir)
+              resolvePathForTool(String(p).trim(), pathContext)
             );
             // Prefer already-read write-tool snapshot when paths match
             const snapshots: CheckpointFileSnapshot[] = [];
@@ -870,6 +872,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
           const result = await executeToolCall(toolCall, {
             baseDir: projectPathRef.current || undefined,
+            allowExternalPaths: true,
             agentId,
             conversationId,
             toolCallId: toolCall.id,

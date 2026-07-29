@@ -142,6 +142,8 @@ export interface SettingsState {
   lineNumbers: boolean;
   /** Show minimap */
   minimap: boolean;
+  /** Show inline git blame annotations in the editor */
+  gitBlameInEditor: boolean;
   /** Cursor display style */
   cursorStyle: CursorStyle;
   /** Cursor blinking mode */

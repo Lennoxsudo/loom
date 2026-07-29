@@ -23,6 +23,10 @@ pub struct StreamResult {
     /// Each block is a JSON object: {"type":"thinking","thinking":"...","signature":"..."}
     /// Used to persist thinking blocks for multi-turn tool conversations.
     pub thinking_blocks: Vec<serde_json::Value>,
+    /// Thinking / reasoning text captured during stream execution (for Gemini/Reasoning models)
+    pub captured_thinking: Option<String>,
+    /// Thinking signature captured during stream execution (for Gemini Thought Signature compliance)
+    pub captured_thinking_signature: Option<String>,
 }
 
 /// Token usage statistics from the API response.
@@ -52,6 +56,8 @@ pub struct ToolCall {
     #[serde(rename = "type")]
     pub call_type: String,
     pub function: ToolCallFunction,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extra_content: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -79,6 +85,10 @@ pub struct OpenAIMessage {
     pub tool_call_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thought_signature: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_content: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Clone)]

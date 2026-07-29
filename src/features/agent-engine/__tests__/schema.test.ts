@@ -99,6 +99,47 @@ describe('schema validation', () => {
       expect(result2.success).toBe(false);
     });
 
+    it('should validate copy_file tool parameters correctly', () => {
+      const validCopy = {
+        source: '/test/a.txt',
+        destination: '/test/b.txt',
+        overwrite: true,
+      };
+      const result = validateToolParameters('copy_file', validCopy);
+      expect(result.success).toBe(true);
+      expect(result.success ? result.data : null).toEqual(validCopy);
+
+      const invalidCopy = {
+        source: '',
+        destination: '/test/b.txt',
+      };
+      const result2 = validateToolParameters('copy_file', invalidCopy as any);
+      expect(result2.success).toBe(false);
+    });
+
+    it('should validate move_file tool parameters correctly', () => {
+      const validMove = {
+        source: '/test/a.txt',
+        destination: '/test/b.txt',
+      };
+      const result = validateToolParameters('move_file', validMove);
+      expect(result.success).toBe(true);
+
+      const invalidMove = {
+        source: '/test/a.txt',
+        destination: '',
+      };
+      const result2 = validateToolParameters('move_file', invalidMove as any);
+      expect(result2.success).toBe(false);
+    });
+
+    it('should validate create_folder tool parameters correctly', () => {
+      const valid = { path: '/test/new-folder' };
+      const result = validateToolParameters('create_folder', valid);
+      expect(result.success).toBe(true);
+      expect(result.success ? result.data : null).toEqual(valid);
+    });
+
     it('should validate control_browser tool parameters correctly', () => {
       // Valid control_browser parameters for 'open'
       const validBrowserOpen = {

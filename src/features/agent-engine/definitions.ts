@@ -243,6 +243,70 @@ export const AI_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'copy_file',
+    description:
+      'Copy a file or folder to a new location. Prefer this over write/read when you need to duplicate existing content. ' +
+      'This action modifies files, so it requires user confirmation before execution.',
+    parameters: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'string',
+          description: 'Absolute path to the source file or folder.',
+        },
+        destination: {
+          type: 'string',
+          description: 'Absolute path to the destination file or folder.',
+        },
+        overwrite: {
+          type: 'boolean',
+          description: 'If true, overwrite destination if it already exists. Default is false.',
+        },
+      },
+      required: ['source', 'destination'],
+    },
+  },
+  {
+    name: 'move_file',
+    description:
+      'Move a file or folder to a new location. Use this to rename or relocate files. ' +
+      'This action modifies files, so it requires user confirmation before execution.',
+    parameters: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'string',
+          description: 'Absolute path to the source file or folder.',
+        },
+        destination: {
+          type: 'string',
+          description: 'Absolute path to the destination file or folder.',
+        },
+        overwrite: {
+          type: 'boolean',
+          description: 'If true, overwrite destination if it already exists. Default is false.',
+        },
+      },
+      required: ['source', 'destination'],
+    },
+  },
+  {
+    name: 'create_folder',
+    description:
+      'Create a folder (directory) at the given absolute path. ' +
+      'This action modifies files, so it requires user confirmation before execution.',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Absolute path of the folder to create.',
+        },
+      },
+      required: ['path'],
+    },
+  },
+  {
     name: 'search',
     description:
       'Search for files or content within the project. Three search types are available: ' +

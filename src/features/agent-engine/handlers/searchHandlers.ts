@@ -25,7 +25,7 @@ import { ToolError, handleToolError } from '../errors';
 
 import { invoke } from '@tauri-apps/api/core';
 import type { FileTreeResult } from '../../../types/ai';
-import { resolvePathWithBaseDir } from '../argsParser';
+import { resolvePathForTool } from '../argsParser';
 
 /** 匹配结果中的上下文行类型 */
 type SearchMatchWithContext = {
@@ -101,7 +101,7 @@ class SearchFilesHandler implements ToolHandler<'search_files'> {
       }
 
       const resolvedPath = args.folder_path
-        ? resolvePathWithBaseDir(args.folder_path, context?.baseDir)
+        ? resolvePathForTool(args.folder_path, context)
         : context?.baseDir;
 
       if (!resolvedPath) {
@@ -160,7 +160,7 @@ class SearchContentHandler implements ToolHandler<'search_content'> {
       }
 
       const resolvedPath = args.folder_path
-        ? resolvePathWithBaseDir(args.folder_path, context?.baseDir)
+        ? resolvePathForTool(args.folder_path, context)
         : context?.baseDir;
 
       if (!resolvedPath) {
@@ -216,7 +216,7 @@ class SearchBothHandler implements ToolHandler<'search_both'> {
   async execute(args: SearchContentArgs, context?: ToolContext): Promise<ToolResult> {
     try {
       const resolvedPath = args.folder_path
-        ? resolvePathWithBaseDir(args.folder_path, context?.baseDir)
+        ? resolvePathForTool(args.folder_path, context)
         : context?.baseDir;
 
       if (!resolvedPath) {
@@ -309,7 +309,7 @@ class ListDirectoryHandler implements ToolHandler<'list_directory'> {
         };
       }
 
-      const resolvedPath = resolvePathWithBaseDir(listPath, context?.baseDir);
+      const resolvedPath = resolvePathForTool(listPath, context);
       const dirsOnly = args.dirs_only === true;
 
       try {
@@ -357,7 +357,7 @@ class GetFileTreeHandler implements ToolHandler<'get_file_tree'> {
   async execute(args: GetFileTreeArgs, context?: ToolContext): Promise<ToolResult> {
     try {
       const resolvedPath = args.root_path
-        ? resolvePathWithBaseDir(args.root_path, context?.baseDir)
+        ? resolvePathForTool(args.root_path, context)
         : context?.baseDir;
 
       if (!resolvedPath) {

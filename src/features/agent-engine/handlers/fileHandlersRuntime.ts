@@ -4,7 +4,7 @@ import type { ToolResult } from '../../../types/ai';
 import type { ToolHandler, ToolContext } from '../types';
 import type { ReadFileArgs, EditFileArgs, WriteFileArgs } from '../toolArgs';
 import { ToolError, ToolErrorCode, handleToolError } from '../errors';
-import { resolvePathWithBaseDir } from '../argsParser';
+import { resolvePathForTool } from '../argsParser';
 import type { ReadFileToolResult, WriteFileResult } from '../../../types/ai';
 
 function asNumber(value: unknown): number | undefined {
@@ -33,7 +33,7 @@ export class ReadFileHandler implements ToolHandler<'read'> {
       const results: string[] = [];
 
       for (const singlePath of paths) {
-        const resolvedPath = resolvePathWithBaseDir(singlePath, context?.baseDir);
+        const resolvedPath = resolvePathForTool(singlePath, context);
 
         const readArgs = {
           filePath: resolvedPath,
@@ -114,7 +114,7 @@ export class EditFileHandler implements ToolHandler<'edit'> {
         throw ToolError.missingParam('new_string');
       }
 
-      const resolvedPath = resolvePathWithBaseDir(args.path, context?.baseDir);
+      const resolvedPath = resolvePathForTool(args.path, context);
 
       const oldString = args.old_string;
       const newString = args.new_string;
@@ -227,7 +227,7 @@ class WriteFileHandler implements ToolHandler<'write'> {
         throw ToolError.missingParam('content');
       }
 
-      const resolvedPath = resolvePathWithBaseDir(args.path, context?.baseDir);
+      const resolvedPath = resolvePathForTool(args.path, context);
 
       const isAppend = typeof args.append === 'boolean' ? args.append : false;
       const isPrepend = typeof args.prepend === 'boolean' ? args.prepend : false;

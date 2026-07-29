@@ -10,6 +10,8 @@ import {
   languageLoadMonitor,
 } from '../../utils/monacoLanguageLoader';
 import { installEditorClipboardShortcuts } from '../../utils/editorClipboardShortcuts';
+import { useMonacoGitBlame } from '../../hooks/useMonacoGitBlame';
+import './monacoGitBlame.css';
 
 import type { ThemeMode } from '../../types/settings';
 
@@ -19,6 +21,7 @@ export interface MonacoHostProps {
   value: string;
   groupId: string;
   filePath?: string;
+  projectPath?: string;
   fontSize: number;
   wordWrap: boolean;
   lineNumbers: boolean;
@@ -144,10 +147,15 @@ export function MonacoHost(props: MonacoHostProps) {
     readOnly = false,
     onChange,
     onMount,
+    filePath,
+    projectPath,
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [editorInstance, setEditorInstance] = useState<Monaco.editor.IStandaloneCodeEditor | null>(
+    null
+  );
   const currentOnChangeRef = useRef(onChange);
   const currentOnMountRef = useRef(onMount);
   const changeDisposableRef = useRef<Monaco.IDisposable | null>(null);
@@ -157,6 +165,12 @@ export function MonacoHost(props: MonacoHostProps) {
   const [isLanguageReady, setIsLanguageReady] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   valueRef.current = value;
+
+  useMonacoGitBlame({
+    editor: editorInstance,
+    filePath,
+    projectPath,
+  });
 
   useEffect(() => {
     currentOnChangeRef.current = onChange;
@@ -226,6 +240,7 @@ export function MonacoHost(props: MonacoHostProps) {
     });
 
     editorRef.current = editor;
+    setEditorInstance(editor);
 
     installEditorClipboardShortcuts(editor as unknown as MonacoEditor, {
       readOnly,
@@ -275,6 +290,7 @@ export function MonacoHost(props: MonacoHostProps) {
         resizeObserverRef.current?.disconnect();
         editorRef.current.dispose();
         editorRef.current = null;
+        setEditorInstance(null);
       }
     };
   }, [

@@ -15,7 +15,7 @@ import type { GetGitDiffArgs, UndoChangesArgs, GetSymbolDefinitionArgs } from '.
 import { ToolError, handleToolError } from '../errors';
 import { invoke } from '@tauri-apps/api/core';
 import type { GitDiffResult, UndoChangesResult, SymbolDefinitionResult } from '../../../types/ai';
-import { resolvePathWithBaseDir } from '../argsParser';
+import { resolvePathForTool } from '../argsParser';
 
 function getCodeFenceLanguage(filePath: string): string {
   const normalized = filePath.toLowerCase();
@@ -35,7 +35,7 @@ class GetGitDiffHandler implements ToolHandler<'get_git_diff'> {
   async execute(args: GetGitDiffArgs, context?: ToolContext): Promise<ToolResult> {
     try {
       const repoPath = args.repo_path
-        ? resolvePathWithBaseDir(args.repo_path, context?.baseDir)
+        ? resolvePathForTool(args.repo_path, context)
         : context?.baseDir;
 
       if (!repoPath) {
@@ -132,7 +132,7 @@ class UndoChangesHandler implements ToolHandler<'undo_changes'> {
       }
 
       const repoPath = args.repo_path
-        ? resolvePathWithBaseDir(args.repo_path, context?.baseDir)
+        ? resolvePathForTool(args.repo_path, context)
         : context?.baseDir;
 
       if (!repoPath) {
@@ -141,7 +141,7 @@ class UndoChangesHandler implements ToolHandler<'undo_changes'> {
 
       const options = {
         repo_path: repoPath,
-        file_paths: args.file_paths.map((p) => resolvePathWithBaseDir(p, context?.baseDir)),
+        file_paths: args.file_paths.map((p) => resolvePathForTool(p, context)),
       };
 
       try {
@@ -230,7 +230,7 @@ class GetSymbolDefinitionHandler implements ToolHandler<'sym'> {
         throw ToolError.missingParam('symbol_name');
       }
 
-      const resolvedPath = resolvePathWithBaseDir(args.file_path, context?.baseDir);
+      const resolvedPath = resolvePathForTool(args.file_path, context);
 
       const options = {
         file_path: resolvedPath,

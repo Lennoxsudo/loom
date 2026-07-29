@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { FileInfo, ToolResult } from '../../../types/ai';
-import { resolvePathWithBaseDir } from '../argsParser';
+import { resolvePathForTool } from '../argsParser';
 import { ToolError, handleToolError } from '../errors';
 import type { ToolContext, ToolHandler } from '../types';
 import type {
@@ -29,8 +29,8 @@ class CopyFileHandler implements ToolHandler<'copy_file'> {
         throw ToolError.directoryNotFound();
       }
 
-      const resolvedSource = resolvePathWithBaseDir(args.source, rootPath);
-      const resolvedDestination = resolvePathWithBaseDir(args.destination, rootPath);
+      const resolvedSource = resolvePathForTool(args.source, context);
+      const resolvedDestination = resolvePathForTool(args.destination, context);
 
       await invoke('copy_file_or_folder', {
         source: resolvedSource,
@@ -71,8 +71,8 @@ class MoveFileHandler implements ToolHandler<'move_file'> {
         throw ToolError.directoryNotFound();
       }
 
-      const resolvedSource = resolvePathWithBaseDir(args.source, rootPath);
-      const resolvedDestination = resolvePathWithBaseDir(args.destination, rootPath);
+      const resolvedSource = resolvePathForTool(args.source, context);
+      const resolvedDestination = resolvePathForTool(args.destination, context);
 
       await invoke('move_file_or_folder', {
         oldPath: resolvedSource,
@@ -110,7 +110,7 @@ class DeleteFileHandler implements ToolHandler<'delete_file'> {
         throw ToolError.directoryNotFound();
       }
 
-      const resolvedPath = resolvePathWithBaseDir(args.path, rootPath);
+      const resolvedPath = resolvePathForTool(args.path, context);
       const permanent = args.permanent ?? false;
 
       try {
@@ -162,7 +162,7 @@ class CreateFolderHandler implements ToolHandler<'create_folder'> {
         throw ToolError.missingParam('path');
       }
 
-      const resolvedPath = resolvePathWithBaseDir(args.path, context?.baseDir);
+      const resolvedPath = resolvePathForTool(args.path, context);
       await invoke('create_folder', { folderPath: resolvedPath, source: 'ai' });
 
       return {
@@ -188,7 +188,7 @@ class GetFileInfoHandler implements ToolHandler<'get_file_info'> {
         throw ToolError.missingParam('path');
       }
 
-      const resolvedPath = resolvePathWithBaseDir(args.path, context?.baseDir);
+      const resolvedPath = resolvePathForTool(args.path, context);
       const info = await invoke<FileInfo>('get_file_info', { path: resolvedPath, source: 'ai' });
 
       if (!info.exists) {

@@ -239,6 +239,7 @@ pub fn build_tool_result_messages(
     results: &[ToolExecutionResult],
     provider: &str,
     thinking_blocks: &[serde_json::Value],
+    thinking_signature: Option<&str>,
 ) -> Vec<crate::chat::ChatMessage> {
     let mut messages: Vec<crate::chat::ChatMessage> = Vec::new();
 
@@ -301,16 +302,21 @@ pub fn build_tool_result_messages(
                             .unwrap_or("{}")
                             .to_string(),
                     },
+                    extra_content: tc.get("extra_content").cloned(),
                 })
                 .collect(),
         ),
         tool_call_id: None,
         tool_name: None,
         tool_args: None,
-        thinking: None,
+        thinking: if assistant_content.trim().is_empty() {
+            None
+        } else {
+            Some(assistant_content.to_string())
+        },
         thinking_started_at: None,
         thinking_ended_at: None,
-        thinking_signature: None,
+        thinking_signature: thinking_signature.map(|s| s.to_string()),
         is_error: None,
         slash_command: None,
     });
@@ -1159,7 +1165,8 @@ mod tests {
             &tool_calls,
             &results,
             "openai",
-            &[]
+            &[],
+            None,
         );
 
         assert_eq!(msgs_openai.len(), 2);
@@ -1183,7 +1190,8 @@ mod tests {
             &tool_calls,
             &results,
             "anthropic",
-            &[]
+            &[],
+            None,
         );
 
         assert_eq!(msgs_anthropic.len(), 2);

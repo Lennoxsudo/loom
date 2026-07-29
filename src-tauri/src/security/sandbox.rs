@@ -1557,6 +1557,7 @@ pub fn begin_sandbox_execution(
     writable_roots: Option<Vec<String>>,
     readable_roots: Option<Vec<String>>,
     network_enabled: Option<bool>,
+    include_user_home_readable: Option<bool>,
     state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     let id = execution_id.trim().to_string();
@@ -1565,10 +1566,20 @@ pub fn begin_sandbox_execution(
     }
 
     let base = state.policy_snapshot();
+    let mut roots = readable_roots.unwrap_or_else(|| base.readable_roots.clone());
+    if include_user_home_readable.unwrap_or(false) {
+        if let Ok(home) = crate::core::config_paths::user_home_dir() {
+            let home_str = home.to_string_lossy().to_string();
+            if !roots.iter().any(|r| r == &home_str) {
+                roots.push(home_str);
+            }
+        }
+    }
+
     let sandbox = Arc::new(SandboxContext {
         access_mode: access_mode.unwrap_or_else(|| base.access_mode.clone()),
         writable_roots: writable_roots.unwrap_or_else(|| base.writable_roots.clone()),
-        readable_roots: readable_roots.unwrap_or_else(|| base.readable_roots.clone()),
+        readable_roots: roots,
         network_enabled: network_enabled.unwrap_or(base.network_enabled),
     });
 

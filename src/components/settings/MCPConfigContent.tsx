@@ -1,12 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation } from '../../i18n';
 import { useNotification } from '../../contexts/NotificationContext';
-import { mcpClient, type McpToolInfo, type McpServerStatusEntry } from '../../utils/mcpClient';
+import {
+  mcpClient,
+  resolveMcpServerDisplayState,
+  type McpServerDisplayState,
+  type McpToolInfo,
+  type McpServerStatusEntry,
+} from '../../utils/mcpClient';
 import { useToolStore } from '../../stores/useToolStore';
 import pageStyles from './SettingsPage.module.css';
 import styles from './MCPConfigContent.module.css';
 import { SettingsDeleteModal } from './SettingsDeleteModal';
+
+const STATUS_POLL_MS = 3000;
+const AUTO_RECONNECT_COOLDOWN_MS = 10_000;
 
 interface McpServerConfig {
   id: string;
@@ -14,6 +23,54 @@ interface McpServerConfig {
   command: string;
   args: string;
   enabled: boolean;
+}
+
+function statusLabel(
+  state: McpServerDisplayState,
+  t: ReturnType<typeof useTranslation>
+): string {
+  switch (state) {
+    case 'running':
+      return t.settingsMcp.servers.running;
+    case 'starting':
+      return t.status.starting;
+    case 'disconnected':
+      return t.settingsMcp.servers.disconnected;
+    case 'disabled':
+      return t.settingsMcp.servers.disabled;
+    default:
+      return t.settingsMcp.servers.stopped;
+  }
+}
+
+function statusDotClass(state: McpServerDisplayState): string {
+  switch (state) {
+    case 'running':
+      return styles.statusDotRunning;
+    case 'starting':
+      return styles.statusDotStarting;
+    case 'disconnected':
+      return styles.statusDotDisconnected;
+    case 'disabled':
+      return styles.statusDotDisabled;
+    default:
+      return styles.statusDotStopped;
+  }
+}
+
+function statusBadgeClass(state: McpServerDisplayState): string {
+  switch (state) {
+    case 'running':
+      return styles.statusBadgeRunning;
+    case 'starting':
+      return styles.statusBadgeStarting;
+    case 'disconnected':
+      return styles.statusBadgeDisconnected;
+    case 'disabled':
+      return styles.statusBadgeDisabled;
+    default:
+      return styles.statusBadgeStopped;
+  }
 }
 
 export function MCPConfigContent() {
@@ -31,30 +88,78 @@ export function MCPConfigContent() {
   const [toolsByServer, setToolsByServer] = useState<Record<string, McpToolInfo[]>>({});
   const [loadingTools, setLoadingTools] = useState<string | null>(null);
   const [runtimeStatus, setRuntimeStatus] = useState<Record<string, McpServerStatusEntry>>({});
-  const [togglingServer, setTogglingServer] = useState<string | null>(null);
+  const [busyServerId, setBusyServerId] = useState<string | null>(null);
+  const lastReconnectAttemptRef = useRef<Record<string, number>>({});
+  const autoReconnectInFlightRef = useRef(false);
   const { showError } = useNotification();
 
-  useEffect(() => {
-    let mounted = true;
-    const poll = async () => {
-      try {
-        const statuses = await mcpClient.getStatus();
-        if (mounted) {
-          const map: Record<string, McpServerStatusEntry> = {};
-          for (const s of statuses) map[s.server_id] = s;
-          setRuntimeStatus(map);
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    poll();
-    const timer = setInterval(poll, 3000);
-    return () => {
-      mounted = false;
-      clearInterval(timer);
-    };
+  const refreshStatus = useCallback(async () => {
+    try {
+      const statuses = await mcpClient.getStatus();
+      const map: Record<string, McpServerStatusEntry> = {};
+      for (const s of statuses) map[s.server_id] = s;
+      setRuntimeStatus(map);
+    } catch {
+      /* ignore */
+    }
   }, []);
+
+  useEffect(() => {
+    void refreshStatus();
+    const timer = setInterval(() => {
+      void refreshStatus();
+    }, STATUS_POLL_MS);
+    const unsubscribe = mcpClient.onStatusChanged(() => {
+      void refreshStatus();
+    });
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
+  }, [refreshStatus]);
+
+  useEffect(() => {
+    if (autoReconnectInFlightRef.current || busyServerId) return;
+
+    const disconnected = servers.filter((server) => {
+      if (!server.enabled) return false;
+      const state = resolveMcpServerDisplayState(
+        server.enabled,
+        runtimeStatus[server.id],
+        busyServerId,
+        server.id
+      );
+      if (state !== 'disconnected') return false;
+      const lastAttempt = lastReconnectAttemptRef.current[server.id] ?? 0;
+      return Date.now() - lastAttempt >= AUTO_RECONNECT_COOLDOWN_MS;
+    });
+
+    if (disconnected.length === 0) return;
+
+    const target = disconnected[0];
+    autoReconnectInFlightRef.current = true;
+    lastReconnectAttemptRef.current[target.id] = Date.now();
+    setBusyServerId(target.id);
+
+    void (async () => {
+      try {
+        await mcpClient.restartServer(target.id);
+        mcpClient.clearToolsCache();
+        await useToolStore.getState().fetchMcpTools();
+        setToolsByServer((prev) => {
+          const copy = { ...prev };
+          delete copy[target.id];
+          return copy;
+        });
+      } catch (error) {
+        console.warn(`[MCP] Auto-reconnect failed for ${target.id}:`, error);
+      } finally {
+        autoReconnectInFlightRef.current = false;
+        setBusyServerId(null);
+        await refreshStatus();
+      }
+    })();
+  }, [servers, runtimeStatus, busyServerId, refreshStatus]);
 
   const handleToggleTools = async (serverId: string) => {
     if (expandedServerId === serverId) {
@@ -66,7 +171,7 @@ export function MCPConfigContent() {
     setLoadingTools(serverId);
     try {
       const allTools = await mcpClient.listTools();
-      const filtered = allTools.filter((t) => t.server_id === serverId);
+      const filtered = allTools.filter((tool) => tool.server_id === serverId);
       setToolsByServer((prev) => ({ ...prev, [serverId]: filtered }));
     } catch (e) {
       console.error('Failed to load MCP tools:', e);
@@ -116,7 +221,7 @@ export function MCPConfigContent() {
       }
     };
     loadConfig();
-  }, []);
+  }, [t.settingsMcp.errors.loadFailed]);
 
   const saveConfig = async (updatedServers: McpServerConfig[]) => {
     try {
@@ -133,6 +238,17 @@ export function MCPConfigContent() {
     } catch (error) {
       showError(`${t.settingsMcp.errors.saveFailed} ${error}`);
     }
+  };
+
+  const invalidateServerTools = async (serverId: string) => {
+    setToolsByServer((prev) => {
+      const copy = { ...prev };
+      delete copy[serverId];
+      return copy;
+    });
+    mcpClient.clearToolsCache();
+    await useToolStore.getState().fetchMcpTools();
+    await refreshStatus();
   };
 
   const handleAddServer = async () => {
@@ -162,7 +278,7 @@ export function MCPConfigContent() {
   };
 
   const handleToggleEnabled = async (id: string) => {
-    if (togglingServer === id) return;
+    if (busyServerId === id) return;
     const server = servers.find((s) => s.id === id);
     if (!server) return;
 
@@ -174,23 +290,14 @@ export function MCPConfigContent() {
     setServers(updated);
     await saveConfig(updated);
 
-    setTogglingServer(id);
+    setBusyServerId(id);
     try {
       if (newEnabled) {
         await mcpClient.startServer(id);
-      } else {
-        const rs = runtimeStatus[id];
-        if (rs?.is_running) {
-          await mcpClient.stopServer(id);
-        }
+      } else if (rs?.is_running) {
+        await mcpClient.stopServer(id);
       }
-      setToolsByServer((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
-      mcpClient.clearToolsCache();
-      await useToolStore.getState().fetchMcpTools();
+      await invalidateServerTools(id);
     } catch (e) {
       console.error(`Failed to ${newEnabled ? 'start' : 'stop'} server ${id}:`, e);
       const reverted = servers.map((s) => (s.id === id ? { ...s, enabled: !newEnabled } : s));
@@ -198,7 +305,27 @@ export function MCPConfigContent() {
       await saveConfig(reverted);
       showError(`MCP 服务器 "${server.name}" ${newEnabled ? '启动' : '停止'}失败: ${e}`);
     } finally {
-      setTogglingServer(null);
+      setBusyServerId(null);
+    }
+  };
+
+  const handleRestartServer = async (id: string) => {
+    if (busyServerId === id) return;
+    const server = servers.find((s) => s.id === id);
+    if (!server) return;
+
+    setBusyServerId(id);
+    try {
+      await mcpClient.restartServer(id);
+      await invalidateServerTools(id);
+    } catch (error) {
+      showError(
+        t.settingsMcp.servers.restartFailed
+          .replace('{name}', server.name)
+          .replace('{error}', String(error))
+      );
+    } finally {
+      setBusyServerId(null);
     }
   };
 
@@ -217,6 +344,25 @@ export function MCPConfigContent() {
   }
 
   const serverToDelete = deleteId ? servers.find((s) => s.id === deleteId) : null;
+  const enabledServers = servers.filter((server) => server.enabled);
+  const runningCount = enabledServers.filter((server) => {
+    const state = resolveMcpServerDisplayState(
+      server.enabled,
+      runtimeStatus[server.id],
+      busyServerId,
+      server.id
+    );
+    return state === 'running';
+  }).length;
+
+  const healthDotClass =
+    enabledServers.length === 0
+      ? styles.healthDotWarn
+      : runningCount === enabledServers.length
+        ? styles.healthDotOk
+        : runningCount > 0
+          ? styles.healthDotWarn
+          : styles.healthDotError;
 
   return (
     <div className={styles.root}>
@@ -232,72 +378,44 @@ export function MCPConfigContent() {
 
       <h3 className={styles.sectionHeading}>{t.settingsMcp.servers.title}</h3>
 
+      {enabledServers.length > 0 ? (
+        <div className={styles.healthBanner}>
+          <span className={`${styles.healthDot} ${healthDotClass}`} />
+          <span>
+            {t.settingsMcp.servers.healthSummary
+              .replace('{running}', String(runningCount))
+              .replace('{total}', String(enabledServers.length))}
+          </span>
+        </div>
+      ) : null}
+
       <div className={styles.serverList}>
         {servers.map((server) => {
           const isExpanded = expandedServerId === server.id;
           const tools = toolsByServer[server.id];
           const isLoadingThis = loadingTools === server.id;
+          const displayState = resolveMcpServerDisplayState(
+            server.enabled,
+            runtimeStatus[server.id],
+            busyServerId,
+            server.id
+          );
+          const label = statusLabel(displayState, t);
+          const canRestart = server.enabled && displayState !== 'starting';
 
           return (
             <div
               key={server.id}
               className={`${styles.serverCard} ${server.enabled ? '' : styles.serverCardDisabled}`}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '14px 16px',
-                  gap: '12px',
-                }}
-              >
-                {(() => {
-                  const rs = runtimeStatus[server.id];
-                  const isRunning = rs?.is_running && rs?.is_initialized;
-                  const isStarting = togglingServer === server.id;
-                  const dotColor = isStarting ? '#ff9800' : isRunning ? '#4caf50' : '#555';
-                  const dotShadow = isStarting
-                    ? '0 0 6px rgba(255, 152, 0, 0.5)'
-                    : isRunning
-                      ? '0 0 6px rgba(76, 175, 80, 0.5)'
-                      : 'none';
-                  const statusText = isStarting
-                    ? t.status.starting
-                    : isRunning
-                      ? t.settingsMcp.servers.running
-                      : t.settingsMcp.servers.stopped;
-                  return (
-                    <span
-                      style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        flexShrink: 0,
-                        backgroundColor: dotColor,
-                        boxShadow: dotShadow,
-                        transition: 'all 0.2s',
-                        animation: isStarting ? 'pulse 1.2s infinite' : 'none',
-                      }}
-                      title={statusText}
-                    />
-                  );
-                })()}
+              <div className={styles.serverHeader}>
+                <span
+                  className={`${styles.statusDot} ${statusDotClass(displayState)}`}
+                  title={label}
+                />
 
-                <div
-                  style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                  onClick={() => handleToggleTools(server.id)}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      marginBottom: '3px',
-                    }}
-                  >
+                <div className={styles.serverInfo} onClick={() => handleToggleTools(server.id)}>
+                  <div className={styles.serverName}>
                     <span
                       style={{
                         display: 'inline-block',
@@ -305,86 +423,48 @@ export function MCPConfigContent() {
                         transition: 'transform 0.2s',
                         transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                         color: 'var(--text-secondary)',
+                        marginRight: '6px',
                       }}
                     >
                       ▶
                     </span>
                     {server.name}
                   </div>
-                  <div
-                    style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: '12px',
-                      fontFamily: 'monospace',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      paddingLeft: '16px',
-                    }}
-                  >
+                  <div className={styles.serverMeta}>
                     {server.command} {server.args}
                   </div>
                 </div>
 
-                {(() => {
-                  const rs = runtimeStatus[server.id];
-                  const isRunning = rs?.is_running && rs?.is_initialized;
-                  const isStarting = togglingServer === server.id;
-                  let label: string;
-                  let bgColor: string;
-                  let fgColor: string;
-                  let bdColor: string;
-                  if (isStarting) {
-                    label = t.status.starting;
-                    bgColor = 'rgba(255, 152, 0, 0.15)';
-                    fgColor = '#ff9800';
-                    bdColor = 'rgba(255, 152, 0, 0.3)';
-                  } else if (isRunning) {
-                    label = t.settingsMcp.servers.running;
-                    bgColor = 'rgba(76, 175, 80, 0.15)';
-                    fgColor = '#4caf50';
-                    bdColor = 'rgba(76, 175, 80, 0.3)';
-                  } else if (server.enabled) {
-                    label = t.status.notRunning;
-                    bgColor = 'rgba(244, 67, 54, 0.15)';
-                    fgColor = '#f44336';
-                    bdColor = 'rgba(244, 67, 54, 0.3)';
-                  } else {
-                    label = t.settingsMcp.servers.disabled;
-                    bgColor = 'rgba(150, 150, 150, 0.15)';
-                    fgColor = '#888';
-                    bdColor = 'rgba(150, 150, 150, 0.3)';
-                  }
-                  return (
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        fontWeight: '500',
-                        backgroundColor: bgColor,
-                        color: fgColor,
-                        border: `1px solid ${bdColor}`,
-                      }}
-                    >
-                      {label}
-                    </span>
-                  );
-                })()}
+                <span className={`${styles.statusBadge} ${statusBadgeClass(displayState)}`}>
+                  {label}
+                </span>
+
+                {canRestart ? (
+                  <button
+                    type="button"
+                    className={styles.actionBtn}
+                    disabled={busyServerId === server.id}
+                    onClick={() => void handleRestartServer(server.id)}
+                    title={t.settingsMcp.servers.restart}
+                  >
+                    {busyServerId === server.id && displayState === 'starting'
+                      ? t.settingsMcp.servers.reconnecting
+                      : t.settingsMcp.servers.restart}
+                  </button>
+                ) : null}
 
                 <button
-                  onClick={() => handleToggleEnabled(server.id)}
+                  type="button"
+                  onClick={() => void handleToggleEnabled(server.id)}
+                  disabled={busyServerId === server.id}
                   style={{
                     all: 'unset',
-                    cursor: togglingServer === server.id ? 'not-allowed' : 'pointer',
+                    cursor: busyServerId === server.id ? 'not-allowed' : 'pointer',
                     width: '36px',
                     height: '20px',
                     borderRadius: '10px',
                     backgroundColor:
-                      runtimeStatus[server.id]?.is_running &&
-                      runtimeStatus[server.id]?.is_initialized
-                        ? 'var(--bg-button)'
-                        : 'var(--border-strong)',
+                      displayState === 'running' ? 'var(--bg-button)' : 'var(--border-strong)',
                     position: 'relative',
                     transition: 'background-color 0.2s',
                     flexShrink: 0,
@@ -394,11 +474,7 @@ export function MCPConfigContent() {
                     style={{
                       position: 'absolute',
                       top: '2px',
-                      left:
-                        runtimeStatus[server.id]?.is_running &&
-                        runtimeStatus[server.id]?.is_initialized
-                          ? '18px'
-                          : '2px',
+                      left: displayState === 'running' ? '18px' : '2px',
                       width: '16px',
                       height: '16px',
                       borderRadius: '50%',
@@ -409,23 +485,9 @@ export function MCPConfigContent() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setDeleteId(server.id)}
-                  style={{
-                    all: 'unset',
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                    fontSize: '16px',
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    transition: 'color 0.15s',
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#f48771';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
+                  className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                   title={t.settingsMcp.servers.delete}
                 >
                   ×
@@ -433,84 +495,24 @@ export function MCPConfigContent() {
               </div>
 
               {isExpanded && (
-                <div
-                  style={{
-                    borderTop: '1px solid var(--border-primary)',
-                    padding: '8px 0',
-                    maxHeight: '300px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {isLoadingThis && (
-                    <div
-                      style={{
-                        padding: '12px 20px',
-                        color: 'var(--text-secondary)',
-                        fontSize: '12px',
-                      }}
-                    >
-                      加载工具列表中...
-                    </div>
-                  )}
-                  {!isLoadingThis && tools && tools.length === 0 && (
-                    <div
-                      style={{
-                        padding: '12px 20px',
-                        color: 'var(--text-secondary)',
-                        fontSize: '12px',
-                      }}
-                    >
-                      暂无可用工具（请确保 MCP 服务器已启动）
-                    </div>
-                  )}
-                  {!isLoadingThis &&
-                    tools &&
-                    tools.length > 0 &&
-                    tools.map((tool) => (
-                      <div
-                        key={tool.name}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          padding: '6px 20px',
-                          gap: '8px',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: '#4caf50',
-                            fontSize: '11px',
-                            marginTop: '2px',
-                            flexShrink: 0,
-                          }}
-                        >
-                          ✓
-                        </span>
-                        <span
-                          style={{
-                            color: '#c792ea',
-                            fontFamily: 'monospace',
-                            fontWeight: 500,
-                            flexShrink: 0,
-                            minWidth: '140px',
-                          }}
-                        >
-                          {tool.name}
-                        </span>
-                        <span
-                          style={{
-                            color: 'var(--text-secondary)',
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {tool.description || ''}
-                        </span>
-                      </div>
-                    ))}
+                <div className={styles.serverBody}>
+                  <div className={styles.toolsList}>
+                    {isLoadingThis && (
+                      <div className={styles.toolItem}>{t.status.loading}</div>
+                    )}
+                    {!isLoadingThis && tools && tools.length === 0 && (
+                      <div className={styles.toolItem}>{t.settingsMcp.servers.noTools}</div>
+                    )}
+                    {!isLoadingThis &&
+                      tools &&
+                      tools.length > 0 &&
+                      tools.map((tool) => (
+                        <div key={tool.name} className={styles.toolItem}>
+                          <strong>{tool.name}</strong>
+                          {tool.description ? ` — ${tool.description}` : ''}
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -570,7 +572,7 @@ export function MCPConfigContent() {
             </button>
             <button
               type="button"
-              onClick={handleAddServer}
+              onClick={() => void handleAddServer()}
               disabled={!newName.trim() || !newCommand.trim()}
               className={pageStyles.primaryButton}
             >
@@ -584,7 +586,7 @@ export function MCPConfigContent() {
         <SettingsDeleteModal
           title={t.settingsMcp.servers.delete}
           onCancel={() => setDeleteId(null)}
-          onConfirm={() => handleDeleteServer(deleteId)}
+          onConfirm={() => void handleDeleteServer(deleteId)}
           confirmLabel={t.settingsMcp.servers.delete}
         >
           {t.settingsMcp.servers.confirmDelete.replace('{name}', serverToDelete.name)}

@@ -1,0 +1,234 @@
+.card {
+  margin-bottom: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 94%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 28%, transparent);
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--text-secondary) 10%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-overlay-soft) 40%, transparent);
+}
+
+.cardError {
+  border-color: color-mix(in srgb, var(--text-error) 18%, var(--border-subtle));
+}
+
+.header {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.headerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toolName {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+.metaItem {
+  white-space: nowrap;
+}
+
+.metaSep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+}
+
+.headerAside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.status {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+  white-space: nowrap;
+}
+
+.statusOk {
+  color: color-mix(in srgb, #3d9970 70%, var(--text-secondary));
+}
+
+.statusError {
+  color: var(--text-error);
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.28;
+  color: var(--text-secondary);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.15s ease;
+}
+
+.header:hover .chevron {
+  opacity: 0.5;
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+.panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+  border-top: 1px solid transparent;
+}
+
+.panelExpanded {
+  grid-template-rows: 1fr;
+  border-top-color: color-mix(in srgb, var(--border-subtle) 90%, transparent);
+}
+
+.panelInner {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding: 0 12px;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    padding 0.25s ease;
+}
+
+.panelInnerExpanded {
+  opacity: 1;
+  padding: 10px 12px 12px;
+  pointer-events: auto;
+}
+
+.section {
+  margin-bottom: 12px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  margin-bottom: 6px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.summaryCard {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+}
+
+.summaryLabel {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+  margin-bottom: 3px;
+}
+
+.summaryValue {
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.argsGrid {
+  display: grid;
+  grid-template-columns: minmax(100px, 160px) minmax(0, 1fr);
+  gap: 6px 10px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+}
+
+.argLabel {
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  font-size: 10px;
+  font-family: 'Geist Mono', 'SF Mono', Consolas, monospace;
+}
+
+.argValue {
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.rawOutput {
+  margin: 0;
+  padding: 10px;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.55;
+  font-family: 'Geist Mono', 'SF Mono', Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panelInner,
+  .chevron {
+    transition: none;
+  }
+}

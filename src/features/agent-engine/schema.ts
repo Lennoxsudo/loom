@@ -153,6 +153,28 @@ const DeleteFileSchema = ToolParametersSchema.extend({
   permanent: z.boolean().optional(),
 });
 
+const CopyFileSchema = ToolParametersSchema.extend({
+  source: z.string(),
+  destination: z.string(),
+  overwrite: z.boolean().optional(),
+}).refine((data) => data.source.trim().length > 0 && data.destination.trim().length > 0, {
+  message: 'source and destination cannot be empty',
+  path: ['source'],
+});
+
+const MoveFileSchema = ToolParametersSchema.extend({
+  source: z.string(),
+  destination: z.string(),
+  overwrite: z.boolean().optional(),
+}).refine((data) => data.source.trim().length > 0 && data.destination.trim().length > 0, {
+  message: 'source and destination cannot be empty',
+  path: ['source'],
+});
+
+const CreateFolderSchema = ToolParametersSchema.extend({
+  path: z.string(),
+});
+
 const SearchFilesSchema = ToolParametersSchema.extend({
   pattern: z.string(),
   include: z.string().optional(),
@@ -519,6 +541,15 @@ export function validateToolParameters(
         break;
       case 'delete_file':
         schema = DeleteFileSchema;
+        break;
+      case 'copy_file':
+        schema = CopyFileSchema;
+        break;
+      case 'move_file':
+        schema = MoveFileSchema;
+        break;
+      case 'create_folder':
+        schema = CreateFolderSchema;
         break;
       case 'search_files':
         schema = SearchFilesSchema;

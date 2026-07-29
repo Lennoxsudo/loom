@@ -74,4 +74,10 @@ describe('path containment (phase 2)', () => {
     expect(resolvePathWithBaseDir('/absolute/only')).toBe('/absolute/only');
     expect(resolvePathWithBaseDir('rel/path')).toBe('rel/path');
   });
+
+  it('allows absolute paths outside workspace when allowExternalPaths is set', () => {
+    const external = 'C:\\Users\\me\\.pencil\\documents\\design.pen';
+    const resolved = resolvePathWithBaseDir(external, winRoot, true);
+    expect(resolved).toBe('C:\\Users\\me\\.pencil\\documents\\design.pen');
+  });
 });

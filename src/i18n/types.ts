@@ -652,12 +652,6 @@ export interface I18nMessages {
       deleteProjectStreamingBlocked: string;
       deleteProjectFailed: string;
     };
-    placeholder: {
-      search: string;
-      plugins: string;
-      automation: string;
-      cloudMode: string;
-    };
     approvalMode: {
       readOnly: string;
       auto: string;
@@ -1139,6 +1133,9 @@ export interface I18nMessages {
     minimap: {
       title: string;
     };
+    gitBlameInEditor: {
+      title: string;
+    };
     renderWhitespace: {
       title: string;
       none: string;
@@ -1492,6 +1489,12 @@ export interface I18nMessages {
       disabled: string;
       running: string;
       stopped: string;
+      disconnected: string;
+      reconnecting: string;
+      restart: string;
+      restartFailed: string;
+      healthSummary: string;
+      noTools: string;
       delete: string;
       openConfig: string;
       confirmDelete: string;

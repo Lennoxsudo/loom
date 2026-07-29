@@ -16,6 +16,7 @@ export { AI_TOOLS } from './definitions';
 export {
   parseToolArguments,
   resolvePathWithBaseDir,
+  resolvePathForTool,
   sanitizeMessagesForIpc,
   sanitizeStringForIpc,
 } from './argsParser';

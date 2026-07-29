@@ -1,6 +1,7 @@
-import { memo, useMemo, useState, type CSSProperties } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { ChatMessage } from '../../types/chat';
 import { TOOL_RESULT_WIDTH, formatToolDisplayName } from './toolResultLayout';
+import styles from './McpToolResultCard.module.css';
 
 interface McpToolResultCardProps {
   message: ChatMessage;
@@ -163,25 +164,6 @@ function collectArgumentEntries(args: Record<string, unknown> | undefined): Summ
   }));
 }
 
-const ChevronDown = ({ expanded }: { expanded: boolean }) => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{
-      transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-      transition: 'transform 0.2s ease',
-    }}
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
 const McpToolResultCard = memo(function McpToolResultCard({
   message,
   statusLabel,
@@ -204,182 +186,62 @@ const McpToolResultCard = memo(function McpToolResultCard({
     return JSON.stringify(structuredOutput, null, 2);
   }, [message.text, structuredOutput]);
 
-  const accent = isError ? '#f48771' : 'var(--text-accent)';
-  const containerStyle: CSSProperties = {
-    ...TOOL_RESULT_WIDTH,
-    marginBottom: '6px',
-  };
-
-  const cardStyle: CSSProperties = {
-    borderRadius: '10px',
-    overflow: 'hidden',
-    background: isError
-      ? 'linear-gradient(180deg, rgba(244, 135, 113, 0.08) 0%, rgba(30, 30, 30, 0.96) 100%)'
-      : 'linear-gradient(180deg, rgba(0, 122, 204, 0.07) 0%, rgba(30, 30, 30, 0.96) 100%)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderLeft: `3px solid ${accent}`,
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
-  };
-
-  const headerButtonStyle: CSSProperties = {
-    all: 'unset',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    width: '100%',
-    padding: '12px 14px',
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-  };
-
-  const sectionTitleStyle: CSSProperties = {
-    fontSize: '11px',
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--text-secondary)',
-    marginBottom: '8px',
-  };
-
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
+    <div style={TOOL_RESULT_WIDTH}>
+      <div className={`${styles.card} ${isError ? styles.cardError : ''}`}>
         <button
           type="button"
-          style={headerButtonStyle}
+          className={styles.header}
           onClick={() => setIsExpanded((value) => !value)}
           aria-expanded={isExpanded}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                MCP
-              </span>
-              <span
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  color: '#d4d4d4',
-                  fontFamily: 'Consolas, "Courier New", monospace',
-                }}
-              >
-                {serverId}
-              </span>
-              <span
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  background: isError ? 'rgba(244, 135, 113, 0.14)' : 'rgba(0, 122, 204, 0.16)',
-                  color: accent,
-                }}
-              >
-                {isError ? failedLabel : statusLabel}
-              </span>
-            </div>
-            <div
-              style={{
-                color: 'var(--text-primary)',
-                fontSize: '13px',
-                fontWeight: 600,
-                fontFamily: 'Consolas, "Courier New", monospace',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {formatToolDisplayName(toolName)}
+          <div className={styles.headerMain}>
+            <div className={styles.toolName}>{formatToolDisplayName(toolName)}</div>
+            <div className={styles.meta}>
+              <span className={styles.metaItem}>MCP</span>
+              <span className={styles.metaSep} aria-hidden />
+              <span className={styles.metaItem}>{serverId}</span>
             </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {summaryEntries[0] && (
-              <span style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
-                {summaryEntries[0].label}: {summaryEntries[0].value}
-              </span>
-            )}
-            <ChevronDown expanded={isExpanded} />
+          <div className={styles.headerAside}>
+            <span
+              className={`${styles.status} ${isError ? styles.statusError : styles.statusOk}`}
+            >
+              {isError ? failedLabel : statusLabel}
+            </span>
+            <span
+              className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}
+              aria-hidden
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </span>
           </div>
         </button>
 
         <div
-          style={{
-            display: 'grid',
-            gridTemplateRows: isExpanded ? '1fr' : '0fr',
-            transition: 'grid-template-rows 0.25s ease',
-          }}
+          className={`${styles.panel} ${isExpanded ? styles.panelExpanded : ''}`}
           aria-hidden={!isExpanded}
         >
-          <div
-            style={{
-              minHeight: 0,
-              overflow: 'hidden',
-              opacity: isExpanded ? 1 : 0,
-              padding: isExpanded ? '0 14px 14px' : '0 14px 0',
-              pointerEvents: isExpanded ? 'auto' : 'none',
-              transition: 'opacity 0.18s ease, padding 0.25s ease',
-            }}
-          >
+          <div className={`${styles.panelInner} ${isExpanded ? styles.panelInnerExpanded : ''}`}>
             {summaryEntries.length > 0 && (
-              <div style={{ marginBottom: '14px' }}>
-                <div style={sectionTitleStyle}>{summaryLabel}</div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                    gap: '8px',
-                  }}
-                >
+              <div className={styles.section}>
+                <div className={styles.sectionTitle}>{summaryLabel}</div>
+                <div className={styles.summaryGrid}>
                   {summaryEntries.map((entry) => (
-                    <div
-                      key={`${entry.label}-${entry.value}`}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          color: 'var(--text-secondary)',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        {entry.label}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: 'var(--text-primary)',
-                          lineHeight: 1.5,
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {entry.value}
-                      </div>
+                    <div key={`${entry.label}-${entry.value}`} className={styles.summaryCard}>
+                      <div className={styles.summaryLabel}>{entry.label}</div>
+                      <div className={styles.summaryValue}>{entry.value}</div>
                     </div>
                   ))}
                 </div>
@@ -387,19 +249,9 @@ const McpToolResultCard = memo(function McpToolResultCard({
             )}
 
             {argumentEntries.length > 0 && (
-              <div style={{ marginBottom: '14px' }}>
-                <div style={sectionTitleStyle}>{argumentsLabel}</div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(120px, 180px) minmax(0, 1fr)',
-                    gap: '8px 12px',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    background: 'rgba(0, 0, 0, 0.14)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                  }}
-                >
+              <div className={styles.section}>
+                <div className={styles.sectionTitle}>{argumentsLabel}</div>
+                <div className={styles.argsGrid}>
                   {argumentEntries.map((entry) => (
                     <FragmentRow key={entry.label} label={entry.label} value={entry.value} />
                   ))}
@@ -407,27 +259,9 @@ const McpToolResultCard = memo(function McpToolResultCard({
               </div>
             )}
 
-            <div>
-              <div style={sectionTitleStyle}>{rawOutputLabel}</div>
-              <pre
-                style={{
-                  margin: 0,
-                  padding: '12px',
-                  maxHeight: '220px',
-                  overflow: 'auto',
-                  borderRadius: '8px',
-                  background: 'rgba(0, 0, 0, 0.22)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  color: '#d4d4d4',
-                  fontSize: '12px',
-                  lineHeight: 1.6,
-                  fontFamily: 'Consolas, "Courier New", monospace',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {rawOutput}
-              </pre>
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>{rawOutputLabel}</div>
+              <pre className={styles.rawOutput}>{rawOutput}</pre>
             </div>
           </div>
         </div>
@@ -439,25 +273,8 @@ const McpToolResultCard = memo(function McpToolResultCard({
 function FragmentRow({ label, value }: SummaryEntry) {
   return (
     <>
-      <div
-        style={{
-          color: 'var(--text-secondary)',
-          fontSize: '11px',
-          fontFamily: 'Consolas, "Courier New", monospace',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          color: 'var(--text-primary)',
-          fontSize: '12px',
-          lineHeight: 1.5,
-          wordBreak: 'break-word',
-        }}
-      >
-        {value}
-      </div>
+      <div className={styles.argLabel}>{label}</div>
+      <div className={styles.argValue}>{value}</div>
     </>
   );
 }

@@ -297,4 +297,80 @@ describe('runAgentLoop', () => {
     expect(executeToolCall).toHaveBeenCalled();
     expect(result.finalText).toBe('Directory listed.');
   });
+
+  it('auto compacts oversized subagent context with generate_compact_summary', async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd, args?: unknown) => {
+      const invokeArgs = args as Record<string, unknown> | undefined;
+      if (cmd === 'get_app_data_path') return 'C:/app-data';
+      if (cmd === 'set_sandbox_context') return null;
+      if (cmd === 'begin_sandbox_execution') return null;
+      if (cmd === 'end_sandbox_execution') return null;
+      if (cmd === 'read_folder_children') return [];
+      if (cmd === 'generate_compact_summary') return 'Compacted earlier context summary.';
+      if (cmd === 'send_ai_chat_stream') {
+        const messageId = invokeArgs?.messageId as string;
+        setTimeout(() => {
+          emitEvent('ai-stream-chunk', {
+            message_id: messageId,
+            chunk: 'Compaction applied.',
+            chunk_type: 'content',
+          });
+          setTimeout(() => {
+            emitEvent('ai-stream-complete', {
+              message_id: messageId,
+              tool_calls: [],
+            });
+          }, 0);
+        }, 0);
+      }
+      return null;
+    });
+
+    const longText = 'old context '.repeat(3000);
+    const result = await runAgentLoop({
+      systemPrompt: 'You are a helper',
+      initialUserMessage: 'Newest request',
+      initialMessages: [
+        {
+          id: 'old-1',
+          role: 'user',
+          text: longText,
+          createdAt: 1,
+        },
+        {
+          id: 'old-2',
+          role: 'assistant',
+          text: longText,
+          createdAt: 2,
+        },
+        {
+          id: 'old-3',
+          role: 'user',
+          text: longText,
+          createdAt: 3,
+        },
+        {
+          id: 'old-4',
+          role: 'assistant',
+          text: longText,
+          createdAt: 4,
+        },
+      ],
+      tools: [],
+      model: 'gpt-test',
+      provider: 'openai',
+      context: { baseDir: 'D:/workspace', maxContextTokens: 9000 },
+      maxRounds: 1,
+      taskId: 'sub-task-compact',
+    });
+
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith(
+      'generate_compact_summary',
+      expect.objectContaining({
+        provider: 'openai',
+        model: 'gpt-test',
+      })
+    );
+    expect(result.finalText).toBe('Compaction applied.');
+  });
 });

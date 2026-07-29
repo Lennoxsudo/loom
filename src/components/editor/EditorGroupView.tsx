@@ -181,7 +181,7 @@ export function EditorGroupView({
   renderWhitespace,
   currentLineHighlight,
   bracketPairColorization,
-  projectPath: _projectPath,
+  projectPath,
   onFilesChanged: _onFilesChanged,
 }: EditorGroupViewProps) {
   const t = useTranslation();
@@ -411,6 +411,7 @@ export function EditorGroupView({
             value={activeFile.content}
             groupId={group.id}
             filePath={activeFile.path}
+            projectPath={projectPath}
             fontSize={fontSize}
             wordWrap={wordWrap}
             lineNumbers={lineNumbers}
@@ -753,6 +754,7 @@ export function EditorGroupView({
                 value={activeFile.content}
                 groupId={group.id}
                 filePath={activeFile.path}
+                projectPath={projectPath}
                 fontSize={fontSize}
                 wordWrap={wordWrap}
                 lineNumbers={lineNumbers}

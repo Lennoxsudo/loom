@@ -30,11 +30,23 @@ import { isAbsolutePath, resolveContainedPath } from '../../shared/lib/pathUtils
  * resolvePathWithBaseDir('C:\\Windows\\System32', 'D:\\project'); // throws
  * ```
  */
-export function resolvePathWithBaseDir(path: string, baseDir?: string): string {
+export function resolvePathWithBaseDir(
+  path: string,
+  baseDir?: string,
+  allowExternalPaths?: boolean
+): string {
   if (!baseDir) return path;
   const p = path.trim();
   if (!p) return path;
-  return resolveContainedPath(p, baseDir);
+  return resolveContainedPath(p, baseDir, { allowExternalPaths });
+}
+
+/** Resolve a tool file path using execution context (workspace + optional external access). */
+export function resolvePathForTool(
+  path: string,
+  context?: { baseDir?: string; allowExternalPaths?: boolean }
+): string {
+  return resolvePathWithBaseDir(path, context?.baseDir, context?.allowExternalPaths);
 }
 
 /** Re-export for callers that need the absolute-path check. */

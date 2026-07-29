@@ -6,7 +6,7 @@ import {
   DEFAULT_CONTEXT_WINDOW,
 } from '../../utils/contextBudget';
 import { loadSkillsContext } from '../../utils/skills';
-import { buildContextForRequest } from '../agent/utils';
+import { buildContextForRequestWithAiSummary } from '../agent/utils';
 import { toChatPanelProviderRequestMessages, type Message } from './types';
 import type { CompactState, ProviderRequestMessage } from '../../types/chat';
 import type { AIProvider } from '../../utils/visionCapabilities';
@@ -106,7 +106,7 @@ export async function buildChatContextUsage(
     conversationId
   );
   const skillsContext = await loadSkillsContext(projectPath);
-  const { messages: preparedMessages } = buildContextForRequest({
+  const { messages: preparedMessages } = await buildContextForRequestWithAiSummary({
     projectPath,
     skillsContext,
     requestMessages,

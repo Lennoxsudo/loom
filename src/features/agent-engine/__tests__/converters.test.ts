@@ -365,6 +365,17 @@ describe('toOpenAITools', () => {
       expect(params.type).toBe('object');
       expect(params.properties).toBeDefined();
     });
+
+    it('当 parameters 缺失 type 时自动补全 type: object (Gemini 兼容)', () => {
+      const tool = makeTool({
+        parameters: {
+          properties: { path: { type: 'string' } },
+        } as any,
+      });
+      const result = toOpenAITools([tool]);
+      const params = result[0].function.parameters as Record<string, unknown>;
+      expect(params.type).toBe('object');
+    });
   });
 
   describe('空输入', () => {

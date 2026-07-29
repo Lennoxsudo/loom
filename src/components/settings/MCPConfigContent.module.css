@@ -229,3 +229,126 @@
   color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
   background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
 }
+
+.statusDisconnected {
+  color: color-mix(in srgb, #f48771 85%, var(--text-primary));
+  background: color-mix(in srgb, #f48771 12%, transparent);
+}
+
+.statusStarting {
+  color: color-mix(in srgb, #ff9800 85%, var(--text-primary));
+  background: color-mix(in srgb, #ff9800 12%, transparent);
+}
+
+.healthBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-overlay-soft) 45%, transparent);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.healthDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.healthDotOk {
+  background: #4caf50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.45);
+}
+
+.healthDotWarn {
+  background: #ff9800;
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.45);
+}
+
+.healthDotError {
+  background: #f44336;
+  box-shadow: 0 0 6px rgba(244, 67, 54, 0.45);
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.statusDotRunning {
+  background: #4caf50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+}
+
+.statusDotStarting {
+  background: #ff9800;
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.5);
+  animation: mcpPulse 1.2s infinite;
+}
+
+.statusDotDisconnected {
+  background: #f44336;
+  box-shadow: 0 0 6px rgba(244, 67, 54, 0.5);
+}
+
+.statusDotStopped,
+.statusDotDisabled {
+  background: #555;
+}
+
+.statusBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.statusBadgeRunning {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.statusBadgeStarting {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.statusBadgeDisconnected {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.statusBadgeDisabled {
+  background: rgba(150, 150, 150, 0.15);
+  color: #888;
+  border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+.statusBadgeStopped {
+  background: rgba(150, 150, 150, 0.15);
+  color: #888;
+  border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+@keyframes mcpPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}

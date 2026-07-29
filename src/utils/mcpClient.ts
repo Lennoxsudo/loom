@@ -102,6 +102,27 @@ export interface McpServerStatusEntry {
   is_initialized: boolean;
 }
 
+export type McpServerDisplayState =
+  | 'disabled'
+  | 'starting'
+  | 'running'
+  | 'disconnected'
+  | 'stopped';
+
+export function resolveMcpServerDisplayState(
+  enabled: boolean,
+  runtime: McpServerStatusEntry | undefined,
+  busyServerId: string | null,
+  serverId: string
+): McpServerDisplayState {
+  if (!enabled) return 'disabled';
+  if (busyServerId === serverId) return 'starting';
+  if (runtime?.is_running && !runtime.is_initialized) return 'starting';
+  if (runtime?.is_running && runtime.is_initialized) return 'running';
+  if (enabled) return 'disconnected';
+  return 'stopped';
+}
+
 // MCP 资源
 interface McpResource {
   uri: string;
@@ -143,6 +164,7 @@ class McpClient {
   /** 按 serverId 分组的串行队列，不同服务器之间可并行 */
   private serverQueues: Map<string, Promise<void>> = new Map();
   private toolsInvalidatedListeners: Set<() => void> = new Set();
+  private statusChangedListeners: Set<() => void> = new Set();
 
   private constructor() {
     // 监听后台 MCP 服务器启动完成事件，自动刷新工具缓存
@@ -157,6 +179,7 @@ class McpClient {
         } else {
           console.warn(`[MCP] Server '${server_name}' (${server_id}) failed to start:`, error);
         }
+        this.notifyStatusChanged();
       }
     );
   }
@@ -176,6 +199,7 @@ class McpClient {
       await invoke('start_mcp_server');
       this.toolsCache = null;
       this.notifyToolsInvalidated();
+      this.notifyStatusChanged();
     });
   }
 
@@ -187,6 +211,7 @@ class McpClient {
     const count = await invoke<number>('start_mcp_servers_async');
     this.toolsCache = null;
     this.notifyToolsInvalidated();
+    this.notifyStatusChanged();
     return count;
   }
 
@@ -198,6 +223,7 @@ class McpClient {
       await invoke('stop_mcp_server');
       this.toolsCache = null;
       this.notifyToolsInvalidated();
+      this.notifyStatusChanged();
     });
   }
 
@@ -209,6 +235,7 @@ class McpClient {
       await invoke('start_single_mcp', { serverId });
       this.toolsCache = null;
       this.notifyToolsInvalidated();
+      this.notifyStatusChanged();
     });
   }
 
@@ -220,6 +247,29 @@ class McpClient {
       await invoke('stop_single_mcp', { serverId });
       this.toolsCache = null;
       this.notifyToolsInvalidated();
+      this.notifyStatusChanged();
+    });
+  }
+
+  /**
+   * 重启单个 MCP 服务器（先停后启）
+   */
+  async restartServer(serverId: string): Promise<void> {
+    await this.enqueue(serverId, async () => {
+      try {
+        const statuses = await invoke<McpServerStatusEntry[]>('get_mcp_status');
+        const entry = statuses.find((s) => s.server_id === serverId);
+        if (entry?.is_running) {
+          await invoke('stop_single_mcp', { serverId });
+        }
+      } catch {
+        // best-effort stop before restart
+      }
+
+      await invoke('start_single_mcp', { serverId });
+      this.toolsCache = null;
+      this.notifyToolsInvalidated();
+      this.notifyStatusChanged();
     });
   }
 
@@ -534,12 +584,29 @@ class McpClient {
     };
   }
 
+  onStatusChanged(listener: () => void): () => void {
+    this.statusChangedListeners.add(listener);
+    return () => {
+      this.statusChangedListeners.delete(listener);
+    };
+  }
+
   private notifyToolsInvalidated(): void {
     for (const listener of this.toolsInvalidatedListeners) {
       try {
         listener();
       } catch (error) {
         console.warn('[MCP] tools invalidated listener failed:', error);
+      }
+    }
+  }
+
+  private notifyStatusChanged(): void {
+    for (const listener of this.statusChangedListeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.warn('[MCP] status changed listener failed:', error);
       }
     }
   }

@@ -35,6 +35,8 @@ import {
 } from '../../utils/aiProviderRuntime';
 import { BUILTIN_PROFILE_ID, isBuiltinProtocol } from '../../utils/builtinGateway';
 import type { AgentRoutingMode } from '../../utils/agentPersistence';
+import { maybeAutoCompactConversation } from '../../utils/compact';
+import type { CompactableMessage } from '../../utils/compact';
 
 export { parseProviderAndModel };
 
@@ -1671,6 +1673,156 @@ export function buildContextForRequest(options: BuildContextOptions): {
   }
 
   // ⑥ 上下文预算裁剪（先压缩再裁剪）
+  const budgetResult = applyContextBudget(
+    providerMessages as { role: string; content: unknown }[],
+    model,
+    tools,
+    undefined,
+    maxContextTokens,
+    undefined,
+    provider
+  );
+
+  return { messages: budgetResult.messages, tools };
+}
+
+function assembleContextMessages(options: BuildContextOptions): ProviderRequestMessage[] {
+  const {
+    interactionMode = 'always-allow',
+    includeCoreSystemPrompt = true,
+    systemPrompt,
+    projectPath,
+    shouldInjectProjectPath = false,
+    skillsContext,
+    requestMessages,
+    provider,
+    model,
+    subagentCatalog,
+  } = options;
+
+  let messages: ProviderRequestMessage[] = [];
+
+  const systemLines: string[] = [];
+
+  if (includeCoreSystemPrompt) {
+    systemLines.push(buildRuntimeIdentityPrompt({ provider, model }));
+    systemLines.push(buildCoreSystemPrompt({ planMode: interactionMode === 'plan' }));
+  }
+
+  if (systemPrompt && systemPrompt.trim()) {
+    systemLines.push(systemPrompt.trim());
+  }
+
+  if (subagentCatalog && subagentCatalog.trim()) {
+    systemLines.push(subagentCatalog.trim());
+  }
+
+  if (skillsContext && skillsContext.trim()) {
+    systemLines.push(skillsContext.trim());
+  }
+
+  if (shouldInjectProjectPath && projectPath && projectPath.trim()) {
+    systemLines.push(`${PROJECT_PATH_CONTEXT_PREFIX}${projectPath}`);
+  }
+
+  if (systemLines.length > 0) {
+    messages.push({
+      role: 'system' as const,
+      content: systemLines.join('\n\n'),
+    });
+  }
+
+  messages.push(...requestMessages);
+
+  if (provider === 'anthropic') {
+    const firstNonSystem = messages.find((m) => m.role !== 'system');
+    if (firstNonSystem && firstNonSystem.role === 'assistant') {
+      messages = ensureAnthropicLeadingUser(messages, projectPath ?? '');
+    }
+  }
+
+  return messages;
+}
+
+function toCompactableContextMessages(messages: ProviderRequestMessage[]): CompactableMessage[] {
+  return messages.map((message, index) => ({
+    id: `ctx_${index}`,
+    ...message,
+    text: typeof message.content === 'string' ? message.content : undefined,
+    content: typeof message.content === 'string' ? undefined : message.content ?? undefined,
+  }));
+}
+
+function fromCompactableContextMessages(messages: CompactableMessage[]): ProviderRequestMessage[] {
+  return messages.map((message) => {
+    const contentValue =
+      message.text !== undefined ? message.text : (message.content ?? null);
+    return {
+      role: message.role as ProviderRequestMessage['role'],
+      content: contentValue as ProviderRequestMessage['content'],
+      ...(message.tool_call_id ? { tool_call_id: message.tool_call_id } : {}),
+      ...(message.tool_calls ? { tool_calls: message.tool_calls as ToolCall[] } : {}),
+      ...(message.attachments ? { attachments: message.attachments as unknown[] } : {}),
+      ...(message.thinking ? { thinking: message.thinking as string } : {}),
+    };
+  });
+}
+
+export async function buildContextForRequestWithAiSummary(
+  options: BuildContextOptions
+): Promise<{
+  messages: unknown[];
+  tools: unknown;
+}> {
+  const {
+    provider,
+    model,
+    tools,
+    maxContextTokens,
+    formatConversionCache: _formatConversionCache,
+  } = options;
+
+  const assembledMessages = assembleContextMessages(options);
+  const compactOutcome = await maybeAutoCompactConversation({
+    messages: toCompactableContextMessages(assembledMessages),
+    provider,
+    model,
+    tools,
+    maxContextTokens,
+  });
+  const activeMessages = fromCompactableContextMessages(compactOutcome.messages);
+
+  const providerMessages = options.formatConversionCache
+    ? formatMessagesForProviderCached(activeMessages, provider, options.formatConversionCache)
+    : formatMessagesForProvider(activeMessages, provider);
+
+  if (provider === 'anthropic' && tools) {
+    const toolsArray = Array.isArray(tools) ? tools : [];
+    const validToolNames = toolsArray
+      .map((t: Record<string, unknown>) => t.name)
+      .filter((n): n is string => typeof n === 'string');
+
+    if (validToolNames.length > 0) {
+      for (const msg of providerMessages) {
+        const msgObj = msg as { role: string; content: unknown };
+        if (msgObj.role === 'assistant' && Array.isArray(msgObj.content)) {
+          for (const block of msgObj.content as Record<string, unknown>[]) {
+            if (
+              block.type === 'tool_use' &&
+              typeof block.name === 'string' &&
+              !validToolNames.includes(block.name)
+            ) {
+              const match = findBestToolMatch(block.name, validToolNames);
+              if (match) {
+                block.name = match;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   const budgetResult = applyContextBudget(
     providerMessages as { role: string; content: unknown }[],
     model,

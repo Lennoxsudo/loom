@@ -23,6 +23,8 @@ import type { EngineHostCallbacks } from './events';
 export interface ToolContext extends EngineHostCallbacks {
   /** 当前工作目录的基础路径 */
   baseDir?: string;
+  /** 允许访问工作区外的绝对路径（Chat 等场景） */
+  allowExternalPaths?: boolean;
   /** 当前 Agent ID */
   agentId?: string;
   /** 当前会话 ID（用于会话隔离，如 Todo 清单） */

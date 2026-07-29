@@ -8,7 +8,7 @@ import type {
 import type { ToolHandler, ToolContext } from '../types';
 import type { RunCommandArgs, ReadTerminalOutputArgs } from '../toolArgs';
 import { ToolError, handleToolError } from '../errors';
-import { resolvePathWithBaseDir } from '../argsParser';
+import { resolvePathForTool } from '../argsParser';
 import { normalizeTerminalTextOutput } from '../terminalText';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -107,7 +107,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
       }
 
       const workingDir = args.working_dir
-        ? resolvePathWithBaseDir(args.working_dir, context?.baseDir)
+        ? resolvePathForTool(args.working_dir, context)
         : context?.baseDir;
 
       const timeoutMs = clampTimeout(args.timeout);

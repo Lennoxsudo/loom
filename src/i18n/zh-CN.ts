@@ -655,12 +655,6 @@ export const zhCN: I18nMessages = {
       deleteProjectStreamingBlocked: '有会话正在生成，请稍后再删除项目',
       deleteProjectFailed: '删除项目失败',
     },
-    placeholder: {
-      search: '搜索功能即将推出',
-      plugins: '插件功能即将推出',
-      automation: '自动化功能即将推出',
-      cloudMode: '云端模式即将推出',
-    },
     approvalMode: {
       readOnly: '只读',
       auto: '替我审批',
@@ -1152,6 +1146,9 @@ export const zhCN: I18nMessages = {
     minimap: {
       title: '代码缩略图',
     },
+    gitBlameInEditor: {
+      title: 'Git Blame 行内标注',
+    },
     renderWhitespace: {
       title: '空白字符显示',
       none: '不显示',
@@ -1510,6 +1507,12 @@ export const zhCN: I18nMessages = {
       disabled: '已禁用',
       running: '运行中',
       stopped: '已停止',
+      disconnected: '已断开',
+      reconnecting: '重连中...',
+      restart: '重启',
+      restartFailed: '重启 "{name}" 失败：{error}',
+      healthSummary: '{running}/{total} 个服务器已连接',
+      noTools: '暂无可用工具，请确保 MCP 服务器已启动',
       delete: '删除',
       openConfig: '打开配置文件',
       confirmDelete: '确定删除 "{name}" 吗？',
