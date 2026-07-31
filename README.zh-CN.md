@@ -20,7 +20,7 @@
 
 <!-- TODO: 在此处放一张应用截图或演示 GIF，例如 ![Loom](docs/assets/screenshot.png) -->
 
-> **状态：** 开源版本 · `v0.1.13` · 持续活跃开发中，变化较快。
+> **状态：** 开源版本 · `v0.1.14` · 持续活跃开发中，变化较快。
 
 Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 辅助的 IDE：Agent 可以读写你的代码、调用工具、编排子代理，并通过内置的代码知识图谱理解你的项目。
 
@@ -69,6 +69,8 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 - **上下文 @提及** — 在聊天输入框中输入 `@` 可提及文件、技能或符号，支持自动补全
 - **流式中发送** — 在 AI 正在回复时发送新消息，可选择排队或打断
 - **用量追踪** — 追踪 token 用量与成本，可选消费上限
+- **Agent 记忆** — 跨项目用户级笔记（`~/.loom/agent-memory/`）；`agent_memory` 工具、可选 `session_search`、回合后整理、对话内写入确认（设置 → **Agent → Agent 记忆**）
+- **项目记忆** — 按仓库持久化约定，工具名 `memory`（与 Agent 记忆相互独立）
 - 聊天体验：用户气泡与 AI 输出间距更清晰；思考中标签**逐字闪光**；9 种主题预设；可配置流式速度与工具调用延迟
 
 ### 👥 子代理编排
@@ -78,13 +80,14 @@ Loom 并非“带聊天框的编辑器”，而是一个完全本地运行、AI 
 
 ### 🛠️ 工具与代码图谱
 
-Loom 提供 **22 个统一 Agent 工具**，按类别划分如下：
+Loom 提供统一的 Agent 工具，按类别划分如下：
 
 | 类别 | 工具 |
 |------|------|
 | 文件与搜索 | `read`、`edit`、`write`、`delete_file`、`search`、`finfo`、`sym` |
 | 终端与网络 | `term`、`fetch`、`browser`（内置 CDP）、`web_search` |
 | Git 与工作流 | `git`、`ask`、`todo`、`skill` |
+| 记忆 | `memory`（项目）、`agent_memory`（用户级）、`session_search` |
 | 代码图谱（CBM） | `graph_index`、`graph_query`、`graph_trace` |
 | 子代理 | `Agent`、`Task`、`run_subagent`、`run_subagents` |
 
@@ -150,7 +153,7 @@ cd src-tauri && cargo test   # Rust 测试
 
 ## 配置
 
-首次启动后，在 **设置 → AI** 中填入所用模型的 API Key 与 Endpoint。也可在 **设置 → 网关** 中激活**内置模型网关**，无需配置自己的 API Key 即可使用 AI。MCP 服务器在 **设置 → MCP** 配置，代码图谱在 **设置 → 代码图谱** 配置。语音输入（Whisper STT）随应用内置模型开箱即用，可在 **设置 → 通用** 中配置 STT 语言。
+首次启动后，在 **设置 → AI** 中填入所用模型的 API Key 与 Endpoint。也可在 **设置 → 网关** 中激活**内置模型网关**，无需配置自己的 API Key 即可使用 AI。MCP 服务器在 **设置 → MCP** 配置，代码图谱在 **设置 → 代码图谱** 配置，Agent 记忆在 **设置 → Agent → Agent 记忆** 配置。语音输入（Whisper STT）随应用内置模型开箱即用，可在 **设置 → 通用** 中配置 STT 语言。
 
 ## 本地数据
 
@@ -159,6 +162,8 @@ cd src-tauri && cargo test   # Rust 测试
 | 内容 | 典型路径（Windows） |
 |------|---------------------|
 | Agent 配置与会话 | `%APPDATA%\com.administrator.loom\agent-data\` |
+| Agent 记忆（用户级） | `%USERPROFILE%\.loom\agent-memory\`（`USER.md`、`MEMORY.md`） |
+| 项目记忆 | `%USERPROFILE%\.loom\memory\{projectKey}\` |
 | AI Provider 配置 | `%USERPROFILE%\Loom\ai-config.json` |
 | 代码图谱索引缓存 | `%APPDATA%\Loom\cbm\` |
 | CDP 浏览器配置（固定复用） | `%USERPROFILE%\.loom\cdp-browser-profile\` |
@@ -213,7 +218,7 @@ API Key 与凭据仅保存在本地。旧版本遗留的 `cdp-browser-profile-<p
 
 ## 路线图
 
-当前发布：**v0.1.13**。规划中 / 考虑中：
+当前发布：**v0.1.14**。规划中 / 考虑中：
 
 - 数据库连接器（MySQL / PostgreSQL / Redis）
 - 插件市场扩展

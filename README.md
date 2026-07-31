@@ -20,7 +20,7 @@ Code editing, project search, AI agents, sub-agent orchestration, MCP, a built-i
 
 <!-- TODO: add a screenshot or short demo GIF here, e.g. ![Loom](docs/assets/screenshot.png) -->
 
-> **Status:** Open-source · `v0.1.13` · Under active development — expect rapid changes.
+> **Status:** Open-source · `v0.1.14` · Under active development — expect rapid changes.
 
 Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully local, AI-assisted IDE where the agent can read and edit your code, run tools, orchestrate sub-agents, and understand your codebase through a built-in knowledge graph.
 
@@ -69,6 +69,8 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 - **Context @-mentions** — type `@` in the chat composer to mention files, skills, or symbols with autocomplete
 - **Send-while-streaming** — choose to queue or interrupt when sending a new message while the AI is still replying
 - **Usage tracking** — track token usage and costs with an optional spending cap
+- **Agent Memory** — user-scoped notes across projects (`~/.loom/agent-memory/`); `agent_memory` tool, optional `session_search`, post-turn review, and write approval in the conversation (Settings → **Agent → Agent Memory**)
+- **Project Memory** — per-repo durable notes via the `memory` tool (independent of Agent Memory)
 - Chat UX polish: clearer spacing after user bubbles, **shimmer "Thinking…"** label while reasoning runs, 9 theme presets, configurable stream speed and tool-call delay
 
 ### 👥 Sub-agent Orchestration
@@ -78,13 +80,14 @@ Loom is **not** “an editor with a chat box bolted on.” It aims to be a fully
 
 ### 🛠️ Tools & Code Graph
 
-Loom exposes **22 unified agent tools**, grouped as follows:
+Loom exposes unified agent tools, grouped as follows:
 
 | Group | Tools |
 |-------|-------|
 | Files & search | `read`, `edit`, `write`, `delete_file`, `search`, `finfo`, `sym` |
 | Terminal & network | `term`, `fetch`, `browser` (built-in CDP), `web_search` |
 | Git & workflow | `git`, `ask`, `todo`, `skill` |
+| Memory | `memory` (project), `agent_memory` (user-scoped), `session_search` |
 | Code graph (CBM) | `graph_index`, `graph_query`, `graph_trace` |
 | Sub-agents | `Agent`, `Task`, `run_subagent`, `run_subagents` |
 
@@ -150,7 +153,7 @@ cd src-tauri && cargo test   # Rust tests
 
 ## Configuration
 
-On first launch, open **Settings → AI** and add the API key / endpoint for each provider you use. Alternatively, activate the **built-in gateway** in **Settings → Gateway** to use AI without your own API keys. MCP servers are configured under **Settings → MCP**, and the code graph under **Settings → Code Graph**. Voice input (Whisper STT) works out of the box with the bundled model — configure the STT language in **Settings → General**.
+On first launch, open **Settings → AI** and add the API key / endpoint for each provider you use. Alternatively, activate the **built-in gateway** in **Settings → Gateway** to use AI without your own API keys. MCP servers are configured under **Settings → MCP**, the code graph under **Settings → Code Graph**, and Agent Memory under **Settings → Agent → Agent Memory**. Voice input (Whisper STT) works out of the box with the bundled model — configure the STT language in **Settings → General**.
 
 ## Local Data
 
@@ -159,6 +162,8 @@ User data stays on your machine and is never committed to the repository:
 | Data | Typical location (Windows) |
 |------|----------------------------|
 | Agent config & conversations | `%APPDATA%\com.administrator.loom\agent-data\` |
+| Agent Memory (user-scoped) | `%USERPROFILE%\.loom\agent-memory\` (`USER.md`, `MEMORY.md`) |
+| Project Memory | `%USERPROFILE%\.loom\memory\{projectKey}\` |
 | AI provider config | `%USERPROFILE%\Loom\ai-config.json` |
 | Code graph index cache | `%APPDATA%\Loom\cbm\` |
 | CDP browser profile (stable, reused) | `%USERPROFILE%\.loom\cdp-browser-profile\` |
@@ -213,7 +218,7 @@ Release / signing procedure for maintainers: [docs/releases/windows-auto-update.
 
 ## Roadmap
 
-Active release: **v0.1.13**. Planned / under consideration:
+Active release: **v0.1.14**. Planned / under consideration:
 
 - Database connectors (MySQL / PostgreSQL / Redis)
 - Plugin marketplace expansion

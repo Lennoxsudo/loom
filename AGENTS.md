@@ -6,7 +6,7 @@
 
 Loom 是本地运行的 AI 辅助 IDE：在同一工作流中整合代码编辑、项目检索、Agent、MCP、终端、内嵌浏览器、Live Server、Git 工作区与代码图谱。
 
-- **版本**：`0.1.13`（manifest）；活跃开发中
+- **版本**：`0.1.14`（manifest）；活跃开发中
 - **仓库**：https://github.com/Lennoxsudo/loom
 
 ## 技术栈
@@ -51,7 +51,7 @@ loom/
 │   │   ├── agent/       # Agent 面板、工具调用、审批、子代理、变更审查、检查点时间线
 │   │   ├── chat/        # Chat 面板（含 streamCompletionCoordinator）
 │   │   ├── editor/      # Monaco 宿主、标签、分屏、Git Blame
-│   │   ├── settings/    # 设置页各选项卡（含 UpdateContent / BuiltinGatewayContent）
+│   │   ├── settings/    # 设置页各选项卡（含 UpdateContent / BuiltinGatewayContent / AgentMemoryContent）
 │   │   ├── shared/      # 共享 UI（Markdown、图谱结果卡片、ContextMentionMenu）
 │   │   └── ...
 │   ├── hooks/
@@ -65,6 +65,8 @@ loom/
 │   │   ├── runAgentLoop.ts
 │   │   ├── coreSystemPrompt.ts
 │   │   ├── contextBudget.ts
+│   │   ├── agentMemory.ts / agentMemoryReview.ts / sessionSearch.ts
+│   │   ├── projectMemory.ts
 │   │   ├── checkpointService.ts / checkpointTimeline.ts
 │   │   ├── generateCommitMessage.ts
 │   │   ├── voiceRecording.ts
@@ -124,9 +126,9 @@ loom/
 
 | 层级 | 文件 |
 |------|------|
-| Schema | `definitions.ts`（22 个主工具） |
+| Schema | `definitions.ts` |
 | 归一化 | `argsParser.ts`、`schema.ts`（含 legacy 别名） |
-| 执行 | `toolExecutor.ts`、`registry.ts`（13 个 Handler 模块） |
+| 执行 | `toolExecutor.ts`、`registry.ts`（Handler 模块） |
 | 边界 | `events.ts`（`EngineHostCallbacks` / `agentEngineEvents`） |
 
 工具输出**直接返回完整内容**，不做截断或压缩。
@@ -141,8 +143,33 @@ loom/
 | `git` | diff / undo |
 | `fetch` / `browser` / `web_search` | 网页抓取 / 内嵌浏览器 / 原生 Web 搜索 |
 | `ask` / `todo` / `skill` | 提问 / 任务清单 / 技能 |
+| `memory` | 项目记忆（单仓库，`~/.loom/memory/{projectKey}`） |
+| `agent_memory` | Agent 记忆（用户级，`~/.loom/agent-memory/`）；子代理默认不暴露 |
+| `session_search` | 按需检索过往 Agent 会话（不注入 system prompt）；Chat 面板不暴露 |
 | `graph_index` / `graph_query` / `graph_trace` | 代码图谱 |
 | `Agent` / `Task` / `run_subagent(s)` | 子代理委派 |
+
+### 记忆系统
+
+两套互不依赖的记忆，仅 Agent 面板使用（Chat 不注入 Agent Memory 约定、不注册相关工具）：
+
+| 能力 | 路径 | 工具 | 说明 |
+|------|------|------|------|
+| **Agent 记忆** | `~/.loom/agent-memory/{USER,MEMORY}.md` | `agent_memory`、`session_search` | 跨项目用户画像与环境笔记；会话内冻结注入；可选回合后规则整理与写入确认 |
+| **项目记忆** | `~/.loom/memory/{projectKey}` | `memory` | 单仓库约定条目 |
+
+Agent 记忆设置（`useSettingsStore` / 设置 → Agent → **Agent 记忆**）：
+
+| 键 | 默认 | 说明 |
+|----|------|------|
+| `enableAgentMemory` | `true` | 总开关：关则不注入、不写、不跑整理 |
+| `enableAgentMemoryUserProfile` | `true` | USER.md |
+| `enableAgentMemoryNotes` | `true` | MEMORY.md |
+| `enableAgentSessionSearch` | `true` | `session_search` |
+| `enableAgentMemoryReview` | `false` | 回合结束后规则抽取「记住/偏好」候选（不调额外模型） |
+| `agentMemoryWriteApproval` | `false` | 写入先暂存，对话内容区批准后落盘 |
+
+实现要点：`agentMemory.ts`（IO / 冻结 / 近似去重）、`agentMemoryReview.ts`、`sessionSearch.ts`、`AgentMemoryContent.tsx`（预览与删除）。
 
 ### 代码图谱（CBM）
 
@@ -262,10 +289,11 @@ loom/
 | `enableCdpBrowser` | `boolean` | CDP 浏览器开关 |
 | `enableCodeGraph` | `boolean` | 代码图谱开关 |
 | `enableSubagents` | `boolean` | 子代理开关 |
+| `enableAgentMemory` 等 | `boolean` | Agent 记忆总开关 / User / Notes / 会话检索 / 整理 / 写入确认（见上「记忆系统」） |
 
 ### Agent 相关改动
 
-优先查阅：`agentPersistence.ts`、`aiTools/`、`rulesInjector.ts`、`contextBudget.ts`、`coreSystemPrompt.ts`、`runAgentLoop.ts`
+优先查阅：`agentPersistence.ts`、`agent-engine/`、`agentMemory.ts`、`sessionSearch.ts`、`rulesInjector.ts`、`contextBudget.ts`、`coreSystemPrompt.ts`、`runAgentLoop.ts`
 
 ## 子代理契约
 
