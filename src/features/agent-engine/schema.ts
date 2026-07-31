@@ -510,6 +510,42 @@ const MemorySchema = z
     }
   });
 
+const AgentMemorySchema = z
+  .object({
+    action: z.enum(['add', 'replace', 'remove']),
+    target: z.enum(['user', 'memory']),
+    content: z.string().optional(),
+    old_text: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action === 'add' || data.action === 'replace') {
+      if (!data.content?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `content is required for action=${data.action}`,
+          path: ['content'],
+        });
+      }
+    }
+    if (data.action === 'replace' || data.action === 'remove') {
+      if (!data.old_text?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `old_text is required for action=${data.action}`,
+          path: ['old_text'],
+        });
+      }
+    }
+  });
+
+const SessionSearchSchema = z.object({
+  query: z.string().min(1),
+  project_path: z.string().optional(),
+  conversation_id: z.string().optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+
 const UpdatePlanSchema = z.object({
   plan: z.string().min(1),
   title: z.string().optional(),
@@ -665,6 +701,12 @@ export function validateToolParameters(
         break;
       case 'memory':
         schema = MemorySchema;
+        break;
+      case 'agent_memory':
+        schema = AgentMemorySchema;
+        break;
+      case 'session_search':
+        schema = SessionSearchSchema;
         break;
       case 'update_plan':
         schema = UpdatePlanSchema;

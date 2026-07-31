@@ -27,6 +27,11 @@ export interface MaybeAutoCompactOptions<T extends CompactableMessage> {
   reserveTokens?: number;
   compactState?: CompactState | null;
   compactType?: CompactType;
+  /**
+   * 为 true 时不执行压缩（也不会触发 LLM 摘要等付费调用），
+   * 用于 UI 用量统计等只读路径。
+   */
+  skipCompact?: boolean;
 }
 
 export interface MaybeAutoCompactResult<T extends CompactableMessage> {
@@ -52,6 +57,7 @@ export async function maybeAutoCompactConversation<T extends CompactableMessage>
     reserveTokens,
     compactState,
     compactType = 'auto',
+    skipCompact = false,
   } = opts;
 
   const budgetTokens = computeCompressionThreshold({
@@ -61,6 +67,7 @@ export async function maybeAutoCompactConversation<T extends CompactableMessage>
   });
 
   if (
+    skipCompact ||
     !shouldAutoCompact({
       messages,
       budgetTokens,

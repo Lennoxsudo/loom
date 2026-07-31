@@ -34,6 +34,7 @@ import {
 } from './SettingsPrimitives';
 import { AuditLogPanel } from '../agent/AuditLogPanel';
 import { SkillsContent } from './SkillsContent';
+import { AgentMemoryContent } from './AgentMemoryContent';
 import { MemoryContent } from './MemoryContent';
 import { MCPConfigContent } from './MCPConfigContent';
 import { AgentRulesContent } from './AgentRulesContent';
@@ -46,6 +47,7 @@ export type AgentSettingsSection =
   | 'rules'
   | 'subagent'
   | 'skills'
+  | 'agent-memory'
   | 'memory'
   | 'mcp'
   | 'audit';
@@ -204,11 +206,13 @@ export function AgentContent({
             ? t.settingsAgent.subagent.title
             : section === 'skills'
               ? t.settingsSkills.title
-              : section === 'memory'
-                ? t.settingsMemory.title
-                : section === 'mcp'
-                  ? t.settingsMcp.title
-                  : 'Audit Log';
+              : section === 'agent-memory'
+                ? t.settingsAgentMemory.title
+                : section === 'memory'
+                  ? t.settingsMemory.title
+                  : section === 'mcp'
+                    ? t.settingsMcp.title
+                    : 'Audit Log';
 
   const renderStoragePath = (panel = false) => {
     if (loading) {
@@ -380,6 +384,8 @@ export function AgentContent({
         )}
 
         {section === 'skills' && <SkillsContent variant="panel" />}
+
+        {section === 'agent-memory' && <AgentMemoryContent variant="panel" />}
 
         {section === 'memory' && <MemoryContent variant="panel" />}
 

@@ -28,6 +28,8 @@ export interface BuildChatContextUsageOptions {
   maxContextTokens?: number;
   /** Conversation id for plan document injection (optional). */
   conversationId?: string;
+  /** 只读统计路径置 true：不执行压缩，避免触发付费 LLM 摘要 */
+  skipCompact?: boolean;
 }
 
 export interface ChatContextUsage {
@@ -83,6 +85,7 @@ export async function buildChatContextUsage(
     compactState,
     maxContextTokens = DEFAULT_CONTEXT_WINDOW,
     conversationId,
+    skipCompact,
   } = options;
 
   const compactOutcome = await maybeAutoCompactConversation({
@@ -94,6 +97,7 @@ export async function buildChatContextUsage(
     maxContextTokens,
     reserveTokens: CHAT_CONTEXT_RESERVE_TOKENS,
     compactState,
+    skipCompact,
   });
 
   const activeMessages = compactOutcome.messages as unknown as Message[];
@@ -115,6 +119,9 @@ export async function buildChatContextUsage(
     tools,
     maxContextTokens,
     interactionMode: chatMode,
+    // Agent Memory is Agent-panel only (design non-goal for Chat).
+    enableAgentMemory: false,
+    enableAgentSessionSearch: false,
   });
 
   const normalizedMessages = preparedMessages as Array<{ role: string; content: unknown }>;

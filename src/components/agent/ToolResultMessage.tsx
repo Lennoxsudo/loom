@@ -1307,8 +1307,9 @@ const ToolResultMessage = memo(function ToolResultMessage({
     );
   }
 
-  // Detect error/success from content
-  if (approvalOutcome) {
+  // Pending / settled approval for tools that fall through to the compact card
+  // (e.g. agent_memory write-approval after the tool has already staged).
+  if (isPendingApproval || approvalOutcome) {
     const cleanToolName = formatToolDisplayName(message.tool_name);
     const summary = message.approvalSummary;
     return wrapCompactRow(
@@ -1326,9 +1327,12 @@ const ToolResultMessage = memo(function ToolResultMessage({
             {summary?.label ? (
               <span style={{ color: 'var(--text-secondary)' }}> {summary.label}</span>
             ) : null}
+            {summary?.detail ? (
+              <span style={{ color: 'var(--text-secondary)' }}> · {summary.detail}</span>
+            ) : null}
           </>
         }
-        status="neutral"
+        status={isPendingApproval ? 'run' : 'neutral'}
       />
     );
   }

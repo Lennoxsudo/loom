@@ -7,6 +7,20 @@ import { ToolError, ToolErrorCode, handleToolError } from '../errors';
 import { resolvePathForTool } from '../argsParser';
 import type { ReadFileToolResult, WriteFileResult } from '../../../types/ai';
 
+/** Align with term tool: keep a single read result from blowing the context window. */
+const MAX_INLINE_READ_CHARS = 30_000;
+
+function truncateReadOutput(output: string): string {
+  if (output.length <= MAX_INLINE_READ_CHARS) return output;
+  const truncated = output.slice(0, MAX_INLINE_READ_CHARS);
+  const totalLines = output.split('\n').length;
+  const shownLines = truncated.split('\n').length;
+  return (
+    `${truncated}\n\n... [${totalLines - shownLines} lines truncated; ` +
+    `use start_line/max_lines or max_bytes for a narrower window] ...`
+  );
+}
+
 function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' ? value : undefined;
 }
@@ -79,7 +93,7 @@ export class ReadFileHandler implements ToolHandler<'read'> {
         results.push(`文件内容 (${resolvedPath}):\n\n\`\`\`\n${output}\n\`\`\``);
       }
 
-      return { tool_call_id: '', output: results.join('\n\n---\n\n') };
+      return { tool_call_id: '', output: truncateReadOutput(results.join('\n\n---\n\n')) };
     } catch (error) {
       if (error instanceof ToolError) {
         return error.toToolResult();

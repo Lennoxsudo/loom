@@ -296,6 +296,8 @@ const cacheableTools = {
   browser: false,
   todo: false,
   memory: false,
+  agent_memory: false,
+  session_search: false,
   ask: false,
   skill: false,
 

@@ -257,7 +257,13 @@ const TOOL_PRESETS: Record<string, Set<string>> = {
 };
 
 /** 永远不需要的子代理工具（在所有预设中排除） */
-const SUBAGENT_EXCLUDED_TOOLS = new Set(['generate_image', 'image_gen', 'memory']);
+const SUBAGENT_EXCLUDED_TOOLS = new Set([
+  'generate_image',
+  'image_gen',
+  'memory',
+  'agent_memory',
+  'session_search',
+]);
 
 /**
  * 方法 14：根据子代理类型裁剪工具定义。

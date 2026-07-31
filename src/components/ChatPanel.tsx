@@ -547,6 +547,9 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
         isGitRepo,
         hasBrowserCapability,
         enableCodeGraph: cbmGraphEnabled,
+        // Agent Memory is Agent-panel only.
+        enableAgentMemory: false,
+        enableAgentSessionSearch: false,
       });
       if (chatMode === 'plan') {
         tools = tools.filter((tool) => !isToolBlockedInPlanMode(tool.name));
@@ -593,6 +596,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           chatRules,
           chatRulesInjected: chatRulesInjectedRef.current,
           conversationId: currentConversationRef.current?.id,
+          // 只读用量统计：不触发压缩的付费 LLM 摘要
+          skipCompact: true,
         });
 
         if (!cancelled) {

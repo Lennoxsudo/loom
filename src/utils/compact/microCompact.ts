@@ -1,6 +1,8 @@
 /**
  * Micro-compaction: truncate tool result bodies without LLM.
- * Tool-result micro-compaction is disabled so handler output stays intact in history.
+ * Intentionally a no-op: full tool returns are preserved for the UI/cache prefix.
+ * Disk/context growth is controlled by pressure-gated {@link agePersistedChatToolMessages}
+ * on persist paths instead.
  * @module compact/microCompact
  */
 
@@ -9,7 +11,7 @@ import { toBudgetMessage } from './budgetMessage';
 import type { CompactableMessage } from './types';
 
 /**
- * Micro-compact tool messages. Currently a no-op to preserve full tool returns.
+ * Micro-compact tool messages. Currently a no-op; see module note above.
  */
 export function microCompactMessages<T extends CompactableMessage>(
   messages: T[]

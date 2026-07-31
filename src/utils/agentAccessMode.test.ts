@@ -23,6 +23,8 @@ describe('agentAccessMode', () => {
       'todo',
       'TodoWrite',
       'memory',
+      'agent_memory',
+      'session_search',
       'ask',
       'ask_user_question',
       'update_plan',

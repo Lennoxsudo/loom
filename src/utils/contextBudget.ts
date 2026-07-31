@@ -19,7 +19,7 @@ const CJK_REGEX = /[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g;
 /**
  * 方法 11：Token 估算校准状态。
  *
- * 维护一个全局的校准系数，用 API 返回的实际 usage 数据校准 estimateTokens 的估算。
+ * 按 provider:model 分桶维护校准系数，避免多模型混用互相污染。
  * 使用 EMA（指数移动平均）平滑更新，避免单次偏差导致剧烈波动。
  *
  * 默认值：CJK 1.5x，非 CJK /3.5（偏保守）
@@ -34,11 +34,15 @@ interface CalibrationState {
   sampleCount: number;
 }
 
-const calibrationState: CalibrationState = {
-  cjkFactor: 1.5,
-  nonCjkDivisor: 3.5,
-  sampleCount: 0,
-};
+function createDefaultCalibrationState(): CalibrationState {
+  return {
+    cjkFactor: 1.5,
+    nonCjkDivisor: 3.5,
+    sampleCount: 0,
+  };
+}
+
+const calibrationByKey = new Map<string, CalibrationState>();
 
 /** EMA 平滑系数（0~1，越小越平滑） */
 const CALIBRATION_EMA_ALPHA = 0.3;
@@ -49,15 +53,42 @@ const MAX_CJK_FACTOR = 3.0;
 const MIN_NON_CJK_DIVISOR = 2.0;
 const MAX_NON_CJK_DIVISOR = 6.0;
 
+export function buildTokenCalibrationKey(provider?: string, model?: string): string {
+  const p = (provider ?? '').trim() || 'unknown';
+  const m = (model ?? '').trim() || 'unknown';
+  return `${p}:${m}`;
+}
+
+function resolveCalibrationKey(key?: string): string {
+  const normalized = (key ?? '').trim();
+  return normalized || 'default';
+}
+
+function getMutableCalibrationState(key?: string): CalibrationState {
+  const resolved = resolveCalibrationKey(key);
+  let state = calibrationByKey.get(resolved);
+  if (!state) {
+    state = createDefaultCalibrationState();
+    calibrationByKey.set(resolved, state);
+  }
+  return state;
+}
+
 /**
  * 方法 11：用 API 返回的实际 token 数校准估算系数。
  *
  * @param estimated 前端估算的 token 数
- * @param actual API 返回的实际 input_tokens
+ * @param actual API 返回的实际 input_tokens（含缓存口径）
+ * @param key 校准分桶（建议 provider:model）；缺省 `default`
  */
-export function calibrateTokenEstimation(estimated: number, actual: number): void {
+export function calibrateTokenEstimation(
+  estimated: number,
+  actual: number,
+  key?: string
+): void {
   if (estimated <= 0 || actual <= 0) return;
 
+  const calibrationState = getMutableCalibrationState(key);
   const ratio = actual / estimated;
   // 限制单次校准的幅度，避免异常值导致系数剧烈跳变
   const clampedRatio = Math.max(0.5, Math.min(2.0, ratio));
@@ -96,8 +127,67 @@ export function calibrateTokenEstimation(estimated: number, actual: number): voi
 /**
  * 获取当前校准状态（用于调试/UI 显示）
  */
-export function getCalibrationState(): Readonly<CalibrationState> {
-  return { ...calibrationState };
+export function getCalibrationState(key?: string): Readonly<CalibrationState> {
+  return { ...getMutableCalibrationState(key) };
+}
+
+/**
+ * 估算一次完整请求的输入 token（消息 + 工具定义）。
+ * 与实际发送的 payload 同口径，供方法 11 校准使用。
+ */
+export function estimateRequestTokens(
+  messages: Array<{ role: string; content: unknown }>,
+  tools: unknown,
+  calibrationKey?: string
+): number {
+  const messageTokens = messages.reduce(
+    (sum, m) => sum + estimateMessageTokens(m, calibrationKey),
+    0
+  );
+  return messageTokens + estimateToolsTokens(tools);
+}
+
+/** 发送时记录的请求 token 估算上限（FIFO 淘汰，防止异常流失衡导致泄漏） */
+const REQUEST_TOKEN_ESTIMATE_KEEP_MAX = 50;
+
+type PendingRequestTokenEstimate = {
+  estimatedTokens: number;
+  calibrationKey: string;
+};
+
+const pendingRequestTokenEstimates = new Map<string, PendingRequestTokenEstimate>();
+
+/**
+ * 方法 11：发送请求前记录该 payload 的 token 估算，
+ * 供流完成后与同一次请求的实际 usage 对比校准。
+ */
+export function recordRequestTokenEstimate(
+  messageId: string,
+  estimatedTokens: number,
+  calibrationKey?: string
+): void {
+  if (!messageId || estimatedTokens <= 0) return;
+  if (pendingRequestTokenEstimates.size >= REQUEST_TOKEN_ESTIMATE_KEEP_MAX) {
+    const oldestKey = pendingRequestTokenEstimates.keys().next().value;
+    if (oldestKey !== undefined) {
+      pendingRequestTokenEstimates.delete(oldestKey);
+    }
+  }
+  pendingRequestTokenEstimates.set(messageId, {
+    estimatedTokens,
+    calibrationKey: resolveCalibrationKey(calibrationKey),
+  });
+}
+
+/** 取出并清除某次请求记录的 token 估算（一次性） */
+export function consumeRequestTokenEstimate(
+  messageId: string
+): PendingRequestTokenEstimate | undefined {
+  const value = pendingRequestTokenEstimates.get(messageId);
+  if (value !== undefined) {
+    pendingRequestTokenEstimates.delete(messageId);
+  }
+  return value;
 }
 
 /**
@@ -107,9 +197,10 @@ export function getCalibrationState(): Readonly<CalibrationState> {
  *
  * 估算偏高以留安全余量。
  */
-export function estimateTokens(text: string): number {
+export function estimateTokens(text: string, calibrationKey?: string): number {
   if (!text) return 0;
 
+  const calibrationState = getMutableCalibrationState(calibrationKey);
   let tokens = 0;
   // CJK 字符: 每个算 cjkFactor token
   const textWithoutCjk = text.replace(CJK_REGEX, '');
@@ -129,35 +220,39 @@ export function estimateTokens(text: string): number {
  * 方法 15：图片 token 按 provider 估算，而非固定 300。
  * 使用 `estimateMessageTokensWithProvider` 可获得更精确的图片 token 估算。
  */
-export function estimateMessageTokens(message: { role: string; content: unknown }): number {
+export function estimateMessageTokens(
+  message: { role: string; content: unknown },
+  calibrationKey?: string
+): number {
   const overhead = 4; // role + separators
   let contentTokens = 0;
 
   if (typeof message.content === 'string') {
-    contentTokens = estimateTokens(message.content);
+    contentTokens = estimateTokens(message.content, calibrationKey);
   } else if (Array.isArray(message.content)) {
     // Anthropic 格式: content 是 array of blocks
     for (const block of message.content) {
       if (typeof block === 'object' && block !== null) {
         const b = block as Record<string, unknown>;
         if (b.type === 'text' && typeof b.text === 'string') {
-          contentTokens += estimateTokens(b.text);
+          contentTokens += estimateTokens(b.text, calibrationKey);
         } else if (b.type === 'tool_use') {
-          contentTokens += estimateTokens(JSON.stringify(b.input ?? {})) + 20;
+          contentTokens += estimateTokens(JSON.stringify(b.input ?? {}), calibrationKey) + 20;
         } else if (b.type === 'tool_result') {
           contentTokens += estimateTokens(
-            typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '')
+            typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? ''),
+            calibrationKey
           );
         } else if (b.type === 'image' || b.type === 'image_url') {
           // 方法 15：使用通用估算（300），provider 特定估算见 estimateMessageTokensWithProvider
           contentTokens += DEFAULT_IMAGE_TOKENS;
         } else {
-          contentTokens += estimateTokens(JSON.stringify(b));
+          contentTokens += estimateTokens(JSON.stringify(b), calibrationKey);
         }
       }
     }
   } else if (message.content != null) {
-    contentTokens = estimateTokens(JSON.stringify(message.content));
+    contentTokens = estimateTokens(JSON.stringify(message.content), calibrationKey);
   }
 
   return overhead + contentTokens;

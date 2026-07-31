@@ -73,6 +73,11 @@ export function AgentSettingsNav({
             icon: <SkillsIcon size={14} />,
           },
           {
+            id: 'agent-memory',
+            label: t.settingsAgentMemory.title,
+            icon: <ProjectMemoryIcon size={14} />,
+          },
+          {
             id: 'memory',
             label: t.settingsMemory.title,
             icon: <ProjectMemoryIcon size={14} />,

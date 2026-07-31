@@ -44,10 +44,17 @@ export function insertComposerMention(
   return { nextValue, cursor };
 }
 
+export interface SideResourceGroup {
+  id: string;
+  label: string;
+  items: string[];
+}
+
 export interface SideResourceCapsuleProps {
   label: string;
   count: number;
-  items: string[];
+  items?: string[];
+  groups?: SideResourceGroup[];
   emptyLabel: string;
   title: string;
   isOpen: boolean;
@@ -60,7 +67,8 @@ export interface SideResourceCapsuleProps {
 export const SideResourceCapsule = memo(function SideResourceCapsule({
   label,
   count,
-  items,
+  items = [],
+  groups,
   emptyLabel,
   title,
   isOpen,
@@ -69,6 +77,11 @@ export const SideResourceCapsule = memo(function SideResourceCapsule({
   disabled = false,
   centered = false,
 }: SideResourceCapsuleProps) {
+  const hasGroups = Boolean(groups && groups.length > 0);
+  const isEmpty = hasGroups
+    ? groups!.every((g) => g.items.length === 0)
+    : items.length === 0;
+
   return (
     <div className={styles.sideIndicatorWrap}>
       <button
@@ -95,8 +108,34 @@ export const SideResourceCapsule = memo(function SideResourceCapsule({
           role="listbox"
           aria-label={title}
         >
-          {items.length === 0 ? (
+          {isEmpty ? (
             <div className={styles.sideIndicatorEmpty}>{emptyLabel}</div>
+          ) : hasGroups ? (
+            <ul className={styles.sideIndicatorList}>
+              {groups!.map((group) => (
+                <li key={group.id} className={styles.sideIndicatorGroup} role="presentation">
+                  <div className={styles.sideIndicatorGroupLabel} title={group.label}>
+                    {group.label}
+                  </div>
+                  <ul className={styles.sideIndicatorGroupList}>
+                    {group.items.map((item) => (
+                      <li key={`${group.id}:${item}`} role="presentation">
+                        <button
+                          type="button"
+                          className={styles.sideIndicatorItem}
+                          role="option"
+                          title={`${group.label} / ${item}`}
+                          disabled={disabled}
+                          onClick={() => onSelectItem(item)}
+                        >
+                          {item}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
           ) : (
             <ul className={styles.sideIndicatorList}>
               {items.map((item) => (
@@ -171,6 +210,7 @@ export interface AgentComposerProps {
   /** Full skill entries for / autocomplete (user-invocable preferred). */
   invocableSkills?: SkillEntry[];
   mcpToolNames?: string[];
+  mcpToolGroups?: SideResourceGroup[];
   agentMode?: 'plan' | 'always-allow';
   onAgentModeChange?: (mode: 'plan' | 'always-allow') => void;
 }
@@ -223,6 +263,7 @@ const AgentComposer = memo(function AgentComposer({
   skillNames = [],
   invocableSkills = [],
   mcpToolNames = [],
+  mcpToolGroups = [],
   agentMode = 'always-allow',
   onAgentModeChange,
 }: AgentComposerProps) {
@@ -388,6 +429,7 @@ const AgentComposer = memo(function AgentComposer({
             label="MCP"
             count={mcpCount}
             items={mcpToolNames}
+            groups={mcpToolGroups}
             emptyLabel={t.agent.sideCapsules.noMcp}
             title="MCP"
             isOpen={openSideCapsule === 'mcp'}

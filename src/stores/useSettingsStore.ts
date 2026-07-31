@@ -66,6 +66,12 @@ interface SettingsActions {
   updateThinkingBlockAutoExpand: (enabled: boolean) => Promise<void>;
   updateEnableSubagents: (enabled: boolean) => Promise<void>;
   updateEnableCodeGraph: (enabled: boolean) => Promise<void>;
+  updateEnableAgentMemory: (enabled: boolean) => Promise<void>;
+  updateEnableAgentMemoryUserProfile: (enabled: boolean) => Promise<void>;
+  updateEnableAgentMemoryNotes: (enabled: boolean) => Promise<void>;
+  updateEnableAgentSessionSearch: (enabled: boolean) => Promise<void>;
+  updateEnableAgentMemoryReview: (enabled: boolean) => Promise<void>;
+  updateAgentMemoryWriteApproval: (enabled: boolean) => Promise<void>;
   updateEnableCdpBrowser: (enabled: boolean) => Promise<void>;
   updateCheckForUpdatesOnStartup: (enabled: boolean) => Promise<void>;
   updateGraphAutoIndexOnOpen: (enabled: boolean) => Promise<void>;
@@ -113,6 +119,12 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   chatSendDuringStreamingMode: 'queue' as ChatSendDuringStreamingMode,
   recentWorkspaces: [] as RecentWorkspace[],
   enableCodeGraph: true,
+  enableAgentMemory: true,
+  enableAgentMemoryUserProfile: true,
+  enableAgentMemoryNotes: true,
+  enableAgentSessionSearch: true,
+  enableAgentMemoryReview: false,
+  agentMemoryWriteApproval: false,
   enableCdpBrowser: false,
   checkForUpdatesOnStartup: true,
   graphAutoIndexOnOpen: true,
@@ -160,6 +172,12 @@ function serializeSettings(state: Omit<SettingsState, 'loading'>): string {
     chatSendDuringStreamingMode: state.chatSendDuringStreamingMode,
     recentWorkspaces: state.recentWorkspaces,
     enableCodeGraph: state.enableCodeGraph,
+    enableAgentMemory: state.enableAgentMemory,
+    enableAgentMemoryUserProfile: state.enableAgentMemoryUserProfile,
+    enableAgentMemoryNotes: state.enableAgentMemoryNotes,
+    enableAgentSessionSearch: state.enableAgentSessionSearch,
+    enableAgentMemoryReview: state.enableAgentMemoryReview,
+    agentMemoryWriteApproval: state.agentMemoryWriteApproval,
     enableCdpBrowser: state.enableCdpBrowser,
     checkForUpdatesOnStartup: state.checkForUpdatesOnStartup,
     graphAutoIndexOnOpen: state.graphAutoIndexOnOpen,
@@ -275,6 +293,30 @@ function parseLoadedSettings(raw: unknown): Partial<Omit<SettingsState, 'loading
 
   if (typeof settings.enableCodeGraph === 'boolean') {
     result.enableCodeGraph = settings.enableCodeGraph;
+  }
+
+  if (typeof settings.enableAgentMemory === 'boolean') {
+    result.enableAgentMemory = settings.enableAgentMemory;
+  }
+
+  if (typeof settings.enableAgentMemoryUserProfile === 'boolean') {
+    result.enableAgentMemoryUserProfile = settings.enableAgentMemoryUserProfile;
+  }
+
+  if (typeof settings.enableAgentMemoryNotes === 'boolean') {
+    result.enableAgentMemoryNotes = settings.enableAgentMemoryNotes;
+  }
+
+  if (typeof settings.enableAgentSessionSearch === 'boolean') {
+    result.enableAgentSessionSearch = settings.enableAgentSessionSearch;
+  }
+
+  if (typeof settings.enableAgentMemoryReview === 'boolean') {
+    result.enableAgentMemoryReview = settings.enableAgentMemoryReview;
+  }
+
+  if (typeof settings.agentMemoryWriteApproval === 'boolean') {
+    result.agentMemoryWriteApproval = settings.agentMemoryWriteApproval;
   }
 
   if (typeof settings.enableCdpBrowser === 'boolean') {
@@ -614,6 +656,42 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         await saveSettings({ ...DEFAULT_STATE, ...state });
       },
 
+      updateEnableAgentMemory: async (enableAgentMemory) => {
+        set({ enableAgentMemory });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateEnableAgentMemoryUserProfile: async (enableAgentMemoryUserProfile) => {
+        set({ enableAgentMemoryUserProfile });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateEnableAgentMemoryNotes: async (enableAgentMemoryNotes) => {
+        set({ enableAgentMemoryNotes });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateEnableAgentSessionSearch: async (enableAgentSessionSearch) => {
+        set({ enableAgentSessionSearch });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateEnableAgentMemoryReview: async (enableAgentMemoryReview) => {
+        set({ enableAgentMemoryReview });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
+      updateAgentMemoryWriteApproval: async (agentMemoryWriteApproval) => {
+        set({ agentMemoryWriteApproval });
+        const state = get();
+        await saveSettings({ ...DEFAULT_STATE, ...state });
+      },
+
       updateEnableCdpBrowser: async (enableCdpBrowser) => {
         set({ enableCdpBrowser });
         const state = get();
@@ -843,6 +921,17 @@ export const useUpdateThinkingBlockAutoExpand = () =>
 export const useUpdateEnableSubagents = () =>
   useSettingsStore((state) => state.updateEnableSubagents);
 export const useEnableCodeGraph = () => useSettingsStore((state) => state.enableCodeGraph);
+export const useEnableAgentMemory = () => useSettingsStore((state) => state.enableAgentMemory);
+export const useEnableAgentMemoryUserProfile = () =>
+  useSettingsStore((state) => state.enableAgentMemoryUserProfile);
+export const useEnableAgentMemoryNotes = () =>
+  useSettingsStore((state) => state.enableAgentMemoryNotes);
+export const useEnableAgentSessionSearch = () =>
+  useSettingsStore((state) => state.enableAgentSessionSearch);
+export const useEnableAgentMemoryReview = () =>
+  useSettingsStore((state) => state.enableAgentMemoryReview);
+export const useAgentMemoryWriteApproval = () =>
+  useSettingsStore((state) => state.agentMemoryWriteApproval);
 export const useEnableCdpBrowser = () => useSettingsStore((state) => state.enableCdpBrowser);
 export const useCheckForUpdatesOnStartup = () =>
   useSettingsStore((state) => state.checkForUpdatesOnStartup);
@@ -852,6 +941,18 @@ export const useGraphAutoIndexMaxFiles = () =>
   useSettingsStore((state) => state.graphAutoIndexMaxFiles);
 export const useUpdateEnableCodeGraph = () =>
   useSettingsStore((state) => state.updateEnableCodeGraph);
+export const useUpdateEnableAgentMemory = () =>
+  useSettingsStore((state) => state.updateEnableAgentMemory);
+export const useUpdateEnableAgentMemoryUserProfile = () =>
+  useSettingsStore((state) => state.updateEnableAgentMemoryUserProfile);
+export const useUpdateEnableAgentMemoryNotes = () =>
+  useSettingsStore((state) => state.updateEnableAgentMemoryNotes);
+export const useUpdateEnableAgentSessionSearch = () =>
+  useSettingsStore((state) => state.updateEnableAgentSessionSearch);
+export const useUpdateEnableAgentMemoryReview = () =>
+  useSettingsStore((state) => state.updateEnableAgentMemoryReview);
+export const useUpdateAgentMemoryWriteApproval = () =>
+  useSettingsStore((state) => state.updateAgentMemoryWriteApproval);
 export const useUpdateEnableCdpBrowser = () =>
   useSettingsStore((state) => state.updateEnableCdpBrowser);
 export const useUpdateCheckForUpdatesOnStartup = () =>

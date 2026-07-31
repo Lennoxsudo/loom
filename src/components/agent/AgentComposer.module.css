@@ -135,6 +135,36 @@
   padding: 0;
 }
 
+.sideIndicatorGroup {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sideIndicatorGroup + .sideIndicatorGroup {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--border-primary) 70%, transparent);
+}
+
+.sideIndicatorGroupLabel {
+  padding: 4px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sideIndicatorGroupList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .sideIndicatorItem {
   all: unset;
   box-sizing: border-box;

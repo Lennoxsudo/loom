@@ -9,6 +9,11 @@ import {
   shouldInjectProjectMemory,
   prependProjectMemoryToFirstUserMessage,
 } from '../../utils/projectMemory';
+import {
+  resolveAgentMemoryFrozenSnapshot,
+  type AgentMemoryFlags,
+} from '../../utils/agentMemory';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import { shouldInjectProjectPath as checkShouldInjectProjectPath } from '../../hooks/useContextInjectionState';
 import { loadSkillsContext } from '../../utils/skills';
@@ -86,6 +91,8 @@ export interface BuildAgentRequestContextOptions {
   shouldInjectProjectPath?: boolean;
   subagentCatalog?: string;
   profileId?: string;
+  /** 只读统计路径置 true：不执行压缩，避免触发付费 LLM 摘要 */
+  skipCompact?: boolean;
 }
 
 export type AgentRuntimeSnapshotInput = Pick<
@@ -122,6 +129,31 @@ export interface AgentRequestContext {
   messages: ChatMessage[];
   compactState: CompactState;
   tools: unknown;
+  /** Present when a frozen Agent Memory snapshot was resolved this request */
+  agentMemoryCapture?: { text: string; justCaptured: boolean };
+}
+
+function readAgentMemoryFlags(): AgentMemoryFlags {
+  const s = useSettingsStore.getState();
+  return {
+    enableAgentMemory: s.enableAgentMemory,
+    enableAgentMemoryUserProfile: s.enableAgentMemoryUserProfile,
+    enableAgentMemoryNotes: s.enableAgentMemoryNotes,
+  };
+}
+
+/** Flags for core system-prompt Agent Memory / session_search sections. */
+function readAgentMemoryPromptFlags(): {
+  enableAgentMemory: boolean;
+  enableAgentSessionSearch: boolean;
+} {
+  const s = useSettingsStore.getState();
+  return {
+    enableAgentMemory:
+      s.enableAgentMemory &&
+      (s.enableAgentMemoryUserProfile || s.enableAgentMemoryNotes),
+    enableAgentSessionSearch: s.enableAgentSessionSearch,
+  };
 }
 
 function buildDraftMessage(
@@ -213,9 +245,14 @@ function buildAgentContextBreakdown(options: {
     conversation?.contextInjected?.rules?.contentHash
   );
 
+  const promptFlags = readAgentMemoryPromptFlags();
   const systemText = [
     buildRuntimeIdentityPrompt({ provider, model }),
-    buildCoreSystemPrompt({ planMode: agentMode === 'plan' }),
+    buildCoreSystemPrompt({
+      planMode: agentMode === 'plan',
+      enableAgentMemory: promptFlags.enableAgentMemory,
+      enableAgentSessionSearch: promptFlags.enableAgentSessionSearch,
+    }),
     agent.description?.trim() ?? '',
     shouldInjectProjectPath && projectPath.trim()
       ? `${PROJECT_PATH_CONTEXT_PREFIX}${projectPath}`
@@ -263,6 +300,7 @@ export async function buildAgentRequestContext(
     shouldInjectProjectPath,
     subagentCatalog,
     profileId,
+    skipCompact,
   } = options;
 
   const maxContextTokens = agent.maxContextTokens ?? DEFAULT_CONTEXT_WINDOW;
@@ -276,6 +314,7 @@ export async function buildAgentRequestContext(
     maxContextTokens,
     reserveTokens: AGENT_CONTEXT_RESERVE_TOKENS,
     compactState: conversation?.compactState,
+    skipCompact,
   });
 
   const activeMessages = compactOutcome.messages as unknown as ChatMessage[];
@@ -291,12 +330,23 @@ export async function buildAgentRequestContext(
     shouldInjectProjectPath ?? checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
   const skillsContext = await loadSkillsContext(projectPath);
 
+  const agentMemoryFlags = readAgentMemoryFlags();
+  const agentMemorySnapshot = await resolveAgentMemoryFrozenSnapshot({
+    flags: agentMemoryFlags,
+    alreadyCaptured: !!conversation?.contextInjected?.agentMemory?.captured,
+    frozenText: conversation?.contextInjected?.agentMemory?.frozenText,
+  });
+  const promptFlags = readAgentMemoryPromptFlags();
+
   const { messages: preparedMessages, tools: resolvedTools } =
     await buildContextForRequestWithAiSummary({
       systemPrompt: agent.description,
       projectPath,
       shouldInjectProjectPath: needsProjectPathInjection,
       skillsContext,
+      agentMemoryContext: agentMemorySnapshot.text,
+      enableAgentMemory: promptFlags.enableAgentMemory,
+      enableAgentSessionSearch: promptFlags.enableAgentSessionSearch,
       subagentCatalog,
       requestMessages,
       provider,
@@ -312,6 +362,7 @@ export async function buildAgentRequestContext(
     messages: activeMessages,
     compactState: compactOutcome.compactState,
     tools: resolvedTools,
+    agentMemoryCapture: agentMemorySnapshot,
   };
 }
 
@@ -351,6 +402,7 @@ export async function buildAgentContextUsage(
   const draftUserMessage = buildDraftMessage(draftMessage, attachedImages);
   const allMessages = draftUserMessage ? [...previousMessages, draftUserMessage] : previousMessages;
 
+  // 只读统计路径：skipCompact 避免打字/查看用量时触发付费 LLM 摘要
   const compactOutcome = await maybeAutoCompactConversation({
     messages: allMessages as unknown as CompactableMessage[],
     provider,
@@ -360,6 +412,7 @@ export async function buildAgentContextUsage(
     maxContextTokens,
     reserveTokens: AGENT_CONTEXT_RESERVE_TOKENS,
     compactState: conversation?.compactState,
+    skipCompact: true,
   });
   const activeMessages = compactOutcome.messages as unknown as ChatMessage[];
 
@@ -376,6 +429,7 @@ export async function buildAgentContextUsage(
     agentMode,
     tools,
     profileId,
+    skipCompact: true,
   });
 
   const normalizedMessages = preparedMessages as Array<{ role: string; content: unknown }>;

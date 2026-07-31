@@ -28,7 +28,7 @@ export interface ToolCall {
   };
 }
 
-export type ChatApprovalActionType = 'command' | 'file' | 'git' | 'mcp';
+export type ChatApprovalActionType = 'command' | 'file' | 'git' | 'mcp' | 'agent_memory';
 
 export interface ChatApprovalSummary {
   type: ChatApprovalActionType;

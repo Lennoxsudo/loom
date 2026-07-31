@@ -25,8 +25,13 @@ import type { PendingFileChange } from '../utils';
 import { normalizePathForCompare } from '../../../utils/pathUtils';
 import { MAX_PREVIEW_HISTORY } from '../../../types/chat';
 import { useToolStore } from '../../../stores/useToolStore';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { parseAgentMemoryPendingId } from '../../../utils/agentMemoryPendingUi';
+import type { ChatApprovalSummary } from '../../chat/types';
+import { runAgentMemoryReview } from '../../../utils/agentMemoryReview';
+import { buildAgentMemoryPendingToolMessage } from '../../../utils/agentMemoryPendingMessage';
 import { useCheckpointStore } from '../../../stores/useCheckpointStore';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { updateAgentConversationById } from './agentConversationUpdates';
 import {
   buildCheckpointLabel,
   collectPathsFromToolArgs,
@@ -47,6 +52,12 @@ import {
   type AgentRuntimeSnapshot,
 } from '../utils';
 import { buildAgentRequestContext } from '../contextUsage';
+import { agePersistedChatToolMessages } from '../../../utils/toolResultAging';
+import {
+  buildTokenCalibrationKey,
+  estimateRequestTokens,
+  recordRequestTokenEstimate,
+} from '../../../utils/contextBudget';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useTranslation } from '../../../i18n';
 import { logDebug } from '../../../utils/errorHandling';
@@ -61,7 +72,6 @@ import {
   buildToolApprovalRejectionText,
   needsAgentApproval,
 } from '../approvalUtils';
-import type { ChatApprovalSummary } from '../../chat/types';
 
 function buildAgentToolMessageId(toolCallId: string) {
   return `tool-${toolCallId}`;
@@ -83,15 +93,19 @@ function mergeAgentMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatM
 function upsertAgentToolMessage(
   conversationId: string,
   message: ChatMessage,
-  setConversationState: UseAgentToolCallsOptions['setConversationState']
+  setConversationState: UseAgentToolCallsOptions['setConversationState'],
+  maxContextTokens?: number
 ) {
   setConversationState((prev) => {
     const conversations = prev.conversations.map((conv) => {
       if (conv.id !== conversationId) return conv;
+      const merged = mergeAgentMessages(conv.messages, [message]);
+      // Pressure-gated aging of older tool results (idempotent); persists via conversation save.
+      const { messages } = agePersistedChatToolMessages(merged, undefined, maxContextTokens);
       return {
         ...conv,
         updatedAt: Date.now(),
-        messages: mergeAgentMessages(conv.messages, [message]),
+        messages,
       };
     });
     return { ...prev, conversations };
@@ -206,7 +220,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       activeCommandStreamsRef.current.delete(event.stream_id);
       return;
     }
-    // 只处理 stdout 流，避免 stdout/stderr 同时输出相同内容导致文本重复
+    // ??? stdout ???? stdout/stderr ??????????????
     if (event.started || !event.chunk || event.stream !== 'stdout') return;
 
     const active = activeCommandStreamsRef.current.get(event.stream_id);
@@ -407,6 +421,17 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         await new Promise((r) => setTimeout(r, tcDelay));
       }
 
+      const calibrationKey = buildTokenCalibrationKey(transport.provider, transport.model);
+      recordRequestTokenEstimate(
+        newAssistantMessageId,
+        estimateRequestTokens(
+          trimmedMsgs as Array<{ role: string; content: unknown }>,
+          tools,
+          calibrationKey
+        ),
+        calibrationKey
+      );
+
       await invoke('send_ai_chat_stream', {
         provider: transport.provider,
         messageId: newAssistantMessageId,
@@ -424,7 +449,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         },
       });
     } catch (err) {
-      console.error('[Agent] 继续对话失败:', err);
+      console.error('[Agent] ??????:', err);
       setError(t.errors.continueConversationFailed);
       setConversationState((prev) => {
         const conversations = prev.conversations.map((conv) => {
@@ -475,11 +500,11 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     conversationId: string,
     assistantMessageId: string
   ) => {
-    logDebug('处理工具调用: ' + JSON.stringify(toolCalls), 'Agent');
+    logDebug('??????: ' + JSON.stringify(toolCalls), 'Agent');
 
     const agent = agentRef.current;
     if (!agent) {
-      console.error('[Agent] 未找到 agent:', agentId);
+      console.error('[Agent] ??? agent:', agentId);
       clearTrackedStream(assistantMessageId);
       return;
     }
@@ -581,7 +606,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         let parsedArgs: Record<string, unknown> = {};
 
         try {
-          logDebug(`执行工具: ${toolCall.function.name}`, 'Agent');
+          logDebug(`????: ${toolCall.function.name}`, 'Agent');
 
           try {
             parsedArgs = JSON.parse(toolCall.function.arguments || '{}');
@@ -647,7 +672,12 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
               approvalSummary,
               createdAt: Date.now(),
             };
-            upsertAgentToolMessage(conversationId, pendingMsg, setConversationState);
+            upsertAgentToolMessage(
+              conversationId,
+              pendingMsg,
+              setConversationState,
+              agentRef.current?.maxContextTokens
+            );
 
             const approved = await onRequestApproval({
               messageId: toolMessageId,
@@ -665,7 +695,12 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
                 ),
                 isError: true,
               };
-              upsertAgentToolMessage(conversationId, rejectedMsg, setConversationState);
+              upsertAgentToolMessage(
+                conversationId,
+                rejectedMsg,
+                setConversationState,
+                agentRef.current?.maxContextTokens
+              );
               toolMessages.push(rejectedMsg);
               continue;
             }
@@ -676,7 +711,8 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
                 ...pendingMsg,
                 approvalStatus: 'approved',
               },
-              setConversationState
+              setConversationState,
+              agentRef.current?.maxContextTokens
             );
           }
 
@@ -726,7 +762,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
           const changedFilePath = isWriteTool
             ? ((parsedArgs.file_path ?? parsedArgs.file ?? parsedArgs.path ?? '') as string)
             : '';
-          /** 与 fileHandlers 内 resolvePathForTool 一致，保证快照路径与 files_changed 一致 */
+          /** ? fileHandlers ? resolvePathForTool ?????????? files_changed ?? */
           let resolvedWriteTargetPath = '';
           const baseDir = projectPathRef.current?.trim() || undefined;
           const pathContext = { baseDir, allowExternalPaths: true as const };
@@ -749,7 +785,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
               });
               existedBefore = true;
             } catch {
-              // File doesn't exist yet — beforeContent stays null (new file)
+              // File doesn't exist yet ? beforeContent stays null (new file)
             }
           }
 
@@ -864,7 +900,8 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
                 tool_args: parsedArgs,
                 createdAt: Date.now(),
               },
-              setConversationState
+              setConversationState,
+              agentRef.current?.maxContextTokens
             );
           }
 
@@ -1006,7 +1043,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
                   return { ...prev, conversations };
                 });
               } catch {
-                // File may be inaccessible — skip pending change
+                // File may be inaccessible ? skip pending change
               }
             }
           }
@@ -1022,6 +1059,34 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             isError: !!result.error,
             isStreaming: false,
           };
+
+          if (
+            !result.error &&
+            (resolvedToolName === 'agent_memory' || toolCall.function.name === 'agent_memory')
+          ) {
+            const pendingId = parseAgentMemoryPendingId(result.output ?? '');
+            if (pendingId) {
+              const detail =
+                (typeof parsedArgs.content === 'string' && parsedArgs.content.trim()) ||
+                (typeof parsedArgs.old_text === 'string' && parsedArgs.old_text.trim()) ||
+                pendingId;
+              completedToolMessage = {
+                ...completedToolMessage,
+                tool_args: {
+                  ...parsedArgs,
+                  agentMemoryPendingId: pendingId,
+                },
+                approvalStatus: 'pending',
+                approvalSummary: {
+                  type: 'agent_memory',
+                  toolName: 'agent_memory',
+                  label: 'Agent Memory',
+                  detail,
+                },
+              };
+            }
+          }
+
           if (subagentsEnabled && isSubagentTool) {
             completedToolMessage = attachSubagentRunsSnapshot(
               completedToolMessage,
@@ -1041,13 +1106,18 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
           }
 
           // Persist tool result immediately (including exit_plan_mode end-of-turn).
-          upsertAgentToolMessage(conversationId, completedToolMessage, setConversationState);
+          upsertAgentToolMessage(
+            conversationId,
+            completedToolMessage,
+            setConversationState,
+            agentRef.current?.maxContextTokens
+          );
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           let failedToolMessage: ChatMessage = {
             id: buildAgentToolMessageId(toolCall.id),
             role: 'tool',
-            text: `工具执行错误: ${errorMsg}`,
+            text: `??????: ${errorMsg}`,
             tool_call_id: toolCall.id,
             tool_name: toolCall.function.name,
             createdAt: Date.now(),
@@ -1074,7 +1144,12 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             isRunCommandToolName(toolCall.function.name, parsedArgs) ||
             failedIsSubagentTool
           ) {
-            upsertAgentToolMessage(conversationId, failedToolMessage, setConversationState);
+            upsertAgentToolMessage(
+              conversationId,
+              failedToolMessage,
+              setConversationState,
+              agentRef.current?.maxContextTokens
+            );
           }
         }
 
@@ -1113,10 +1188,41 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       return { ...prev, conversations };
     });
 
-    // exit_plan_mode: end this turn — do not start another model stream.
+    // exit_plan_mode: end this turn ? do not start another model stream.
     if (endTurnAfterPlan) {
       clearProcessingState(agentId, conversationId, assistantMessageId, toolMessages);
       clearTrackedStream(assistantMessageId);
+      if (useSettingsStore.getState().enableAgentMemoryReview) {
+        const conv = conversationStateRef.current.conversations.find((c) => c.id === conversationId);
+        const messages = conv
+          ? mergeAgentMessages(conv.messages, toolMessages)
+          : toolMessages;
+        void runAgentMemoryReview({ conversationId, messages })
+          .then((result) => {
+            if (!result.stagedItems.length) return;
+            setConversationState((prev) =>
+              updateAgentConversationById(prev, conversationId, (c) => ({
+                ...c,
+                messages: [
+                  ...c.messages,
+                  ...result.stagedItems.map((item) =>
+                    buildAgentMemoryPendingToolMessage({
+                      pendingId: item.id,
+                      target: item.target,
+                      content: item.content,
+                      reason: item.reason,
+                      conversationId,
+                    })
+                  ),
+                ],
+                updatedAt: Date.now(),
+              }))
+            );
+          })
+          .catch((err) => {
+            console.warn('[agentMemoryReview] failed', err);
+          });
+      }
       return;
     }
 

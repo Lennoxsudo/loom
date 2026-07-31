@@ -42,6 +42,19 @@ describe('filterToolsByContext', () => {
     const result = filterToolsByContext(tools, { enableCodeGraph: false });
     expect(result.map((t) => t.name)).toEqual(['read']);
   });
+
+  it('removes agent_memory and session_search when disabled', () => {
+    const tools = [
+      makeTool('read'),
+      makeTool('agent_memory'),
+      makeTool('session_search'),
+    ];
+    const result = filterToolsByContext(tools, {
+      enableAgentMemory: false,
+      enableAgentSessionSearch: false,
+    });
+    expect(result.map((t) => t.name)).toEqual(['read']);
+  });
 });
 
 // ==================== extractRecentlyUsedToolNames ====================

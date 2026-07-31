@@ -18,7 +18,8 @@ import { bootstrapSubagentFromToolArgs, isSubagentsEnabled } from '../../utils/s
 import { isRunCommandToolName } from '../../utils/parseCommandExecOutput';
 import { useCommandExecProgress } from '../../hooks/useCommandExecProgress';
 import type { ToolDefinition } from '../../types/ai';
-import { estimateTokens } from '../../utils/contextBudget';
+import { DEFAULT_CONTEXT_WINDOW, estimateTokens } from '../../utils/contextBudget';
+import { agePersistedChatToolMessages } from '../../utils/toolResultAging';
 import { ToolGuard, requiresConfirmation } from '../../utils/toolGuard';
 import {
   CREATE_DELETE_TOOLS,
@@ -327,6 +328,15 @@ function mergeToolMessages(prev: Message[], incoming: Message[]): Message[] {
     }
   }
   return next;
+}
+
+function mergeAndAgeToolMessages(
+  prev: Message[],
+  incoming: Message[],
+  maxContextTokens?: number
+): Message[] {
+  const merged = mergeToolMessages(prev, incoming);
+  return agePersistedChatToolMessages(merged, undefined, maxContextTokens).messages;
 }
 
 function buildToolMessageId(toolCallId: string) {
@@ -693,7 +703,7 @@ export function useToolCalls({
     options?: { endTurn?: boolean }
   ) => {
     setMessages((prev) => {
-      const merged = mergeToolMessages(prev, toolMessages);
+      const merged = mergeAndAgeToolMessages(prev, toolMessages, DEFAULT_CONTEXT_WINDOW);
       return merged;
     });
 
@@ -941,8 +951,12 @@ export function useToolCalls({
           isError: !!guarded.result.error,
           isStreaming: false,
         });
-        setMessages((prev) => mergeToolMessages(prev, [completedToolMessage]));
-        messagesRef.current = mergeToolMessages(messagesRef.current, [completedToolMessage]);
+        setMessages((prev) => mergeAndAgeToolMessages(prev, [completedToolMessage], DEFAULT_CONTEXT_WINDOW));
+        messagesRef.current = mergeAndAgeToolMessages(
+          messagesRef.current,
+          [completedToolMessage],
+          DEFAULT_CONTEXT_WINDOW
+        );
 
         if (currentConversationRef.current) {
           try {

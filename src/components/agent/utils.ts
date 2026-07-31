@@ -1611,6 +1611,15 @@ export interface BuildContextOptions {
   shouldInjectProjectPath?: boolean;
   /** Skills 上下文（可选，由调用方预加载） */
   skillsContext?: string;
+  /** User-scoped Agent Memory frozen block (optional) */
+  agentMemoryContext?: string;
+  /**
+   * Include Agent Memory write conventions in the core system prompt.
+   * Default true. Chat panel should pass false (Agent-only feature).
+   */
+  enableAgentMemory?: boolean;
+  /** Include session_search guidance in the core system prompt. Default true. */
+  enableAgentSessionSearch?: boolean;
   /** 已转换为 ProviderRequestMessage 的消息列表 */
   requestMessages: ProviderRequestMessage[];
   /** AI 提供商 */
@@ -1668,13 +1677,23 @@ export function buildContextForRequest(options: BuildContextOptions): {
 
   // ① & ② 组合唯一的 System prompt
   // 拼接顺序按「最稳定 → 最易变」排列，使 Prompt Caching 前缀尽可能稳定：
-  //   runtimeIdentity > coreSystemPrompt > agent.description > subagentCatalog >
+  //   runtimeIdentity > coreSystemPrompt > agentMemory > agent.description > subagentCatalog >
   //   skillsContext > projectPath
   const systemLines: string[] = [];
 
   if (includeCoreSystemPrompt) {
     systemLines.push(buildRuntimeIdentityPrompt({ provider, model }));
-    systemLines.push(buildCoreSystemPrompt({ planMode: interactionMode === 'plan' }));
+    systemLines.push(
+      buildCoreSystemPrompt({
+        planMode: interactionMode === 'plan',
+        enableAgentMemory: options.enableAgentMemory,
+        enableAgentSessionSearch: options.enableAgentSessionSearch,
+      })
+    );
+  }
+
+  if (options.agentMemoryContext && options.agentMemoryContext.trim()) {
+    systemLines.push(options.agentMemoryContext.trim());
   }
 
   // 3. agent.description（Agent 可选自定义，追加在核心提示词之后）
@@ -1783,7 +1802,17 @@ function assembleContextMessages(options: BuildContextOptions): ProviderRequestM
 
   if (includeCoreSystemPrompt) {
     systemLines.push(buildRuntimeIdentityPrompt({ provider, model }));
-    systemLines.push(buildCoreSystemPrompt({ planMode: interactionMode === 'plan' }));
+    systemLines.push(
+      buildCoreSystemPrompt({
+        planMode: interactionMode === 'plan',
+        enableAgentMemory: options.enableAgentMemory,
+        enableAgentSessionSearch: options.enableAgentSessionSearch,
+      })
+    );
+  }
+
+  if (options.agentMemoryContext && options.agentMemoryContext.trim()) {
+    systemLines.push(options.agentMemoryContext.trim());
   }
 
   if (systemPrompt && systemPrompt.trim()) {

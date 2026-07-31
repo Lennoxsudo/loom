@@ -888,6 +888,74 @@ export const AI_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'agent_memory',
+    description:
+      'Manage user-scoped Agent Memory (USER.md / MEMORY.md). Use for durable preferences, corrections, ' +
+      'and environment facts that should apply across projects and sessions. ' +
+      'Targets: user (profile/preferences), memory (notes/environment). ' +
+      'Actions: add, replace (old_text unique substring), remove (old_text). ' +
+      'Do not store task progress or temporary paths. Content is injected as a frozen system-prompt block at session start.',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['add', 'replace', 'remove'],
+          description: 'add a new entry; replace or remove an existing entry via old_text.',
+        },
+        target: {
+          type: 'string',
+          enum: ['user', 'memory'],
+          description: "user = USER.md profile; memory = MEMORY.md notes.",
+        },
+        content: {
+          type: 'string',
+          description: 'Entry text. Required for add and replace. Keep compact.',
+        },
+        old_text: {
+          type: 'string',
+          description: 'Unique substring identifying one entry. Required for replace and remove.',
+        },
+      },
+      required: ['action', 'target'],
+    },
+  },
+  {
+    name: 'session_search',
+    description:
+      'Search past Agent conversations for keywords (on-demand recall). ' +
+      'Use when you need details from earlier threads that are not in Agent Memory. ' +
+      'Returns message snippets only — does not change the system prompt. ' +
+      'Do not use for durable preferences (use agent_memory instead).',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Keywords to find (whitespace-separated terms; all must match).',
+        },
+        project_path: {
+          type: 'string',
+          description: 'Optional: limit search to one project path.',
+        },
+        conversation_id: {
+          type: 'string',
+          description: 'Optional: limit search to one conversation id.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max hits to return (default 20, max 50).',
+        },
+        offset: {
+          type: 'number',
+          description:
+            'Skip the first N hits to page results (use with conversation_id to browse one thread).',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'run_subagent',
     description:
       'Spawn a separate subagent to execute a task in an isolated context. ' +

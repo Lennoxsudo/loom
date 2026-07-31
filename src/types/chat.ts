@@ -271,6 +271,11 @@ export interface AgentConversation {
       injected: boolean;
       contentHash?: string;
     };
+    /** User-scoped Agent Memory frozen snapshot for this conversation */
+    agentMemory?: {
+      captured: boolean;
+      frozenText?: string;
+    };
   };
   /** Change review comments for this thread */
   reviewComments?: ChangeReviewComment[];

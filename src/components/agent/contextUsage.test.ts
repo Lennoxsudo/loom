@@ -72,6 +72,13 @@ describe('buildAgentContextUsage', () => {
       '<available_skills>\n"review": code review\n</available_skills>'
     );
     vi.mocked(invoke).mockResolvedValue('');
+    vi.mocked(maybeAutoCompactConversation).mockClear();
+    vi.mocked(maybeAutoCompactConversation).mockImplementation(async ({ messages }) => ({
+      messages,
+      compacted: false,
+      compactState: { lastCompactedAt: 0, lastCompactedMessageCount: 0 },
+      result: null,
+    }));
   });
 
   it('includes agent request injections and tool definitions', async () => {
@@ -111,6 +118,9 @@ describe('buildAgentContextUsage', () => {
     expect(usage.breakdown.tools).toBe(estimateToolsTokens(tools));
     expect(usage.compressionThresholdTokens).toBeGreaterThan(0);
     expect(usage.tokensUntilCompact).toBeGreaterThanOrEqual(0);
+    expect(vi.mocked(maybeAutoCompactConversation)).toHaveBeenCalledWith(
+      expect.objectContaining({ skipCompact: true })
+    );
   });
 });
 

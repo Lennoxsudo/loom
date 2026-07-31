@@ -385,6 +385,52 @@ describe('schema validation', () => {
       expect(validateToolParameters('memory', { action: 'upsert', body: 'y' }).success).toBe(false);
     });
 
+    it('should validate agent_memory tool parameters correctly', () => {
+      expect(
+        validateToolParameters('agent_memory', {
+          action: 'add',
+          target: 'user',
+          content: 'prefers concise',
+        }).success
+      ).toBe(true);
+      expect(
+        validateToolParameters('agent_memory', {
+          action: 'replace',
+          target: 'memory',
+          old_text: 'dark',
+          content: 'light',
+        }).success
+      ).toBe(true);
+      expect(
+        validateToolParameters('agent_memory', {
+          action: 'remove',
+          target: 'memory',
+          old_text: 'dark',
+        }).success
+      ).toBe(true);
+
+      expect(
+        validateToolParameters('agent_memory', { action: 'add', target: 'user' }).success
+      ).toBe(false);
+      expect(
+        validateToolParameters('agent_memory', { action: 'remove', target: 'user' }).success
+      ).toBe(false);
+    });
+
+    it('should validate session_search tool parameters correctly', () => {
+      expect(validateToolParameters('session_search', { query: 'pnpm' }).success).toBe(true);
+      expect(
+        validateToolParameters('session_search', {
+          query: 'pnpm',
+          project_path: 'D:/proj',
+          limit: 10,
+          offset: 10,
+        }).success
+      ).toBe(true);
+      expect(validateToolParameters('session_search', {}).success).toBe(false);
+      expect(validateToolParameters('session_search', { query: '' }).success).toBe(false);
+    });
+
     it('should handle unknown tool with base validation', () => {
       // Unknown tool should use base schema validation
       const params = {

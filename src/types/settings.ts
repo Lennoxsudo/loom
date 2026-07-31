@@ -206,6 +206,30 @@ export interface SettingsState {
   /** Enable built-in code knowledge graph (CBM) tools */
   enableCodeGraph: boolean;
   /**
+   * Master switch for user-scoped Agent Memory (USER.md / MEMORY.md).
+   * When false: no system-prompt injection and no agent_memory tool.
+   */
+  enableAgentMemory: boolean;
+  /** Inject / write USER.md (user profile preferences) */
+  enableAgentMemoryUserProfile: boolean;
+  /** Inject / write MEMORY.md (agent notes / environment facts) */
+  enableAgentMemoryNotes: boolean;
+  /**
+   * On-demand search over past Agent conversations (session_search tool).
+   * When false, the tool is hidden and handler rejects.
+   */
+  enableAgentSessionSearch: boolean;
+  /**
+   * After each Agent turn, rule-based review may propose Agent Memory writes.
+   * Default off — zero extra work when disabled.
+   */
+  enableAgentMemoryReview: boolean;
+  /**
+   * When true, agent_memory tool writes and review proposals stage to pending.json
+   * until the user approves in the conversation.
+   */
+  agentMemoryWriteApproval: boolean;
+  /**
    * Enable CDP browser automation plugin (system Chrome/Edge via DevTools Protocol).
    * When on, the browser agent tool gains click/type/screenshot/content actions.
    */

@@ -4,7 +4,7 @@ import { ChevronDownIcon } from '../shared/Icons';
 import { useTranslation } from '../../i18n';
 import { useRecentWorkspaces, useTouchRecentWorkspace } from '../../stores';
 import type { RecentWorkspace } from '../../types/settings';
-import { SideResourceCapsule } from './AgentComposer';
+import { SideResourceCapsule, type SideResourceGroup } from './AgentComposer';
 import styles from './AgentContextBar.module.css';
 
 export interface AgentContextBarProps {
@@ -16,6 +16,7 @@ export interface AgentContextBarProps {
   mcpCount?: number;
   skillNames?: string[];
   mcpToolNames?: string[];
+  mcpToolGroups?: SideResourceGroup[];
   onSelectMention?: (item: string) => void;
   disabled?: boolean;
 }
@@ -77,6 +78,7 @@ const AgentContextBar = memo(function AgentContextBar({
   mcpCount = 0,
   skillNames = [],
   mcpToolNames = [],
+  mcpToolGroups = [],
   onSelectMention,
   disabled = false,
 }: AgentContextBarProps) {
@@ -174,6 +176,7 @@ const AgentContextBar = memo(function AgentContextBar({
             label="MCP"
             count={mcpCount}
             items={mcpToolNames}
+            groups={mcpToolGroups}
             emptyLabel={t.agent.sideCapsules.noMcp}
             title="MCP"
             isOpen={openSideCapsule === 'mcp'}

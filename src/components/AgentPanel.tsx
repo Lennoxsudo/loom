@@ -16,6 +16,8 @@ import {
   useReasoningEffort,
   useUpdateReasoningEffort,
   useEnableCodeGraph,
+  useEnableAgentMemory,
+  useEnableAgentSessionSearch,
   useEnableCdpBrowser,
   useGraphAutoIndexOnOpen,
   useGraphAutoIndexMaxFiles,
@@ -36,6 +38,12 @@ import AgentWelcomeState from './agent/AgentWelcomeState';
 import type { ContextAnnotation } from '../utils/contextAnnotations';
 import ChangeReviewPanel from './agent/ChangeReviewPanel';
 import { useAgentApproval } from './agent/useAgentApproval';
+import {
+  approveAgentMemoryPending,
+  rejectAgentMemoryPending,
+} from '../utils/agentMemoryPendingActions';
+import { getAgentMemoryPendingIdFromMessage } from '../utils/agentMemoryPendingUi';
+import { updateAgentMessageById } from './agent/hooks/agentConversationUpdates';
 import { AgentContent, type AgentSettingsSection } from './settings/AgentContent';
 import settingsViewStyles from './settings/AgentSettingsView.module.css';
 import TodoListBar from './agent/TodoListBar';
@@ -57,7 +65,8 @@ import {
   type ProjectThreadSummary,
 } from '../utils/agentPersistence';
 import { getSkillsList, type SkillEntry } from '../utils/skills';
-import { stripMcpToolPrefix } from './agent/toolResultLayout';
+import { parseMcpToolName, stripMcpToolPrefix } from './agent/toolResultLayout';
+import type { SideResourceGroup } from './agent/AgentComposer';
 import {
   toOpenAITools,
   toAnthropicTools,
@@ -160,13 +169,15 @@ export default function AgentPanel({
 }: AgentPanelProps) {
   const t = useTranslation();
   const language = useLocale();
-  const { showWarning, showInfo, showError } = useNotification();
+  const { showWarning, showInfo, showError, showSuccess } = useNotification();
   const agentAccessMode = useAgentAccessMode();
   const updateAgentAccessMode = useUpdateAgentAccessMode();
   const reasoningEffort = useReasoningEffort();
   const updateReasoningEffort = useUpdateReasoningEffort();
   const thinkingBlockAutoExpand = useThinkingBlockAutoExpand();
   const enableCodeGraph = useEnableCodeGraph();
+  const enableAgentMemory = useEnableAgentMemory();
+  const enableAgentSessionSearch = useEnableAgentSessionSearch();
   const enableCdpBrowser = useEnableCdpBrowser();
   const graphAutoIndexOnOpen = useGraphAutoIndexOnOpen();
   const graphAutoIndexMaxFiles = useGraphAutoIndexMaxFiles();
@@ -204,6 +215,8 @@ export default function AgentPanel({
       String(agentAccessMode),
       JSON.stringify(projectContextRef.current),
       String(cbmGraphEnabled),
+      String(enableAgentMemory),
+      String(enableAgentSessionSearch),
       String(enableCdpBrowser),
     ].join('|');
 
@@ -222,6 +235,8 @@ export default function AgentPanel({
       isGitRepo: projectContextRef.current.isGitRepo,
       hasBrowserCapability: normalizeCapabilities(currentAgent?.capabilities).canAccessBrowser,
       enableCodeGraph: cbmGraphEnabled,
+      enableAgentMemory,
+      enableAgentSessionSearch,
     });
 
     if (shouldApplyGlobalCommandPolicy && agentAccessMode === 'read_only') {
@@ -246,6 +261,8 @@ export default function AgentPanel({
       String(agentAccessMode),
       JSON.stringify(projectContextRef.current),
       String(cbmGraphEnabled),
+      String(enableAgentMemory),
+      String(enableAgentSessionSearch),
       String(enableCdpBrowser),
     ].join('|');
 
@@ -389,6 +406,29 @@ export default function AgentPanel({
       ),
     [mcpTools]
   );
+
+  const mcpToolGroups = useMemo(() => {
+    const byServer = new Map<string, Set<string>>();
+    for (const tool of mcpTools) {
+      const parsed = parseMcpToolName(tool.name);
+      const serverId = parsed?.serverId || 'unknown';
+      const toolName = parsed?.toolName || stripMcpToolPrefix(tool.name) || tool.name;
+      let bucket = byServer.get(serverId);
+      if (!bucket) {
+        bucket = new Set();
+        byServer.set(serverId, bucket);
+      }
+      bucket.add(toolName);
+    }
+    const groups: SideResourceGroup[] = [...byServer.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([id, names]) => ({
+        id,
+        label: id,
+        items: [...names].sort((a, b) => a.localeCompare(b)),
+      }));
+    return groups;
+  }, [mcpTools]);
 
   const {
     pendingChangesBySession,
@@ -873,6 +913,74 @@ export default function AgentPanel({
   const selectedConversationId = resolveSelectedThreadId(conversationState, projectPath);
   const selectedConversation =
     selectedConversations.find((conv) => conv.id === selectedConversationId) ?? null;
+
+  const handleApproveTool = useCallback(
+    (messageId: string) => {
+      if (!selectedConversationId) {
+        approve(messageId);
+        return;
+      }
+      const conv = conversationStateRef.current.conversations.find(
+        (c) => c.id === selectedConversationId
+      );
+      const msg = conv?.messages.find((m) => m.id === messageId);
+      const pendingId = getAgentMemoryPendingIdFromMessage(msg?.tool_args);
+      if (msg?.tool_name === 'agent_memory' && msg.approvalStatus === 'pending' && pendingId) {
+        void (async () => {
+          const result = await approveAgentMemoryPending(pendingId);
+          if (!result.ok) {
+            showError(result.error ?? t.settingsAgentMemory.pendingApproveFailed);
+            return;
+          }
+          showSuccess(t.settingsAgentMemory.pendingApproved);
+          setConversationState((prev) =>
+            updateAgentMessageById(prev, selectedConversationId, messageId, (m) => ({
+              ...m,
+              approvalStatus: 'approved',
+              text: `${m.text}\n\nApproved — written to Agent Memory.`,
+            }))
+          );
+        })();
+        return;
+      }
+      approve(messageId);
+    },
+    [approve, selectedConversationId, showError, showSuccess, t]
+  );
+
+  const handleRejectTool = useCallback(
+    (messageId: string) => {
+      if (!selectedConversationId) {
+        reject(messageId);
+        return;
+      }
+      const conv = conversationStateRef.current.conversations.find(
+        (c) => c.id === selectedConversationId
+      );
+      const msg = conv?.messages.find((m) => m.id === messageId);
+      const pendingId = getAgentMemoryPendingIdFromMessage(msg?.tool_args);
+      if (msg?.tool_name === 'agent_memory' && msg.approvalStatus === 'pending' && pendingId) {
+        void (async () => {
+          try {
+            await rejectAgentMemoryPending(pendingId);
+            setConversationState((prev) =>
+              updateAgentMessageById(prev, selectedConversationId, messageId, (m) => ({
+                ...m,
+                approvalStatus: 'rejected',
+                text: `${m.text}\n\nRejected — not written.`,
+              }))
+            );
+          } catch {
+            showError(t.settingsAgentMemory.pendingRejectFailed);
+          }
+        })();
+        return;
+      }
+      reject(messageId);
+    },
+    [reject, selectedConversationId, showError, t]
+  );
+
   const agentPlanVisible = usePlanDocumentVisible(selectedConversationId);
   // 使用 useMemo 缓存 selectedMessages，避免每次渲染重新计算
   const selectedMessages = useMemo(
@@ -2307,6 +2415,7 @@ export default function AgentPanel({
       skillNames={skillNames}
       invocableSkills={invocableSkills}
       mcpToolNames={mcpToolNames}
+      mcpToolGroups={mcpToolGroups}
       agentMode={agent?.id ? (agentModes[agent.id] ?? 'always-allow') : 'always-allow'}
       onAgentModeChange={handleAgentModeChange}
     />
@@ -2322,6 +2431,7 @@ export default function AgentPanel({
       mcpCount={mcpTools.length}
       skillNames={skillNames}
       mcpToolNames={mcpToolNames}
+      mcpToolGroups={mcpToolGroups}
       onSelectMention={handleSelectMention}
     />
   );
@@ -2514,8 +2624,8 @@ export default function AgentPanel({
                           messagesContainerRef={messagesContainerRef}
                           onUserMessageLayout={handleUserMessageLayout}
                           getLayoutCache={getLayoutCache}
-                          onApproveTool={approve}
-                          onRejectTool={reject}
+                          onApproveTool={handleApproveTool}
+                          onRejectTool={handleRejectTool}
                           onResendFromUserMessage={handleResendFromUserMessage}
                           onForkFromUserMessage={handleForkFromUserMessage}
                           userMessageForkDisabled={isSelectedSessionBusy}

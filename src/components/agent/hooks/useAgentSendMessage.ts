@@ -34,6 +34,11 @@ import { listSubagentDefinitions } from '../../../utils/subagents/registry';
 import { buildSubagentCatalogBlock } from '../../../utils/subagents/catalog';
 import { buildAgentRequestContext } from '../contextUsage';
 import {
+  buildTokenCalibrationKey,
+  estimateRequestTokens,
+  recordRequestTokenEstimate,
+} from '../../../utils/contextBudget';
+import {
   reconcileRuntimeForAgentRequest,
   resolveAgentRequestRuntime,
   syncReconciledRuntimeIfChanged,
@@ -433,6 +438,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         compressed,
         messages: compactedMessages,
         compactState,
+        agentMemoryCapture,
       } = await buildAgentRequestContext({
         agent: selectedAgent,
         provider: transport.provider,
@@ -459,6 +465,18 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         );
       }
 
+      // 方法 11：记录本次请求 payload 的 token 估算，供流完成后与实际 usage 校准
+      const calibrationKey = buildTokenCalibrationKey(transport.provider, transport.model);
+      recordRequestTokenEstimate(
+        assistantMessageId,
+        estimateRequestTokens(
+          providerMessages as Array<{ role: string; content: unknown }>,
+          tools,
+          calibrationKey
+        ),
+        calibrationKey
+      );
+
       await invoke('send_ai_chat_stream', {
         provider: transport.provider,
         messageId: assistantMessageId,
@@ -475,7 +493,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         },
       });
 
-      if (needsInjection || needsRulesInjection || needsMemoryInjection) {
+      if (needsInjection || needsRulesInjection || needsMemoryInjection || agentMemoryCapture?.justCaptured) {
         const injState = needsInjection
           ? commitInjection(activeConversationId, mainRequestId, projectPathRef.current)
           : undefined;
@@ -495,6 +513,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
               nextInjected.memory = {
                 injected: true,
                 contentHash: getProjectMemoryContentHash(memoryText),
+              };
+            }
+            if (agentMemoryCapture?.justCaptured) {
+              nextInjected.agentMemory = {
+                captured: true,
+                frozenText: agentMemoryCapture.text,
               };
             }
             return { ...c, contextInjected: nextInjected };
@@ -851,6 +875,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         compressed,
         messages: compactedMessages,
         compactState,
+        agentMemoryCapture,
       } = await buildAgentRequestContext({
         agent: selectedAgent,
         provider: transport.provider,
@@ -877,6 +902,18 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         );
       }
 
+      // 方法 11：记录本次请求 payload 的 token 估算，供流完成后与实际 usage 校准
+      const calibrationKey = buildTokenCalibrationKey(transport.provider, transport.model);
+      recordRequestTokenEstimate(
+        assistantMessageId,
+        estimateRequestTokens(
+          providerMessages as Array<{ role: string; content: unknown }>,
+          tools,
+          calibrationKey
+        ),
+        calibrationKey
+      );
+
       await invoke('send_ai_chat_stream', {
         provider: transport.provider,
         messageId: assistantMessageId,
@@ -894,7 +931,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       });
 
       // Commit injection state on success
-      if (needsInjection || needsRulesInjection || needsMemoryInjection) {
+      if (needsInjection || needsRulesInjection || needsMemoryInjection || agentMemoryCapture?.justCaptured) {
         const injState = needsInjection
           ? commitInjection(activeConversationId, mainRequestId, projectPathRef.current)
           : undefined;
@@ -914,6 +951,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
               nextInjected.memory = {
                 injected: true,
                 contentHash: getProjectMemoryContentHash(memoryText),
+              };
+            }
+            if (agentMemoryCapture?.justCaptured) {
+              nextInjected.agentMemory = {
+                captured: true,
+                frozenText: agentMemoryCapture.text,
               };
             }
             return { ...c, contextInjected: nextInjected };

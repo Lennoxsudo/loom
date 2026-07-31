@@ -7,8 +7,21 @@ export const TOOL_RESULT_WIDTH: CSSProperties = {
   boxSizing: 'border-box',
 };
 
+export function parseMcpToolName(
+  toolName: string
+): { serverId: string; toolName: string } | null {
+  if (!toolName.startsWith('mcp_')) return null;
+  const rest = toolName.slice('mcp_'.length);
+  const sep = rest.indexOf('__');
+  if (sep <= 0) return null;
+  const serverId = rest.slice(0, sep);
+  const name = rest.slice(sep + 2);
+  if (!serverId || !name) return null;
+  return { serverId, toolName: name };
+}
+
 export function stripMcpToolPrefix(toolName: string): string {
-  return toolName.replace(/^mcp_[^_]+__/, '');
+  return parseMcpToolName(toolName)?.toolName ?? toolName.replace(/^mcp_[^_]+__/, '');
 }
 
 export function formatToolDisplayName(toolName: string | undefined, fallback = 'Tool'): string {

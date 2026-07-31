@@ -9,7 +9,10 @@ import {
   flushQueuedChunksForMessageIfNeeded,
 } from './agentStreamEventHelpers';
 import { updateAgentConversationById, updateAgentMessageById } from './agentConversationUpdates';
-import { calibrateTokenEstimation } from '../../../utils/contextBudget';
+import {
+  calibrateTokenEstimation,
+  consumeRequestTokenEstimate,
+} from '../../../utils/contextBudget';
 import { useUsageStore } from '../../../stores/useUsageStore';
 import type {
   AgentConversationState,
@@ -25,6 +28,9 @@ import type { AIProvider } from '../../../utils/agentPersistence';
 import type { AgentRuntimeSnapshot } from '../utils';
 import { isBuiltinProtocol, resolveBuiltinStreamError } from '../../../utils/builtinGateway';
 import { useBuiltinGatewayStore } from '../../../stores/useBuiltinGatewayStore';
+import { runAgentMemoryReview } from '../../../utils/agentMemoryReview';
+import { buildAgentMemoryPendingToolMessage } from '../../../utils/agentMemoryPendingMessage';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 
 /** Payload for the ai-provider-switched event emitted by the Rust backend. */
 interface ProviderSwitchedPayload {
@@ -159,6 +165,9 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
     getKnownToolNamesRef.current = getKnownToolNames;
   }, [getKnownToolNames]);
 
+  // 经历过后端编排的消息 id：其 usage 为多轮累积值，与单次请求口径不可对齐，校准时跳过
+  const orchestratedMessageIdsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     const unlisten = listen<StreamChunkPayload>('ai-stream-chunk', (event) => {
       const { message_id, chunk, chunk_type } = event.payload;
@@ -189,27 +198,29 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       const streamMeta = streamMetaByMessageIdRef.current[message_id];
       if (!streamMeta) return;
 
-      // 方法 11：用 API 返回的实际 input_tokens 校准前端的 estimateTokens 系数。
-      // 估算当前会话的消息总 token 数，与实际值对比来调整系数。
-      if (usage?.input_tokens && usage.input_tokens > 0) {
-        const snapshot = conversationStateRef.current;
-        const conv = snapshot.conversations.find((c) => c.id === streamMeta.conversationId);
-        if (conv) {
-          // 粗略估算发送的消息总 token 数（与发送时的估算方式一致）
-          const estimatedTotal = conv.messages.reduce((sum, msg) => {
-            const text = typeof msg.text === 'string' ? msg.text : '';
-            // 简化估算：每条消息的文本 token + 4 开销
-            const cjkChars = (
-              text.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g) || []
-            ).length;
-            const nonCjkLen = text.length - cjkChars;
-            return sum + 4 + cjkChars * 1.5 + nonCjkLen / 3.5;
-          }, 0);
-          if (estimatedTotal > 0) {
-            calibrateTokenEstimation(estimatedTotal, usage.input_tokens);
-          }
-        }
+      // 方法 11：用 API 返回的实际 token 数校准前端的 estimateTokens 系数。
+      // 估算值在发送时按同一份 payload（消息 + 工具定义）记录；实际值取总输入
+      // （Anthropic 的 input_tokens 不含缓存部分，需加回 cache_read / cache_creation）。
+      // 后端编排多轮累积的 usage 与单次请求口径不可对齐，跳过校准。
+      const pendingEstimate = consumeRequestTokenEstimate(message_id);
+      if (
+        pendingEstimate &&
+        pendingEstimate.estimatedTokens > 0 &&
+        usage?.input_tokens &&
+        usage.input_tokens > 0 &&
+        !orchestratedMessageIdsRef.current.has(message_id)
+      ) {
+        const actualTotal =
+          usage.input_tokens +
+          (usage.cache_read_input_tokens ?? 0) +
+          (usage.cache_creation_input_tokens ?? 0);
+        calibrateTokenEstimation(
+          pendingEstimate.estimatedTokens,
+          actualTotal,
+          pendingEstimate.calibrationKey
+        );
       }
+      orchestratedMessageIdsRef.current.delete(message_id);
 
       // 方法 12：记录 cached/uncached token 统计（日志输出，供调试和后续 UI 展示）
       if (usage) {
@@ -336,6 +347,40 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
         }
 
         clearTrackedStream(savedMessageId);
+
+        if (useSettingsStore.getState().enableAgentMemoryReview) {
+          const conv = conversationStateRef.current.conversations.find(
+            (c) => c.id === targetConversationId
+          );
+          void runAgentMemoryReview({
+            conversationId: targetConversationId,
+            messages: conv?.messages ?? [],
+          })
+            .then((result) => {
+              if (!result.stagedItems.length) return;
+              onSetConversationState((prev) =>
+                updateAgentConversationById(prev, targetConversationId, (c) => ({
+                  ...c,
+                  messages: [
+                    ...c.messages,
+                    ...result.stagedItems.map((item) =>
+                      buildAgentMemoryPendingToolMessage({
+                        pendingId: item.id,
+                        target: item.target,
+                        content: item.content,
+                        reason: item.reason,
+                        conversationId: targetConversationId,
+                      })
+                    ),
+                  ],
+                  updatedAt: Date.now(),
+                }))
+              );
+            })
+            .catch((err) => {
+              console.warn('[agentMemoryReview] failed', err);
+            });
+        }
       };
 
       streamCompletionCoordinator.complete(message_id, finalizeCompletion);
@@ -398,12 +443,14 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
         return;
       }
 
+      orchestratedMessageIdsRef.current.delete(effectiveMessageId);
       finalizeStreamError(effectiveMessageId, errorMsg);
     });
 
     const unlistenCancelled = listen<{ message_id: string }>('ai-stream-cancelled', (event) => {
       const { message_id } = event.payload;
       if (!message_id) return;
+      orchestratedMessageIdsRef.current.delete(message_id);
       finalizeStreamError(message_id, 'manually canceled');
     });
 
@@ -458,6 +505,8 @@ export function useAgentStreamEvents(options: UseAgentStreamEventsOptions) {
       const { message_id } = event.payload;
       const streamMeta = streamMetaByMessageIdRef.current[message_id];
       if (!streamMeta) return;
+
+      orchestratedMessageIdsRef.current.add(message_id);
 
       flushQueuedChunksForMessageIfNeeded(
         message_id,

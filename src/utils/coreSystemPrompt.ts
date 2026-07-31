@@ -172,6 +172,27 @@ Do **not** write: one-off task details, temporary paths, this-session debugging 
 If it conflicts with AGENTS.md or user Rules, prefer those; do not overwrite them via \`memory\`.
 When the user says to forget or reverse a convention, call \`memory\` \`action=delete\` (list first if the id is unclear).`;
 
+const SECTION_AGENT_MEMORY_WRITE = `## Agent memory
+
+When the user shares a **durable preference**, correction, or environment fact that should apply across projects and future sessions (e.g. "prefer concise replies", "don't use sudo for docker", "我用 pnpm"), call \`agent_memory\` in the same turn.
+
+- \`target=user\` — who the user is: name, role, communication style, pet peeves
+- \`target=memory\` — environment facts, tool quirks, lessons learned
+- Actions: \`add\`, \`replace\` (unique \`old_text\` substring), \`remove\`
+
+Do **not** write task progress, temporary paths, or one-off debugging notes.
+If an existing entry already says the same thing in different words, use \`replace\`/\`remove\` — do not \`add\` a paraphrase.
+If capacity is high (≥80% in the injected header), consolidate with \`replace\`/\`remove\` before adding.
+Project-only conventions belong in the \`memory\` (project) tool, not \`agent_memory\`.
+Do **not** recite the full Agent Memory block to the user unless they explicitly ask to see it.`;
+
+const SECTION_AGENT_SESSION_SEARCH = `When you need details from **past conversations** that are not already known (e.g. "what did we decide last week about X"), call \`session_search\` with keywords. To page within results, pass \`offset\` (and optionally \`conversation_id\`).`;
+
+const SECTION_AGENT_SESSION_SEARCH_WITH_MEMORY = `When you need details from **past conversations** that are not in Agent Memory (e.g. "what did we decide last week about X"), call \`session_search\` with keywords. Use \`session_search\` for recall; use \`agent_memory\` for facts that must stay in every future session. To page within results, pass \`offset\` (and optionally \`conversation_id\`).`;
+
+/** Placeholder identity used in section lists; replaced in buildCoreSystemPrompt. */
+const SECTION_AGENT_MEMORY = SECTION_AGENT_MEMORY_WRITE;
+
 const SECTION_OTHER_DETAILS_PLAN = `## Other important details
 
 - Plan mode is read-only: do not modify files or run shell commands that change the system
@@ -231,6 +252,7 @@ export const CORE_SYSTEM_PROMPT_SECTIONS_FULL: readonly string[] = [
   SECTION_CODE_GRAPH,
   SECTION_PLANNING,
   SECTION_PROJECT_MEMORY,
+  SECTION_AGENT_MEMORY,
   SECTION_PROACTIVE_CHAT,
   SECTION_WRITE_QUALITY_CODE,
   SECTION_OTHER_DETAILS_FULL,
@@ -251,6 +273,7 @@ export const CORE_SYSTEM_PROMPT_SECTIONS_PLAN: readonly string[] = [
   SECTION_CODE_GRAPH,
   SECTION_PLAN_MODE_WORKFLOW,
   SECTION_PLANNING,
+  SECTION_AGENT_MEMORY,
   SECTION_PROACTIVE_CHAT,
   SECTION_WRITE_QUALITY_CODE,
   SECTION_OTHER_DETAILS_PLAN,
@@ -262,11 +285,42 @@ export const CORE_SYSTEM_PROMPT_SECTIONS_PLAN: readonly string[] = [
 
 export interface BuildCoreSystemPromptOptions {
   planMode?: boolean;
+  /**
+   * Include Agent Memory write conventions (`agent_memory`).
+   * Default true. Pass false when master switch is off / Chat panel / no L1 targets enabled.
+   */
+  enableAgentMemory?: boolean;
+  /**
+   * Include `session_search` guidance. Default true.
+   * Ignored when both this and enableAgentMemory are false (section omitted).
+   */
+  enableAgentSessionSearch?: boolean;
+}
+
+function buildAgentMemorySection(enableWrite: boolean, enableSearch: boolean): string | null {
+  if (!enableWrite && !enableSearch) return null;
+  if (enableWrite && enableSearch) {
+    return `${SECTION_AGENT_MEMORY_WRITE}\n\n${SECTION_AGENT_SESSION_SEARCH_WITH_MEMORY}`;
+  }
+  if (enableWrite) return SECTION_AGENT_MEMORY_WRITE;
+  return `## Past conversation search\n\n${SECTION_AGENT_SESSION_SEARCH}`;
 }
 
 export function buildCoreSystemPrompt(options?: BuildCoreSystemPromptOptions): string {
-  const sections = options?.planMode
+  const enableWrite = options?.enableAgentMemory !== false;
+  const enableSearch = options?.enableAgentSessionSearch !== false;
+  const source = options?.planMode
     ? CORE_SYSTEM_PROMPT_SECTIONS_PLAN
     : CORE_SYSTEM_PROMPT_SECTIONS_FULL;
-  return sections.join('\n\n');
+
+  const parts: string[] = [];
+  for (const section of source) {
+    if (section === SECTION_AGENT_MEMORY) {
+      const built = buildAgentMemorySection(enableWrite, enableSearch);
+      if (built) parts.push(built);
+      continue;
+    }
+    parts.push(section);
+  }
+  return parts.join('\n\n');
 }

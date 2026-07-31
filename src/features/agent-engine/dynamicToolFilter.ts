@@ -6,6 +6,10 @@ type DynamicFilterContext = {
   isGitRepo?: boolean;
   hasBrowserCapability?: boolean;
   enableCodeGraph?: boolean;
+  /** Master switch for user-scoped Agent Memory tool */
+  enableAgentMemory?: boolean;
+  /** On-demand past-conversation search */
+  enableAgentSessionSearch?: boolean;
 };
 
 const GIT_TOOLS = new Set(['git', 'get_git_diff', 'undo_changes']);
@@ -33,6 +37,14 @@ export function filterToolsByContext(
 
   if (context.enableCodeGraph === false) {
     filtered = filtered.filter((t) => !GRAPH_TOOLS.has(t.name));
+  }
+
+  if (context.enableAgentMemory === false) {
+    filtered = filtered.filter((t) => t.name !== 'agent_memory');
+  }
+
+  if (context.enableAgentSessionSearch === false) {
+    filtered = filtered.filter((t) => t.name !== 'session_search');
   }
 
   return filtered;

@@ -210,6 +210,21 @@ export type MemoryArgs = {
   tags?: string[];
 };
 
+export type AgentMemoryArgs = {
+  action: 'add' | 'replace' | 'remove';
+  target: 'user' | 'memory';
+  content?: string;
+  old_text?: string;
+};
+
+export type SessionSearchArgs = {
+  query: string;
+  project_path?: string;
+  conversation_id?: string;
+  limit?: number;
+  offset?: number;
+};
+
 export type UpdatePlanArgs = {
   /** Full plan document markdown (replaces previous content). */
   plan: string;
@@ -435,6 +450,8 @@ type ToolArgsMap = {
   web_search: WebSearchArgs;
   todo: TodoWriteArgs;
   memory: MemoryArgs;
+  agent_memory: AgentMemoryArgs;
+  session_search: SessionSearchArgs;
   update_plan: UpdatePlanArgs;
   exit_plan_mode: ExitPlanModeArgs;
   ask: AskUserQuestionArgs;

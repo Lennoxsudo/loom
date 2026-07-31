@@ -38,7 +38,7 @@ describe('buildCoreSystemPrompt', () => {
     expect(prompt).toContain('## Project memory');
     expect(prompt).toContain('`memory`');
     expect(prompt).toContain('action=upsert');
-    expect(CORE_SYSTEM_PROMPT_SECTIONS_FULL).toHaveLength(18);
+    expect(CORE_SYSTEM_PROMPT_SECTIONS_FULL).toHaveLength(19);
   });
 
   it('uses read-only file guidance in plan mode', () => {
@@ -60,5 +60,30 @@ describe('buildCoreSystemPrompt', () => {
     expect(prompt).toContain('`update_plan`');
     expect(prompt).toContain('`exit_plan_mode`');
     expect(prompt).toContain('[PLAN]');
+  });
+
+  it('omits Agent Memory section when disabled', () => {
+    const prompt = buildCoreSystemPrompt({
+      enableAgentMemory: false,
+      enableAgentSessionSearch: false,
+    });
+    expect(prompt).not.toContain('## Agent memory');
+    expect(prompt).not.toContain('`agent_memory`');
+    expect(prompt).not.toContain('`session_search`');
+  });
+
+  it('keeps session_search guidance when only search is enabled', () => {
+    const prompt = buildCoreSystemPrompt({
+      enableAgentMemory: false,
+      enableAgentSessionSearch: true,
+    });
+    expect(prompt).toContain('## Past conversation search');
+    expect(prompt).toContain('`session_search`');
+    expect(prompt).not.toContain('`agent_memory`');
+  });
+
+  it('includes do-not-recite guidance when Agent Memory is enabled', () => {
+    const prompt = buildCoreSystemPrompt({ enableAgentMemory: true });
+    expect(prompt).toContain('Do **not** recite the full Agent Memory block');
   });
 });

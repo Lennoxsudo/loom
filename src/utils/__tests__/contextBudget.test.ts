@@ -14,6 +14,9 @@ import {
   getImageTokenEstimate,
   ageOldImageAttachments,
   DEFAULT_IMAGE_TOKENS,
+  estimateRequestTokens,
+  recordRequestTokenEstimate,
+  consumeRequestTokenEstimate,
 } from '../contextBudget';
 
 // ==================== estimateTokens ====================
@@ -471,6 +474,22 @@ describe('calibrateTokenEstimation (方法 11)', () => {
     expect(after.cjkFactor).toBeLessThanOrEqual(3.0);
     expect(after.cjkFactor).toBeGreaterThan(0);
   });
+
+  it('keeps calibration buckets isolated by provider:model key', () => {
+    const keyA = 'openai:model-a';
+    const keyB = 'anthropic:model-b';
+    const beforeA = getCalibrationState(keyA);
+    const beforeB = getCalibrationState(keyB);
+
+    calibrateTokenEstimation(100, 150, keyA);
+
+    const afterA = getCalibrationState(keyA);
+    const afterB = getCalibrationState(keyB);
+    expect(afterA.cjkFactor).toBeGreaterThan(beforeA.cjkFactor);
+    expect(afterA.sampleCount).toBe(beforeA.sampleCount + 1);
+    expect(afterB.cjkFactor).toBe(beforeB.cjkFactor);
+    expect(afterB.sampleCount).toBe(beforeB.sampleCount);
+  });
 });
 
 // ==================== trimMessagesToFit 前缀保护 (方法 10) ====================
@@ -662,6 +681,56 @@ describe('方法 15: 图片附件上下文管理', () => {
     it('handles empty messages array', () => {
       const result = ageOldImageAttachments([]);
       expect(result).toEqual([]);
+    });
+  });
+});
+
+// ==================== estimateRequestTokens / record-consume (方法 11 口径对齐) ====================
+
+describe('estimateRequestTokens', () => {
+  it('equals message tokens plus tools tokens', () => {
+    const messages = [
+      { role: 'system', content: 'System prompt' },
+      { role: 'user', content: 'hello world' },
+    ];
+    const tools = [{ type: 'function', function: { name: 'read', parameters: {} } }];
+    const expected =
+      messages.reduce((sum, m) => sum + estimateMessageTokens(m), 0) + estimateToolsTokens(tools);
+    expect(estimateRequestTokens(messages, tools)).toBe(expected);
+  });
+
+  it('handles empty messages and no tools', () => {
+    expect(estimateRequestTokens([], undefined)).toBe(0);
+  });
+});
+
+describe('recordRequestTokenEstimate / consumeRequestTokenEstimate', () => {
+  it('consume returns the recorded estimate once, then undefined', () => {
+    recordRequestTokenEstimate('msg-once', 1234, 'openai:gpt-4o');
+    expect(consumeRequestTokenEstimate('msg-once')).toEqual({
+      estimatedTokens: 1234,
+      calibrationKey: 'openai:gpt-4o',
+    });
+    expect(consumeRequestTokenEstimate('msg-once')).toBeUndefined();
+  });
+
+  it('ignores invalid inputs', () => {
+    recordRequestTokenEstimate('', 100);
+    recordRequestTokenEstimate('msg-zero', 0);
+    expect(consumeRequestTokenEstimate('')).toBeUndefined();
+    expect(consumeRequestTokenEstimate('msg-zero')).toBeUndefined();
+  });
+
+  it('evicts oldest entries beyond capacity (FIFO)', () => {
+    for (let i = 0; i < 60; i++) {
+      recordRequestTokenEstimate(`flood-${i}`, i + 1);
+    }
+    // 容量 50：最早的 10 条已被淘汰
+    expect(consumeRequestTokenEstimate('flood-0')).toBeUndefined();
+    expect(consumeRequestTokenEstimate('flood-9')).toBeUndefined();
+    expect(consumeRequestTokenEstimate('flood-59')).toEqual({
+      estimatedTokens: 60,
+      calibrationKey: 'default',
     });
   });
 });
