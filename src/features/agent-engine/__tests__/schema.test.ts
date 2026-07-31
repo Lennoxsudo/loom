@@ -361,6 +361,30 @@ describe('schema validation', () => {
       expect(result2.success).toBe(false);
     });
 
+    it('should validate memory tool parameters correctly', () => {
+      expect(validateToolParameters('memory', { action: 'list' }).success).toBe(true);
+      expect(validateToolParameters('memory', { action: 'get', id: 'css-modules' }).success).toBe(
+        true
+      );
+      expect(
+        validateToolParameters('memory', {
+          action: 'upsert',
+          title: 'CSS Modules',
+          body: 'Use CSS Modules.',
+        }).success
+      ).toBe(true);
+      expect(validateToolParameters('memory', { action: 'delete', id: 'css-modules' }).success).toBe(
+        true
+      );
+
+      expect(validateToolParameters('memory', { action: 'get' }).success).toBe(false);
+      expect(validateToolParameters('memory', { action: 'delete' }).success).toBe(false);
+      expect(validateToolParameters('memory', { action: 'upsert', title: 'x' }).success).toBe(
+        false
+      );
+      expect(validateToolParameters('memory', { action: 'upsert', body: 'y' }).success).toBe(false);
+    });
+
     it('should handle unknown tool with base validation', () => {
       // Unknown tool should use base schema validation
       const params = {

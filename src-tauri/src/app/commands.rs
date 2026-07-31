@@ -288,6 +288,7 @@ pub fn attach_handlers(
         crate::usage_tracking::save_usage,
         crate::usage_tracking::load_usage,
         crate::chat::get_app_data_path,
+        crate::chat::get_dot_config_path,
         // app windows
         open_agent_window,
         show_agent_window,

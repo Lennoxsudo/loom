@@ -267,6 +267,10 @@ export interface AgentConversation {
       /** Hash of the rules content that was injected, for change detection */
       contentHash?: string;
     };
+    memory?: {
+      injected: boolean;
+      contentHash?: string;
+    };
   };
   /** Change review comments for this thread */
   reviewComments?: ChangeReviewComment[];

@@ -4,6 +4,11 @@ import {
   estimateToolsTokens,
 } from '../../utils/contextBudget';
 import { shouldInjectRules, formatRulesContext, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
+import {
+  loadProjectMemoryContext,
+  shouldInjectProjectMemory,
+  prependProjectMemoryToFirstUserMessage,
+} from '../../utils/projectMemory';
 import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import { shouldInjectProjectPath as checkShouldInjectProjectPath } from '../../hooks/useContextInjectionState';
 import { loadSkillsContext } from '../../utils/skills';
@@ -141,7 +146,8 @@ function buildAgentRequestMessages(
   messages: ChatMessage[],
   agent: Agent,
   conversation: AgentConversation | null,
-  agentMode: 'plan' | 'always-allow'
+  agentMode: 'plan' | 'always-allow',
+  memoryText = ''
 ): ProviderRequestMessage[] {
   const requestMessages: ProviderRequestMessage[] = toProviderRequestMessages(messages);
 
@@ -157,6 +163,15 @@ function buildAgentRequestMessages(
   );
   if (needsRulesInjection) {
     prependRulesToFirstUserMessage(requestMessages, agent.rules ?? '');
+  }
+
+  const needsMemoryInjection = shouldInjectProjectMemory(
+    memoryText,
+    !!conversation?.contextInjected?.memory?.injected,
+    conversation?.contextInjected?.memory?.contentHash
+  );
+  if (needsMemoryInjection) {
+    prependProjectMemoryToFirstUserMessage(requestMessages, memoryText);
   }
 
   return requestMessages;
@@ -264,7 +279,14 @@ export async function buildAgentRequestContext(
   });
 
   const activeMessages = compactOutcome.messages as unknown as ChatMessage[];
-  const requestMessages = buildAgentRequestMessages(activeMessages, agent, conversation, agentMode);
+  const memoryText = await loadProjectMemoryContext(projectPath);
+  const requestMessages = buildAgentRequestMessages(
+    activeMessages,
+    agent,
+    conversation,
+    agentMode,
+    memoryText
+  );
   const needsProjectPathInjection =
     shouldInjectProjectPath ?? checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
   const skillsContext = await loadSkillsContext(projectPath);

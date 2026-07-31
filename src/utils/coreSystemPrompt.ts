@@ -163,6 +163,15 @@ const SECTION_OTHER_DETAILS_FULL = `## Other important details
 - You can read and write files with \`read\`, \`edit\`, and \`write\`
 - You can search code and files with \`search\` and \`finfo\``;
 
+const SECTION_PROJECT_MEMORY = `## Project memory
+
+When the user states a **stable, cross-session project convention** (e.g. "always use CSS Modules", "never use library X here", "记住：本项目用 pnpm"), call \`memory\` with \`action=upsert\` in the same turn — do not wait to be asked.
+
+Do **not** write: one-off task details, temporary paths, this-session debugging notes, or anything that belongs only in the current thread.
+
+If it conflicts with AGENTS.md or user Rules, prefer those; do not overwrite them via \`memory\`.
+When the user says to forget or reverse a convention, call \`memory\` \`action=delete\` (list first if the id is unclear).`;
+
 const SECTION_OTHER_DETAILS_PLAN = `## Other important details
 
 - Plan mode is read-only: do not modify files or run shell commands that change the system
@@ -221,6 +230,7 @@ export const CORE_SYSTEM_PROMPT_SECTIONS_FULL: readonly string[] = [
   SECTION_TOOL_USE,
   SECTION_CODE_GRAPH,
   SECTION_PLANNING,
+  SECTION_PROJECT_MEMORY,
   SECTION_PROACTIVE_CHAT,
   SECTION_WRITE_QUALITY_CODE,
   SECTION_OTHER_DETAILS_FULL,

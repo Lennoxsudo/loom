@@ -1250,6 +1250,38 @@ export interface I18nMessages {
     openFolder: string;
     openFolderFailed: string;
   };
+  settingsMemory: {
+    title: string;
+    description: string;
+    sectionTitle: string;
+    sectionHint: string;
+    noProjectOpen: string;
+    empty: string;
+    emptyAll: string;
+    unknownProject: string;
+    newEntry: string;
+    edit: string;
+    delete: string;
+    confirmDelete: string;
+    entryTitle: string;
+    titlePlaceholder: string;
+    tags: string;
+    tagsPlaceholder: string;
+    body: string;
+    bodyPlaceholder: string;
+    save: string;
+    cancel: string;
+    saving: string;
+    loadFailed: string;
+    saveFailed: string;
+    deleteFailed: string;
+    titleRequired: string;
+    bodyRequired: string;
+    copyPath: string;
+    pathCopied: string;
+    openFolder: string;
+    openFolderFailed: string;
+  };
   settingsPlugins: {
     title: string;
     description: string;
@@ -1456,6 +1488,20 @@ export interface I18nMessages {
     };
     subagent: {
       title: string;
+    };
+    rules: {
+      title: string;
+      description: string;
+      content: string;
+      placeholder: string;
+      applyTemplate: string;
+      noTemplate: string;
+      save: string;
+      saving: string;
+      clear: string;
+      saved: string;
+      saveFailed: string;
+      unavailable: string;
     };
   };
   settingsMcp: {

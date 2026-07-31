@@ -27,12 +27,19 @@ const MERGED_TOOL_ROUTES: Record<string, (args: Record<string, unknown>) => Rout
           no_output_expected: args.no_output_expected ?? args.quiet,
           max_lines: args.max_lines,
           script: args.script,
+          strip_ansi: args.strip_ansi,
         },
       };
     if (action === 'read_output')
       return {
         toolName: 'read_terminal_output',
-        args: { terminal_id: args.terminal_id ?? args.tid },
+        args: {
+          terminal_id: args.terminal_id ?? args.tid,
+          strip_ansi: args.strip_ansi,
+          block_until_ms: args.block_until_ms,
+          notify_on_output: args.notify_on_output,
+          since_bytes: args.since_bytes,
+        },
       };
     if (action === 'list_bg') return { toolName: 'list_bg_tasks', args: {} };
     if (action === 'kill')

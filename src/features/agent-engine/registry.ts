@@ -22,6 +22,7 @@ import { imageGenHandlers } from './handlers/imageGenHandlers';
 import { subagentHandlers } from './handlers/subagentHandlers';
 import { agentToolHandlers } from './handlers/agentToolHandler';
 import { graphHandlers } from './handlers/graphHandlers';
+import { memoryHandlers } from './handlers/memoryHandlers';
 
 const toolHandlers = new Map<ToolName, ToolHandler>();
 
@@ -59,6 +60,7 @@ registerHandlers(imageGenHandlers);
 registerHandlers(subagentHandlers);
 registerHandlers(agentToolHandlers);
 registerHandlers(graphHandlers);
+registerHandlers(memoryHandlers);
 
 // Register legacy name aliases for backward compatibility
 // When the model or stored conversations use old names, route them to the same handler

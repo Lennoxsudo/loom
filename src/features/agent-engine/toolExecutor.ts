@@ -146,6 +146,7 @@ const KNOWN_TOOL_NAMES: readonly string[] = [
   'fetch',
   'web_search',
   'todo',
+  'memory',
   'update_plan',
   'exit_plan_mode',
   'ask',

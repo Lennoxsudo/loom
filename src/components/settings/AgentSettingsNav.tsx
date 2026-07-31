@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../i18n';
-import { FolderIcon, SettingsIcon, ZapIcon } from '../shared/Icons';
+import {
+  AuditLogIcon,
+  FolderIcon,
+  McpIcon,
+  ProjectMemoryIcon,
+  RulesIcon,
+  SkillsIcon,
+  SubagentsIcon,
+  ZapIcon,
+} from '../shared/Icons';
 import type { AgentSettingsSection } from './AgentContent';
 import styles from './AgentSettingsView.module.css';
 
@@ -49,9 +58,29 @@ export function AgentSettingsNav({
             icon: <ZapIcon size={14} />,
           },
           {
+            id: 'rules',
+            label: t.settingsAgent.rules.title,
+            icon: <RulesIcon size={14} />,
+          },
+          {
             id: 'subagent',
             label: t.settingsAgent.subagent.title,
-            icon: <SettingsIcon size={14} />,
+            icon: <SubagentsIcon size={14} />,
+          },
+          {
+            id: 'skills',
+            label: t.settingsSkills.title,
+            icon: <SkillsIcon size={14} />,
+          },
+          {
+            id: 'memory',
+            label: t.settingsMemory.title,
+            icon: <ProjectMemoryIcon size={14} />,
+          },
+          {
+            id: 'mcp',
+            label: t.settingsMcp.title,
+            icon: <McpIcon size={14} />,
           },
         ],
       },
@@ -62,7 +91,7 @@ export function AgentSettingsNav({
           {
             id: 'audit',
             label: 'Audit Log',
-            icon: <SettingsIcon size={14} />,
+            icon: <AuditLogIcon size={14} />,
           },
         ],
       },

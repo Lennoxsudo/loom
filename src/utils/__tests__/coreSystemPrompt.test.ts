@@ -35,7 +35,10 @@ describe('buildCoreSystemPrompt', () => {
     expect(prompt).toContain('Do **not** quote');
     expect(prompt).toContain('## Code graph (prefer over blind search)');
     expect(prompt).toContain('graph_trace');
-    expect(CORE_SYSTEM_PROMPT_SECTIONS_FULL).toHaveLength(17);
+    expect(prompt).toContain('## Project memory');
+    expect(prompt).toContain('`memory`');
+    expect(prompt).toContain('action=upsert');
+    expect(CORE_SYSTEM_PROMPT_SECTIONS_FULL).toHaveLength(18);
   });
 
   it('uses read-only file guidance in plan mode', () => {

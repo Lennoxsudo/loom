@@ -73,7 +73,11 @@ function statusBadgeClass(state: McpServerDisplayState): string {
   }
 }
 
-export function MCPConfigContent() {
+export type MCPConfigContentProps = {
+  variant?: 'page' | 'panel';
+};
+
+export function MCPConfigContent({ variant = 'page' }: MCPConfigContentProps) {
   const t = useTranslation();
 
   const [servers, setServers] = useState<McpServerConfig[]>([]);
@@ -365,10 +369,10 @@ export function MCPConfigContent() {
           : styles.healthDotError;
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} style={variant === 'panel' ? { maxWidth: 'none', paddingBottom: 0 } : undefined}>
       <header className={styles.pageHeader}>
         <div className={styles.pageTitleRow}>
-          <h2 className={styles.pageTitle}>{t.settingsMcp.title}</h2>
+          {variant === 'page' ? <h2 className={styles.pageTitle}>{t.settingsMcp.title}</h2> : null}
           {configPath ? <span className={styles.configPath}>{configPath}</span> : null}
         </div>
         <button type="button" onClick={handleOpenConfig} className={pageStyles.secondaryButton}>

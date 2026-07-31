@@ -42,7 +42,6 @@ function MessageBubble({
   const t = useTranslation();
   const isUser = message.role === 'user';
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -251,8 +250,6 @@ function MessageBubble({
         maxWidth: '100%',
         width: '100%',
       }}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
     >
       <div
         style={{
@@ -280,15 +277,20 @@ function MessageBubble({
 
         {showContent && (
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '8px',
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              width: '100%',
-              position: 'relative',
-            }}
+            className={isUser ? userBubbleStyles.wrap : undefined}
+            style={
+              isUser
+                ? undefined
+                : {
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    flexDirection: 'row',
+                    justifyContent: 'flex-start',
+                    width: '100%',
+                    position: 'relative',
+                  }
+            }
           >
             <div
               id={isUser ? `msg-${message.id}` : undefined}
@@ -507,19 +509,7 @@ function MessageBubble({
             </div>
 
             {isUser && !editing && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  opacity: isHovering || isCopied ? 1 : 0,
-                  transition: 'opacity 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  zIndex: 1,
-                }}
-              >
+              <div className={userBubbleStyles.actions}>
                 {canEdit ? (
                   <button
                     type="button"
@@ -540,9 +530,12 @@ function MessageBubble({
                   </button>
                 ) : null}
                 <button
+                  type="button"
                   onClick={handleCopy}
                   className={`${userBubbleStyles.copyButton} ${isCopied ? userBubbleStyles.copyButtonCopied : ''}`}
                   title="复制内容"
+                  aria-label="复制内容"
+                  data-testid="user-message-copy"
                 >
                   {isCopied ? <CheckIcon /> : <CopyIcon />}
                 </button>

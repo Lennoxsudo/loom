@@ -301,7 +301,11 @@ function SkillsPathRow({
   );
 }
 
-export function SkillsContent() {
+export type SkillsContentProps = {
+  variant?: 'page' | 'panel';
+};
+
+export function SkillsContent({ variant = 'page' }: SkillsContentProps) {
   const t = useTranslation();
   const projectPath = useFileStore((s) => s.projectPath);
   const [globalSkills, setGlobalSkills] = useState<SkillEntry[]>([]);
@@ -387,11 +391,17 @@ export function SkillsContent() {
   }
 
   return (
-    <div className={`${pageStyles.root} ${styles.root}`}>
-      <header className={pageStyles.pageHeader}>
-        <h2 className={pageStyles.pageTitle}>{t.settingsSkills.title}</h2>
-        <p className={pageStyles.pageDescription}>{t.settingsSkills.slashHint}</p>
-      </header>
+    <div className={`${variant === 'page' ? pageStyles.root : ''} ${styles.root}`.trim()}>
+      {variant === 'page' ? (
+        <header className={pageStyles.pageHeader}>
+          <h2 className={pageStyles.pageTitle}>{t.settingsSkills.title}</h2>
+          <p className={pageStyles.pageDescription}>{t.settingsSkills.slashHint}</p>
+        </header>
+      ) : (
+        <p className={pageStyles.pageDescription} style={{ marginBottom: 16 }}>
+          {t.settingsSkills.slashHint}
+        </p>
+      )}
 
       {error ? (
         <div className={`${pageStyles.message} ${pageStyles.messageError}`}>

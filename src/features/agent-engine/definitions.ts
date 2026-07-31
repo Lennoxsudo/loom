@@ -9,8 +9,10 @@ export const AI_TOOLS: ToolDefinition[] = [
       'read_output - check the output of a background command (pass the task ID as tid); ' +
       'list_bg - list all running and completed background tasks; ' +
       'kill - terminate a background task by task ID (pass tid). ' +
-      'Foreground commands have a 30s timeout; if a command runs longer it is automatically moved to background ' +
+      'Foreground commands use timeout (default 30s, max 600s); if a command runs longer it is automatically moved to background ' +
       'and you can check its progress via read_output. You do NOT need to set bg=true explicitly for long-running commands. ' +
+      'For read_output, use block_until_ms to wait for completion, notify_on_output (regex) to return early on a match, ' +
+      'and since_bytes with next-since-bytes for incremental output. ' +
       'Use max_lines to control output length and avoid truncation. ' +
       'Use script for multi-line scripts (written to a temp file and executed).',
     parameters: {
@@ -45,7 +47,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         timeout: {
           type: 'number',
           description:
-            'Timeout in milliseconds. Default: 30000 (30s). Maximum: 600000 (10 min). For commands that need longer (e.g. dev servers), set bg=true and check with read_output.',
+            'Timeout in milliseconds for run (foreground and bg spawn). Default: 30000 (30s). Maximum: 600000 (10 min). ' +
+            'Foreground waits up to this duration then auto-moves to background. For servers that never exit, prefer bg=true.',
         },
         desc: {
           type: 'string',
@@ -77,6 +80,29 @@ export const AI_TOOLS: ToolDefinition[] = [
             'Multi-line script content to execute. The content is written to a temporary file and ' +
             'executed with the selected shell. Supports heredoc-style scripts, functions, and complex logic. ' +
             'When provided, the command parameter is ignored.',
+        },
+        strip_ansi: {
+          type: 'boolean',
+          description:
+            'Strip ANSI escape codes from output (default true). Set false to keep raw terminal sequences.',
+        },
+        block_until_ms: {
+          type: 'number',
+          description:
+            'For read_output only: wait up to this many milliseconds for the background task to complete ' +
+            '(or for notify_on_output to match). Default 0 = single poll. Maximum: 600000.',
+        },
+        notify_on_output: {
+          type: 'string',
+          description:
+            'For read_output only: regex (multiline) matched against stdout/stderr. ' +
+            'When set with block_until_ms, return early when the pattern matches even if the task is still running.',
+        },
+        since_bytes: {
+          type: 'number',
+          description:
+            'For read_output only: return stdout starting at this byte offset. ' +
+            'Use the next-since-bytes value from a previous read_output for incremental tails.',
         },
       },
       required: ['action'],
@@ -824,6 +850,41 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
       },
       required: ['name'],
+    },
+  },
+  {
+    name: 'memory',
+    description:
+      'Manage durable project conventions (Project Memory). Use for short, stable cross-session rules ' +
+      '(e.g. CSS Modules only). Do not store one-off session details. Prefer AGENTS.md / user Rules when they conflict. ' +
+      'Actions: list, get, upsert, delete.',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'get', 'upsert', 'delete'],
+          description: 'list all entries; get one by id; upsert create/update; delete by id.',
+        },
+        id: {
+          type: 'string',
+          description: 'Entry id (kebab-case). Required for get/delete; optional for upsert (derived from title).',
+        },
+        title: {
+          type: 'string',
+          description: 'Short title. Required for upsert.',
+        },
+        body: {
+          type: 'string',
+          description: 'Convention text (keep short). Required for upsert.',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional tags for upsert (e.g. frontend, testing).',
+        },
+      },
+      required: ['action'],
     },
   },
   {

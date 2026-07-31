@@ -202,6 +202,14 @@ export type TodoWriteArgs = {
   }>;
 };
 
+export type MemoryArgs = {
+  action: 'list' | 'get' | 'upsert' | 'delete';
+  id?: string;
+  title?: string;
+  body?: string;
+  tags?: string[];
+};
+
 export type UpdatePlanArgs = {
   /** Full plan document markdown (replaces previous content). */
   plan: string;
@@ -300,16 +308,24 @@ type TerminalMergedArgs = {
   terminal_id?: string;
   working_dir?: string;
   shell?: string;
+  strip_ansi?: boolean;
   timeout?: number;
   description?: string;
   run_in_background?: boolean;
   no_output_expected?: boolean;
   max_lines?: number;
   script?: string;
+  block_until_ms?: number;
+  notify_on_output?: string;
+  since_bytes?: number;
 };
 
 export type ReadTerminalOutputArgs = {
   terminal_id?: string;
+  strip_ansi?: boolean;
+  block_until_ms?: number;
+  notify_on_output?: string;
+  since_bytes?: number;
 };
 
 type FileInfoMergedArgs = {
@@ -418,6 +434,7 @@ type ToolArgsMap = {
   fetch: FetchWebContentArgs;
   web_search: WebSearchArgs;
   todo: TodoWriteArgs;
+  memory: MemoryArgs;
   update_plan: UpdatePlanArgs;
   exit_plan_mode: ExitPlanModeArgs;
   ask: AskUserQuestionArgs;

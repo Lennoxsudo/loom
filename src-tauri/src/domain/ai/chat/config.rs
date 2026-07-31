@@ -364,3 +364,9 @@ pub fn get_app_data_path(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
     Ok(app_data_dir.to_string_lossy().to_string())
 }
+
+#[tauri::command]
+pub fn get_dot_config_path() -> Result<String, String> {
+    let dir = crate::config_paths::dot_config_dir()?;
+    Ok(dir.to_string_lossy().to_string())
+}

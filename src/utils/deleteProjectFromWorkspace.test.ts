@@ -8,6 +8,7 @@ import {
   type ProjectConversationState,
 } from './agentPersistence';
 import { removeProjectStateBackupFromLocalStorage } from '../components/agent/hooks/useAgentInit';
+import { deleteAllProjectMemory } from './projectMemory';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -18,6 +19,10 @@ vi.mock('./agentPersistence', () => ({
   deleteProjectState: vi.fn(),
   getProjectState: vi.fn(),
   projectStorageKey: vi.fn(),
+}));
+
+vi.mock('./projectMemory', () => ({
+  deleteAllProjectMemory: vi.fn(),
 }));
 
 vi.mock('../components/agent/hooks/useAgentInit', () => ({
@@ -77,6 +82,7 @@ describe('deleteProjectFromWorkspace', () => {
 
     expect(clearSessionExtrasForProject).toHaveBeenCalledWith('project-key');
     expect(deleteProjectState).toHaveBeenCalledWith('project-key');
+    expect(deleteAllProjectMemory).toHaveBeenCalledWith('D:\\demo\\project');
     expect(invoke).toHaveBeenCalledWith('cbm_delete_workspace_index', {
       repoPath: 'D:\\demo\\project',
       enableCodeGraph: true,

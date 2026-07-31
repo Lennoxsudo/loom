@@ -1,0 +1,79 @@
+.projectGroup {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+}
+
+.projectGroup:last-child {
+  border-bottom: none;
+}
+
+.projectHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.projectHeader:hover {
+  background: color-mix(in srgb, var(--text-secondary) 3.5%, transparent);
+}
+
+.projectHeaderExpanded {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 4%, transparent);
+}
+
+.projectMain {
+  min-width: 0;
+}
+
+.projectNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.projectName {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projectCount {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+}
+
+.projectPath {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projectActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.projectBody {
+  padding: 12px 0 8px;
+}

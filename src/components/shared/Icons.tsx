@@ -279,6 +279,141 @@ export const ZapIcon = ({ size = 14, style, className }: IconProps) => (
   </svg>
 );
 
+/** Agent settings: Rules — lined brief / policy sheet */
+export const RulesIcon = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden
+  >
+    <path d="M8 3h7l5 5v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+    <path d="M15 3v5h5" />
+    <path d="M9 13h6" />
+    <path d="M9 17h4" />
+  </svg>
+);
+
+/** Agent settings: Subagents — parent node branching to two children */
+export const SubagentsIcon = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden
+  >
+    <circle cx="12" cy="5" r="2.5" />
+    <circle cx="5" cy="19" r="2.5" />
+    <circle cx="19" cy="19" r="2.5" />
+    <path d="M12 7.5v3.5" />
+    <path d="M12 11H5v5.5" />
+    <path d="M12 11h7v5.5" />
+  </svg>
+);
+
+/** Agent settings: Skills — bookmark (invocable capability) */
+export const SkillsIcon = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden
+  >
+    <path d="M7 3h10a1 1 0 0 1 1 1v17l-6-3.5L6 21V4a1 1 0 0 1 1-1z" />
+  </svg>
+);
+
+/** Agent settings: Project Memory — durable store (cylinder), clear at 14px */
+export const ProjectMemoryIcon = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden
+  >
+    <ellipse cx="12" cy="6" rx="7" ry="3" />
+    <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
+    <path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" />
+  </svg>
+);
+
+/** Agent settings: MCP — protocol plug / connector */
+export const McpIcon = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden
+  >
+    <path d="M12 3v6" />
+    <path d="M9 6h6" />
+    <rect x="7" y="9" width="10" height="7" rx="2" />
+    <path d="M10 16v5" />
+    <path d="M14 16v5" />
+  </svg>
+);
+
+/** Agent settings: Audit Log — timeline list (not a generic shield) */
+export const AuditLogIcon = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden
+  >
+    <path d="M8 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8" />
+    <path d="M8 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2" />
+    <circle cx="5" cy="8" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="5" cy="16" r="1.5" fill="currentColor" stroke="none" />
+    <path d="M11 8h6" />
+    <path d="M11 12h6" />
+    <path d="M11 16h4" />
+  </svg>
+);
+
 export const BrowserGlobeIcon = ({ size = 14, style, className }: IconProps) => (
   <svg
     width={size}

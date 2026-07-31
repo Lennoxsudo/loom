@@ -4,6 +4,7 @@ import { parseProviderAndModel } from '../parseProviderAndModel';
 import { reconcileProviderRequest, type LoadedAiConfig } from '../aiProviderRuntime';
 import { runAgentLoop, buildForkMessages, filterToolsForSubagentType } from '../runAgentLoop';
 import { loadSkillsContext, loadSkillContent } from '../skills';
+import { loadProjectMemoryContext } from '../projectMemory';
 import { estimateTokens } from '../contextBudget';
 import { getSubagentSystemPrompt } from '../../features/agent-engine/subagentPrompt';
 import type { ToolContext } from '../../features/agent-engine/types';
@@ -223,6 +224,9 @@ async function runOneSubagentWithDefinition(
     const claudeMd = await loadClaudeMd(options.parentContext?.baseDir);
     if (claudeMd) promptParts.push(claudeMd);
   }
+
+  const projectMemory = await loadProjectMemoryContext(options.parentContext?.baseDir || '');
+  if (projectMemory) promptParts.push(projectMemory);
 
   if (def.skills?.length) {
     for (const skillName of def.skills) {

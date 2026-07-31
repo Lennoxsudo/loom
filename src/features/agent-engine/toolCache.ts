@@ -295,6 +295,7 @@ const cacheableTools = {
   git: false,
   browser: false,
   todo: false,
+  memory: false,
   ask: false,
   skill: false,
 

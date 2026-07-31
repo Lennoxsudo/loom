@@ -12,6 +12,7 @@ export const READ_ONLY_TOOL_NAMES = new Set([
   'graph_trace',
   'todo',
   'TodoWrite',
+  'memory',
   'ask',
   'ask_user_question',
   'update_plan',

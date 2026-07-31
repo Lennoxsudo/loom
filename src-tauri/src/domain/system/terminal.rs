@@ -1247,57 +1247,8 @@ pub async fn execute_command(
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(30_000).min(600_000));
 
     // If script is provided, write it to a temp file and execute that
-    let (actual_command, script_shell, _temp_file) = if let Some(ref script_content) = script {
-        // Determine file extension based on shell (or OS default)
-        let ext = match shell.as_deref() {
-            Some("cmd") => "cmd",
-            Some("pwsh") | Some("powershell") | Some("ps") => "ps1",
-            Some("bash") | Some("sh") | Some("zsh") | Some("fish") => "sh",
-            _ => {
-                // Default: use ps1 on Windows, sh elsewhere
-                if cfg!(target_os = "windows") {
-                    "ps1"
-                } else {
-                    "sh"
-                }
-            }
-        };
-        let temp_dir = std::env::temp_dir();
-        let temp_path = temp_dir.join(format!("loom_script_{}.{}", Uuid::new_v4(), ext));
-        std::fs::write(&temp_path, script_content)
-            .map_err(|e| format!("写入临时脚本文件失败: {e}"))?;
-
-        let temp_str = temp_path.to_string_lossy().to_string();
-        let shell_cmd = match shell.as_deref() {
-            Some("cmd") => format!("cmd.exe /C \"{}\"", temp_str),
-            Some("pwsh") => format!("pwsh.exe -NoProfile -File \"{}\"", temp_str),
-            Some("powershell") | Some("ps") => {
-                format!("powershell.exe -NoProfile -File \"{}\"", temp_str)
-            }
-            Some("bash") => format!("bash \"{}\"", temp_str),
-            Some("sh") => format!("sh \"{}\"", temp_str),
-            Some("zsh") => format!("zsh \"{}\"", temp_str),
-            Some("fish") => format!("fish \"{}\"", temp_str),
-            _ => {
-                if cfg!(target_os = "windows") {
-                    format!("powershell.exe -NoProfile -File \"{}\"", temp_str)
-                } else {
-                    format!("bash \"{}\"", temp_str)
-                }
-            }
-        };
-        // Return the shell that was used for the script command
-        let used_shell = shell.clone().unwrap_or_else(|| {
-            if cfg!(target_os = "windows") {
-                "powershell".to_string()
-            } else {
-                "bash".to_string()
-            }
-        });
-        (shell_cmd, Some(used_shell), Some(temp_path))
-    } else {
-        (command.clone(), None, None)
-    };
+    let (actual_command, script_shell, _temp_file) =
+        prepare_script_invocation(&command, script.as_deref(), &shell)?;
 
     // For script execution, actual_command already includes the shell invocation.
     // Pass the script shell directly to avoid double-wrapping.
@@ -1430,7 +1381,11 @@ pub async fn execute_command(
             return Err(format!("等待命令执行失败: {e}"));
         }
         Err(_) => {
-            // Timeout! Kill the process
+            // Timeout: kill the whole process tree so a later auto-bg restart
+            // does not leave the original process running (esp. on Windows).
+            if let Some(pid) = child.id() {
+                kill_process_tree(pid);
+            }
             let _ = child.kill().await;
             let status = child.wait().await.ok();
             (status.and_then(|s| s.code()), true)
@@ -1536,6 +1491,129 @@ fn apply_max_lines(output: &str, max_lines: Option<usize>) -> String {
 
 static BG_TASK_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+/// Cap accumulated background stdout/stderr to avoid unbounded memory growth.
+const BG_OUTPUT_MAX_CHARS: usize = 512 * 1024;
+/// Keep at most this many completed bg tasks in memory.
+const BG_COMPLETED_KEEP: usize = 40;
+
+fn append_capped(buf: &mut String, text: &str) -> bool {
+    if text.is_empty() {
+        return false;
+    }
+    buf.push_str(text);
+    if buf.len() > BG_OUTPUT_MAX_CHARS {
+        let overflow = buf.len() - BG_OUTPUT_MAX_CHARS;
+        let mut drain_to = overflow;
+        while drain_to < buf.len() && !buf.is_char_boundary(drain_to) {
+            drain_to += 1;
+        }
+        buf.drain(..drain_to);
+        return true;
+    }
+    false
+}
+
+fn prune_completed_background_tasks(
+    tasks: &mut HashMap<String, Arc<Mutex<BackgroundTaskState>>>,
+) {
+    let mut completed_ids: Vec<(String, u128)> = Vec::new();
+    for (id, arc) in tasks.iter() {
+        if let Ok(state) = arc.lock() {
+            if state.completed {
+                completed_ids.push((id.clone(), state.started.elapsed().as_millis()));
+            }
+        }
+    }
+    if completed_ids.len() <= BG_COMPLETED_KEEP {
+        return;
+    }
+    completed_ids.sort_by(|a, b| b.1.cmp(&a.1)); // longest running first = oldest start approx
+    // Prefer removing oldest by largest elapsed since start among completed.
+    for (id, _) in completed_ids.into_iter().skip(BG_COMPLETED_KEEP) {
+        tasks.remove(&id);
+    }
+}
+
+fn kill_process_tree(pid: u32) {
+    if pid == 0 {
+        return;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let mut kill_cmd = std::process::Command::new("taskkill");
+        kill_cmd.args(["/PID", &pid.to_string(), "/F", "/T"]);
+        use std::os::windows::process::CommandExt;
+        kill_cmd.creation_flags(0x08000000);
+        let _ = kill_cmd.status();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        // Try process group first, then the pid itself.
+        let _ = std::process::Command::new("kill")
+            .args(["-TERM", &format!("-{pid}")])
+            .status();
+        let _ = std::process::Command::new("kill")
+            .args(["-KILL", &pid.to_string()])
+            .status();
+    }
+}
+
+/// Prepare command text for shell execution. When `script` is set, write a temp file
+/// and return an invocation that runs that file (same behavior as foreground execute).
+fn prepare_script_invocation(
+    command: &str,
+    script: Option<&str>,
+    shell: &Option<String>,
+) -> Result<(String, Option<String>, Option<std::path::PathBuf>), String> {
+    let Some(script_content) = script.filter(|s| !s.is_empty()) else {
+        return Ok((command.to_string(), None, None));
+    };
+
+    let ext = match shell.as_deref() {
+        Some("cmd") => "cmd",
+        Some("pwsh") | Some("powershell") | Some("ps") => "ps1",
+        Some("bash") | Some("sh") | Some("zsh") | Some("fish") => "sh",
+        _ => {
+            if cfg!(target_os = "windows") {
+                "ps1"
+            } else {
+                "sh"
+            }
+        }
+    };
+    let temp_path = std::env::temp_dir().join(format!("loom_script_{}.{}", Uuid::new_v4(), ext));
+    std::fs::write(&temp_path, script_content)
+        .map_err(|e| format!("写入临时脚本文件失败: {e}"))?;
+
+    let temp_str = temp_path.to_string_lossy().to_string();
+    let shell_cmd = match shell.as_deref() {
+        Some("cmd") => format!("cmd.exe /C \"{}\"", temp_str),
+        Some("pwsh") => format!("pwsh.exe -NoProfile -File \"{}\"", temp_str),
+        Some("powershell") | Some("ps") => {
+            format!("powershell.exe -NoProfile -File \"{}\"", temp_str)
+        }
+        Some("bash") => format!("bash \"{}\"", temp_str),
+        Some("sh") => format!("sh \"{}\"", temp_str),
+        Some("zsh") => format!("zsh \"{}\"", temp_str),
+        Some("fish") => format!("fish \"{}\"", temp_str),
+        _ => {
+            if cfg!(target_os = "windows") {
+                format!("powershell.exe -NoProfile -File \"{}\"", temp_str)
+            } else {
+                format!("bash \"{}\"", temp_str)
+            }
+        }
+    };
+    let used_shell = shell.clone().unwrap_or_else(|| {
+        if cfg!(target_os = "windows") {
+            "powershell".to_string()
+        } else {
+            "bash".to_string()
+        }
+    });
+    Ok((shell_cmd, Some(used_shell), Some(temp_path)))
+}
+
 struct BackgroundTaskState {
     stdout: String,
     stderr: String,
@@ -1545,6 +1623,8 @@ struct BackgroundTaskState {
     command: String,
     duration_ms: Option<u64>,
     conversation_id: Option<String>,
+    started: std::time::Instant,
+    truncated: bool,
 }
 
 pub struct BackgroundTasks {
@@ -1600,6 +1680,7 @@ pub fn execute_command_bg(
     app: AppHandle,
     bg_state: State<'_, BackgroundTasks>,
     shell: Option<String>,
+    script: Option<String>,
     sandbox_state: State<'_, SandboxState>,
     conversation_id: Option<String>,
 ) -> Result<ExecuteCommandBgResult, String> {
@@ -1607,23 +1688,39 @@ pub fn execute_command_bg(
     use std::time::Instant;
 
     let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
+    // Validate against the logical command/script text (not the temp-file wrapper).
+    let validate_text = script.as_deref().filter(|s| !s.is_empty()).unwrap_or(&command);
     sandbox_ctx.validate_command_allowed()?;
-    sandbox_ctx.validate_dangerous_command(&command)?;
-    sandbox_ctx.validate_network(&command)?;
+    sandbox_ctx.validate_dangerous_command(validate_text)?;
+    sandbox_ctx.validate_network(validate_text)?;
     // On Linux/macOS, kernel-level FS isolation (Landlock/Seatbelt) is applied
     // below in this code path, making the application-layer file-access
     // heuristic redundant and coarser. Skip it to avoid double-strictness.
     // Windows has no kernel FS isolation — keep the check.
     if cfg!(not(any(target_os = "linux", target_os = "macos"))) {
-        sandbox_ctx.validate_command_file_access(&command)?;
+        sandbox_ctx.validate_command_file_access(validate_text)?;
     }
     if let Some(ref dir) = working_dir {
         sandbox_ctx.validate_command_cwd(Some(std::path::Path::new(dir)))?;
     }
 
+    let (actual_command, script_shell, temp_file) =
+        prepare_script_invocation(&command, script.as_deref(), &shell)?;
+
     let task_id = format!("bg{}", BG_TASK_COUNTER.fetch_add(1, Ordering::Relaxed));
 
-    let mut cmd = build_shell_command(&shell, &command);
+    let mut cmd = if script_shell.is_some() {
+        let mut c = std::process::Command::new("cmd.exe");
+        c.args(["/C", &actual_command]);
+        #[cfg(not(target_os = "windows"))]
+        {
+            c = std::process::Command::new("sh");
+            c.args(["-c", &actual_command]);
+        }
+        c
+    } else {
+        build_shell_command(&shell, &actual_command)
+    };
     cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
@@ -1654,7 +1751,11 @@ pub fn execute_command_bg(
                 sandbox_ctx.network_enabled,
             );
             // Preserve the user's shell selection instead of hardcoding sh.
-            let (sh_prog, sh_args) = shell_program_and_args(&shell, &command);
+            let (sh_prog, sh_args): (String, Vec<String>) = if script_shell.is_some() {
+                ("sh".to_string(), vec!["-c".to_string(), actual_command.clone()])
+            } else {
+                shell_program_and_args(&shell, &actual_command)
+            };
             cmd = std::process::Command::new("sandbox-exec");
             cmd.arg("-p").arg(&profile).arg(&sh_prog).args(&sh_args);
             cmd.stdout(Stdio::piped())
@@ -1697,6 +1798,8 @@ pub fn execute_command_bg(
         command: command.clone(),
         duration_ms: None,
         conversation_id: conversation_id.filter(|value| !value.trim().is_empty()),
+        started: start_time,
+        truncated: false,
     }));
 
     // Register the task
@@ -1705,6 +1808,7 @@ pub fn execute_command_bg(
             .tasks
             .lock()
             .map_err(|_| "后台任务状态锁定失败".to_string())?;
+        prune_completed_background_tasks(&mut tasks);
         tasks.insert(task_id.clone(), task_state.clone());
     }
 
@@ -1728,7 +1832,9 @@ pub fn execute_command_bg(
                         Ok(n) => {
                             let text = decode_terminal_bytes(&buf[..n]);
                             if let Ok(mut s) = ts_stdout.lock() {
-                                s.stdout.push_str(&text);
+                                if append_capped(&mut s.stdout, &text) {
+                                    s.truncated = true;
+                                }
                             }
                             if !text.is_empty() {
                                 emit_command_exec_progress(
@@ -1762,7 +1868,9 @@ pub fn execute_command_bg(
                         Ok(n) => {
                             let text = decode_terminal_bytes(&buf[..n]);
                             if let Ok(mut s) = ts_stderr.lock() {
-                                s.stderr.push_str(&text);
+                                if append_capped(&mut s.stderr, &text) {
+                                    s.truncated = true;
+                                }
                             }
                         }
                         Err(_) => break,
@@ -1783,17 +1891,25 @@ pub fn execute_command_bg(
         match child.wait() {
             Ok(status) => {
                 if let Ok(mut s) = ts.lock() {
-                    s.exit_code = status.code();
-                    s.completed = true;
-                    s.duration_ms = Some(start_time.elapsed().as_millis() as u64);
+                    if !s.completed {
+                        s.exit_code = status.code();
+                        s.completed = true;
+                        s.duration_ms = Some(start_time.elapsed().as_millis() as u64);
+                    }
                 }
             }
             Err(_) => {
                 if let Ok(mut s) = ts.lock() {
-                    s.completed = true;
-                    s.duration_ms = Some(start_time.elapsed().as_millis() as u64);
+                    if !s.completed {
+                        s.completed = true;
+                        s.duration_ms = Some(start_time.elapsed().as_millis() as u64);
+                    }
                 }
             }
+        }
+
+        if let Some(ref path) = temp_file {
+            let _ = std::fs::remove_file(path);
         }
 
         // Emit terminal-data event with the complete output
@@ -1836,7 +1952,11 @@ pub fn check_background_command(
     let s = task.lock().map_err(|_| "后台任务锁定失败".to_string())?;
 
     Ok(CheckBackgroundCommandResult {
-        stdout: s.stdout.clone(),
+        stdout: if s.truncated {
+            format!("... [earlier output truncated] ...\n{}", s.stdout)
+        } else {
+            s.stdout.clone()
+        },
         stderr: s.stderr.clone(),
         completed: s.completed,
         exit_code: s.exit_code,
@@ -1856,31 +1976,26 @@ pub fn kill_background_command(
         .map_err(|_| "后台任务状态锁定失败".to_string())?;
     let task = tasks
         .get(&task_id)
-        .ok_or(format!("后台任务不存在: {task_id}"))?;
-    let s = task.lock().map_err(|_| "后台任务锁定失败".to_string())?;
-
-    if s.completed {
-        return Err("任务已完成，无需终止".to_string());
-    }
-
-    let pid = s.pid;
-    drop(s);
+        .ok_or(format!("后台任务不存在: {task_id}"))?
+        .clone();
     drop(tasks);
 
-    #[cfg(target_os = "windows")]
-    {
-        let mut kill_cmd = std::process::Command::new("taskkill");
-        kill_cmd.args(["/PID", &pid.to_string(), "/F", "/T"]);
-        use std::os::windows::process::CommandExt;
-        kill_cmd.creation_flags(0x08000000);
-        let _ = kill_cmd.status();
-    }
+    let pid = {
+        let s = task.lock().map_err(|_| "后台任务锁定失败".to_string())?;
+        if s.completed {
+            return Err("任务已完成，无需终止".to_string());
+        }
+        s.pid
+    };
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = std::process::Command::new("kill")
-            .arg(pid.to_string())
-            .status();
+    kill_process_tree(pid);
+
+    if let Ok(mut s) = task.lock() {
+        if !s.completed {
+            s.completed = true;
+            s.exit_code = Some(1);
+            s.duration_ms = Some(s.started.elapsed().as_millis() as u64);
+        }
     }
 
     Ok(())
@@ -1956,5 +2071,39 @@ mod tests {
         let (prog, args) = shell_program_and_args(&Some("fish".to_string()), "echo fish");
         assert_eq!(prog, "fish");
         assert_eq!(args, vec!["-c", "echo fish"]);
+    }
+}
+
+#[cfg(test)]
+mod bg_output_tests {
+    use super::*;
+
+    #[test]
+    fn append_capped_truncates_large_output() {
+        let mut buf = String::new();
+        let chunk = "x".repeat(8000);
+        let mut truncated = false;
+        for _ in 0..100 {
+            if append_capped(&mut buf, &chunk) {
+                truncated = true;
+                break;
+            }
+        }
+        assert!(truncated);
+        assert!(buf.len() <= BG_OUTPUT_MAX_CHARS);
+    }
+
+    #[test]
+    fn prepare_script_invocation_writes_temp_file() {
+        let (cmd, shell, path) =
+            prepare_script_invocation("ignored", Some("echo hello"), &Some("bash".to_string()))
+                .expect("prepare");
+        assert!(shell.as_deref() == Some("bash"));
+        assert!(cmd.contains("bash"));
+        let path = path.expect("temp path");
+        assert!(path.exists());
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(content, "echo hello");
+        let _ = std::fs::remove_file(path);
     }
 }

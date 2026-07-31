@@ -33,14 +33,29 @@ import {
   SettingsToggle,
 } from './SettingsPrimitives';
 import { AuditLogPanel } from '../agent/AuditLogPanel';
+import { SkillsContent } from './SkillsContent';
+import { MemoryContent } from './MemoryContent';
+import { MCPConfigContent } from './MCPConfigContent';
+import { AgentRulesContent } from './AgentRulesContent';
 
 type AccessMode = 'read_only' | 'auto' | 'full_access';
 
-export type AgentSettingsSection = 'general' | 'behavior' | 'subagent' | 'audit';
+export type AgentSettingsSection =
+  | 'general'
+  | 'behavior'
+  | 'rules'
+  | 'subagent'
+  | 'skills'
+  | 'memory'
+  | 'mcp'
+  | 'audit';
 
 export type AgentContentProps = {
   variant?: 'page' | 'panel';
   section?: AgentSettingsSection;
+  agentRules?: string;
+  onSaveAgentRules?: (rules: string) => Promise<void>;
+  agentRulesUnavailable?: boolean;
 };
 
 function PanelSettingRow({
@@ -63,7 +78,13 @@ function PanelSettingRow({
   );
 }
 
-export function AgentContent({ variant = 'page', section = 'general' }: AgentContentProps) {
+export function AgentContent({
+  variant = 'page',
+  section = 'general',
+  agentRules = '',
+  onSaveAgentRules,
+  agentRulesUnavailable = false,
+}: AgentContentProps) {
   const t = useTranslation();
   const agentAccessMode = useAgentAccessMode();
   const updateAgentAccessMode = useUpdateAgentAccessMode();
@@ -177,9 +198,17 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
       ? t.settingsAgent.nav.general
       : section === 'behavior'
         ? t.settingsAgent.groups.behavior
-        : section === 'subagent'
-          ? t.settingsAgent.subagent.title
-          : 'Audit Log';
+        : section === 'rules'
+          ? t.settingsAgent.rules.title
+          : section === 'subagent'
+            ? t.settingsAgent.subagent.title
+            : section === 'skills'
+              ? t.settingsSkills.title
+              : section === 'memory'
+                ? t.settingsMemory.title
+                : section === 'mcp'
+                  ? t.settingsMcp.title
+                  : 'Audit Log';
 
   const renderStoragePath = (panel = false) => {
     if (loading) {
@@ -326,6 +355,14 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
           </>
         )}
 
+        {section === 'rules' && (
+          <AgentRulesContent
+            rules={agentRules}
+            unavailable={agentRulesUnavailable || !onSaveAgentRules}
+            onSave={onSaveAgentRules ?? (async () => undefined)}
+          />
+        )}
+
         {section === 'subagent' && (
           <section className={panelStyles.block}>
             <PanelSettingRow
@@ -341,6 +378,12 @@ export function AgentContent({ variant = 'page', section = 'general' }: AgentCon
             />
           </section>
         )}
+
+        {section === 'skills' && <SkillsContent variant="panel" />}
+
+        {section === 'memory' && <MemoryContent variant="panel" />}
+
+        {section === 'mcp' && <MCPConfigContent variant="panel" />}
 
         {section === 'audit' && (
           <section className={panelStyles.block}>

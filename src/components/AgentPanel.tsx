@@ -2425,7 +2425,20 @@ export default function AgentPanel({
           <div className={styles.agentContentFrame}>
             <div className={settingsViewStyles.main}>
               <div className={styles.contentColumn}>
-                <AgentContent variant="panel" section={settingsSection} />
+                <AgentContent
+                  variant="panel"
+                  section={settingsSection}
+                  agentRules={agent?.rules ?? ''}
+                  agentRulesUnavailable={!agent}
+                  onSaveAgentRules={
+                    agent
+                      ? async (rules) => {
+                          const updated = await saveAgent({ ...agent, rules });
+                          setAgent(updated);
+                        }
+                      : undefined
+                  }
+                />
               </div>
             </div>
           </div>

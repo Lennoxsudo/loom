@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import { deleteCbmWorkspaceIndex } from './cbmRuntime';
 import { deleteProjectState, getProjectState, projectStorageKey } from './agentPersistence';
+import { deleteAllProjectMemory } from './projectMemory';
 import { collectImagePathsFromMessages } from '../components/agent/utils';
 import { normalizeProjectPath } from '../shared/lib/projectPath';
 import { removeProjectStateBackupFromLocalStorage } from '../components/agent/hooks/useAgentInit';
@@ -40,6 +41,7 @@ export async function deleteProjectFromWorkspace(
 
   options.clearSessionExtrasForProject(projectKey);
   await deleteProjectState(projectKey);
+  await deleteAllProjectMemory(trimmedPath);
   try {
     await deleteCbmWorkspaceIndex(trimmedPath, options.enableCodeGraph);
   } catch (error) {

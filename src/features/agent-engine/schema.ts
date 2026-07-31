@@ -97,6 +97,10 @@ const TerminalToolSchema = ToolParametersSchema.extend({
   quiet: z.boolean().optional(),
   max_lines: z.number().int().positive().optional(),
   script: z.string().optional(),
+  strip_ansi: z.boolean().optional(),
+  block_until_ms: z.number().int().nonnegative().max(600000).optional(),
+  notify_on_output: z.string().optional(),
+  since_bytes: z.number().int().nonnegative().optional(),
 }).refine(
   (data) => {
     if (data.action === 'run' && !data.command && !data.script) {
@@ -470,6 +474,42 @@ const TodoWriteSchema = ToolParametersSchema.extend({
     .min(1),
 });
 
+const MemorySchema = z
+  .object({
+    action: z.enum(['list', 'get', 'upsert', 'delete']),
+    id: z.string().optional(),
+    title: z.string().optional(),
+    body: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action === 'get' || data.action === 'delete') {
+      if (!data.id?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `id is required for action=${data.action}`,
+          path: ['id'],
+        });
+      }
+    }
+    if (data.action === 'upsert') {
+      if (!data.title?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'title is required for action=upsert',
+          path: ['title'],
+        });
+      }
+      if (!data.body?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'body is required for action=upsert',
+          path: ['body'],
+        });
+      }
+    }
+  });
+
 const UpdatePlanSchema = z.object({
   plan: z.string().min(1),
   title: z.string().optional(),
@@ -622,6 +662,9 @@ export function validateToolParameters(
       case 'todo':
       case 'TodoWrite':
         schema = TodoWriteSchema;
+        break;
+      case 'memory':
+        schema = MemorySchema;
         break;
       case 'update_plan':
         schema = UpdatePlanSchema;

@@ -18,7 +18,8 @@ import { invoke } from '@tauri-apps/api/core';
 
 const DEFAULT_TIMEOUT_MS = 30_000; // 前台命令默认 30s 超时，超时后自动转为后台执行
 const MAX_TIMEOUT_MS = 600_000;
-const FOREGROUND_HARD_TIMEOUT_MS = 35_000; // 前端硬超时兜底（30s Rust 超时 + 5s 缓冲）
+const HARD_TIMEOUT_BUFFER_MS = 5_000; // 前端硬超时 = timeoutMs + buffer
+const POLL_INTERVAL_MS = 250;
 
 const MAX_INLINE_OUTPUT_CHARS = 30_000; // claude-code: BASH_MAX_OUTPUT_DEFAULT
 
@@ -29,6 +30,40 @@ const MAX_INLINE_OUTPUT_CHARS = 30_000; // claude-code: BASH_MAX_OUTPUT_DEFAULT
 function clampTimeout(ms: number | undefined): number {
   if (ms === undefined || ms <= 0) return DEFAULT_TIMEOUT_MS;
   return Math.min(ms, MAX_TIMEOUT_MS);
+}
+
+/** Cap wait for read_output; 0/undefined means a single poll. */
+export function clampBlockUntilMs(ms: number | undefined): number {
+  if (ms === undefined || ms <= 0) return 0;
+  return Math.min(ms, MAX_TIMEOUT_MS);
+}
+
+export function sliceStdoutSince(
+  stdout: string,
+  sinceBytes: number | undefined
+): { text: string; nextSinceBytes: number; appliedSince: number } {
+  const nextSinceBytes = stdout.length;
+  const appliedSince = Math.max(0, Math.min(sinceBytes ?? 0, nextSinceBytes));
+  return { text: stdout.slice(appliedSince), nextSinceBytes, appliedSince };
+}
+
+export function outputMatchesNotifyPattern(
+  stdout: string,
+  stderr: string,
+  pattern: string | undefined
+): boolean {
+  const raw = pattern?.trim();
+  if (!raw) return false;
+  try {
+    const re = new RegExp(raw, 'm');
+    return re.test(stdout) || re.test(stderr) || re.test(`${stdout}\n${stderr}`);
+  } catch {
+    return false;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function bgTaskConversationArg(context?: ToolContext) {
@@ -124,10 +159,11 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
       // -----------------------------------------------------------------------
       if (isBackground) {
         const bgResult = await invoke<ExecuteCommandBgResult>('execute_command_bg', {
-          command: args.script || args.command,
+          command: args.command || '',
           workingDir: workingDir || undefined,
           timeoutMs,
           shell: args.shell || undefined,
+          script: args.script || undefined,
           ...bgTaskConversationArg(context),
         });
 
@@ -138,14 +174,14 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
       }
 
       // -----------------------------------------------------------------------
-      // Foreground path: execute_command — 始终用 DEFAULT_TIMEOUT_MS
-      // AI 传的 timeout 参数只用于后台命令；前台固定 30s 超时自动转后台。
-      // 用 Promise.race 加前端硬超时兜底，避免 Rust 侧 child.kill 不生效时永远挂起。
+      // Foreground path: execute_command — timeout 与 schema 一致（默认 30s，最大 600s）
+      // 超时后自动转后台；硬超时 = timeoutMs + 5s，避免 Rust kill 失效时永远挂起。
       // -----------------------------------------------------------------------
+      const hardTimeoutMs = Math.min(timeoutMs + HARD_TIMEOUT_BUFFER_MS, MAX_TIMEOUT_MS + HARD_TIMEOUT_BUFFER_MS);
       const invokePromise = invoke<ExecuteCommandResult>('execute_command', {
-        command: args.script || args.command,
+        command: args.command || args.script || '',
         workingDir: workingDir || undefined,
-        timeoutMs: DEFAULT_TIMEOUT_MS,
+        timeoutMs,
         shell: args.shell || undefined,
         maxLines: args.max_lines || undefined,
         script: args.script || undefined,
@@ -158,57 +194,41 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
       const raced = await Promise.race<ForegroundResult>([
         invokePromise.then((value) => ({ kind: 'ok' as const, value })),
         new Promise<ForegroundResult>((resolve) =>
-          setTimeout(() => resolve({ kind: 'timeout' }), FOREGROUND_HARD_TIMEOUT_MS)
+          setTimeout(() => resolve({ kind: 'timeout' }), hardTimeoutMs)
         ),
       ]);
 
       // ── 前端硬超时兜底 ──────────────────────────────────────────────
-      // Rust 侧的 30s 超时可能因 Windows 子进程链无法 kill 而失效，
-      // 前端在 35s 后直接接管：不等待 Rust 返回，直接后台执行。
+      // Rust 侧超时可能因 Windows 子进程链无法 kill 而失效。
+      // 此时不要再启动第二个后台进程（可能与原进程并存）。
       if (raced.kind === 'timeout') {
-        let bgTaskId = '';
-        try {
-          const bgResult = await invoke<ExecuteCommandBgResult>('execute_command_bg', {
-            command: args.script || args.command,
-            workingDir: workingDir || undefined,
-            timeoutMs: DEFAULT_TIMEOUT_MS,
-            shell: args.shell || undefined,
-            ...bgTaskConversationArg(context),
-          });
-          bgTaskId = bgResult.task_id;
-        } catch {
-          // 后台启动失败，返回无输出结果
-        }
-
         return {
           tool_call_id: '',
           output:
-            `Command timed out after ${(DEFAULT_TIMEOUT_MS / 1000).toFixed(0)}s ` +
-            (bgTaskId
-              ? `and was automatically moved to background.\n\n` +
-                `To check progress later, use action=read_output with tid=${bgTaskId}.\n` +
-                `To stop it, use action=kill with tid=${bgTaskId}.`
-              : `and could not be continued in background.`),
+            `Command exceeded the ${(hardTimeoutMs / 1000).toFixed(0)}s hard timeout ` +
+            `and was not restarted in background (the original process may still be finishing).\n` +
+            `For long-running work, re-run with bg=true.`,
         };
       }
 
       const result = raced.value;
 
-      // ── Rust 侧超时自动切换后台 ──────────────────────────────────────
+      // ── Rust 侧超时：原进程已强杀，再以后台方式重启（含 script） ──
       if (result.timed_out) {
         try {
           const bgResult = await invoke<ExecuteCommandBgResult>('execute_command_bg', {
-            command: args.script || args.command,
+            command: args.command || '',
             workingDir: workingDir || undefined,
-            timeoutMs: DEFAULT_TIMEOUT_MS,
+            timeoutMs,
             shell: args.shell || undefined,
+            script: args.script || undefined,
             ...bgTaskConversationArg(context),
           });
 
           return {
             tool_call_id: '',
             output:
-              `Command timed out after ${(DEFAULT_TIMEOUT_MS / 1000).toFixed(0)}s ` +
+              `Command timed out after ${(timeoutMs / 1000).toFixed(0)}s ` +
               `and was automatically moved to background.\n\n` +
               `To check progress later, use action=read_output with tid=${bgResult.task_id}.\n` +
               `To stop it, use action=kill with tid=${bgResult.task_id}.\n\n` +
@@ -230,11 +250,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
             stripAnsi: args.strip_ansi,
             projectPath: context?.baseDir,
           });
-
-          output += '\n' + formatStructuredMeta(cmdResult);
-          output +=
-            '\n\nCommand timed out. To run long commands in background, set run_in_background=true and check output with action=read_output.';
-
+          output = [output, formatStructuredMeta(cmdResult)].filter(Boolean).join('\n');
           return { tool_call_id: '', output };
         }
       }
@@ -273,7 +289,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
   }
 }
 
-class ReadTerminalOutputHandler implements ToolHandler<'read_terminal_output'> {
+export class ReadTerminalOutputHandler implements ToolHandler<'read_terminal_output'> {
   name = 'read_terminal_output' as const;
 
   async execute(args: ReadTerminalOutputArgs, context?: ToolContext): Promise<ToolResult> {
@@ -289,12 +305,41 @@ class ReadTerminalOutputHandler implements ToolHandler<'read_terminal_output'> {
         };
       }
 
-      const bgResult = await invoke<CheckBackgroundCommandResult>('check_background_command', {
+      const blockUntilMs = clampBlockUntilMs(args.block_until_ms);
+      const notifyPattern = args.notify_on_output;
+      const deadline = blockUntilMs > 0 ? Date.now() + blockUntilMs : 0;
+
+      let bgResult = await invoke<CheckBackgroundCommandResult>('check_background_command', {
         taskId: tid,
       });
+      let matchedPattern = outputMatchesNotifyPattern(
+        bgResult.stdout,
+        bgResult.stderr,
+        notifyPattern
+      );
 
+      while (
+        blockUntilMs > 0 &&
+        !bgResult.completed &&
+        !matchedPattern &&
+        Date.now() < deadline
+      ) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) break;
+        await sleep(Math.min(POLL_INTERVAL_MS, remaining));
+        bgResult = await invoke<CheckBackgroundCommandResult>('check_background_command', {
+          taskId: tid,
+        });
+        matchedPattern = outputMatchesNotifyPattern(
+          bgResult.stdout,
+          bgResult.stderr,
+          notifyPattern
+        );
+      }
+
+      const sliced = sliceStdoutSince(bgResult.stdout, args.since_bytes);
       const cmdResult: CommandResult = {
-        stdout: bgResult.stdout,
+        stdout: sliced.text,
         stderr: bgResult.stderr,
         interrupted: false,
         timedOut: false,
@@ -302,17 +347,27 @@ class ReadTerminalOutputHandler implements ToolHandler<'read_terminal_output'> {
         durationMs: bgResult.duration_ms ?? 0,
       };
 
-      const prefix = bgResult.completed
+      let prefix = bgResult.completed
         ? 'Background command completed.\n\n'
         : 'Background command still running.\n\n';
+      if (matchedPattern && !bgResult.completed) {
+        prefix = 'Background command matched notify_on_output pattern.\n\n';
+      }
 
       let output =
         prefix +
         formatCommandResult(cmdResult, {
+          stripAnsi: args.strip_ansi,
           projectPath: context?.baseDir,
         });
 
-      output += '\n' + formatStructuredMeta(cmdResult);
+      output +=
+        '\n' +
+        formatStructuredMeta(cmdResult) +
+        `\n<next-since-bytes>${sliced.nextSinceBytes}</next-since-bytes>`;
+      if (matchedPattern) {
+        output += '\n<matched-pattern>true</matched-pattern>';
+      }
 
       return { tool_call_id: '', output };
     } catch (error) {

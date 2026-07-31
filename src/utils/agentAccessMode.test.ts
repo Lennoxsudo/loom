@@ -22,6 +22,7 @@ describe('agentAccessMode', () => {
     for (const name of [
       'todo',
       'TodoWrite',
+      'memory',
       'ask',
       'ask_user_question',
       'update_plan',

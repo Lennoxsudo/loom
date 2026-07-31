@@ -20,6 +20,11 @@ import {
 import { getLanguage } from '../../../utils/editorUtils';
 import { shouldInjectRules, getRulesContentHash } from '../../../utils/rulesInjector';
 import {
+  loadProjectMemoryContext,
+  shouldInjectProjectMemory,
+  getProjectMemoryContentHash,
+} from '../../../utils/projectMemory';
+import {
   shouldInjectProjectPath as checkShouldInjectProjectPath,
   markInjectionPending,
   commitInjection,
@@ -397,6 +402,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         !!streamConversation?.contextInjected?.rules?.injected,
         streamConversation?.contextInjected?.rules?.contentHash
       );
+      const memoryText = await loadProjectMemoryContext(projectPathRef.current);
+      const needsMemoryInjection = shouldInjectProjectMemory(
+        memoryText,
+        !!streamConversation?.contextInjected?.memory?.injected,
+        streamConversation?.contextInjected?.memory?.contentHash
+      );
 
       let subagentCatalog: string | undefined;
       const catalogCache = subagentCatalogCacheRef.current;
@@ -464,7 +475,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         },
       });
 
-      if (needsInjection || needsRulesInjection) {
+      if (needsInjection || needsRulesInjection || needsMemoryInjection) {
         const injState = needsInjection
           ? commitInjection(activeConversationId, mainRequestId, projectPathRef.current)
           : undefined;
@@ -478,6 +489,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
               nextInjected.rules = {
                 injected: true,
                 contentHash: getRulesContentHash(selectedAgent.rules ?? ''),
+              };
+            }
+            if (needsMemoryInjection) {
+              nextInjected.memory = {
+                injected: true,
+                contentHash: getProjectMemoryContentHash(memoryText),
               };
             }
             return { ...c, contextInjected: nextInjected };
@@ -803,6 +820,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         !!streamConversation?.contextInjected?.rules?.injected,
         streamConversation?.contextInjected?.rules?.contentHash
       );
+      const memoryText = await loadProjectMemoryContext(projectPathRef.current);
+      const needsMemoryInjection = shouldInjectProjectMemory(
+        memoryText,
+        !!streamConversation?.contextInjected?.memory?.injected,
+        streamConversation?.contextInjected?.memory?.contentHash
+      );
 
       let subagentCatalog: string | undefined;
       const catalogCache = subagentCatalogCacheRef.current;
@@ -871,7 +894,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       });
 
       // Commit injection state on success
-      if (needsInjection || needsRulesInjection) {
+      if (needsInjection || needsRulesInjection || needsMemoryInjection) {
         const injState = needsInjection
           ? commitInjection(activeConversationId, mainRequestId, projectPathRef.current)
           : undefined;
@@ -885,6 +908,12 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
               nextInjected.rules = {
                 injected: true,
                 contentHash: getRulesContentHash(selectedAgent.rules ?? ''),
+              };
+            }
+            if (needsMemoryInjection) {
+              nextInjected.memory = {
+                injected: true,
+                contentHash: getProjectMemoryContentHash(memoryText),
               };
             }
             return { ...c, contextInjected: nextInjected };
