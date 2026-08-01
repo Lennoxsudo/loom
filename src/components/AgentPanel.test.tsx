@@ -648,8 +648,8 @@ test('AgentPanel 跨项目切换时不取消原项目正在运行的流，切回
     streamSpeed: 'fast',
     agentAccessMode: 'auto',
     recentWorkspaces: [
-      { path: projectA, name: 'Project A', lastOpened: Date.now() },
-      { path: projectB, name: 'Project B', lastOpened: Date.now() - 1 },
+      { path: projectA, name: 'Project A', lastOpenedAt: new Date().toISOString() },
+      { path: projectB, name: 'Project B', lastOpenedAt: new Date(Date.now() - 1).toISOString() },
     ],
   });
 

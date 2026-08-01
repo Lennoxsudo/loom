@@ -100,7 +100,11 @@ describe('buildAgentContextUsage', () => {
     vi.mocked(maybeAutoCompactConversation).mockImplementation(async ({ messages }) => ({
       messages,
       compacted: false,
-      compactState: { lastCompactedAt: 0, lastCompactedMessageCount: 0 },
+      compactState: {
+        lastCompactedAt: 0,
+        lastCompactedMessageCount: 0,
+        turnsSincePreviousCompact: 0,
+      },
       result: null,
     }));
   });

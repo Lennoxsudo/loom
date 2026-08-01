@@ -121,6 +121,6 @@ describe('useChatSendDuringStreamingDispatch scopeKey', () => {
     });
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    expect(sendMessage.mock.calls[0]?.[0]).toMatchObject({ inputValue: 'hello' });
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ inputValue: 'hello' }));
   });
 });

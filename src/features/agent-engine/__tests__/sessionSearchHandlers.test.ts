@@ -29,6 +29,8 @@ describe('sessionSearchHandlers', () => {
       ok: true,
       hits: [],
       scannedConversations: 0,
+      offset: 0,
+      hasMore: false,
     });
     const handler = getToolHandler('session_search');
     expect(handler).toBeTruthy();
@@ -42,6 +44,8 @@ describe('sessionSearchHandlers', () => {
       ok: false,
       hits: [],
       scannedConversations: 0,
+      offset: 0,
+      hasMore: false,
       error: 'query is required',
     });
     const handler = getToolHandler('session_search');
