@@ -739,6 +739,16 @@ export const enUS: I18nMessages = {
       checkpointPreviewTitle: 'Checkpoint preview',
       selectCheckpointFile: 'Click a file above to preview the restore diff',
       binarySkipped: 'binary skipped',
+      viewImpact: 'View impact',
+      viewImpactLoading: 'Analyzing impact…',
+      impactTitle: 'Blast radius',
+      impactCbmUnavailable: 'Code graph not ready (enable Code Graph and index the project)',
+      impactEmpty:
+        'No callers found. Confirm the project is indexed, or that symbols in this file have inbound edges.',
+      impactHighRisk: 'High risk',
+      impactCallers: 'Callers ({count})',
+      impactClose: 'Close impact preview',
+      impactError: 'Impact analysis failed: {error}',
     },
     userMessage: {
       edit: 'Edit message',

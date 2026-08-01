@@ -1516,6 +1516,10 @@ export function toProviderRequestMessages(messages: ChatMessage[]): ProviderRequ
           role: 'assistant' as const,
           content: msg.text || null,
           tool_calls: msg.tool_calls,
+          ...(msg.thinking?.trim() ? { thinking: msg.thinking } : {}),
+          ...(msg.thinkingSignature?.trim()
+            ? { thinkingSignature: msg.thinkingSignature }
+            : {}),
         };
       }
 
@@ -1530,6 +1534,10 @@ export function toProviderRequestMessages(messages: ChatMessage[]): ProviderRequ
         role: msg.role,
         content,
         ...(msg.attachments && msg.attachments.length > 0 ? { attachments: msg.attachments } : {}),
+        ...(msg.role === 'assistant' && msg.thinking?.trim() ? { thinking: msg.thinking } : {}),
+        ...(msg.role === 'assistant' && msg.thinkingSignature?.trim()
+          ? { thinkingSignature: msg.thinkingSignature }
+          : {}),
       };
     });
 }
@@ -1901,6 +1909,9 @@ function fromCompactableContextMessages(messages: CompactableMessage[]): Provide
       ...(message.tool_calls ? { tool_calls: message.tool_calls as ToolCall[] } : {}),
       ...(message.attachments ? { attachments: message.attachments as unknown[] } : {}),
       ...(message.thinking ? { thinking: message.thinking as string } : {}),
+      ...(typeof message.thinkingSignature === 'string' && message.thinkingSignature
+        ? { thinkingSignature: message.thinkingSignature }
+        : {}),
     };
   });
 }
@@ -2017,6 +2028,86 @@ export function parseStorageProjectKeyFromSessionKey(sessionKey: string): string
   const separator = sessionKey.indexOf('::');
   if (separator <= 0) return '';
   return sessionKey.slice(0, separator);
+}
+
+/** Conversation id is the segment after the first `::` in a session key. */
+export function getConversationIdFromSessionKey(sessionKey: string): string {
+  const separator = sessionKey.indexOf('::');
+  if (separator < 0 || separator === sessionKey.length - 2) return '';
+  return sessionKey.slice(separator + 2);
+}
+
+/**
+ * Keep only conversations that belong to `projectPath` so multi-project in-memory
+ * state (busy background streams) is not written into the active project file.
+ */
+export function scopeConversationStateToProject(
+  state: AgentConversationState,
+  projectPath: string
+): AgentConversationState {
+  const normalized = normalizeProjectPath(projectPath);
+  if (!normalized) return state;
+  return {
+    ...state,
+    conversations: (state.conversations ?? []).filter(
+      (conversation) => normalizeProjectPath(conversation.projectPath ?? '') === normalized
+    ),
+  };
+}
+
+/**
+ * When switching projects, keep busy (still-streaming) conversations from memory
+ * so background chunks/tool rounds continue to apply, and prefer them over disk.
+ */
+export function mergeBusyConversationsOnProjectSwitch(options: {
+  previousState: AgentConversationState;
+  nextState: AgentConversationState;
+  targetProjectPath: string;
+  busySessionKeys: Iterable<string>;
+}): AgentConversationState {
+  const { previousState, nextState, targetProjectPath, busySessionKeys } = options;
+  const busyConversationIds = new Set<string>();
+  for (const sessionKey of busySessionKeys) {
+    const conversationId = getConversationIdFromSessionKey(sessionKey);
+    if (conversationId) busyConversationIds.add(conversationId);
+  }
+  if (busyConversationIds.size === 0) {
+    return nextState;
+  }
+
+  const busyFromMemory = (previousState.conversations ?? []).filter((conversation) =>
+    busyConversationIds.has(conversation.id)
+  );
+  if (busyFromMemory.length === 0) {
+    return nextState;
+  }
+
+  const busyById = new Map(busyFromMemory.map((conversation) => [conversation.id, conversation]));
+  const targetPathKey = normalizeProjectPath(targetProjectPath);
+
+  const mergedTarget = (nextState.conversations ?? []).map(
+    (conversation) => busyById.get(conversation.id) ?? conversation
+  );
+  const targetIds = new Set(mergedTarget.map((conversation) => conversation.id));
+
+  for (const conversation of busyFromMemory) {
+    if (targetIds.has(conversation.id)) continue;
+    if (normalizeProjectPath(conversation.projectPath ?? '') === targetPathKey) {
+      mergedTarget.push(conversation);
+      targetIds.add(conversation.id);
+    }
+  }
+
+  const otherBusy = busyFromMemory.filter(
+    (conversation) =>
+      !targetIds.has(conversation.id) &&
+      normalizeProjectPath(conversation.projectPath ?? '') !== targetPathKey
+  );
+
+  return {
+    ...nextState,
+    conversations: [...mergedTarget, ...otherBusy],
+  };
 }
 
 export function buildComposeDraftSessionKey(projectKey: string): string {

@@ -47,13 +47,14 @@ pub fn build_openai_message_content(message: &ChatMessage) -> Result<serde_json:
 
     let mut text = content_as_text(&message.content);
 
-    // 如果是 assistant 消息，且存在 thinking 内容，但 text 中尚未包含 <thought> 标签，
-    // 则为 Gemini / Reasoning 模型在 content 中包含 <thought> thinking </thought>，
-    // 以防止 Gemini API 在多轮 tool_calls 中报 Missing thought_signature 错误 (400)。
+    // Gemini (and some proxies) need thinking embedded with a thought signature.
+    // OpenAI-compatible reasoning APIs expect a separate `reasoning_content` field instead —
+    // do not duplicate thinking into content when there is no signature.
     if message.role == "assistant" {
-        if let Some(ref thinking) = message.thinking {
+        if let (Some(ref thinking), Some(ref sig)) = (&message.thinking, &message.thinking_signature)
+        {
             let t = thinking.trim();
-            if !t.is_empty() && !text.contains("<thought") {
+            if !t.is_empty() && !sig.is_empty() && !text.contains("<thought") {
                 if text.trim().is_empty() {
                     text = format!("<thought>\n{}\n</thought>", t);
                 } else {
@@ -387,11 +388,37 @@ pub fn build_openai_messages_payload(
             }
         }
 
+        // DeepSeek-style thinking+tools: round-trip `reasoning_content` on the
+        // assistant turn that issued tool_calls. Skip when a thought signature is
+        // present (Gemini path uses <thought> + thought_signature / extra_content
+        // instead) — sending reasoning_content there can 400 as unsupported `reasoning`.
+        let has_tool_calls = tool_calls_out
+            .as_ref()
+            .map(|t| !t.is_empty())
+            .unwrap_or(false);
+        let has_thought_sig = effective_thought_sig
+            .as_ref()
+            .map(|s| !s.trim().is_empty())
+            .unwrap_or(false);
+        let reasoning_content = if has_tool_calls && !has_thought_sig {
+            m.thinking.as_ref().and_then(|t| {
+                let trimmed = t.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
+                }
+            })
+        } else {
+            None
+        };
+
         messages_json.push(OpenAIMessage {
             role: m.role.clone(),
             content: build_openai_message_content(m)?,
             tool_call_id: m.tool_call_id.clone(),
             tool_calls: tool_calls_out,
+            reasoning_content,
             thought_signature: effective_thought_sig,
             extra_content: None,
         });
@@ -405,6 +432,7 @@ pub fn build_openai_messages_payload(
                             content: serde_json::Value::String("操作已取消".to_string()),
                             tool_call_id: Some(tc.id.clone()),
                             tool_calls: None,
+                            reasoning_content: None,
                             thought_signature: None,
                             extra_content: None,
                         });
@@ -476,12 +504,116 @@ mod tests {
             thinking: Some("Thinking step 1".to_string()),
             thinking_started_at: None,
             thinking_ended_at: None,
-            thinking_signature: None,
+            thinking_signature: Some("sig".to_string()),
             is_error: None,
             slash_command: None,
         };
 
         let result = build_openai_message_content(&msg).unwrap();
         assert_eq!(result.as_str().unwrap(), "<thought>\nThinking step 1\n</thought>");
+    }
+
+    #[test]
+    fn test_build_openai_messages_includes_reasoning_content() {
+        use super::super::types::{ToolCall, ToolCallFunction};
+
+        let messages = vec![ChatMessage {
+            role: "assistant".to_string(),
+            content: serde_json::Value::String("".to_string()),
+            attachments: None,
+            tool_calls: Some(vec![ToolCall {
+                id: "tc_1".to_string(),
+                call_type: "function".to_string(),
+                function: ToolCallFunction {
+                    name: "read".to_string(),
+                    arguments: "{}".to_string(),
+                },
+                extra_content: None,
+            }]),
+            tool_call_id: None,
+            tool_name: None,
+            tool_args: None,
+            thinking: Some("plan the tool call".to_string()),
+            thinking_started_at: None,
+            thinking_ended_at: None,
+            thinking_signature: None,
+            is_error: None,
+            slash_command: None,
+        }];
+
+        let built = build_openai_messages_payload(&messages).unwrap();
+        let assistant = built
+            .iter()
+            .find(|m| m.role == "assistant")
+            .expect("assistant message");
+        assert_eq!(
+            assistant.reasoning_content.as_deref(),
+            Some("plan the tool call")
+        );
+        // Without thought signature, do not embed thinking into content.
+        assert_eq!(assistant.content.as_str().unwrap(), "");
+    }
+
+    #[test]
+    fn test_build_openai_messages_skips_reasoning_content_without_tool_calls() {
+        let messages = vec![ChatMessage {
+            role: "assistant".to_string(),
+            content: serde_json::Value::String("answer".to_string()),
+            attachments: None,
+            tool_calls: None,
+            tool_call_id: None,
+            tool_name: None,
+            tool_args: None,
+            thinking: Some("internal monologue".to_string()),
+            thinking_started_at: None,
+            thinking_ended_at: None,
+            thinking_signature: None,
+            is_error: None,
+            slash_command: None,
+        }];
+
+        let built = build_openai_messages_payload(&messages).unwrap();
+        let assistant = built
+            .iter()
+            .find(|m| m.role == "assistant")
+            .expect("assistant message");
+        assert!(assistant.reasoning_content.is_none());
+    }
+
+    #[test]
+    fn test_build_openai_messages_skips_reasoning_content_with_thought_signature() {
+        use super::super::types::{ToolCall, ToolCallFunction};
+
+        let messages = vec![ChatMessage {
+            role: "assistant".to_string(),
+            content: serde_json::Value::String("".to_string()),
+            attachments: None,
+            tool_calls: Some(vec![ToolCall {
+                id: "tc_1".to_string(),
+                call_type: "function".to_string(),
+                function: ToolCallFunction {
+                    name: "read".to_string(),
+                    arguments: "{}".to_string(),
+                },
+                extra_content: None,
+            }]),
+            tool_call_id: None,
+            tool_name: None,
+            tool_args: None,
+            thinking: Some("gemini plan".to_string()),
+            thinking_started_at: None,
+            thinking_ended_at: None,
+            thinking_signature: Some("sig-abc".to_string()),
+            is_error: None,
+            slash_command: None,
+        }];
+
+        let built = build_openai_messages_payload(&messages).unwrap();
+        let assistant = built
+            .iter()
+            .find(|m| m.role == "assistant")
+            .expect("assistant message");
+        assert!(assistant.reasoning_content.is_none());
+        assert_eq!(assistant.thought_signature.as_deref(), Some("sig-abc"));
     }
 }

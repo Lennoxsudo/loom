@@ -369,6 +369,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       agentId: selectedAgentId,
       conversationId: selectedConversationId,
       sessionKey,
+      projectPath: projectPathRef.current,
     });
 
     const messagesForState = [...cleanedKept.slice(0, -1), userMessage, assistantMessage];
@@ -740,6 +741,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
       agentId: selectedAgentId,
       conversationId: activeConversationId,
       sessionKey,
+      projectPath: projectPathRef.current,
     });
 
     const titleSourceConversation =

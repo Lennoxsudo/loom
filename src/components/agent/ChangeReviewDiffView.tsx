@@ -12,6 +12,10 @@ export interface ChangeReviewDiffViewProps {
   onDiscard: (change: PendingFileChange) => Promise<void>;
   onAcceptAll: (changes: PendingFileChange[]) => void;
   onDiscardAll: (changes: PendingFileChange[]) => Promise<void>;
+  onViewImpact?: (change: PendingFileChange) => void;
+  impactLoadingId?: string | null;
+  impactActiveId?: string | null;
+  cbmReady?: boolean;
 }
 
 const ChangeReviewDiffView = memo(function ChangeReviewDiffView({
@@ -22,8 +26,13 @@ const ChangeReviewDiffView = memo(function ChangeReviewDiffView({
   onDiscard,
   onAcceptAll,
   onDiscardAll,
+  onViewImpact,
+  impactLoadingId = null,
+  impactActiveId = null,
+  cbmReady = false,
 }: ChangeReviewDiffViewProps) {
   const t = useTranslation();
+  const cr = t.agent.changeReview;
 
   return (
     <>
@@ -77,19 +86,33 @@ const ChangeReviewDiffView = memo(function ChangeReviewDiffView({
                     newSnippet={change.newSnippet}
                   />
                   <div className={styles.rowActions}>
+                    {onViewImpact ? (
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${
+                          impactActiveId === change.id ? styles.actionButtonActive : ''
+                        }`}
+                        onClick={() => onViewImpact(change)}
+                        disabled={!cbmReady || impactLoadingId === change.id}
+                        title={cbmReady ? cr.viewImpact : cr.impactCbmUnavailable}
+                        data-testid="review-view-impact"
+                      >
+                        {impactLoadingId === change.id ? cr.viewImpactLoading : cr.viewImpact}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={styles.actionButton}
                       onClick={() => onAccept(change)}
                     >
-                      {t.agent.changeReview.accept}
+                      {cr.accept}
                     </button>
                     <button
                       type="button"
                       className={styles.actionButton}
                       onClick={() => void onDiscard(change)}
                     >
-                      {t.agent.changeReview.discard}
+                      {cr.discard}
                     </button>
                   </div>
                 </div>

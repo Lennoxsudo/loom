@@ -1,4 +1,5 @@
 ﻿import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { useState } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -565,23 +566,27 @@ test('AgentPanel 主动停止后不会在工具调用完成后继续发送新的
 });
 
 test('AgentPanel 双会话并发时发送 B 不会取消 A 的流式任务', async () => {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   mockDualSessionProjectState();
 
   renderAgentPanel(PROJECT_PATH);
   await waitForAgentPanelReady();
 
-  await screen.findByText('Thread A');
+  expect(await screen.findByText('Thread A')).toBeInTheDocument();
 
   const textbox = screen.getByRole('textbox');
-  await user.type(textbox, 'stream in A');
+  await user.click(textbox);
+  await user.keyboard('stream in A');
   await user.click(screen.getByRole('button', { name: /send|发送/i }));
 
-  const firstStreamCall = await waitFor(() => {
-    const call = invokeMock.mock.calls.find(([command]) => command === 'send_ai_chat_stream');
-    expect(call).toBeTruthy();
-    return call;
-  });
+  const firstStreamCall = await waitFor(
+    () => {
+      const call = invokeMock.mock.calls.find(([command]) => command === 'send_ai_chat_stream');
+      expect(call).toBeTruthy();
+      return call;
+    },
+    { timeout: 3000 }
+  );
   const firstPayload = firstStreamCall?.[1] as { messageId?: string } | undefined;
   expect(firstPayload?.messageId).toBeTruthy();
 
@@ -591,9 +596,8 @@ test('AgentPanel 双会话并发时发送 B 不会取消 A 的流式任务', asy
     expect(screen.getByText('hello B')).toBeInTheDocument();
   });
 
-  await user.clear(textbox);
-  await user.type(textbox, 'stream in B');
-  await user.click(screen.getByRole('button', { name: /send|发送/i }));
+  fireEvent.change(textbox, { target: { value: 'stream in B' } });
+  fireEvent.click(screen.getByRole('button', { name: /send|发送/i }));
 
   const streamCalls = await waitFor(() => {
     const calls = invokeMock.mock.calls.filter(([command]) => command === 'send_ai_chat_stream');
@@ -630,6 +634,152 @@ test('AgentPanel 双会话并发时发送 B 不会取消 A 的流式任务', asy
 
   await waitFor(() => {
     expect(screen.getByText(/still streaming in A/)).toBeInTheDocument();
+  });
+});
+
+test('AgentPanel 跨项目切换时不取消原项目正在运行的流，切回后仍可见增量', async () => {
+  const user = userEvent.setup();
+  const projectA = 'D:\\proj\\a';
+  const projectB = 'D:\\proj\\b';
+  const keyA = normalizeProjectPath(projectA);
+  const keyB = normalizeProjectPath(projectB);
+
+  useSettingsStore.getState().loadSettings({
+    streamSpeed: 'fast',
+    agentAccessMode: 'auto',
+    recentWorkspaces: [
+      { path: projectA, name: 'Project A', lastOpened: Date.now() },
+      { path: projectB, name: 'Project B', lastOpened: Date.now() - 1 },
+    ],
+  });
+
+  const baseInvoke = invokeMock.getMockImplementation();
+  invokeMock.mockImplementation((command: string, payload?: Record<string, unknown>) => {
+    if (command === 'generate_conversation_title') {
+      return new Promise(() => {
+        // keep titles stable
+      });
+    }
+    return baseInvoke?.(command, payload);
+  });
+
+  getProjectStateMock.mockImplementation(async (projectKey: string) => {
+    if (projectKey === keyA) {
+      return {
+        selectedConversationId: 'conv-a',
+        selectedConversationIdByProject: { [keyA]: 'conv-a' },
+        conversations: [
+          {
+            id: 'conv-a',
+            title: 'Thread A',
+            projectPath: projectA,
+            createdAt: 1,
+            updatedAt: 1,
+            previewHistory: [],
+            currentPreviewIndex: 0,
+            messages: [{ id: 'u-a', role: 'user', text: 'hello A', createdAt: 1 }],
+          },
+        ],
+      };
+    }
+    return {
+      selectedConversationId: 'conv-b',
+      selectedConversationIdByProject: { [keyB]: 'conv-b' },
+      conversations: [
+        {
+          id: 'conv-b',
+          title: 'Thread B',
+          projectPath: projectB,
+          createdAt: 2,
+          updatedAt: 2,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+          messages: [{ id: 'u-b', role: 'user', text: 'hello B', createdAt: 2 }],
+        },
+      ],
+    };
+  });
+
+  vi.mocked(loadAllProjectThreadSummaries).mockResolvedValue({
+    [keyA]: [
+      {
+        id: 'conv-a',
+        title: 'Thread A',
+        updatedAt: 1,
+        projectPath: projectA,
+        projectKey: keyA,
+      },
+    ],
+    [keyB]: [
+      {
+        id: 'conv-b',
+        title: 'Thread B',
+        updatedAt: 2,
+        projectPath: projectB,
+        projectKey: keyB,
+      },
+    ],
+  });
+
+  function Harness() {
+    const [path, setPath] = useState(projectA);
+    return (
+      <I18nProvider defaultLocale="en-US">
+        <NotificationProvider>
+          <AgentPanel projectPath={path} onProjectPathChange={setPath} />
+        </NotificationProvider>
+      </I18nProvider>
+    );
+  }
+
+  render(<Harness />);
+  await waitForAgentPanelReady();
+  await screen.findByText('Thread A');
+
+  const textbox = screen.getByRole('textbox');
+  await user.type(textbox, 'stream in A');
+  await user.click(screen.getByRole('button', { name: /send|发送/i }));
+
+  const firstStreamCall = await waitFor(() => {
+    const call = invokeMock.mock.calls.find(([command]) => command === 'send_ai_chat_stream');
+    expect(call).toBeTruthy();
+    return call;
+  });
+  const firstPayload = firstStreamCall?.[1] as { messageId?: string } | undefined;
+  expect(firstPayload?.messageId).toBeTruthy();
+
+  await selectProjectThread(user, 'Thread B');
+
+  await waitFor(() => {
+    expect(screen.getByText('hello B')).toBeInTheDocument();
+  });
+
+  const cancelCallsAfterSwitch = invokeMock.mock.calls.filter(
+    ([command]) => command === 'cancel_ai_chat'
+  );
+  expect(
+    cancelCallsAfterSwitch.some(
+      ([, payload]) =>
+        (payload as { messageId?: string } | undefined)?.messageId === firstPayload?.messageId
+    )
+  ).toBe(false);
+
+  const chunkHandler = listenHandlers.get('ai-stream-chunk');
+  expect(chunkHandler).toBeDefined();
+  await act(async () => {
+    chunkHandler?.({
+      payload: {
+        message_id: firstPayload?.messageId,
+        chunk_type: 'content',
+        chunk: 'cross-project still alive',
+      },
+    });
+  });
+
+  await selectProjectThread(user, 'Thread A');
+
+  await waitFor(() => {
+    expect(screen.getByText(/cross-project still alive/)).toBeInTheDocument();
   });
 });
 
@@ -912,7 +1062,8 @@ test('AgentPanel uses latest projectPath for tool calls after projectPath update
       function: expect.objectContaining({ name: 'read_file' }),
     }),
     expect.objectContaining({
-      baseDir: expect.stringMatching(/new-root$/),
+      // In-flight stream keeps the project path captured at send time.
+      baseDir: expect.stringMatching(/old-root$/),
     })
   );
 });

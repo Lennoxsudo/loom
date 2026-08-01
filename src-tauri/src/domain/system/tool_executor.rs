@@ -240,6 +240,7 @@ pub fn build_tool_result_messages(
     provider: &str,
     thinking_blocks: &[serde_json::Value],
     thinking_signature: Option<&str>,
+    reasoning_content: Option<&str>,
 ) -> Vec<crate::chat::ChatMessage> {
     let mut messages: Vec<crate::chat::ChatMessage> = Vec::new();
 
@@ -252,7 +253,7 @@ pub fn build_tool_result_messages(
         content_blocks.push(tb.clone());
     }
 
-    // Add text content if present
+    // Add text content if present (visible reply — not reasoning)
     if !assistant_content.is_empty() {
         content_blocks.push(serde_json::json!({
             "type": "text",
@@ -285,6 +286,11 @@ pub fn build_tool_result_messages(
         serde_json::Value::Array(content_blocks)
     };
 
+    let reasoning = reasoning_content
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string());
+
     messages.push(crate::chat::ChatMessage {
         role: "assistant".to_string(),
         content,
@@ -309,11 +315,7 @@ pub fn build_tool_result_messages(
         tool_call_id: None,
         tool_name: None,
         tool_args: None,
-        thinking: if assistant_content.trim().is_empty() {
-            None
-        } else {
-            Some(assistant_content.to_string())
-        },
+        thinking: reasoning,
         thinking_started_at: None,
         thinking_ended_at: None,
         thinking_signature: thinking_signature.map(|s| s.to_string()),
@@ -1161,46 +1163,52 @@ mod tests {
 
         // 1) Test standard (e.g. openai) provider
         let msgs_openai = build_tool_result_messages(
-            "thinking text",
+            "",
             &tool_calls,
             &results,
             "openai",
             &[],
             None,
+            Some("thinking text"),
         );
 
         assert_eq!(msgs_openai.len(), 2);
         assert_eq!(msgs_openai[0].role, "assistant");
-        
+        assert_eq!(
+            msgs_openai[0].thinking.as_deref(),
+            Some("thinking text")
+        );
+
         // Under openai, tool_calls are pushed raw in assistant message content
         if let serde_json::Value::Array(ref arr) = msgs_openai[0].content {
-            assert_eq!(arr.len(), 2);
-            assert_eq!(arr[0]["type"], "text");
-            assert_eq!(arr[1]["type"], "function");
+            assert_eq!(arr.len(), 1);
+            assert_eq!(arr[0]["type"], "function");
         } else {
             panic!("Expected array content");
         }
-        
+
         assert_eq!(msgs_openai[1].role, "tool");
         assert_eq!(msgs_openai[1].content, serde_json::Value::String("file contents".to_string()));
 
         // 2) Test anthropic provider
         let msgs_anthropic = build_tool_result_messages(
-            "thinking text",
+            "reply text",
             &tool_calls,
             &results,
             "anthropic",
             &[],
             None,
+            None,
         );
 
         assert_eq!(msgs_anthropic.len(), 2);
         assert_eq!(msgs_anthropic[0].role, "assistant");
-        
+
         // Under anthropic, tool_calls are transformed to Anthropic tool_use blocks
         if let serde_json::Value::Array(ref arr) = msgs_anthropic[0].content {
             assert_eq!(arr.len(), 2);
             assert_eq!(arr[0]["type"], "text");
+            assert_eq!(arr[0]["text"], "reply text");
             assert_eq!(arr[1]["type"], "tool_use");
             assert_eq!(arr[1]["id"], "tc_1");
             assert_eq!(arr[1]["name"], "read_file");
@@ -1208,7 +1216,7 @@ mod tests {
         } else {
             panic!("Expected array content");
         }
-        
+
         assert_eq!(msgs_anthropic[1].role, "tool");
         assert_eq!(msgs_anthropic[1].content, serde_json::Value::String("file contents".to_string()));
     }

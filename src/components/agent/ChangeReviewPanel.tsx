@@ -1,10 +1,14 @@
 import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from '../../i18n';
+import { useCbmGraphReady } from '../../stores/useCbmStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { CloseIcon } from '../shared/Icons';
+import ChangeBlastRadiusPanel from './ChangeBlastRadiusPanel';
 import ChangeReviewDiffView from './ChangeReviewDiffView';
 import ChangeReviewFilePreview from './ChangeReviewFilePreview';
 import CheckpointFilePreview from './CheckpointFilePreview';
 import CheckpointTimeline from './CheckpointTimeline';
+import { useChangeBlastRadius } from './hooks/useChangeBlastRadius';
 import type { PendingFileChange } from './utils';
 import type { AgentCheckpoint } from '../../utils/checkpointTimeline';
 import { shortFileName } from '../../utils/checkpointTimeline';
@@ -38,9 +42,12 @@ export interface ChangeReviewPanelProps {
   onAcceptAll: (changes: PendingFileChange[]) => void;
   onDiscardAll: (changes: PendingFileChange[]) => Promise<void>;
   onRestoreCheckpoint?: (checkpoint: AgentCheckpoint) => Promise<void>;
+  /** Optional override for tests; defaults to settings + CBM readiness */
+  cbmReady?: boolean;
 }
 
 const ChangeReviewPanel = memo(function ChangeReviewPanel({
+  projectPath,
   pendingChanges,
   checkpoints = [],
   restoringCheckpointId = null,
@@ -51,10 +58,23 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
   onAcceptAll,
   onDiscardAll,
   onRestoreCheckpoint,
+  cbmReady: cbmReadyProp,
 }: ChangeReviewPanelProps) {
   const t = useTranslation();
+  const enableCodeGraph = useSettingsStore((s) => s.enableCodeGraph);
+  const cbmReadyFromStore = useCbmGraphReady(enableCodeGraph);
+  const cbmReady = cbmReadyProp ?? cbmReadyFromStore;
+  const {
+    loadingChangeId: impactLoadingId,
+    activeChangeId: impactActiveId,
+    error: impactError,
+    result: impactResult,
+    load: loadImpact,
+    clear: clearImpact,
+  } = useChangeBlastRadius(projectPath);
   const [showButton, setShowButton] = useState(false);
   const [previewChangeId, setPreviewChangeId] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<'file' | 'impact'>('file');
   const [activeTab, setActiveTab] = useState<ReviewTab>('files');
   const [selectedCheckpointId, setSelectedCheckpointId] = useState<string | null>(null);
   const [selectedCheckpointFilePath, setSelectedCheckpointFilePath] = useState<string | null>(
@@ -92,16 +112,20 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
     if (collapsed) {
       setIsClosing(false);
       setPreviewChangeId(null);
+      setPreviewMode('file');
       setSelectedCheckpointId(null);
       setSelectedCheckpointFilePath(null);
+      clearImpact();
     }
-  }, [collapsed]);
+  }, [collapsed, clearImpact]);
 
   useEffect(() => {
     if (previewChangeId && !pendingChanges.some((change) => change.id === previewChangeId)) {
       setPreviewChangeId(null);
+      setPreviewMode('file');
+      clearImpact();
     }
-  }, [pendingChanges, previewChangeId]);
+  }, [pendingChanges, previewChangeId, clearImpact]);
 
   useEffect(() => {
     if (selectedCheckpointId && !checkpoints.some((c) => c.id === selectedCheckpointId)) {
@@ -120,22 +144,45 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
     }
   }, [selectedCheckpoint, selectedCheckpointFilePath]);
 
-  const handleSelectPreview = useCallback((change: PendingFileChange) => {
-    setPreviewChangeId(change.id);
-    setSelectedCheckpointId(null);
-  }, []);
+  const handleSelectPreview = useCallback(
+    (change: PendingFileChange) => {
+      setPreviewChangeId(change.id);
+      setPreviewMode('file');
+      setSelectedCheckpointId(null);
+      clearImpact();
+    },
+    [clearImpact]
+  );
+
+  const handleViewImpact = useCallback(
+    (change: PendingFileChange) => {
+      setPreviewChangeId(change.id);
+      setPreviewMode('impact');
+      setSelectedCheckpointId(null);
+      setSelectedCheckpointFilePath(null);
+      void loadImpact(change);
+    },
+    [loadImpact]
+  );
 
   const handleClosePreview = useCallback(() => {
     setPreviewChangeId(null);
+    setPreviewMode('file');
     setSelectedCheckpointId(null);
     setSelectedCheckpointFilePath(null);
-  }, []);
+    clearImpact();
+  }, [clearImpact]);
 
-  const handleSelectCheckpoint = useCallback((cp: AgentCheckpoint) => {
-    setSelectedCheckpointId(cp.id);
-    setSelectedCheckpointFilePath(cp.files[0]?.path ?? null);
-    setPreviewChangeId(null);
-  }, []);
+  const handleSelectCheckpoint = useCallback(
+    (cp: AgentCheckpoint) => {
+      setSelectedCheckpointId(cp.id);
+      setSelectedCheckpointFilePath(cp.files[0]?.path ?? null);
+      setPreviewChangeId(null);
+      setPreviewMode('file');
+      clearImpact();
+    },
+    [clearImpact]
+  );
 
   const handleSelectCheckpointFile = useCallback((filePath: string) => {
     setSelectedCheckpointFilePath(filePath);
@@ -271,6 +318,10 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
             onDiscard={onDiscard}
             onAcceptAll={onAcceptAll}
             onDiscardAll={onDiscardAll}
+            onViewImpact={handleViewImpact}
+            impactLoadingId={impactLoadingId}
+            impactActiveId={previewMode === 'impact' ? impactActiveId : null}
+            cbmReady={cbmReady}
           />
         ) : (
           <CheckpointTimeline
@@ -283,7 +334,7 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
         )}
       </aside>
 
-      {previewChange ? (
+      {previewChange && previewMode === 'file' ? (
         <aside className={styles.previewPanel} data-testid="change-review-preview">
           <div className={styles.header}>
             <span className={styles.title}>{t.agent.changeReview.previewTitle}</span>
@@ -303,6 +354,34 @@ const ChangeReviewPanel = memo(function ChangeReviewPanel({
 
           <div className={styles.previewBody}>
             <ChangeReviewFilePreview change={previewChange} onClose={handleClosePreview} />
+          </div>
+        </aside>
+      ) : null}
+
+      {previewChange && previewMode === 'impact' ? (
+        <aside className={styles.previewPanel} data-testid="change-review-impact">
+          <div className={styles.header}>
+            <span className={styles.title}>{t.agent.changeReview.impactTitle}</span>
+            <div className={styles.headerActions}>
+              <button
+                type="button"
+                className={styles.toggleButton}
+                onClick={handleClosePreview}
+                title={t.agent.changeReview.impactClose}
+                aria-label={t.agent.changeReview.impactClose}
+                data-testid="change-review-close-impact"
+              >
+                <CloseIcon size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.previewBody}>
+            <ChangeBlastRadiusPanel
+              result={impactResult}
+              error={impactError}
+              loading={impactLoadingId === previewChange.id}
+            />
           </div>
         </aside>
       ) : null}

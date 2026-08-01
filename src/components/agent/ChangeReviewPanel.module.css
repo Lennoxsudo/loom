@@ -279,6 +279,100 @@
   border: 1px solid var(--border-subtle);
 }
 
+.actionButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actionButtonActive {
+  color: var(--text-accent);
+  border-color: color-mix(in srgb, var(--text-accent) 45%, var(--border-subtle));
+  background: color-mix(in srgb, var(--text-accent) 10%, transparent);
+}
+
+.blastBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blastFileHint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blastSymbolBlock {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--bg-secondary);
+}
+
+.blastHighRiskBlock {
+  border-color: color-mix(in srgb, #e85d5d 55%, var(--border-subtle));
+  background: color-mix(in srgb, #e85d5d 8%, var(--bg-secondary));
+}
+
+.blastSymbolHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.blastSymbolName {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.blastHighRiskBadge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #e85d5d;
+  border: 1px solid color-mix(in srgb, #e85d5d 50%, transparent);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.blastCallerCount {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.blastCallerList {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.blastCallerHighRisk {
+  color: #e85d5d;
+}
+
+.blastCallerMeta {
+  margin-left: 6px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.blastNoCallers {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .diffBlock {
   margin: 0;
   padding: 8px 12px 12px;

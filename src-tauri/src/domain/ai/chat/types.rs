@@ -85,6 +85,11 @@ pub struct OpenAIMessage {
     pub tool_call_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
+    /// DeepSeek-style thinking+tools: round-trip on assistant turns with tool_calls
+    /// when no Gemini thought signature is present. Omitted otherwise to avoid
+    /// strict gateways rejecting unknown reasoning fields.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thought_signature: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

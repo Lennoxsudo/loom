@@ -10,7 +10,7 @@ vi.mock('../../../utils/agentPersistence', () => ({
   recoverProjectStateForPath: vi.fn().mockResolvedValue(null),
 }));
 
-import { loadProjectConversationStateFromDisk } from './useAgentInit';
+import { loadProjectConversationStateFromDisk, matchesSkipProjectBootstrapPath } from './useAgentInit';
 import { normalizeProjectPath } from '../utils';
 import type { Agent } from '../../../utils/agentPersistence';
 
@@ -35,6 +35,16 @@ const sampleAgent: Agent = {
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
+
+describe('matchesSkipProjectBootstrapPath', () => {
+  it('matches normalized paths and stays true across repeated checks', () => {
+    const skipPath = PROJECT_B;
+    expect(matchesSkipProjectBootstrapPath(PROJECT_B, skipPath)).toBe(true);
+    expect(matchesSkipProjectBootstrapPath(PROJECT_B, skipPath)).toBe(true);
+    expect(matchesSkipProjectBootstrapPath(PROJECT_A, skipPath)).toBe(false);
+    expect(matchesSkipProjectBootstrapPath(PROJECT_B, null)).toBe(false);
+  });
+});
 
 describe('loadProjectConversationStateFromDisk', () => {
   beforeEach(() => {

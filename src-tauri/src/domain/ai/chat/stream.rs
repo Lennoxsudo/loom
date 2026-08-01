@@ -527,12 +527,13 @@ pub async fn run_stream_with_tool_chain(
 
         // Build tool result messages and append to conversation
         let tool_result_messages = tool_executor::build_tool_result_messages(
-            sr.captured_thinking.as_deref().unwrap_or(""),
+            "",
             &sr.tool_calls,
             &results,
             &current_provider,
             &sr.thinking_blocks, // thinking blocks collected from stream
             sr.captured_thinking_signature.as_deref(),
+            sr.captured_thinking.as_deref(),
         );
         messages.extend(tool_result_messages);
 
@@ -1791,6 +1792,21 @@ pub async fn send_ollama_stream(
             }
             if let Some(calls) = &m.tool_calls {
                 item["tool_calls"] = serde_json::json!(calls);
+            }
+            // Match OpenAI payload rules: only round-trip reasoning on tool-call
+            // turns without a Gemini thought signature.
+            let has_tool_calls = m.tool_calls.as_ref().map(|c| !c.is_empty()).unwrap_or(false);
+            let has_thought_sig = m
+                .thinking_signature
+                .as_ref()
+                .map(|s| !s.trim().is_empty())
+                .unwrap_or(false);
+            if has_tool_calls && !has_thought_sig {
+                if let Some(thinking) =
+                    m.thinking.as_ref().map(|t| t.trim()).filter(|t| !t.is_empty())
+                {
+                    item["reasoning_content"] = serde_json::json!(thinking);
+                }
             }
             item
         })

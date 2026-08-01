@@ -16,6 +16,7 @@ import type { AIProvider } from '../../../utils/agentPersistence';
 import {
   ensureConversationStateForAgent,
   emptyProjectConversationState,
+  mergeBusyConversationsOnProjectSwitch,
   migrateConversationStateForProject,
   normalizeProjectPath,
   projectStateToAgentConversationState,
@@ -31,13 +32,19 @@ export interface UseAgentInitOptions {
   projectPath: string;
   loadErrorMessage: string;
   onSetAgent: (agent: Agent | null) => void;
-  onSetConversationState: (state: AgentConversationState) => void;
+  onSetConversationState: React.Dispatch<React.SetStateAction<AgentConversationState>>;
   onSetActiveProjectKey: (key: string) => void;
   onSetIsInitializing: (v: boolean) => void;
   onSetError: (msg: string | null) => void;
   onActiveProjectPathResolved?: (path: string) => void;
-  /** When true, skip the next bootstrap (project switch already loaded state). */
-  skipProjectBootstrapRef?: React.MutableRefObject<boolean>;
+  /**
+   * Project path whose conversation state was already loaded by a switch handler.
+   * Matched by normalizeProjectPath; must NOT be cleared on read (React Strict Mode
+   * remounts effects and would otherwise wipe in-flight streams with a disk reload).
+   */
+  skipProjectBootstrapPathRef?: React.MutableRefObject<string | null>;
+  /** Busy session keys — preserved when bootstrap reloads from disk. */
+  busySessionKeysRef?: React.MutableRefObject<Set<string>>;
 }
 
 function loadProjectStateBackupFromLocalStorage(
@@ -152,6 +159,15 @@ export function seedProjectPersistenceSnapshot(projectKey: string, state: AgentC
   agentPersistenceSnapshotSeedRef.current?.({ [projectKey]: snapshot });
 }
 
+/** True when switch handler already loaded this project — keep marker across Strict Mode remounts. */
+export function matchesSkipProjectBootstrapPath(
+  projectPath: string,
+  skipPath: string | null | undefined
+): boolean {
+  if (skipPath == null || skipPath === '') return false;
+  return normalizeProjectPath(skipPath) === normalizeProjectPath(projectPath);
+}
+
 export function useAgentInit(options: UseAgentInitOptions) {
   const {
     projectPath,
@@ -162,7 +178,8 @@ export function useAgentInit(options: UseAgentInitOptions) {
     onSetIsInitializing,
     onSetError,
     onActiveProjectPathResolved,
-    skipProjectBootstrapRef,
+    skipProjectBootstrapPathRef,
+    busySessionKeysRef,
   } = options;
 
   const bootstrapGenerationRef = useRef(0);
@@ -173,8 +190,8 @@ export function useAgentInit(options: UseAgentInitOptions) {
     let cancelled = false;
 
     const bootstrap = async () => {
-      if (skipProjectBootstrapRef?.current) {
-        skipProjectBootstrapRef.current = false;
+      if (matchesSkipProjectBootstrapPath(projectPath, skipProjectBootstrapPathRef?.current)) {
+        // Keep the skip marker — Strict Mode re-runs this effect and must still skip.
         return;
       }
 
@@ -200,7 +217,14 @@ export function useAgentInit(options: UseAgentInitOptions) {
 
         onSetAgent(agent);
         onSetActiveProjectKey(projectKey);
-        onSetConversationState(state);
+        onSetConversationState((prev) =>
+          mergeBusyConversationsOnProjectSwitch({
+            previousState: prev,
+            nextState: state,
+            targetProjectPath: activePath,
+            busySessionKeys: busySessionKeysRef?.current ?? [],
+          })
+        );
         hydrateSubagentRunsFromConversationState(state.conversations ?? []);
 
         if (
@@ -239,6 +263,7 @@ export function useAgentInit(options: UseAgentInitOptions) {
     onSetIsInitializing,
     onSetError,
     onActiveProjectPathResolved,
-    skipProjectBootstrapRef,
+    skipProjectBootstrapPathRef,
+    busySessionKeysRef,
   ]);
 }

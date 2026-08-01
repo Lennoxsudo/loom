@@ -359,6 +359,8 @@ export type StreamMeta = {
   conversationId: string;
   /** Session key for busy-state tracking */
   sessionKey: string;
+  /** Project path at stream start (tools must use this if user switches projects) */
+  projectPath?: string;
 };
 
 /**

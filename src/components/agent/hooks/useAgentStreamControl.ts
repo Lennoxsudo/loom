@@ -142,16 +142,6 @@ export function useAgentStreamControl(
 
     let messageId = activeStreamMessageIdsBySessionRef.current[selectedSessionKey];
 
-    if (!messageId && selectedAgentId) {
-      const agentStreams = activeStreamMessageIdsByAgentRef.current[selectedAgentId];
-      if (agentStreams && agentStreams.size > 0) {
-        const first = agentStreams.values().next().value;
-        if (first !== undefined) {
-          messageId = first;
-        }
-      }
-    }
-
     if (!messageId) {
       consumeStopRequest(selectedSessionKey);
       if (!activeStreamMessageIdsBySessionRef.current[selectedSessionKey]) {

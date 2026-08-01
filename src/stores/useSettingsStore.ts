@@ -105,7 +105,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   streamSendMode: 'queue_after_stream',
   keyBindings: DEFAULT_KEY_BINDINGS,
   agentAccessMode: 'auto',
-  toolCallDelay: 2000,
+  toolCallDelay: 0,
   thinkingBlockAutoExpand: true,
   enableSubagents: true,
   subagentModelAliases: {

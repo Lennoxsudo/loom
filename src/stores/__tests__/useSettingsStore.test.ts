@@ -56,7 +56,7 @@ const DEFAULT_STATE: Omit<SettingsState, 'loading'> = {
   chatSendDuringStreamingMode: 'queue',
   keyBindings: DEFAULT_KEY_BINDINGS,
   agentAccessMode: 'auto',
-  toolCallDelay: 2000,
+  toolCallDelay: 0,
   thinkingBlockAutoExpand: true,
   enableSubagents: true,
   subagentModelAliases: {

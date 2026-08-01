@@ -1,7 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../i18n';
+import { loadChangeBlastRadius } from '../../utils/changeBlastRadius';
 import ChangeReviewPanel from './ChangeReviewPanel';
 import type { PendingFileChange } from './utils';
 
@@ -16,6 +17,16 @@ vi.mock('./CheckpointFilePreview', () => ({
     <div data-testid="checkpoint-file-preview">{file.path}</div>
   ),
 }));
+
+vi.mock('../../utils/changeBlastRadius', async () => {
+  const actual = await vi.importActual<typeof import('../../utils/changeBlastRadius')>(
+    '../../utils/changeBlastRadius'
+  );
+  return {
+    ...actual,
+    loadChangeBlastRadius: vi.fn(),
+  };
+});
 
 const pendingChange: PendingFileChange = {
   id: 'pc-1',
@@ -41,11 +52,33 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ChangeReview
         onDiscard={vi.fn().mockResolvedValue(undefined)}
         onAcceptAll={vi.fn()}
         onDiscardAll={vi.fn().mockResolvedValue(undefined)}
+        cbmReady={true}
         {...overrides}
       />
     </I18nProvider>
   );
 }
+
+beforeEach(() => {
+  vi.mocked(loadChangeBlastRadius).mockReset();
+  vi.mocked(loadChangeBlastRadius).mockResolvedValue({
+    filePath: pendingChange.filePath,
+    empty: false,
+    symbols: [
+      {
+        symbol: 'demo',
+        highRisk: true,
+        callers: [
+          { name: 'a', file: 'src/a.ts', line: 1 },
+          { name: 'b', file: 'src/b.ts', line: 2 },
+          { name: 'c', file: 'src/c.ts', line: 3 },
+          { name: 'd', file: 'src/d.ts', line: 4 },
+          { name: 'e', file: 'src/e.ts', line: 5 },
+        ],
+      },
+    ],
+  });
+});
 
 afterEach(() => {
   cleanup();
@@ -131,6 +164,35 @@ describe('ChangeReviewPanel', () => {
     await user.click(screen.getAllByTestId('review-file-name')[1]);
 
     expect(screen.getByTestId('change-review-file-preview')).toHaveTextContent('src/other.ts');
+  });
+
+  it('shows view impact button and disables it when CBM is not ready', () => {
+    renderPanel({ cbmReady: false });
+
+    const button = screen.getByTestId('review-view-impact');
+    expect(button).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute(
+      'title',
+      expect.stringMatching(/code graph not ready/i)
+    );
+  });
+
+  it('loads blast radius into the impact preview when clicking view impact', async () => {
+    const user = userEvent.setup();
+    renderPanel({ cbmReady: true });
+
+    await user.click(screen.getByTestId('review-view-impact'));
+
+    expect(loadChangeBlastRadius).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filePath: 'src/demo.ts',
+      })
+    );
+    expect(await screen.findByTestId('change-review-impact')).toBeInTheDocument();
+    expect(screen.getByTestId('blast-radius-panel')).toBeInTheDocument();
+    expect(screen.getByText('High risk')).toBeInTheDocument();
+    expect(screen.getByText('demo')).toBeInTheDocument();
   });
 
   it('opens checkpoint diff preview when selecting a checkpoint file', async () => {

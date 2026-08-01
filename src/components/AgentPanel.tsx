@@ -124,6 +124,7 @@ import {
   applyPreferredThreadSelection,
   toProjectConversationStateForPersistence,
   resolveDraftSessionKey,
+  mergeBusyConversationsOnProjectSwitch,
 } from './agent/utils';
 import {
   agentModelSelectionsMatch,
@@ -688,7 +689,7 @@ export default function AgentPanel({
   projectBranchNameRef.current = projectBranchName;
   const projectPathRef = useRef(projectPath);
   projectPathRef.current = projectPath;
-  const skipProjectBootstrapRef = useRef(false);
+  const skipProjectBootstrapPathRef = useRef<string | null>(null);
   const projectContextRef = useRef<{ isGitRepo: boolean }>({ isGitRepo: true });
   const appDataPathRef = useRef<string | null>(null);
   // Lazily fetch and cache appDataPath for toolChainConfig
@@ -1287,7 +1288,8 @@ export default function AgentPanel({
     onSetIsInitializing: setIsInitializing,
     onSetError: setError,
     onActiveProjectPathResolved: onProjectPathChange ? handleActiveProjectPathResolved : undefined,
-    skipProjectBootstrapRef,
+    skipProjectBootstrapPathRef,
+    busySessionKeysRef,
   });
 
   useHydrateSubagentRuns(conversationState);
@@ -1388,6 +1390,7 @@ export default function AgentPanel({
     agentModesRef,
     projectPathRef,
     conversationStateRef,
+    streamMetaByMessageIdRef,
     agentAccessMode,
     handleToolCallsRef,
     setConversationState,
@@ -1444,6 +1447,7 @@ export default function AgentPanel({
     useAgentConversationPersistence({
       conversationState,
       activeProjectKey,
+      activeProjectPath: projectPath,
       isInitializing,
     });
 
@@ -2081,8 +2085,14 @@ export default function AgentPanel({
           const sessionKey = resolveDraftSessionKey(projectKey, resolvedThreadId);
           const nextDraft = loadDraftForSession(sessionKey);
           markDraftSessionKey(sessionKey);
+          const mergedState = mergeBusyConversationsOnProjectSwitch({
+            previousState: conversationStateRef.current,
+            nextState,
+            targetProjectPath: path,
+            busySessionKeys: busySessionKeysRef.current,
+          });
           setActiveProjectKey(projectKey);
-          setConversationState(nextState);
+          setConversationState(mergedState);
           setDraftMessage(nextDraft);
           await touchProjectIndex(path);
           if (cbmGraphEnabled && graphAutoIndexOnOpen) {
@@ -2096,7 +2106,7 @@ export default function AgentPanel({
           }
           const summaries = await loadAllProjectThreadSummaries();
           setDiskThreadSummariesByProject(summaries);
-          skipProjectBootstrapRef.current = true;
+          skipProjectBootstrapPathRef.current = path;
         } catch (error) {
           console.error('Failed to load project conversation state:', error);
         }

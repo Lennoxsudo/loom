@@ -725,6 +725,15 @@ export interface I18nMessages {
       checkpointPreviewTitle: string;
       selectCheckpointFile: string;
       binarySkipped: string;
+      viewImpact: string;
+      viewImpactLoading: string;
+      impactTitle: string;
+      impactCbmUnavailable: string;
+      impactEmpty: string;
+      impactHighRisk: string;
+      impactCallers: string;
+      impactClose: string;
+      impactError: string;
     };
     userMessage: {
       edit: string;

@@ -3,6 +3,7 @@ import { saveProjectState } from '../../../utils/agentPersistence';
 import {
   sanitizeConversationStateForPersistence,
   toProjectConversationStateForPersistence,
+  scopeConversationStateToProject,
 } from '../utils';
 import type { AgentConversationState } from '../../../types/chat';
 import {
@@ -30,11 +31,13 @@ function countConversationsInSnapshot(snapshot: string | undefined): number {
 export interface UseAgentConversationPersistenceOptions {
   conversationState: AgentConversationState;
   activeProjectKey: string;
+  /** Used to scope persisted conversations to the active project path. */
+  activeProjectPath: string;
   isInitializing: boolean;
 }
 
 export function useAgentConversationPersistence(options: UseAgentConversationPersistenceOptions) {
-  const { conversationState, activeProjectKey, isInitializing } = options;
+  const { conversationState, activeProjectKey, activeProjectPath, isInitializing } = options;
 
   const filePersistTimerRef = useRef<number | null>(null);
   const localStorageBackupTimerRef = useRef<number | null>(null);
@@ -90,8 +93,9 @@ export function useAgentConversationPersistence(options: UseAgentConversationPer
   useEffect(() => {
     if (isInitializing || !activeProjectKey) return;
 
+    const scoped = scopeConversationStateToProject(conversationState, activeProjectPath);
     const persistable = toProjectConversationStateForPersistence(
-      sanitizeConversationStateForPersistence(conversationState)
+      sanitizeConversationStateForPersistence(scoped)
     );
     const snapshot = JSON.stringify(persistable);
     if (snapshot === lastSavedSnapshotByProjectRef.current[activeProjectKey]) {
@@ -111,7 +115,13 @@ export function useAgentConversationPersistence(options: UseAgentConversationPer
     filePersistTimerRef.current = window.setTimeout(() => {
       void flushProjectStateNow(activeProjectKey);
     }, FILE_PERSIST_DEBOUNCE_MS);
-  }, [conversationState, activeProjectKey, isInitializing, flushProjectStateNow]);
+  }, [
+    conversationState,
+    activeProjectKey,
+    activeProjectPath,
+    isInitializing,
+    flushProjectStateNow,
+  ]);
 
   useEffect(() => {
     if (isInitializing || !activeProjectKey) return;
@@ -121,8 +131,9 @@ export function useAgentConversationPersistence(options: UseAgentConversationPer
 
     localStorageBackupTimerRef.current = window.setTimeout(() => {
       try {
+        const scoped = scopeConversationStateToProject(conversationState, activeProjectPath);
         const persistable = toProjectConversationStateForPersistence(
-          sanitizeConversationStateForPersistence(conversationState)
+          sanitizeConversationStateForPersistence(scoped)
         );
         const raw = localStorage.getItem(AGENT_CHAT_CONVERSATIONS_STORAGE_KEY);
         const backup: Record<
@@ -142,7 +153,7 @@ export function useAgentConversationPersistence(options: UseAgentConversationPer
         localStorageBackupTimerRef.current = null;
       }
     };
-  }, [conversationState, activeProjectKey, isInitializing]);
+  }, [conversationState, activeProjectKey, activeProjectPath, isInitializing]);
 
   useEffect(() => {
     return () => {

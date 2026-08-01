@@ -14,6 +14,9 @@ import {
   toProjectConversationStateForPersistence,
   projectStateToAgentConversationState,
   resolveDraftSessionKey,
+  mergeBusyConversationsOnProjectSwitch,
+  scopeConversationStateToProject,
+  normalizeProjectPath,
   createAssistantMessageId,
   createUserMessageId,
   forkAgentConversation,
@@ -1121,6 +1124,141 @@ describe('resolveDraftSessionKey', () => {
   });
 });
 
+describe('mergeBusyConversationsOnProjectSwitch', () => {
+  const projectA = 'D:\\proj\\a';
+  const projectB = 'D:\\proj\\b';
+
+  it('keeps busy conversations from the previous project in memory', () => {
+    const previousState = {
+      selectedConversationId: 'a1',
+      conversations: [
+        {
+          id: 'a1',
+          title: 'A1',
+          projectPath: projectA,
+          messages: [{ id: 'as', role: 'assistant' as const, text: 'streaming', isStreaming: true, createdAt: 1 }],
+          updatedAt: 1,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+      ],
+    };
+    const nextState = {
+      selectedConversationId: 'b1',
+      conversations: [
+        {
+          id: 'b1',
+          title: 'B1',
+          projectPath: projectB,
+          messages: [{ id: 'bu', role: 'user' as const, text: 'hi', createdAt: 1 }],
+          updatedAt: 1,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+      ],
+    };
+
+    const merged = mergeBusyConversationsOnProjectSwitch({
+      previousState,
+      nextState,
+      targetProjectPath: projectB,
+      busySessionKeys: [`${normalizeProjectPath(projectA)}::a1`],
+    });
+
+    expect(merged.conversations.map((c) => c.id).sort()).toEqual(['a1', 'b1']);
+    expect(merged.conversations.find((c) => c.id === 'a1')?.messages[0]?.text).toBe('streaming');
+  });
+
+  it('prefers in-memory busy conversation over disk when switching back', () => {
+    const previousState = {
+      selectedConversationId: 'b1',
+      conversations: [
+        {
+          id: 'b1',
+          title: 'B1',
+          projectPath: projectB,
+          messages: [],
+          updatedAt: 1,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+        {
+          id: 'a1',
+          title: 'A1',
+          projectPath: projectA,
+          messages: [
+            { id: 'as', role: 'assistant' as const, text: 'still going', isStreaming: true, createdAt: 2 },
+          ],
+          updatedAt: 2,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+      ],
+    };
+    const nextState = {
+      selectedConversationId: 'a1',
+      conversations: [
+        {
+          id: 'a1',
+          title: 'A1',
+          projectPath: projectA,
+          messages: [{ id: 'au', role: 'user' as const, text: 'old disk', createdAt: 1 }],
+          updatedAt: 1,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+      ],
+    };
+
+    const merged = mergeBusyConversationsOnProjectSwitch({
+      previousState,
+      nextState,
+      targetProjectPath: projectA,
+      busySessionKeys: [`${normalizeProjectPath(projectA)}::a1`],
+    });
+
+    expect(merged.conversations).toHaveLength(1);
+    expect(merged.conversations[0]?.messages.some((m) => m.text === 'still going')).toBe(true);
+  });
+});
+
+describe('scopeConversationStateToProject', () => {
+  it('drops conversations from other projects before persistence', () => {
+    const state = {
+      selectedConversationId: 'b1',
+      conversations: [
+        {
+          id: 'a1',
+          title: 'A',
+          projectPath: 'D:\\a',
+          messages: [],
+          updatedAt: 1,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+        {
+          id: 'b1',
+          title: 'B',
+          projectPath: 'D:\\b',
+          messages: [],
+          updatedAt: 1,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+      ],
+    };
+    const scoped = scopeConversationStateToProject(state, 'D:\\b');
+    expect(scoped.conversations.map((c) => c.id)).toEqual(['b1']);
+  });
+});
+
 describe('message id factories', () => {
   it('createAssistantMessageId generates unique ids', () => {
     const ids = new Set(Array.from({ length: 100 }, () => createAssistantMessageId()));
@@ -1219,6 +1357,33 @@ describe('forkAgentConversation', () => {
     ]);
     expect(cloned).toHaveLength(1);
     expect(cloned[0]?.id).toBe('u1');
+  });
+});
+
+describe('toProviderRequestMessages thinking', () => {
+  it('keeps thinking fields on assistant tool-call turns for reasoning APIs', () => {
+    const [msg] = toProviderRequestMessages([
+      {
+        id: 'a1',
+        role: 'assistant',
+        text: '',
+        createdAt: 1,
+        thinking: 'need to read the file first',
+        thinkingSignature: 'sig-1',
+        tool_calls: [
+          {
+            id: 'tc_1',
+            type: 'function',
+            function: { name: 'read', arguments: '{"path":"a.ts"}' },
+          },
+        ],
+      },
+    ]);
+
+    expect(msg.role).toBe('assistant');
+    expect(msg.thinking).toBe('need to read the file first');
+    expect(msg.thinkingSignature).toBe('sig-1');
+    expect(msg.tool_calls?.[0]?.id).toBe('tc_1');
   });
 });
 

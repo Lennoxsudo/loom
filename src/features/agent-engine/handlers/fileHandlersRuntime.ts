@@ -150,29 +150,6 @@ export class EditFileHandler implements ToolHandler<'edit'> {
       try {
         const result = await tryEdit(oldString, newString);
         if (result.success) {
-          // 严格验证：读回文件，确认 new_string 存在且 old_string 不再存在
-          try {
-            const verifyContent = await invoke<string>('read_file_content', {
-              filePath: resolvedPath,
-            });
-            const verifyNorm = verifyContent.replace(/\r\n/g, '\n');
-            const newNorm = newString.replace(/\r\n/g, '\n');
-            const oldNorm = oldString.replace(/\r\n/g, '\n');
-            const newStringPresent = !newNorm || verifyNorm.includes(newNorm);
-            const oldStringGone = !verifyNorm.includes(oldNorm);
-            if (!newStringPresent || !oldStringGone) {
-              console.warn(
-                '[EditFileHandler] 写入验证异常:',
-                resolvedPath,
-                'new存在:',
-                newStringPresent,
-                'old消失:',
-                oldStringGone
-              );
-            }
-          } catch {
-            // 验证失败不影响返回结果
-          }
           return {
             tool_call_id: '',
             output: result.summary,
@@ -264,22 +241,6 @@ class WriteFileHandler implements ToolHandler<'write'> {
           output: `文件 ${resolvedPath} 已存在，因 if_not_exists=true 跳过写入。`,
           files_changed: [],
         };
-      }
-
-      // 验证文件是否真正写入磁盘 (skip verify for append/prepend mode — partial content check)
-      if (!isAppend && !isPrepend) {
-        try {
-          const verifyContent = await invoke<string>('read_file_content', {
-            filePath: resolvedPath,
-          });
-          const writeNorm = args.content.replace(/\r\n/g, '\n');
-          const readNorm = verifyContent.replace(/\r\n/g, '\n');
-          if (writeNorm !== readNorm) {
-            console.error('[WriteFileHandler] 写入验证失败! 文件内容与预期不符', resolvedPath);
-          }
-        } catch (verifyError) {
-          console.warn('[WriteFileHandler] 写入后无法读取验证:', verifyError);
-        }
       }
 
       // Build output message

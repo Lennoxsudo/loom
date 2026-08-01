@@ -119,6 +119,7 @@ export interface UseAgentToolCallsOptions {
   agentModesRef: React.MutableRefObject<Record<string, 'plan' | 'always-allow'>>;
   projectPathRef: React.MutableRefObject<string>;
   conversationStateRef: React.MutableRefObject<AgentConversationState>;
+  streamMetaByMessageIdRef: React.MutableRefObject<Record<string, StreamMeta>>;
   agentAccessMode: AgentAccessMode;
   handleToolCallsRef: React.MutableRefObject<
     | ((
@@ -188,6 +189,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     agentModesRef,
     projectPathRef,
     conversationStateRef,
+    streamMetaByMessageIdRef,
     agentAccessMode,
     handleToolCallsRef,
     setConversationState,
@@ -210,6 +212,18 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
   const { showInfo } = useNotification();
   const uiT = useTranslation();
+
+  const resolveStreamSessionKey = (assistantMessageId: string, conversationId: string) => {
+    const fromMeta = streamMetaByMessageIdRef.current[assistantMessageId]?.sessionKey;
+    if (fromMeta) return fromMeta;
+    return buildPendingSessionKey(activeProjectKeyRef.current, conversationId);
+  };
+
+  const resolveStreamProjectPath = (assistantMessageId: string) => {
+    const fromMeta = streamMetaByMessageIdRef.current[assistantMessageId]?.projectPath?.trim();
+    if (fromMeta) return fromMeta;
+    return projectPathRef.current?.trim() || '';
+  };
 
   const activeCommandStreamsRef = useRef(
     new Map<string, { agentId: string; conversationId: string; toolMessageId: string }>()
@@ -251,7 +265,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
     pendingToolCalls?: ToolCall[],
     sourceAssistantMessageId?: string
   ) => {
-    const sessionKey = buildPendingSessionKey(activeProjectKeyRef.current, conversationId);
+    const sessionKey = resolveStreamSessionKey(sourceAssistantMessageId ?? '', conversationId);
 
     if (consumeStopRequest(sessionKey)) {
       if (sourceAssistantMessageId) {
@@ -283,10 +297,14 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       createdAt: Date.now(),
     };
 
+    const sourceMeta = sourceAssistantMessageId
+      ? streamMetaByMessageIdRef.current[sourceAssistantMessageId]
+      : undefined;
     trackStream(newAssistantMessageId, {
       agentId,
       conversationId,
-      sessionKey: buildPendingSessionKey(activeProjectKeyRef.current, conversationId),
+      sessionKey,
+      projectPath: sourceMeta?.projectPath ?? resolveStreamProjectPath(sourceAssistantMessageId ?? ''),
     });
     if (sourceAssistantMessageId) {
       clearTrackedStream(sourceAssistantMessageId);
@@ -381,6 +399,11 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       const tools = getProviderTools(provider, agentId);
       const transport = buildTransportInvokeArgs(provider, model, profileId ?? agent.profileId);
 
+      const streamProjectPath =
+        sourceMeta?.projectPath?.trim() ||
+        resolveStreamProjectPath(sourceAssistantMessageId ?? '') ||
+        projectPathRef.current;
+
       const {
         preparedMessages: trimmedMsgs,
         compressed,
@@ -392,7 +415,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         model,
         conversation: currentConversation ?? null,
         messages: allStableMessages,
-        projectPath: projectPathRef.current,
+        projectPath: streamProjectPath,
         agentMode: agentModesRef.current[agent.id] ?? 'always-allow',
         tools,
         profileId: transport.profileId,
@@ -443,7 +466,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         toolChainConfig: {
           enableBackendOrchestration: true,
           maxRounds: 10,
-          projectPath: projectPathRef.current,
+          projectPath: streamProjectPath,
           appDataPath: (await getAppDataPath()) ?? undefined,
           toolCallDelayMs: useSettingsStore.getState().toolCallDelay,
         },
@@ -509,7 +532,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
       return;
     }
 
-    const sessionKey = buildPendingSessionKey(activeProjectKeyRef.current, conversationId);
+    const sessionKey = resolveStreamSessionKey(assistantMessageId, conversationId);
 
     if (isStopRequested(sessionKey)) {
       clearTrackedStream(assistantMessageId);
@@ -577,12 +600,14 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
         (msg) => !msg.isStreaming || msg.id === assistantMessageId
       ) ?? [];
 
+    const streamProjectPath = resolveStreamProjectPath(assistantMessageId);
+
     const executionId = `ui-agent-${conversationId}-${assistantMessageId}-${Date.now()}`;
     await beginSandboxExecution({
       executionId,
       sessionId: conversationId,
       label: 'agent-panel',
-      projectPath: projectPathRef.current?.trim() || undefined,
+      projectPath: streamProjectPath || undefined,
       includeUserHomeReadable: true,
     });
 
@@ -764,28 +789,21 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             : '';
           /** ? fileHandlers ? resolvePathForTool ?????????? files_changed ?? */
           let resolvedWriteTargetPath = '';
-          const baseDir = projectPathRef.current?.trim() || undefined;
+          const baseDir = streamProjectPath || undefined;
           const pathContext = { baseDir, allowExternalPaths: true as const };
           if (isWriteTool && changedFilePath) {
             resolvedWriteTargetPath = baseDir
               ? resolvePathForTool(String(changedFilePath).trim(), pathContext)
               : String(changedFilePath).trim();
 
-            try {
-              const fileInfo = await invoke<{ exists?: boolean }>('get_file_info', {
-                path: resolvedWriteTargetPath,
-              });
-              existedBefore = fileInfo?.exists === true;
-            } catch {
-              // Best-effort existence check only
-            }
+            // One read covers both existence and before-content (skip extra get_file_info).
             try {
               beforeContent = await invoke<string>('read_file_content', {
                 filePath: resolvedWriteTargetPath,
               });
               existedBefore = true;
             } catch {
-              // File doesn't exist yet ? beforeContent stays null (new file)
+              // File doesn't exist yet — beforeContent stays null (new file)
             }
           }
 
@@ -834,10 +852,6 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             }
 
             if (snapshots.length > 0) {
-              const sessionKey = buildPendingSessionKey(
-                activeProjectKeyRef.current,
-                conversationId
-              );
               const convMessages =
                 conversationStateRef.current.conversations.find((c) => c.id === conversationId)
                   ?.messages ?? [];
@@ -911,7 +925,7 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             (c) => c.id === conversationId
           );
           const result = await executeToolCall(toolCall, {
-            baseDir: projectPathRef.current || undefined,
+            baseDir: streamProjectPath || undefined,
             allowExternalPaths: true,
             agentId,
             conversationId,
@@ -958,7 +972,16 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             for (const filePath of result.files_changed) {
               if (typeof filePath !== 'string' || !filePath.trim()) continue;
               try {
-                const afterContent: string = await invoke('read_file_content', { filePath });
+                // Full overwrite write: reuse args.content — avoid a third full-file IPC read.
+                const isPartialWrite = Boolean(parsedArgs.append || parsedArgs.prepend);
+                const canReuseWriteContent =
+                  toolCall.function.name === 'write' &&
+                  !isPartialWrite &&
+                  typeof parsedArgs.content === 'string' &&
+                  !parsedArgs.template_vars;
+                const afterContent: string = canReuseWriteContent
+                  ? (parsedArgs.content as string)
+                  : await invoke('read_file_content', { filePath });
                 const normalizedChanged = normalizePathForCompare(filePath).toLowerCase();
                 const normalizedResolved = normalizePathForCompare(
                   resolvedWriteTargetPath || changedFilePath
@@ -971,10 +994,6 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
                   normalizedResolved.endsWith(`/${normalizedChanged}`);
                 const before = pathsMatch ? beforeContent : null;
                 const now = Date.now();
-                const sessionKey = buildPendingSessionKey(
-                  activeProjectKeyRef.current,
-                  conversationId
-                );
                 const normalizedFilePath = normalizePathForCompare(filePath).toLowerCase();
                 const nextOldSnippet =
                   typeof parsedArgs.old_string === 'string' || typeof parsedArgs.old === 'string'

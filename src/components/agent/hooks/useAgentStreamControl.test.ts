@@ -173,6 +173,16 @@ describe('useAgentStreamControl', () => {
     expect(hook.result.current.isStopRequested('pk::conv-a')).toBe(false);
   });
 
+  test('handleStopStreaming does not fall back to another session stream', async () => {
+    const { hook } = createHarness({ selectedSessionKey: 'pk::conv-idle' });
+
+    await act(async () => {
+      await hook.result.current.handleStopStreaming();
+    });
+
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   test('clearTrackedStream keeps agent busy while another session is still streaming', () => {
     const { hook, setAgentBusy, refs } = createHarness();
 
