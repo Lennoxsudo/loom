@@ -20,6 +20,7 @@ import {
   cloneMessagesForFork,
   createAgentConversation,
   conversationToThreadListItem,
+  toProviderRequestMessages,
 } from './utils';
 import { APP_DISPLAY_NAME } from '../../utils/coreSystemPrompt';
 import type { ProviderRequestMessage, ChatMessage } from '../../types/chat';
@@ -1218,5 +1219,57 @@ describe('forkAgentConversation', () => {
     ]);
     expect(cloned).toHaveLength(1);
     expect(cloned[0]?.id).toBe('u1');
+  });
+});
+
+describe('toProviderRequestMessages fileAttachments', () => {
+  it('expands file attachment content into the user message sent to the model', () => {
+    const [msg] = toProviderRequestMessages([
+      {
+        id: 'u1',
+        role: 'user',
+        text: 'Please review',
+        createdAt: 1,
+        fileAttachments: [
+          {
+            id: 'f1',
+            path: 'src/App.tsx',
+            name: 'App.tsx',
+            content: 'export const App = () => null;',
+            language: 'typescript',
+          },
+        ],
+      },
+    ]);
+
+    expect(msg.role).toBe('user');
+    expect(typeof msg.content).toBe('string');
+    const content = msg.content as string;
+    expect(content).toContain('# File Context');
+    expect(content).toContain('src/App.tsx');
+    expect(content).toContain('export const App = () => null;');
+    expect(content).toContain('Please review');
+  });
+
+  it('still works when the user text is empty and only files are attached', () => {
+    const [msg] = toProviderRequestMessages([
+      {
+        id: 'u1',
+        role: 'user',
+        text: '',
+        createdAt: 1,
+        fileAttachments: [
+          {
+            id: 'f1',
+            path: 'a.ts',
+            name: 'a.ts',
+            content: 'const x = 1;',
+            language: 'typescript',
+          },
+        ],
+      },
+    ]);
+    expect(msg.content as string).toContain('const x = 1;');
+    expect(msg.content as string).toContain('# File Context');
   });
 });

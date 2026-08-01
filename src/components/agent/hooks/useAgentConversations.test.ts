@@ -4,7 +4,11 @@ import type { SetStateAction } from 'react';
 import { useAgentConversations } from './useAgentConversations';
 import type { AgentConversationState } from '../../../types/chat';
 import type { Agent } from '../../../utils/agentPersistence';
-import { normalizeProjectPath, resolveSelectedThreadId } from '../utils';
+import {
+  buildComposeDraftSessionKey,
+  normalizeProjectPath,
+  resolveSelectedThreadId,
+} from '../utils';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -174,5 +178,48 @@ describe('useAgentConversations', () => {
     const state = harness.getState();
     expect(state.selectedConversationId).toBe('thread-b2');
     expect(state.selectedConversationIdByProject?.[PROJECT_B_KEY]).toBe('thread-b2');
+  });
+
+  it('clears compose draft when deleting the last thread in the active project', async () => {
+    const initialState: AgentConversationState = {
+      conversations: [
+        {
+          id: 'thread-only',
+          title: 'Only thread',
+          projectPath: PROJECT_A,
+          messages: [{ id: 'u1', role: 'user', text: 'sent earlier', createdAt: 1 }],
+          updatedAt: 100,
+          createdAt: 1,
+          previewHistory: [],
+          currentPreviewIndex: 0,
+        },
+      ],
+      selectedConversationId: 'thread-only',
+      selectedConversationIdByProject: {
+        [PROJECT_A_KEY]: 'thread-only',
+      },
+    };
+    const onClearSessionExtras = vi.fn();
+    const harness = createHookHarness(PROJECT_A, initialState);
+    const { result } = renderHook(() =>
+      useAgentConversations({
+        ...harness.options,
+        onClearSessionExtras,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleDeleteConversation({
+        id: 'thread-only',
+        title: 'Only thread',
+        sessionKey: `${PROJECT_A_KEY}::thread-only`,
+        projectPath: PROJECT_A,
+      });
+    });
+
+    expect(harness.getState().selectedConversationId).toBeNull();
+    expect(harness.options.onSetDraftMessage).toHaveBeenCalledWith('');
+    expect(onClearSessionExtras).toHaveBeenCalledWith(buildComposeDraftSessionKey(PROJECT_A_KEY));
+    expect(onClearSessionExtras).toHaveBeenCalledWith(`${PROJECT_A_KEY}::thread-only`);
   });
 });

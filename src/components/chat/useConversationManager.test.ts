@@ -37,6 +37,7 @@ function createOptions() {
     canceledMessageIdsRef: { current: new Set<string>() },
     toolAbortControllerRef: { current: null },
     chatRulesInjectedRef: { current: false },
+    chatRulesContentHashRef: { current: undefined },
     autoTitleRequestedRef: { current: new Set<string>() },
     setMessages: vi.fn((updater) => {
       messagesState = typeof updater === 'function' ? updater(messagesState) : updater;

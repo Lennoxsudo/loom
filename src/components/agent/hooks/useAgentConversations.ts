@@ -13,6 +13,7 @@ import {
   parseStorageProjectKeyFromSessionKey,
   projectStateToAgentConversationState,
   forkAgentConversation,
+  buildComposeDraftSessionKey,
   type AgentThreadListItem,
 } from '../utils';
 import {
@@ -272,6 +273,14 @@ export function useAgentConversations(
       if (affectsActiveProject) {
         onSetConversationState(nextState);
         conversationStateRef.current = nextState;
+        // Last thread deleted (or selection cleared) → compose. Clear composer so
+        // previously sent text persisted under __compose__ cannot reappear.
+        if (nextState.selectedConversationIdByProject?.[threadProjectKey] === null) {
+          onSetDraftMessage('');
+          if (activeProjectKey) {
+            onClearSessionExtras?.(buildComposeDraftSessionKey(activeProjectKey));
+          }
+        }
       } else if (
         mergedState.conversations.length !== conversationStateRef.current.conversations.length
       ) {
@@ -321,6 +330,7 @@ export function useAgentConversations(
       renamingConversationId,
       conversationStateRef,
       onSetConversationState,
+      onSetDraftMessage,
       onSetPendingChangesBySession,
       onClearSessionExtras,
       lastSavedSnapshotByProjectRef,

@@ -304,11 +304,6 @@ function estimateChatMessagesTokens(msgs: ChatMessage[]): number {
     if (msg.attachments?.length) {
       total += msg.attachments.length * 300;
     }
-    if (msg.fileAttachments?.length) {
-      for (const file of msg.fileAttachments) {
-        total += estimateTokens(file.content || '');
-      }
-    }
   }
   return total;
 }

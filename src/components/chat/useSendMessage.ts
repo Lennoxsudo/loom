@@ -90,6 +90,7 @@ export interface UseSendMessageOptions {
   ownedStreamMessageIdsRef: React.MutableRefObject<Set<string>>;
   isMountedRef: React.MutableRefObject<boolean>;
   chatRulesInjectedRef: React.MutableRefObject<boolean>;
+  chatRulesContentHashRef: React.MutableRefObject<string | undefined>;
   chatModeRef: React.MutableRefObject<'plan' | 'always-allow'>;
   projectPathRef: React.MutableRefObject<string>;
   messagesRef: React.MutableRefObject<Message[]>;
@@ -341,6 +342,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         compressed,
         messages: compactedMessages,
         compactState,
+        contextInjectedUpdate,
       } = await buildChatContextUsage({
         messages: previousMessages,
         provider,
@@ -351,8 +353,11 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         chatMode: opts.chatModeRef.current,
         chatRules: opts.chatRules,
         chatRulesInjected: rulesAlreadyInjected,
+        chatRulesContentHash: opts.chatRulesContentHashRef.current,
+        conversation,
         compactState: conversation.compactState,
         conversationId: conversation.id,
+        countTurn: true,
       });
 
       if (compressed) {
@@ -360,6 +365,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         const streamingTail = messagesForState.filter((m) => m.isStreaming);
         opts.setMessages([...compactedMessages, ...streamingTail]);
         const updatedConv = buildConversationPayload(conversation, compactedMessages, compactState);
+        opts.setCurrentConversation(updatedConv);
+        await invoke('save_conversation', { conversation: updatedConv });
+      } else if (compactState.lastCompactedAt) {
+        const updatedConv = { ...conversation, compactState };
         opts.setCurrentConversation(updatedConv);
         await invoke('save_conversation', { conversation: updatedConv });
       }
@@ -380,8 +389,21 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         },
       });
 
-      if (!rulesAlreadyInjected && opts.chatRules.length > 0) {
-        opts.chatRulesInjectedRef.current = true;
+      if (contextInjectedUpdate) {
+        opts.chatRulesInjectedRef.current =
+          contextInjectedUpdate.rules?.injected ?? opts.chatRulesInjectedRef.current;
+        opts.chatRulesContentHashRef.current =
+          contextInjectedUpdate.rules?.contentHash ?? opts.chatRulesContentHashRef.current;
+        const base = opts.currentConversation ?? conversation;
+        const updatedConv = {
+          ...base,
+          contextInjected: {
+            ...base.contextInjected,
+            ...contextInjectedUpdate,
+          },
+        };
+        opts.setCurrentConversation(updatedConv);
+        await invoke('save_conversation', { conversation: updatedConv });
       }
     } catch (error) {
       opts.ownedStreamMessageIdsRef.current.delete(assistantMessageId);
@@ -641,6 +663,7 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         compressed,
         messages: compactedMessages,
         compactState,
+        contextInjectedUpdate,
       } = await buildChatContextUsage({
         messages: currentMessages,
         provider,
@@ -651,8 +674,11 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         chatMode: opts.chatModeRef.current,
         chatRules: opts.chatRules,
         chatRulesInjected: rulesAlreadyInjected,
+        chatRulesContentHash: opts.chatRulesContentHashRef.current,
+        conversation: opts.currentConversation,
         compactState: opts.currentConversation?.compactState,
         conversationId: opts.currentConversation?.id,
+        countTurn: true,
       });
 
       if (compressed) {
@@ -668,6 +694,10 @@ export function useSendMessage(opts: UseSendMessageOptions) {
           opts.setCurrentConversation(updatedConv);
           await invoke('save_conversation', { conversation: updatedConv });
         }
+      } else if (compactState.lastCompactedAt && opts.currentConversation) {
+        const updatedConv = { ...opts.currentConversation, compactState };
+        opts.setCurrentConversation(updatedConv);
+        await invoke('save_conversation', { conversation: updatedConv });
       }
 
       await invoke('send_ai_chat_stream', {
@@ -686,8 +716,20 @@ export function useSendMessage(opts: UseSendMessageOptions) {
         },
       });
 
-      if (!rulesAlreadyInjected && opts.chatRules.length > 0) {
-        opts.chatRulesInjectedRef.current = true;
+      if (contextInjectedUpdate && opts.currentConversation) {
+        opts.chatRulesInjectedRef.current =
+          contextInjectedUpdate.rules?.injected ?? opts.chatRulesInjectedRef.current;
+        opts.chatRulesContentHashRef.current =
+          contextInjectedUpdate.rules?.contentHash ?? opts.chatRulesContentHashRef.current;
+        const updatedConv = {
+          ...opts.currentConversation,
+          contextInjected: {
+            ...opts.currentConversation.contextInjected,
+            ...contextInjectedUpdate,
+          },
+        };
+        opts.setCurrentConversation(updatedConv);
+        await invoke('save_conversation', { conversation: updatedConv });
       }
     } catch (error) {
       opts.ownedStreamMessageIdsRef.current.delete(assistantMessageId);

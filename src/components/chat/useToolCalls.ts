@@ -534,6 +534,7 @@ export function useToolCalls({
         chatMode: chatModeRef.current,
         chatRules: [],
         chatRulesInjected: true,
+        conversation: currentConversationRef.current,
         compactState: currentConversationRef.current?.compactState,
         conversationId: currentConversationRef.current?.id,
       });

@@ -156,6 +156,18 @@ export interface Conversation {
   compactState?: CompactState;
   /** In-session plan panel state — saved/loaded/deleted with this conversation */
   planDocument?: ConversationPlanDocument | null;
+  /** Tracks rules / project-path injection for re-inject and restore */
+  contextInjected?: {
+    rules?: {
+      injected: boolean;
+      contentHash?: string;
+    };
+    projectPath?: {
+      injected: boolean;
+      pathHash: string;
+      injectedAt: number;
+    };
+  };
 }
 
 export interface ConversationMeta {

@@ -47,3 +47,64 @@ describe('maybeAutoCompactConversation skipCompact', () => {
     expect(compactConversation).toHaveBeenCalled();
   });
 });
+
+describe('maybeAutoCompactConversation countTurn', () => {
+  it('countTurn 在已 compact 后未再压缩时递增 turnsSincePreviousCompact', async () => {
+    vi.mocked(compactConversation).mockClear();
+
+    const afterCompact = {
+      turnsSincePreviousCompact: 0,
+      lastCompactedAt: Date.now(),
+    };
+
+    const first = await maybeAutoCompactConversation({
+      messages: [{ id: 'u1', role: 'user', text: 'hi' }],
+      provider: 'openai',
+      model: 'gpt-4o',
+      maxContextTokens: 200_000,
+      compactState: afterCompact,
+      countTurn: true,
+    });
+    expect(first.compacted).toBe(false);
+    expect(first.compactState.turnsSincePreviousCompact).toBe(1);
+    expect(compactConversation).not.toHaveBeenCalled();
+
+    const second = await maybeAutoCompactConversation({
+      messages: [{ id: 'u1', role: 'user', text: 'hi' }],
+      provider: 'openai',
+      model: 'gpt-4o',
+      maxContextTokens: 200_000,
+      compactState: first.compactState,
+      countTurn: true,
+    });
+    expect(second.compactState.turnsSincePreviousCompact).toBe(2);
+  });
+
+  it('countTurn=false 时不递增', async () => {
+    const afterCompact = {
+      turnsSincePreviousCompact: 1,
+      lastCompactedAt: Date.now(),
+    };
+    const result = await maybeAutoCompactConversation({
+      messages: [{ id: 'u1', role: 'user', text: 'hi' }],
+      provider: 'openai',
+      model: 'gpt-4o',
+      maxContextTokens: 200_000,
+      compactState: afterCompact,
+      countTurn: false,
+    });
+    expect(result.compactState.turnsSincePreviousCompact).toBe(1);
+  });
+
+  it('从未 compact 过时 countTurn 不写入 lastCompactedAt', async () => {
+    const result = await maybeAutoCompactConversation({
+      messages: [{ id: 'u1', role: 'user', text: 'hi' }],
+      provider: 'openai',
+      model: 'gpt-4o',
+      maxContextTokens: 200_000,
+      countTurn: true,
+    });
+    expect(result.compactState.lastCompactedAt).toBeUndefined();
+    expect(result.compactState.turnsSincePreviousCompact).toBe(0);
+  });
+});

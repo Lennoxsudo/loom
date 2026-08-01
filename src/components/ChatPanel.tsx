@@ -258,6 +258,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
   }, []);
 
   const chatRulesInjectedRef = useRef(false);
+  const chatRulesContentHashRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     currentAssistantMessageIdRef.current = currentAssistantMessageId;
@@ -595,6 +596,8 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
           chatMode,
           chatRules,
           chatRulesInjected: chatRulesInjectedRef.current,
+          chatRulesContentHash: chatRulesContentHashRef.current,
+          conversation: currentConversationRef.current,
           conversationId: currentConversationRef.current?.id,
           // 只读用量统计：不触发压缩的付费 LLM 摘要
           skipCompact: true,
@@ -673,6 +676,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     canceledMessageIdsRef,
     toolAbortControllerRef,
     chatRulesInjectedRef,
+    chatRulesContentHashRef,
     autoTitleRequestedRef,
     setMessages,
     setTotalTokens,
@@ -788,6 +792,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     ownedStreamMessageIdsRef,
     isMountedRef,
     chatRulesInjectedRef,
+    chatRulesContentHashRef,
     chatModeRef,
     projectPathRef,
     messagesRef,
@@ -1528,6 +1533,7 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
     restoreComposer,
     sendMessage: sendComposerMessage,
     stopStreaming: handleStop,
+    scopeKey: currentConversation?.id ?? null,
     toSendOverrides: (payload) => payload,
   });
 

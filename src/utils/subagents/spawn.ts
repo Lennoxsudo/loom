@@ -1,10 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AIProvider } from '../agentPersistence';
+import { getAgent, type AIProvider } from '../agentPersistence';
 import { parseProviderAndModel } from '../parseProviderAndModel';
 import { reconcileProviderRequest, type LoadedAiConfig } from '../aiProviderRuntime';
 import { runAgentLoop, buildForkMessages, filterToolsForSubagentType } from '../runAgentLoop';
 import { loadSkillsContext, loadSkillContent } from '../skills';
 import { loadProjectMemoryContext } from '../projectMemory';
+import { formatRulesContext } from '../rulesInjector';
 import { estimateTokens } from '../contextBudget';
 import { getSubagentSystemPrompt } from '../../features/agent-engine/subagentPrompt';
 import type { ToolContext } from '../../features/agent-engine/types';
@@ -223,6 +224,21 @@ async function runOneSubagentWithDefinition(
   if (policy.injectClaudeMd) {
     const claudeMd = await loadClaudeMd(options.parentContext?.baseDir);
     if (claudeMd) promptParts.push(claudeMd);
+  }
+
+  if (policy.injectRules) {
+    try {
+      const parentAgent = await getAgent();
+      const rulesBlock = formatRulesContext(parentAgent?.rules ?? '');
+      if (rulesBlock) promptParts.push(rulesBlock);
+    } catch {
+      // keep spawn resilient if agent config cannot be loaded
+    }
+  }
+
+  const parentAgentMemory = options.parentContext?.agentMemoryFrozenText?.trim();
+  if (parentAgentMemory) {
+    promptParts.push(parentAgentMemory);
   }
 
   const projectMemory = await loadProjectMemoryContext(options.parentContext?.baseDir || '');

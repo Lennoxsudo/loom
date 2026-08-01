@@ -9,10 +9,22 @@ import {
   clampBlockUntilMs,
 } from '../handlers/terminalHandlers';
 import { invoke } from '@tauri-apps/api/core';
+import { suggestCommandAutoFix } from '../../../utils/commandAutoFix';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
+
+vi.mock('../../../utils/commandAutoFix', async () => {
+  const actual = await vi.importActual<typeof import('../../../utils/commandAutoFix')>(
+    '../../../utils/commandAutoFix'
+  );
+  return {
+    ...actual,
+    suggestCommandAutoFix: vi.fn(() => null),
+    detectAutoFixPlatform: vi.fn(() => 'win32'),
+  };
+});
 
 vi.mock('../../../utils/browserController', () => ({
   browserController: {
@@ -111,6 +123,7 @@ describe('RunCommandHandler', () => {
   beforeEach(() => {
     handler = new RunCommandHandler();
     vi.clearAllMocks();
+    vi.mocked(suggestCommandAutoFix).mockReturnValue(null);
   });
 
   it('suppresses successful output when quiet is enabled', async () => {
@@ -146,6 +159,76 @@ describe('RunCommandHandler', () => {
       'execute_command',
       expect.objectContaining({ timeoutMs: 45_000 })
     );
+  });
+
+  it('auto-retries once when suggestCommandAutoFix returns a rewrite', async () => {
+    vi.mocked(suggestCommandAutoFix).mockReturnValue({
+      kind: 'rewrite',
+      command: 'Get-ChildItem src',
+      reason: 'use Get-ChildItem',
+    });
+    vi.mocked(invoke)
+      .mockResolvedValueOnce({
+        stdout: '',
+        stderr: "The term 'ls' is not recognized",
+        exit_code: 1,
+        timed_out: false,
+        duration_ms: 8,
+      })
+      .mockResolvedValueOnce({
+        stdout: 'file.ts',
+        stderr: '',
+        exit_code: 0,
+        timed_out: false,
+        duration_ms: 12,
+      });
+
+    const result = await handler.execute({ command: 'ls src' }, { baseDir: '/test' });
+
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke).toHaveBeenNthCalledWith(
+      2,
+      'execute_command',
+      expect.objectContaining({ command: 'Get-ChildItem src' })
+    );
+    expect(result.output).toContain('auto-retried after: use Get-ChildItem');
+    expect(result.output).toContain('file.ts');
+    expect(result.output).toContain('<exit-code>0</exit-code>');
+  });
+
+  it('appends hint without retrying when suggestCommandAutoFix returns a hint', async () => {
+    vi.mocked(suggestCommandAutoFix).mockReturnValue({
+      kind: 'hint',
+      hint: 'check PATH for foobarbaz',
+    });
+    vi.mocked(invoke).mockResolvedValueOnce({
+      stdout: '',
+      stderr: "'foobarbaz' is not recognized as an internal or external command",
+      exit_code: 1,
+      timed_out: false,
+      duration_ms: 5,
+    });
+
+    const result = await handler.execute({ command: 'foobarbaz' }, { baseDir: '/test' });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(result.output).toContain('<auto-fix-hint>check PATH for foobarbaz</auto-fix-hint>');
+    expect(result.output).toContain('<exit-code>1</exit-code>');
+  });
+
+  it('does not call suggestCommandAutoFix on successful exit', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce({
+      stdout: 'ok',
+      stderr: '',
+      exit_code: 0,
+      timed_out: false,
+      duration_ms: 3,
+    });
+
+    await handler.execute({ command: 'echo ok' }, { baseDir: '/test' });
+
+    expect(suggestCommandAutoFix).not.toHaveBeenCalled();
+    expect(invoke).toHaveBeenCalledTimes(1);
   });
 });
 

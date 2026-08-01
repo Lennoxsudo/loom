@@ -1,4 +1,8 @@
-import { shouldInjectRules, prependRulesToFirstUserMessage } from '../../utils/rulesInjector';
+import {
+  shouldInjectRules,
+  prependRulesToFirstUserMessage,
+  getRulesContentHash,
+} from '../../utils/rulesInjector';
 import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import {
   estimateMessageTokens,
@@ -6,8 +10,13 @@ import {
   DEFAULT_CONTEXT_WINDOW,
 } from '../../utils/contextBudget';
 import { loadSkillsContext } from '../../utils/skills';
+import { loadClaudeMd } from '../../utils/subagents/contextPolicy';
+import {
+  shouldInjectProjectPath,
+  hashString,
+} from '../../hooks/useContextInjectionState';
 import { buildContextForRequestWithAiSummary } from '../agent/utils';
-import { toChatPanelProviderRequestMessages, type Message } from './types';
+import { toChatPanelProviderRequestMessages, type Conversation, type Message } from './types';
 import type { CompactState, ProviderRequestMessage } from '../../types/chat';
 import type { AIProvider } from '../../utils/visionCapabilities';
 import { maybeAutoCompactConversation } from '../../utils/compact';
@@ -24,12 +33,18 @@ export interface BuildChatContextUsageOptions {
   chatMode: 'plan' | 'always-allow';
   chatRules: { content: string }[];
   chatRulesInjected: boolean;
+  /** Hash of rules last injected (for change detection) */
+  chatRulesContentHash?: string;
+  /** Current conversation — used for project-path injection state */
+  conversation?: Conversation | null;
   compactState?: CompactState | null;
   maxContextTokens?: number;
   /** Conversation id for plan document injection (optional). */
   conversationId?: string;
   /** 只读统计路径置 true：不执行压缩，避免触发付费 LLM 摘要 */
   skipCompact?: boolean;
+  /** 用户回合：推进 compact 后再压缩门闩（发送时 true，工具续跑 false） */
+  countTurn?: boolean;
 }
 
 export interface ChatContextUsage {
@@ -44,18 +59,25 @@ export interface ChatContextUsage {
   toolTokens: number;
   usedTokens: number;
   usagePercent: number;
+  /** Merge into conversation.contextInjected after a successful send */
+  contextInjectedUpdate?: Conversation['contextInjected'];
 }
 
 function buildChatRequestMessages(
   messages: Message[],
   chatRules: { content: string }[],
   chatRulesInjected: boolean,
+  chatRulesContentHash: string | undefined,
   chatMode: 'plan' | 'always-allow',
   conversationId?: string
-): ProviderRequestMessage[] {
+): { requestMessages: ProviderRequestMessage[]; needsRulesInjection: boolean; rulesHash: string } {
   const requestMessages = toChatPanelProviderRequestMessages(messages);
   const combinedChatRules = chatRules.map((rule) => rule.content).join('\n');
-  const needsRulesInjection = shouldInjectRules(combinedChatRules, chatRulesInjected);
+  const needsRulesInjection = shouldInjectRules(
+    combinedChatRules,
+    chatRulesInjected,
+    chatRulesContentHash
+  );
 
   if (needsRulesInjection) {
     prependRulesToFirstUserMessage(requestMessages, combinedChatRules);
@@ -66,7 +88,11 @@ function buildChatRequestMessages(
     conversationId,
   });
 
-  return requestMessages;
+  return {
+    requestMessages,
+    needsRulesInjection,
+    rulesHash: getRulesContentHash(combinedChatRules),
+  };
 }
 
 export async function buildChatContextUsage(
@@ -82,10 +108,13 @@ export async function buildChatContextUsage(
     chatMode,
     chatRules,
     chatRulesInjected,
+    chatRulesContentHash,
+    conversation,
     compactState,
     maxContextTokens = DEFAULT_CONTEXT_WINDOW,
     conversationId,
     skipCompact,
+    countTurn,
   } = options;
 
   const compactOutcome = await maybeAutoCompactConversation({
@@ -98,21 +127,31 @@ export async function buildChatContextUsage(
     reserveTokens: CHAT_CONTEXT_RESERVE_TOKENS,
     compactState,
     skipCompact,
+    countTurn,
   });
 
   const activeMessages = compactOutcome.messages as unknown as Message[];
 
-  const requestMessages = buildChatRequestMessages(
+  const { requestMessages, needsRulesInjection, rulesHash } = buildChatRequestMessages(
     activeMessages,
     chatRules,
     chatRulesInjected,
+    chatRulesContentHash,
     chatMode,
-    conversationId
+    conversationId ?? conversation?.id
   );
   const skillsContext = await loadSkillsContext(projectPath);
+  const projectInstructionsContext = await loadClaudeMd(projectPath);
+  const needsProjectPathInjection = shouldInjectProjectPath(
+    conversation ?? undefined,
+    projectPath
+  );
+
   const { messages: preparedMessages } = await buildContextForRequestWithAiSummary({
     projectPath,
+    shouldInjectProjectPath: needsProjectPathInjection,
     skillsContext,
+    projectInstructionsContext,
     requestMessages,
     provider,
     model,
@@ -134,6 +173,24 @@ export async function buildChatContextUsage(
   const usedTokens = messageTokens + toolTokens;
   const usagePercent = availableContextTokens > 0 ? (usedTokens / availableContextTokens) * 100 : 0;
 
+  let contextInjectedUpdate: Conversation['contextInjected'] | undefined;
+  if (needsRulesInjection || needsProjectPathInjection) {
+    contextInjectedUpdate = { ...conversation?.contextInjected };
+    if (needsRulesInjection) {
+      contextInjectedUpdate.rules = {
+        injected: true,
+        contentHash: rulesHash,
+      };
+    }
+    if (needsProjectPathInjection && projectPath.trim()) {
+      contextInjectedUpdate.projectPath = {
+        injected: true,
+        pathHash: hashString(projectPath),
+        injectedAt: Date.now(),
+      };
+    }
+  }
+
   return {
     preparedMessages,
     tools,
@@ -146,5 +203,6 @@ export async function buildChatContextUsage(
     toolTokens,
     usedTokens,
     usagePercent,
+    contextInjectedUpdate,
   };
 }

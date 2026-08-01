@@ -907,6 +907,9 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
 
           const mcpToolsForCall = mcpTools;
 
+          const parentConversation = conversationStateRef.current.conversations.find(
+            (c) => c.id === conversationId
+          );
           const result = await executeToolCall(toolCall, {
             baseDir: projectPathRef.current || undefined,
             allowExternalPaths: true,
@@ -920,6 +923,8 @@ export function useAgentToolCalls(options: UseAgentToolCallsOptions) {
             parentToolNames,
             parentMcpTools: mcpToolsForCall,
             parentMessages,
+            agentMemoryFrozenText:
+              parentConversation?.contextInjected?.agentMemory?.frozenText,
             subagentDepth: 0,
             onAskUserQuestion,
             onExitPlanMode,

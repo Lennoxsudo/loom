@@ -105,6 +105,7 @@ import { useChatSendDuringStreamingDispatch } from '../hooks/useChatSendDuringSt
 import { useAgentConversationPersistence } from './agent/hooks/useAgentConversationPersistence';
 import { useAgentThreadManager } from './agent/hooks/useAgentThreadManager';
 import { useAgentSessionExtrasPersistence } from './agent/hooks/useAgentSessionExtrasPersistence';
+import { usePersistedComposerDraft } from './agent/hooks/usePersistedComposerDraft';
 import { useAgentProjectTreeState } from './agent/hooks/useAgentProjectTreeState';
 import { useAgentPendingChanges } from './agent/hooks/useAgentPendingChanges';
 import { useAutomationEvent } from './agent/hooks/useAutomationEvent';
@@ -1596,35 +1597,15 @@ export default function AgentPanel({
     persistCurrentThreadBeforeSwitch,
   } = threadManager;
 
-  const lastDraftHydrationKeyRef = useRef('');
-
-  useEffect(() => {
-    if (!extrasLoaded || !activeProjectKey) return;
-    const hydrationKey = selectedThreadIdFromManager
-      ? `thread::${activeProjectKey}::${selectedThreadIdFromManager}`
-      : `compose::${activeProjectKey}`;
-    if (lastDraftHydrationKeyRef.current === hydrationKey) return;
-    lastDraftHydrationKeyRef.current = hydrationKey;
-    const sessionKey = selectedThreadIdFromManager
-      ? buildPendingSessionKey(activeProjectKey, selectedThreadIdFromManager)
-      : buildComposeDraftSessionKey(activeProjectKey);
-    const savedDraft = loadDraftForSession(sessionKey);
-    setDraftMessage(savedDraft);
-  }, [extrasLoaded, activeProjectKey, selectedThreadIdFromManager, loadDraftForSession]);
-
-  useEffect(() => {
-    if (!extrasLoaded || !activeProjectKey) return;
-    const sessionKey = selectedThreadIdFromManager
-      ? buildPendingSessionKey(activeProjectKey, selectedThreadIdFromManager)
-      : buildComposeDraftSessionKey(activeProjectKey);
-    saveDraftForSession(sessionKey, draftMessage);
-  }, [
-    draftMessage,
-    activeProjectKey,
-    selectedThreadIdFromManager,
+  const { markDraftSessionKey } = usePersistedComposerDraft({
     extrasLoaded,
+    activeProjectKey,
+    selectedThreadId: selectedThreadIdFromManager,
+    draftMessage,
+    setDraftMessage,
+    loadDraftForSession,
     saveDraftForSession,
-  ]);
+  });
 
   const streamingSessionKeys = busySessionKeys;
 
@@ -1961,6 +1942,10 @@ export default function AgentPanel({
     stopStreaming: handleStopStreaming,
     onSetPendingChangesBySession: setPendingChangesBySession,
     onFilesChanged: (paths) => onFilesChangedRef.current?.(paths),
+    onClearComposeDraft: () => {
+      if (!activeProjectKey) return;
+      saveDraftForSession(buildComposeDraftSessionKey(activeProjectKey), '');
+    },
   });
 
   const hasComposerInput =
@@ -2036,6 +2021,7 @@ export default function AgentPanel({
     restoreComposer,
     sendMessage: sendComposerMessage,
     stopStreaming: handleStopStreaming,
+    scopeKey: selectedConversationId,
     toSendOverrides: (payload) => ({
       draftMessage: payload.inputValue,
       attachedFiles: payload.attachedFiles,
@@ -2094,9 +2080,7 @@ export default function AgentPanel({
           const resolvedThreadId = resolveSelectedThreadId(nextState, path);
           const sessionKey = resolveDraftSessionKey(projectKey, resolvedThreadId);
           const nextDraft = loadDraftForSession(sessionKey);
-          lastDraftHydrationKeyRef.current = resolvedThreadId
-            ? `thread::${projectKey}::${resolvedThreadId}`
-            : `compose::${projectKey}`;
+          markDraftSessionKey(sessionKey);
           setActiveProjectKey(projectKey);
           setConversationState(nextState);
           setDraftMessage(nextDraft);
@@ -2134,6 +2118,7 @@ export default function AgentPanel({
       graphAutoIndexMaxFiles,
       graphAutoIndexOnOpen,
       loadDraftForSession,
+      markDraftSessionKey,
       onProjectPathChange,
       persistCurrentThreadBeforeSwitch,
       showWarning,
@@ -2225,7 +2210,7 @@ export default function AgentPanel({
           setConversationState(emptyProjectConversationState());
           setDraftMessage('');
           setActiveProjectKey('');
-          lastDraftHydrationKeyRef.current = '';
+          markDraftSessionKey(null);
         },
         onProjectPathChange,
         onCbmDeleteFailed: () => {
@@ -2248,6 +2233,7 @@ export default function AgentPanel({
     invalidatePendingProjectPersist,
     isDeletingProject,
     lastSavedSnapshotByProjectRef,
+    markDraftSessionKey,
     onProjectPathChange,
     pendingDeleteProject,
     persistCurrentThreadBeforeSwitch,

@@ -124,6 +124,11 @@ export interface UseAgentSendMessageOptions {
     React.SetStateAction<Record<string, PendingFileChange[]>>
   >;
   onFilesChanged?: (paths: string[]) => void;
+  /**
+   * When the first message creates a conversation from compose mode, clear the
+   * persisted compose draft so it cannot reappear after the thread is deleted.
+   */
+  onClearComposeDraft?: () => void;
 }
 
 export interface SendMessageOverrides {
@@ -172,6 +177,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
     stopStreaming,
     onSetPendingChangesBySession,
     onFilesChanged,
+    onClearComposeDraft,
   } = options;
 
   const { showInfo, showWarning } = useNotification();
@@ -451,6 +457,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         shouldInjectProjectPath: needsInjection,
         subagentCatalog,
         profileId: transport.profileId,
+        countTurn: true,
       });
 
       if (compressed) {
@@ -459,6 +466,15 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
           updateAgentConversationById(prev, activeConversationId, (c) => ({
             ...c,
             messages: [...compactedMessages, ...c.messages.filter((m) => m.isStreaming)],
+            compactState,
+            updatedAt: Date.now(),
+          }))
+        );
+      } else if (compactState.lastCompactedAt) {
+        // Persist turn counter so re-compact gate can open after MIN_TURNS
+        setConversationState((prev) =>
+          updateAgentConversationById(prev, activeConversationId, (c) => ({
+            ...c,
             compactState,
             updatedAt: Date.now(),
           }))
@@ -787,6 +803,9 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         draftTextareaRef.current.style.height = 'auto';
       }
     }
+    if (pendingConversation) {
+      onClearComposeDraft?.();
+    }
 
     onUserMessageSent?.();
 
@@ -888,6 +907,7 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
         shouldInjectProjectPath: needsInjection,
         subagentCatalog,
         profileId: transport.profileId,
+        countTurn: true,
       });
 
       if (compressed) {
@@ -896,6 +916,15 @@ export function useAgentSendMessage(options: UseAgentSendMessageOptions) {
           updateAgentConversationById(prev, activeConversationId, (c) => ({
             ...c,
             messages: [...compactedMessages, ...c.messages.filter((m) => m.isStreaming)],
+            compactState,
+            updatedAt: Date.now(),
+          }))
+        );
+      } else if (compactState.lastCompactedAt) {
+        // Persist turn counter so re-compact gate can open after MIN_TURNS
+        setConversationState((prev) =>
+          updateAgentConversationById(prev, activeConversationId, (c) => ({
+            ...c,
             compactState,
             updatedAt: Date.now(),
           }))

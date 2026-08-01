@@ -13,6 +13,23 @@ vi.mock('../../utils/skills', () => ({
   loadSkillsContext: vi.fn(),
 }));
 
+vi.mock('../../utils/subagents/contextPolicy', () => ({
+  loadClaudeMd: vi.fn(async () => ''),
+}));
+
+vi.mock('../../utils/agentMemory', async () => {
+  const actual = await vi.importActual<typeof import('../../utils/agentMemory')>(
+    '../../utils/agentMemory'
+  );
+  return {
+    ...actual,
+    resolveAgentMemoryFrozenSnapshot: vi.fn(async () => ({
+      text: '',
+      justCaptured: false,
+    })),
+  };
+});
+
 vi.mock('../../utils/compact', () => ({
   maybeAutoCompactConversation: vi.fn(async ({ messages }) => ({
     messages,
@@ -26,6 +43,8 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { loadSkillsContext } from '../../utils/skills';
+import { loadClaudeMd } from '../../utils/subagents/contextPolicy';
+import { resolveAgentMemoryFrozenSnapshot } from '../../utils/agentMemory';
 import { invoke } from '@tauri-apps/api/core';
 import { maybeAutoCompactConversation } from '../../utils/compact';
 
@@ -71,6 +90,11 @@ describe('buildAgentContextUsage', () => {
     vi.mocked(loadSkillsContext).mockResolvedValue(
       '<available_skills>\n"review": code review\n</available_skills>'
     );
+    vi.mocked(loadClaudeMd).mockResolvedValue('');
+    vi.mocked(resolveAgentMemoryFrozenSnapshot).mockResolvedValue({
+      text: '',
+      justCaptured: false,
+    });
     vi.mocked(invoke).mockResolvedValue('');
     vi.mocked(maybeAutoCompactConversation).mockClear();
     vi.mocked(maybeAutoCompactConversation).mockImplementation(async ({ messages }) => ({
@@ -79,6 +103,43 @@ describe('buildAgentContextUsage', () => {
       compactState: { lastCompactedAt: 0, lastCompactedMessageCount: 0 },
       result: null,
     }));
+  });
+
+  it('includes agent memory and project instructions in system breakdown', async () => {
+    vi.mocked(resolveAgentMemoryFrozenSnapshot).mockResolvedValue({
+      text: '## Agent Memory (frozen for this session)\nprefer pnpm',
+      justCaptured: false,
+    });
+    vi.mocked(loadClaudeMd).mockResolvedValue(
+      '# Project Instructions (CLAUDE.md)\n\nUse Vitest.'
+    );
+
+    const withContext = await buildAgentContextUsage({
+      agent: baseAgent,
+      conversation: baseConversation,
+      draftMessage: 'hello',
+      attachedImages: [],
+      projectPath: 'D:\\project\\demo',
+      agentMode: 'always-allow',
+      tools: [],
+    });
+
+    vi.mocked(resolveAgentMemoryFrozenSnapshot).mockResolvedValue({
+      text: '',
+      justCaptured: false,
+    });
+    vi.mocked(loadClaudeMd).mockResolvedValue('');
+    const withoutContext = await buildAgentContextUsage({
+      agent: baseAgent,
+      conversation: baseConversation,
+      draftMessage: 'hello',
+      attachedImages: [],
+      projectPath: 'D:\\project\\demo',
+      agentMode: 'always-allow',
+      tools: [],
+    });
+
+    expect(withContext.breakdown.system).toBeGreaterThan(withoutContext.breakdown.system);
   });
 
   it('includes agent request injections and tool definitions', async () => {
@@ -127,12 +188,45 @@ describe('buildAgentContextUsage', () => {
 describe('buildAgentRequestContext', () => {
   beforeEach(() => {
     vi.mocked(loadSkillsContext).mockResolvedValue('');
+    vi.mocked(loadClaudeMd).mockResolvedValue('');
+    vi.mocked(resolveAgentMemoryFrozenSnapshot).mockResolvedValue({
+      text: '',
+      justCaptured: false,
+    });
     vi.mocked(maybeAutoCompactConversation).mockImplementation(async ({ messages }) => ({
       messages,
       compacted: false,
       compactState: { turnsSincePreviousCompact: 0 },
       result: null,
     }));
+  });
+
+  it('injects CLAUDE.md / AGENTS.md into the system prompt', async () => {
+    vi.mocked(loadClaudeMd).mockResolvedValue(
+      '# Project Instructions (CLAUDE.md)\n\nPrefer Vitest.'
+    );
+
+    const { preparedMessages } = await buildAgentRequestContext({
+      agent: baseAgent,
+      provider: 'openai',
+      model: 'gpt-4o',
+      conversation: baseConversation,
+      messages: baseConversation.messages,
+      projectPath: 'D:\\project\\demo',
+      agentMode: 'always-allow',
+    });
+
+    const system = preparedMessages.find(
+      (message): message is { role: string; content: string } =>
+        typeof message === 'object' &&
+        message !== null &&
+        'role' in message &&
+        (message as { role?: string }).role === 'system' &&
+        typeof (message as { content?: unknown }).content === 'string'
+    );
+
+    expect(system?.content).toContain('Project Instructions (CLAUDE.md)');
+    expect(system?.content).toContain('Prefer Vitest.');
   });
 
   it('uses the reconciled runtime model in the system prompt instead of agent.model', async () => {

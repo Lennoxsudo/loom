@@ -39,8 +39,16 @@ const pendingLocks = new Map<string, { requestId: string }>();
  *  2. The project path has changed (hash mismatch).
  *  3. There is no pending lock (prevents concurrent injection).
  */
+/** Minimal conversation shape for project-path injection (Agent or Chat). */
+export type ProjectPathInjectionConversation = {
+  id: string;
+  contextInjected?: {
+    projectPath?: ProjectPathInjectionState;
+  };
+};
+
 export function shouldInjectProjectPath(
-  conversation: AgentConversation | undefined,
+  conversation: ProjectPathInjectionConversation | AgentConversation | undefined,
   currentProjectPath: string
 ): boolean {
   if (!currentProjectPath.trim()) return false;

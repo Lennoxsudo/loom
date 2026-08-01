@@ -7,13 +7,21 @@ vi.mock('../../utils/skills', () => ({
   loadSkillsContext: vi.fn(),
 }));
 
+vi.mock('../../utils/subagents/contextPolicy', () => ({
+  loadClaudeMd: vi.fn(async () => ''),
+}));
+
 import { loadSkillsContext } from '../../utils/skills';
+import { loadClaudeMd } from '../../utils/subagents/contextPolicy';
+import { getRulesContentHash } from '../../utils/rulesInjector';
+import { PROJECT_PATH_CONTEXT_PREFIX } from '../../types/chat';
 
 describe('buildChatContextUsage', () => {
   beforeEach(() => {
     vi.mocked(loadSkillsContext).mockResolvedValue(
       '<available_skills>\n"review": code review\n</available_skills>'
     );
+    vi.mocked(loadClaudeMd).mockResolvedValue('');
   });
 
   it('includes injected rules, plan prompt, skills, and tool definitions in usage', async () => {
@@ -157,6 +165,93 @@ describe('buildChatContextUsage', () => {
 
     expect(systemText).not.toContain('[Rules Context]');
     expect(systemText).toContain(APP_DISPLAY_NAME);
+  });
+
+  it('re-injects chat rules when contentHash changes', async () => {
+    const oldRules = 'Old rule.';
+    const newRules = 'New rule after edit.';
+    const result = await buildChatContextUsage({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          content: 'hello',
+          timestamp: Date.now(),
+        },
+      ],
+      provider: 'openai',
+      model: 'gpt-4o',
+      projectPath: '',
+      chatMode: 'always-allow',
+      chatRules: [{ content: newRules }],
+      chatRulesInjected: true,
+      chatRulesContentHash: getRulesContentHash(oldRules),
+    });
+
+    const userText =
+      (
+        result.preparedMessages.find(
+          (message): message is { role: string; content: string } =>
+            typeof message === 'object' &&
+            message !== null &&
+            'role' in message &&
+            (message as { role?: string }).role === 'user' &&
+            typeof (message as { content?: unknown }).content === 'string'
+        )?.content ?? ''
+      );
+
+    expect(userText).toContain('[Rules Context]');
+    expect(userText).toContain(newRules);
+    expect(result.contextInjectedUpdate?.rules?.contentHash).toBe(getRulesContentHash(newRules));
+  });
+
+  it('injects project path and CLAUDE.md into chat system prompt', async () => {
+    vi.mocked(loadClaudeMd).mockResolvedValue(
+      '# Project Instructions (CLAUDE.md)\n\nUse Vitest.'
+    );
+
+    const result = await buildChatContextUsage({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          content: 'hello',
+          timestamp: Date.now(),
+        },
+      ],
+      provider: 'openai',
+      model: 'gpt-4o',
+      projectPath: 'D:\\project\\demo',
+      chatMode: 'always-allow',
+      chatRules: [],
+      chatRulesInjected: true,
+      conversation: {
+        id: 'chat-1',
+        title: 't',
+        filename: 't.json',
+        created_at: '',
+        last_used_at: '',
+        provider: 'openai',
+        model: 'gpt-4o',
+        messages: [],
+      },
+    });
+
+    const systemText = result.preparedMessages
+      .filter(
+        (message): message is { role: string; content: string } =>
+          typeof message === 'object' &&
+          message !== null &&
+          'role' in message &&
+          (message as { role?: string }).role === 'system' &&
+          typeof (message as { content?: unknown }).content === 'string'
+      )
+      .map((message) => message.content)
+      .join('\n\n');
+
+    expect(systemText).toContain(`${PROJECT_PATH_CONTEXT_PREFIX}D:\\project\\demo`);
+    expect(systemText).toContain('Project Instructions (CLAUDE.md)');
+    expect(result.contextInjectedUpdate?.projectPath?.injected).toBe(true);
   });
 
   it('keeps the same tool token count in plan mode when tools are unchanged', async () => {

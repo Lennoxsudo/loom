@@ -17,6 +17,7 @@ import { useSettingsStore } from '../../stores/useSettingsStore';
 import { injectPlanContextForRequest } from '../../utils/planModeInjector';
 import { shouldInjectProjectPath as checkShouldInjectProjectPath } from '../../hooks/useContextInjectionState';
 import { loadSkillsContext } from '../../utils/skills';
+import { loadClaudeMd } from '../../utils/subagents/contextPolicy';
 import { invoke } from '@tauri-apps/api/core';
 import { type Agent, type AIProvider } from '../../utils/agentPersistence';
 import {
@@ -93,6 +94,11 @@ export interface BuildAgentRequestContextOptions {
   profileId?: string;
   /** 只读统计路径置 true：不执行压缩，避免触发付费 LLM 摘要 */
   skipCompact?: boolean;
+  /**
+   * 用户回合：为 true 时推进 compact 后再压缩的回合计数。
+   * 发送用户消息时为 true；工具续跑保持 false。
+   */
+  countTurn?: boolean;
 }
 
 export type AgentRuntimeSnapshotInput = Pick<
@@ -131,6 +137,8 @@ export interface AgentRequestContext {
   tools: unknown;
   /** Present when a frozen Agent Memory snapshot was resolved this request */
   agentMemoryCapture?: { text: string; justCaptured: boolean };
+  /** CLAUDE.md / AGENTS.md block loaded for this request */
+  projectInstructionsContext?: string;
 }
 
 function readAgentMemoryFlags(): AgentMemoryFlags {
@@ -223,6 +231,8 @@ function buildAgentContextBreakdown(options: {
   conversation: AgentConversation | null;
   skillsContext: string;
   shouldInjectProjectPath: boolean;
+  agentMemoryContext?: string;
+  projectInstructionsContext?: string;
   preparedMessages: Array<{ role: string; content: unknown }>;
   tools: unknown;
 }): AgentContextUsageBreakdown {
@@ -235,6 +245,8 @@ function buildAgentContextBreakdown(options: {
     conversation,
     skillsContext,
     shouldInjectProjectPath,
+    agentMemoryContext,
+    projectInstructionsContext,
     preparedMessages,
     tools,
   } = options;
@@ -253,6 +265,8 @@ function buildAgentContextBreakdown(options: {
       enableAgentMemory: promptFlags.enableAgentMemory,
       enableAgentSessionSearch: promptFlags.enableAgentSessionSearch,
     }),
+    projectInstructionsContext?.trim() ?? '',
+    agentMemoryContext?.trim() ?? '',
     agent.description?.trim() ?? '',
     shouldInjectProjectPath && projectPath.trim()
       ? `${PROJECT_PATH_CONTEXT_PREFIX}${projectPath}`
@@ -301,6 +315,7 @@ export async function buildAgentRequestContext(
     subagentCatalog,
     profileId,
     skipCompact,
+    countTurn,
   } = options;
 
   const maxContextTokens = agent.maxContextTokens ?? DEFAULT_CONTEXT_WINDOW;
@@ -315,6 +330,7 @@ export async function buildAgentRequestContext(
     reserveTokens: AGENT_CONTEXT_RESERVE_TOKENS,
     compactState: conversation?.compactState,
     skipCompact,
+    countTurn,
   });
 
   const activeMessages = compactOutcome.messages as unknown as ChatMessage[];
@@ -329,6 +345,7 @@ export async function buildAgentRequestContext(
   const needsProjectPathInjection =
     shouldInjectProjectPath ?? checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
   const skillsContext = await loadSkillsContext(projectPath);
+  const projectInstructionsContext = await loadClaudeMd(projectPath);
 
   const agentMemoryFlags = readAgentMemoryFlags();
   const agentMemorySnapshot = await resolveAgentMemoryFrozenSnapshot({
@@ -344,6 +361,7 @@ export async function buildAgentRequestContext(
       projectPath,
       shouldInjectProjectPath: needsProjectPathInjection,
       skillsContext,
+      projectInstructionsContext,
       agentMemoryContext: agentMemorySnapshot.text,
       enableAgentMemory: promptFlags.enableAgentMemory,
       enableAgentSessionSearch: promptFlags.enableAgentSessionSearch,
@@ -363,6 +381,7 @@ export async function buildAgentRequestContext(
     compactState: compactOutcome.compactState,
     tools: resolvedTools,
     agentMemoryCapture: agentMemorySnapshot,
+    projectInstructionsContext,
   };
 }
 
@@ -419,18 +438,19 @@ export async function buildAgentContextUsage(
   const needsProjectPathInjection = checkShouldInjectProjectPath(conversation ?? undefined, projectPath);
   const skillsContext = (await loadSkillsContext(projectPath)) ?? '';
 
-  const { preparedMessages } = await buildAgentRequestContext({
-    agent,
-    provider,
-    model,
-    conversation,
-    messages: allMessages,
-    projectPath,
-    agentMode,
-    tools,
-    profileId,
-    skipCompact: true,
-  });
+  const { preparedMessages, agentMemoryCapture, projectInstructionsContext } =
+    await buildAgentRequestContext({
+      agent,
+      provider,
+      model,
+      conversation,
+      messages: allMessages,
+      projectPath,
+      agentMode,
+      tools,
+      profileId,
+      skipCompact: true,
+    });
 
   const normalizedMessages = preparedMessages as Array<{ role: string; content: unknown }>;
   const messageTokens = normalizedMessages.reduce(
@@ -451,6 +471,8 @@ export async function buildAgentContextUsage(
     conversation,
     skillsContext,
     shouldInjectProjectPath: needsProjectPathInjection,
+    agentMemoryContext: agentMemoryCapture?.text,
+    projectInstructionsContext,
     preparedMessages: normalizedMessages,
     tools,
   });

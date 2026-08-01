@@ -55,6 +55,8 @@ export interface ToolContext extends EngineHostCallbacks {
   allowedSubagentTypes?: string[];
   /** 当前子代理任务 ID（嵌套 spawn 时作为 parentTaskId） */
   spawnParentTaskId?: string;
+  /** Parent conversation's frozen Agent Memory block (inherit into subagent system prompt) */
+  agentMemoryFrozenText?: string;
 }
 
 /**

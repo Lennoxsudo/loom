@@ -29,6 +29,7 @@ export interface UseConversationManagerOptions {
   canceledMessageIdsRef: React.MutableRefObject<Set<string>>;
   toolAbortControllerRef: React.MutableRefObject<AbortController | null>;
   chatRulesInjectedRef: React.MutableRefObject<boolean>;
+  chatRulesContentHashRef: React.MutableRefObject<string | undefined>;
   autoTitleRequestedRef: React.MutableRefObject<Set<string>>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setTotalTokens: React.Dispatch<React.SetStateAction<number>>;
@@ -59,6 +60,7 @@ export function useConversationManager({
   canceledMessageIdsRef,
   toolAbortControllerRef,
   chatRulesInjectedRef,
+  chatRulesContentHashRef,
   autoTitleRequestedRef,
   setMessages,
   setTotalTokens,
@@ -118,6 +120,7 @@ export function useConversationManager({
     clearAttachedImages();
     setError(null);
     chatRulesInjectedRef.current = false;
+    chatRulesContentHashRef.current = undefined;
 
     try {
       const conv = await invoke<Conversation>('load_conversation', { filename });
@@ -132,6 +135,8 @@ export function useConversationManager({
         // ignore persist failures
       }
 
+      chatRulesInjectedRef.current = !!conv.contextInjected?.rules?.injected;
+      chatRulesContentHashRef.current = conv.contextInjected?.rules?.contentHash;
       setCurrentConversation(conv);
       setPendingChanges(conv.pendingChanges ?? []);
       // Restore plan panel state from the conversation file
@@ -299,6 +304,7 @@ export function useConversationManager({
     setError(null);
     setIsConversationDropdownOpen(false);
     chatRulesInjectedRef.current = false;
+    chatRulesContentHashRef.current = undefined;
   }, [
     isLoading,
     isStopping,
@@ -398,6 +404,7 @@ export function useConversationManager({
         setPendingChanges([]);
         setTotalTokens(0);
         chatRulesInjectedRef.current = false;
+        chatRulesContentHashRef.current = undefined;
       }
 
       const convs = await invoke<ConversationMeta[]>('list_conversations');

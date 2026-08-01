@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { ChatSendDuringStreamingMode } from '../types/settings';
 import type { AttachedFile, PendingImageAttachment } from '../components/chat/types';
@@ -26,10 +26,22 @@ export interface UseChatSendDuringStreamingDispatchOptions<TOverrides> {
   sendMessage: (overrides?: TOverrides) => Promise<void>;
   stopStreaming: () => Promise<void>;
   toSendOverrides: (payload: QueuedComposerPayload) => TOverrides;
+  /**
+   * Isolate the send queue per conversation/thread.
+   * When unset/empty, uses a single shared fallback scope (legacy behavior).
+   */
+  scopeKey?: string | null;
 }
+
+const FALLBACK_SCOPE = '__default__';
 
 function createQueueItemId(): string {
   return `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function resolveScopeKey(scopeKey?: string | null): string {
+  const trimmed = scopeKey?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : FALLBACK_SCOPE;
 }
 
 /** Prefer disk asset URL so clearComposer can revoke blob: previews safely. */
@@ -62,61 +74,89 @@ export function useChatSendDuringStreamingDispatch<TOverrides>({
   sendMessage,
   stopStreaming,
   toSendOverrides,
+  scopeKey,
 }: UseChatSendDuringStreamingDispatchOptions<TOverrides>) {
-  const [queuedMessages, setQueuedMessages] = useState<QueuedComposerItem[]>([]);
-  const queueRef = useRef<QueuedComposerItem[]>([]);
+  const [queuesByScope, setQueuesByScope] = useState<Record<string, QueuedComposerItem[]>>({});
+  const queuesRef = useRef<Record<string, QueuedComposerItem[]>>({});
   const flushingRef = useRef(false);
+  const activeScope = resolveScopeKey(scopeKey);
 
-  const syncQueue = useCallback((next: QueuedComposerItem[]) => {
-    queueRef.current = next;
-    setQueuedMessages(next);
+  const syncScopeQueue = useCallback((scope: string, next: QueuedComposerItem[]) => {
+    const prev = queuesRef.current;
+    let updated: Record<string, QueuedComposerItem[]>;
+    if (next.length === 0) {
+      if (!(scope in prev)) {
+        return;
+      }
+      updated = { ...prev };
+      delete updated[scope];
+    } else {
+      updated = { ...prev, [scope]: next };
+    }
+    queuesRef.current = updated;
+    setQueuesByScope(updated);
   }, []);
 
+  const queuedMessages = useMemo(
+    () => queuesByScope[activeScope] ?? [],
+    [queuesByScope, activeScope]
+  );
+
   const flushQueue = useCallback(async () => {
+    const scope = resolveScopeKey(scopeKey);
     if (flushingRef.current || isStreamingBusy || isStopping) {
       return;
     }
-    const [next, ...rest] = queueRef.current;
+    const current = queuesRef.current[scope] ?? [];
+    const [next, ...rest] = current;
     if (!next) {
       return;
     }
 
     flushingRef.current = true;
-    syncQueue(rest);
+    syncScopeQueue(scope, rest);
     try {
       await sendMessage(toSendOverrides(next));
     } finally {
       flushingRef.current = false;
-      if (!isStreamingBusy && !isStopping && queueRef.current.length > 0) {
+      const remaining = queuesRef.current[scope] ?? [];
+      if (!isStreamingBusy && !isStopping && remaining.length > 0) {
         void flushQueue();
       }
     }
-  }, [isStreamingBusy, isStopping, sendMessage, syncQueue, toSendOverrides]);
+  }, [isStreamingBusy, isStopping, scopeKey, sendMessage, syncScopeQueue, toSendOverrides]);
 
   useEffect(() => {
     if (isStreamingBusy || isStopping) {
       return;
     }
-    if (queueRef.current.length === 0) {
+    if ((queuesRef.current[activeScope] ?? []).length === 0) {
       return;
     }
     void flushQueue();
-  }, [isStreamingBusy, isStopping, flushQueue]);
+  }, [activeScope, isStreamingBusy, isStopping, flushQueue]);
 
   const removeQueuedMessage = useCallback(
     (id: string) => {
-      syncQueue(queueRef.current.filter((item) => item.id !== id));
+      const scope = resolveScopeKey(scopeKey);
+      const current = queuesRef.current[scope] ?? [];
+      syncScopeQueue(
+        scope,
+        current.filter((item) => item.id !== id)
+      );
     },
-    [syncQueue]
+    [scopeKey, syncScopeQueue]
   );
 
   const restoreQueuedMessage = useCallback(
     (id: string) => {
-      const item = queueRef.current.find((entry) => entry.id === id);
+      const scope = resolveScopeKey(scopeKey);
+      const current = queuesRef.current[scope] ?? [];
+      const item = current.find((entry) => entry.id === id);
       if (!item) {
         return;
       }
-      let next = queueRef.current.filter((entry) => entry.id !== id);
+      let next = current.filter((entry) => entry.id !== id);
       if (hasInput) {
         next = [
           ...next,
@@ -126,10 +166,10 @@ export function useChatSendDuringStreamingDispatch<TOverrides>({
           },
         ];
       }
-      syncQueue(next);
+      syncScopeQueue(scope, next);
       restoreComposer(stabilizeQueuedPayload(item));
     },
-    [hasInput, restoreComposer, snapshotComposer, syncQueue]
+    [hasInput, restoreComposer, scopeKey, snapshotComposer, syncScopeQueue]
   );
 
   const dispatchComposerSend = useCallback(async () => {
@@ -147,9 +187,11 @@ export function useChatSendDuringStreamingDispatch<TOverrides>({
         return;
       }
 
+      const scope = resolveScopeKey(scopeKey);
       const snapshot = stabilizeQueuedPayload(snapshotComposer());
-      syncQueue([
-        ...queueRef.current,
+      const current = queuesRef.current[scope] ?? [];
+      syncScopeQueue(scope, [
+        ...current,
         {
           id: createQueueItemId(),
           ...snapshot,
@@ -170,10 +212,11 @@ export function useChatSendDuringStreamingDispatch<TOverrides>({
     isStreamingBusy,
     isStopping,
     mode,
+    scopeKey,
     sendMessage,
     snapshotComposer,
     stopStreaming,
-    syncQueue,
+    syncScopeQueue,
   ]);
 
   const canSendComposer = hasInput && !isStopping && (isStreamingBusy || canSendWhileIdle);

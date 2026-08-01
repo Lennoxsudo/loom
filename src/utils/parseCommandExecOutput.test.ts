@@ -31,6 +31,16 @@ describe('parseCommandExecOutput', () => {
     expect(result.durationMs).toBeNull();
   });
 
+  it('strips auto-fix-hint tags from display output', () => {
+    const result = parseCommandExecOutput(
+      'err\n<auto-fix-hint>check PATH</auto-fix-hint>\n<exit-code>1</exit-code>\n<duration>10ms</duration>',
+      { command: 'foobarbaz' }
+    );
+    expect(result.output).toBe('err');
+    expect(result.output).not.toContain('auto-fix-hint');
+    expect(result.exitCode).toBe(1);
+  });
+
   it('detects background start message', () => {
     const result = parseCommandExecOutput(
       'Command running in background with task ID: bg0. Use action=read_output with tid=bg0 to check output.',

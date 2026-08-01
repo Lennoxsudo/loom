@@ -1519,12 +1519,33 @@ export function toProviderRequestMessages(messages: ChatMessage[]): ProviderRequ
         };
       }
 
+      const fileBlock = formatFileAttachmentsBlock(msg.fileAttachments);
+      const text = typeof msg.text === 'string' ? msg.text : '';
+      const content =
+        fileBlock && text.trim()
+          ? `${fileBlock}\n${text}`
+          : fileBlock || text;
+
       return {
         role: msg.role,
-        content: msg.text,
+        content,
         ...(msg.attachments && msg.attachments.length > 0 ? { attachments: msg.attachments } : {}),
       };
     });
+}
+
+/** Expand file attachments into request text (UI bubble keeps names only). */
+function formatFileAttachmentsBlock(
+  files: ChatMessage['fileAttachments'] | undefined
+): string {
+  if (!files || files.length === 0) return '';
+  const parts = files.map((file) => {
+    const label = file.path || file.name;
+    const lang = file.language?.trim() || '';
+    const body = file.content ?? '';
+    return `### ${label}\n\`\`\`${lang}\n${body}\n\`\`\``;
+  });
+  return `# File Context\n\n${parts.join('\n\n')}\n`;
 }
 
 export function appendToolMessages(
@@ -1613,6 +1634,8 @@ export interface BuildContextOptions {
   skillsContext?: string;
   /** User-scoped Agent Memory frozen block (optional) */
   agentMemoryContext?: string;
+  /** Project CLAUDE.md / AGENTS.md instructions (optional) */
+  projectInstructionsContext?: string;
   /**
    * Include Agent Memory write conventions in the core system prompt.
    * Default true. Chat panel should pass false (Agent-only feature).
@@ -1677,8 +1700,8 @@ export function buildContextForRequest(options: BuildContextOptions): {
 
   // ① & ② 组合唯一的 System prompt
   // 拼接顺序按「最稳定 → 最易变」排列，使 Prompt Caching 前缀尽可能稳定：
-  //   runtimeIdentity > coreSystemPrompt > agentMemory > agent.description > subagentCatalog >
-  //   skillsContext > projectPath
+  //   runtimeIdentity > coreSystemPrompt > projectInstructions > agentMemory >
+  //   agent.description > subagentCatalog > skillsContext > projectPath
   const systemLines: string[] = [];
 
   if (includeCoreSystemPrompt) {
@@ -1690,6 +1713,10 @@ export function buildContextForRequest(options: BuildContextOptions): {
         enableAgentSessionSearch: options.enableAgentSessionSearch,
       })
     );
+  }
+
+  if (options.projectInstructionsContext?.trim()) {
+    systemLines.push(options.projectInstructionsContext.trim());
   }
 
   if (options.agentMemoryContext && options.agentMemoryContext.trim()) {
@@ -1809,6 +1836,10 @@ function assembleContextMessages(options: BuildContextOptions): ProviderRequestM
         enableAgentSessionSearch: options.enableAgentSessionSearch,
       })
     );
+  }
+
+  if (options.projectInstructionsContext?.trim()) {
+    systemLines.push(options.projectInstructionsContext.trim());
   }
 
   if (options.agentMemoryContext && options.agentMemoryContext.trim()) {

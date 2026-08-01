@@ -196,6 +196,9 @@ pub struct Conversation {
     /// Plan panel document — follows this conversation on save/load/delete
     #[serde(rename = "planDocument", default)]
     plan_document: Option<serde_json::Value>,
+    /// Tracks context injection (rules contentHash, project path, etc.)
+    #[serde(rename = "contextInjected", default)]
+    context_injected: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -691,6 +694,7 @@ pub fn create_conversation(
         pending_changes: Vec::new(),
         compact_state: None,
         plan_document: None,
+        context_injected: None,
     };
 
     save_conversation_internal(&app, &conv)?;

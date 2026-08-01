@@ -11,6 +11,12 @@ import { ToolError, handleToolError } from '../errors';
 import { resolvePathForTool } from '../argsParser';
 import { normalizeTerminalTextOutput } from '../terminalText';
 import { invoke } from '@tauri-apps/api/core';
+import {
+  detectAutoFixPlatform,
+  formatAutoFixHint,
+  formatAutoRetryNote,
+  suggestCommandAutoFix,
+} from '../../../utils/commandAutoFix';
 
 // ---------------------------------------------------------------------------
 // Constants (matching claude-code's BashTool thresholds)
@@ -133,6 +139,51 @@ function formatStructuredMeta(result: CommandResult): string {
   return parts.join('\n');
 }
 
+type ForegroundRaceResult =
+  | { kind: 'ok'; value: ExecuteCommandResult }
+  | { kind: 'timeout' };
+
+async function invokeForegroundExecuteCommand(params: {
+  command: string;
+  workingDir?: string;
+  timeoutMs: number;
+  hardTimeoutMs: number;
+  shell?: string;
+  maxLines?: number;
+  script?: string;
+  noOutputExpected?: boolean;
+  streamId?: string;
+}): Promise<ForegroundRaceResult> {
+  const invokePromise = invoke<ExecuteCommandResult>('execute_command', {
+    command: params.command,
+    workingDir: params.workingDir,
+    timeoutMs: params.timeoutMs,
+    shell: params.shell,
+    maxLines: params.maxLines,
+    script: params.script,
+    noOutputExpected: params.noOutputExpected,
+    streamId: params.streamId,
+  });
+
+  return Promise.race<ForegroundRaceResult>([
+    invokePromise.then((value) => ({ kind: 'ok' as const, value })),
+    new Promise<ForegroundRaceResult>((resolve) =>
+      setTimeout(() => resolve({ kind: 'timeout' }), params.hardTimeoutMs)
+    ),
+  ]);
+}
+
+function toCommandResult(result: ExecuteCommandResult, timedOut = false): CommandResult {
+  return {
+    stdout: result.stdout,
+    stderr: result.stderr,
+    interrupted: false,
+    timedOut,
+    exitCode: result.exit_code,
+    durationMs: result.duration_ms,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
@@ -177,26 +228,21 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
       // Foreground path: execute_command — timeout 与 schema 一致（默认 30s，最大 600s）
       // 超时后自动转后台；硬超时 = timeoutMs + 5s，避免 Rust kill 失效时永远挂起。
       // -----------------------------------------------------------------------
-      const hardTimeoutMs = Math.min(timeoutMs + HARD_TIMEOUT_BUFFER_MS, MAX_TIMEOUT_MS + HARD_TIMEOUT_BUFFER_MS);
-      const invokePromise = invoke<ExecuteCommandResult>('execute_command', {
+      const hardTimeoutMs = Math.min(
+        timeoutMs + HARD_TIMEOUT_BUFFER_MS,
+        MAX_TIMEOUT_MS + HARD_TIMEOUT_BUFFER_MS
+      );
+      const raced = await invokeForegroundExecuteCommand({
         command: args.command || args.script || '',
         workingDir: workingDir || undefined,
         timeoutMs,
+        hardTimeoutMs,
         shell: args.shell || undefined,
         maxLines: args.max_lines || undefined,
         script: args.script || undefined,
         noOutputExpected: noOutputExpected || undefined,
         streamId: context?.toolCallId || undefined,
       });
-
-      type ForegroundResult = { kind: 'ok'; value: ExecuteCommandResult } | { kind: 'timeout' };
-
-      const raced = await Promise.race<ForegroundResult>([
-        invokePromise.then((value) => ({ kind: 'ok' as const, value })),
-        new Promise<ForegroundResult>((resolve) =>
-          setTimeout(() => resolve({ kind: 'timeout' }), hardTimeoutMs)
-        ),
-      ]);
 
       // ── 前端硬超时兜底 ──────────────────────────────────────────────
       // Rust 侧超时可能因 Windows 子进程链无法 kill 而失效。
@@ -211,7 +257,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
         };
       }
 
-      const result = raced.value;
+      let result = raced.value;
 
       // ── Rust 侧超时：原进程已强杀，再以后台方式重启（含 script） ──
       if (result.timed_out) {
@@ -237,15 +283,7 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
           };
         } catch {
           // 后台启动也失败：退回标准超时结果
-          const cmdResult: CommandResult = {
-            stdout: result.stdout,
-            stderr: result.stderr,
-            interrupted: false,
-            timedOut: true,
-            exitCode: result.exit_code,
-            durationMs: result.duration_ms,
-          };
-
+          const cmdResult = toCommandResult(result, true);
           let output = formatCommandResult(cmdResult, {
             stripAnsi: args.strip_ansi,
             projectPath: context?.baseDir,
@@ -255,15 +293,56 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
         }
       }
 
-      // ── 正常完成 ─────────────────────────────────────────────────────
-      const cmdResult: CommandResult = {
-        stdout: result.stdout,
-        stderr: result.stderr,
-        interrupted: false,
-        timedOut: false,
-        exitCode: result.exit_code,
-        durationMs: result.duration_ms,
-      };
+      // ── 正常完成：规则型自愈（最多自动重试一次）──────────────────────
+      let autoRetryNote = '';
+      let autoFixHint = '';
+      const originalCommand = (args.command || '').trim();
+      const canAutoFix =
+        !args.script &&
+        !!originalCommand &&
+        result.exit_code != null &&
+        result.exit_code !== 0;
+
+      if (canAutoFix) {
+        const suggestion = suggestCommandAutoFix({
+          command: originalCommand,
+          shell: args.shell,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exitCode: result.exit_code,
+          platform: detectAutoFixPlatform(),
+        });
+
+        if (
+          suggestion?.kind === 'rewrite' &&
+          suggestion.command.trim() &&
+          suggestion.command.trim() !== originalCommand
+        ) {
+          const retryRaced = await invokeForegroundExecuteCommand({
+            command: suggestion.command,
+            workingDir: workingDir || undefined,
+            timeoutMs,
+            hardTimeoutMs,
+            shell: args.shell || undefined,
+            maxLines: args.max_lines || undefined,
+            noOutputExpected: noOutputExpected || undefined,
+            streamId: context?.toolCallId || undefined,
+          });
+
+          if (retryRaced.kind === 'ok' && !retryRaced.value.timed_out) {
+            result = retryRaced.value;
+            autoRetryNote = formatAutoRetryNote(suggestion.reason, suggestion.command);
+          } else {
+            autoRetryNote =
+              formatAutoRetryNote(suggestion.reason, suggestion.command) +
+              '\n(auto-retry timed out; showing first attempt output)';
+          }
+        } else if (suggestion?.kind === 'hint') {
+          autoFixHint = formatAutoFixHint(suggestion.hint);
+        }
+      }
+
+      const cmdResult = toCommandResult(result, false);
 
       if (noOutputExpected) {
         const failed = cmdResult.exitCode != null && cmdResult.exitCode !== 0;
@@ -276,6 +355,13 @@ export class RunCommandHandler implements ToolHandler<'run_command'> {
         stripAnsi: args.strip_ansi,
         projectPath: context?.baseDir,
       });
+
+      if (autoRetryNote) {
+        output = [autoRetryNote, output].filter(Boolean).join('\n');
+      }
+      if (autoFixHint) {
+        output = [output, autoFixHint].filter(Boolean).join('\n');
+      }
 
       output += '\n' + formatStructuredMeta(cmdResult);
 

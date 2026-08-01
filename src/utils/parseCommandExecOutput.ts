@@ -16,6 +16,7 @@ const BACKGROUND_START_RE = /^Command running in background with task ID:\s*\S+/
 const EXIT_CODE_RE = /<exit-code>(-?\d+|null)<\/exit-code>/;
 const DURATION_RE = /<duration>(\d+)ms<\/duration>/;
 const ERROR_RE = /<error>([\s\S]*?)<\/error>/g;
+const AUTO_FIX_HINT_RE = /<auto-fix-hint>[\s\S]*?<\/auto-fix-hint>/g;
 
 function readCommandFromArgs(toolArgs?: Record<string, unknown>): string {
   if (!toolArgs) return 'command';
@@ -37,6 +38,7 @@ function stripMetaTags(text: string): string {
     .replace(EXIT_CODE_RE, '')
     .replace(DURATION_RE, '')
     .replace(ERROR_RE, '')
+    .replace(AUTO_FIX_HINT_RE, '')
     .replace(
       /\n\nTo run long commands in background, set run_in_background=true and check output with action=read_output\.\s*$/i,
       ''
