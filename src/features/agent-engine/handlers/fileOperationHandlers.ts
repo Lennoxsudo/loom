@@ -24,19 +24,20 @@ class CopyFileHandler implements ToolHandler<'copy_file'> {
         throw ToolError.missingParam('destination');
       }
 
-      const rootPath = context?.baseDir;
-      if (!rootPath) {
+      if (!context?.baseDir) {
         throw ToolError.directoryNotFound();
       }
 
-      const resolvedSource = resolvePathForTool(args.source, context);
-      const resolvedDestination = resolvePathForTool(args.destination, context);
+      // Allow absolute paths outside the workspace (relative paths still join baseDir).
+      const pathCtx = { ...context, allowExternalPaths: true };
+      const resolvedSource = resolvePathForTool(args.source, pathCtx);
+      const resolvedDestination = resolvePathForTool(args.destination, pathCtx);
 
+      // Omit rootPath: FE already resolved absolutes; backend root guard would reject outside-workspace copies.
       await invoke('copy_file_or_folder', {
         source: resolvedSource,
         destination: resolvedDestination,
         overwrite: args.overwrite ?? false,
-        rootPath,
         opSource: 'ai',
       });
 
@@ -66,19 +67,20 @@ class MoveFileHandler implements ToolHandler<'move_file'> {
         throw ToolError.missingParam('destination');
       }
 
-      const rootPath = context?.baseDir;
-      if (!rootPath) {
+      if (!context?.baseDir) {
         throw ToolError.directoryNotFound();
       }
 
-      const resolvedSource = resolvePathForTool(args.source, context);
-      const resolvedDestination = resolvePathForTool(args.destination, context);
+      // Allow absolute paths outside the workspace (relative paths still join baseDir).
+      const pathCtx = { ...context, allowExternalPaths: true };
+      const resolvedSource = resolvePathForTool(args.source, pathCtx);
+      const resolvedDestination = resolvePathForTool(args.destination, pathCtx);
 
+      // Omit rootPath: FE already resolved absolutes; backend root guard would reject outside-workspace moves.
       await invoke('move_file_or_folder', {
         oldPath: resolvedSource,
         newPath: resolvedDestination,
         overwrite: args.overwrite ?? false,
-        rootPath,
         opSource: 'ai',
       });
 
@@ -105,19 +107,20 @@ class DeleteFileHandler implements ToolHandler<'delete_file'> {
         throw ToolError.missingParam('path');
       }
 
-      const rootPath = context?.baseDir;
-      if (!rootPath) {
+      if (!context?.baseDir) {
         throw ToolError.directoryNotFound();
       }
 
-      const resolvedPath = resolvePathForTool(args.path, context);
+      // Allow absolute paths outside the workspace (relative paths still join baseDir).
+      const pathCtx = { ...context, allowExternalPaths: true };
+      const resolvedPath = resolvePathForTool(args.path, pathCtx);
       const permanent = args.permanent ?? false;
 
       try {
+        // Omit rootPath: FE already resolved absolutes; backend root guard would reject outside-workspace deletes.
         await invoke('delete_file_or_folder', {
           path: resolvedPath,
           permanent,
-          rootPath,
           opSource: 'ai',
         });
 

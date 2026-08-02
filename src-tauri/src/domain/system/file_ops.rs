@@ -2653,10 +2653,8 @@ pub fn copy_file_or_folder(
 ) -> Result<(), String> {
     let src = resolve_path_with_root(&root_path, &source)?;
     let dest = resolve_path_with_root(&root_path, &destination)?;
-    let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
-    let call_src = CallSource::from_str(op_source.as_deref());
-    sandbox_ctx.validate_write(&src, call_src)?;
-    sandbox_ctx.validate_write(&dest, call_src)?;
+    // copy/move/delete: allow outside-workspace paths for AI; still honor read_only.
+    validate_mutation_allow_external(&sandbox_state, op_source.as_deref())?;
     let should_overwrite = overwrite.unwrap_or(false);
 
     if !src.exists() {
@@ -2697,6 +2695,25 @@ pub fn copy_file_or_folder(
     Ok(())
 }
 
+/// copy/move/delete: AI may target paths outside writable_roots; still honor read_only.
+fn validate_mutation_allow_external(
+    sandbox_state: &State<'_, SandboxState>,
+    op_source: Option<&str>,
+) -> Result<(), String> {
+    let call_src = CallSource::from_str(op_source);
+    if matches!(call_src, CallSource::User) {
+        return Ok(());
+    }
+    let ctx = sandbox::current_sandbox_context(sandbox_state);
+    if ctx.is_trusted() {
+        return Ok(());
+    }
+    if ctx.access_mode == "read_only" {
+        return Err("当前访问档位为只读，禁止写入文件".to_string());
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn move_file_or_folder(
     app: tauri::AppHandle,
@@ -2714,10 +2731,7 @@ pub fn move_file_or_folder(
 
     let src = resolve_path_with_root(&root_path, &old_path)?;
     let dest = resolve_path_with_root(&root_path, &new_path)?;
-    let sandbox_ctx = sandbox::current_sandbox_context(&sandbox_state);
-    let call_src = CallSource::from_str(op_source.as_deref());
-    sandbox_ctx.validate_write(&src, call_src)?;
-    sandbox_ctx.validate_write(&dest, call_src)?;
+    validate_mutation_allow_external(&sandbox_state, op_source.as_deref())?;
     let should_overwrite = overwrite.unwrap_or(false);
 
     if !src.exists() {
@@ -2785,8 +2799,7 @@ pub fn delete_file_or_folder(
     sandbox_state: State<'_, SandboxState>,
 ) -> Result<(), String> {
     let target = resolve_path_with_root(&root_path, &path)?;
-    sandbox::current_sandbox_context(&sandbox_state)
-        .validate_write(&target, CallSource::from_str(op_source.as_deref()))?;
+    validate_mutation_allow_external(&sandbox_state, op_source.as_deref())?;
 
     if !target.exists() {
         return Err(format!("路径不存在: {}", path));

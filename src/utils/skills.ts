@@ -52,10 +52,55 @@ const CACHE_TTL_MS = 30_000;
 const SKILL_FILE_NAME = 'SKILL.md';
 const SKILLS_DIR_NAME = 'skills';
 const PROJECT_SKILLS_DIR_NAME = '.skills';
+/** Dispatched from clearSkillsCache so Chat/Agent panels can refresh / menus. */
+export const SKILLS_CHANGED_EVENT = 'loom:skills-changed';
 
 let _cache: CacheEntry | null = null;
 let _lastProjectPath = '';
 let _appDataPath: string | null = null;
+
+/** Normalize a model/user skill query before lookup. */
+export function normalizeSkillQuery(name: string): string {
+  let q = name.trim();
+  if (q.startsWith('/')) q = q.slice(1).trim();
+  if (q.toLowerCase().endsWith('.md')) q = q.slice(0, -3).trim();
+  return q;
+}
+
+function normalizeSkillKey(name: string): string {
+  return name.toLowerCase().replace(/[-_]+/g, '-');
+}
+
+/**
+ * Resolve a query to a unique skill directory name.
+ * Order: exact → case-insensitive unique → -/_ normalized unique → unique prefix.
+ * Ambiguous matches return null (caller should list candidates).
+ */
+export function resolveSkillName(
+  query: string,
+  skills: ReadonlyArray<Pick<SkillEntry, 'name'>>
+): string | null {
+  const q = normalizeSkillQuery(query);
+  if (!q || skills.length === 0) return null;
+
+  const exact = skills.find((s) => s.name === q);
+  if (exact) return exact.name;
+
+  const lower = q.toLowerCase();
+  const caseHits = skills.filter((s) => s.name.toLowerCase() === lower);
+  if (caseHits.length === 1) return caseHits[0].name;
+  if (caseHits.length > 1) return null;
+
+  const key = normalizeSkillKey(q);
+  const keyHits = skills.filter((s) => normalizeSkillKey(s.name) === key);
+  if (keyHits.length === 1) return keyHits[0].name;
+  if (keyHits.length > 1) return null;
+
+  const prefixHits = skills.filter((s) => s.name.toLowerCase().startsWith(lower));
+  if (prefixHits.length === 1) return prefixHits[0].name;
+
+  return null;
+}
 
 async function getAppDataPath(): Promise<string> {
   if (_appDataPath) return _appDataPath;
@@ -238,8 +283,30 @@ function formatSkillsIndex(skills: SkillEntry[]): string {
     '<available_skills>',
     ...items,
     '</available_skills>',
-    '当用户请求与某个 skill 的描述匹配，或用户消息以 /skill-name 技能链接形式出现时，调用 load_skill 工具并传入 skill_name 来加载完整指令；不要假设 skill 正文已在用户消息中。',
+    '当用户请求与某个 skill 的描述匹配，或用户消息以 /skill-name 技能链接形式出现时，调用 skill（或 load_skill）工具，并将 skill_name 设为 <available_skills> 中的精确 name；不要臆造名称，也不要假设 skill 正文已在用户消息中。',
   ].join('\n');
+}
+
+/** Ensure merged skills cache is warm for projectPath; refresh when stale or path changed. */
+async function ensureSkillsCache(projectPath: string): Promise<SkillEntry[]> {
+  const now = Date.now();
+  if (_cache && _lastProjectPath === projectPath && now - _cache.timestamp < CACHE_TTL_MS) {
+    return _cache.skills;
+  }
+
+  const appDataPath = await getAppDataPath();
+  const globalDir = joinPath(appDataPath, SKILLS_DIR_NAME);
+  const projectDir = projectPath ? joinPath(projectPath, PROJECT_SKILLS_DIR_NAME) : '';
+
+  const [globalSkills, projectSkills] = await Promise.all([
+    loadSkillsFromDir(globalDir, 'global'),
+    projectDir ? loadSkillsFromDir(projectDir, 'project') : Promise.resolve([]),
+  ]);
+
+  const merged = mergeSkills(globalSkills, projectSkills);
+  _cache = { skills: merged, timestamp: now };
+  _lastProjectPath = projectPath;
+  return merged;
 }
 
 /**
@@ -249,123 +316,72 @@ function formatSkillsIndex(skills: SkillEntry[]): string {
  * 返回值仅包含 skill 的 name + description，不再包含完整内容。
  */
 export async function loadSkillsContext(projectPath: string): Promise<string> {
-  const now = Date.now();
-
-  if (_cache && _lastProjectPath === projectPath && now - _cache.timestamp < CACHE_TTL_MS) {
-    return formatSkillsIndex(_cache.skills);
-  }
-
   try {
-    const appDataPath = await getAppDataPath();
-    const globalDir = joinPath(appDataPath, SKILLS_DIR_NAME);
-    const projectDir = projectPath ? joinPath(projectPath, PROJECT_SKILLS_DIR_NAME) : '';
-
-    const [globalSkills, projectSkills] = await Promise.all([
-      loadSkillsFromDir(globalDir, 'global'),
-      projectDir ? loadSkillsFromDir(projectDir, 'project') : Promise.resolve([]),
-    ]);
-
-    const merged = mergeSkills(globalSkills, projectSkills);
-
-    _cache = { skills: merged, timestamp: now };
-    _lastProjectPath = projectPath;
-
-    return formatSkillsIndex(merged);
+    const skills = await ensureSkillsCache(projectPath);
+    return formatSkillsIndex(skills);
   } catch (e) {
     console.warn('[Skills] 加载失败:', e);
     return '';
   }
 }
 
-/** 手动清除缓存 */
+/** 手动清除缓存；通知 Chat/Agent 刷新 / 补全列表 */
 export function clearSkillsCache(): void {
   _cache = null;
   _lastProjectPath = '';
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(SKILLS_CHANGED_EVENT));
+  }
 }
 
-/**
- * 按 skill 名称加载完整内容。
- *
- * 用于 `load_skill` AI 工具的处理器：LLM 判断需要某个 skill 时，
- * 调用此函数获取该 skill 的完整 SKILL.md 正文。
- *
- * 优先查找项目级 skill，其次全局级（项目级覆盖全局级）。
- * 如果缓存中有该 skill，直接返回；否则从磁盘读取。
- *
- * @param skillName - skill 目录名称
- * @param projectPath - 当前项目路径
- * @returns skill 的完整正文内容，未找到返回 null
- */
-export async function loadSkillContent(
-  skillName: string,
-  projectPath: string
-): Promise<{
+export type LoadSkillContentResult = {
   content: string;
   scope: 'global' | 'project';
   userInvocable: boolean;
   argumentHint: string;
   description: string;
-} | null> {
-  // 优先从缓存查找
-  const now = Date.now();
-  if (_cache && _lastProjectPath === projectPath && now - _cache.timestamp < CACHE_TTL_MS) {
-    const cached = _cache.skills.find((s) => s.name === skillName);
-    if (cached) {
-      return {
-        content: cached.content,
-        scope: cached.scope,
-        userInvocable: cached.userInvocable,
-        argumentHint: cached.argumentHint,
-        description: cached.description,
-      };
-    }
-    // 缓存中没有，说明该 skill 不存在
+  /** Actual directory name after fuzzy resolve */
+  resolvedName: string;
+};
+
+/**
+ * 按 skill 名称加载完整内容（支持大小写 / -_ / 唯一前缀解析）。
+ *
+ * 用于 `skill` / `load_skill` 工具与 /skill 链接解析。
+ */
+export async function loadSkillContent(
+  skillName: string,
+  projectPath: string
+): Promise<LoadSkillContentResult | null> {
+  try {
+    const skills = await ensureSkillsCache(projectPath);
+    const resolved = resolveSkillName(skillName, skills);
+    if (!resolved) return null;
+
+    const cached = skills.find((s) => s.name === resolved);
+    if (!cached) return null;
+
+    return {
+      content: cached.content,
+      scope: cached.scope,
+      userInvocable: cached.userInvocable,
+      argumentHint: cached.argumentHint,
+      description: cached.description,
+      resolvedName: cached.name,
+    };
+  } catch {
     return null;
   }
+}
 
-  // 缓存过期或不存在，尝试从磁盘直接读取
+/** Names currently known for the project (for tool error hints). */
+export async function listSkillNames(projectPath: string): Promise<string[]> {
   try {
-    const appDataPath = await getAppDataPath();
-
-    // 项目级优先
-    if (projectPath) {
-      const projectSkillFile = joinPath(
-        projectPath,
-        PROJECT_SKILLS_DIR_NAME,
-        skillName,
-        SKILL_FILE_NAME
-      );
-      const raw = await readFileContent(projectSkillFile);
-      if (raw && raw.trim()) {
-        const parsed = parseFrontmatter(raw);
-        return {
-          content: parsed.body,
-          scope: 'project',
-          userInvocable: parsed.userInvocable,
-          argumentHint: parsed.argumentHint,
-          description: parsed.description,
-        };
-      }
-    }
-
-    // 全局级
-    const globalSkillFile = joinPath(appDataPath, SKILLS_DIR_NAME, skillName, SKILL_FILE_NAME);
-    const raw = await readFileContent(globalSkillFile);
-    if (raw && raw.trim()) {
-      const parsed = parseFrontmatter(raw);
-      return {
-        content: parsed.body,
-        scope: 'global',
-        userInvocable: parsed.userInvocable,
-        argumentHint: parsed.argumentHint,
-        description: parsed.description,
-      };
-    }
+    const skills = await ensureSkillsCache(projectPath);
+    return skills.map((s) => s.name);
   } catch {
-    // 读取失败
+    return [];
   }
-
-  return null;
 }
 
 /** 合并全局 + 项目 skills（项目覆盖全局），用于 / 补全等 UI */

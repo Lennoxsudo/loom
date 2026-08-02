@@ -527,15 +527,16 @@ const AgentMemorySchema = z
         });
       }
     }
-    if (data.action === 'replace' || data.action === 'remove') {
+    if (data.action === 'replace') {
       if (!data.old_text?.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `old_text is required for action=${data.action}`,
+          message: 'old_text is required for action=replace',
           path: ['old_text'],
         });
       }
     }
+    // remove: old_text or content accepted; if neither, handler returns entries list
   });
 
 const SessionSearchSchema = z.object({

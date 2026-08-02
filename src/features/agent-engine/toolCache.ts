@@ -316,6 +316,7 @@ const cacheableTools = {
   edit_file: false,
   create_folder: false,
   move_file: false,
+  copy_file: false,
   delete_file: false,
   run_command: false,
   read_terminal_output: false,

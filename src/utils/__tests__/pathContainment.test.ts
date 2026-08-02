@@ -80,4 +80,15 @@ describe('path containment (phase 2)', () => {
     const resolved = resolvePathWithBaseDir(external, winRoot, true);
     expect(resolved).toBe('C:\\Users\\me\\.pencil\\documents\\design.pen');
   });
+
+  it('maps /tmp to drive:\\tmp on Windows workspaces', () => {
+    expect(resolvePathWithBaseDir('/tmp/out.txt', winRoot, true)).toBe('D:\\tmp\\out.txt');
+    expect(resolvePathWithBaseDir('/tmp', winRoot, true)).toBe('D:\\tmp');
+    expect(resolvePathWithBaseDir('/var/tmp/x', 'C:\\proj', true)).toBe('C:\\tmp\\x');
+  });
+
+  it('does not remap /tmp under unix workspaces', () => {
+    const remapped = resolvePathWithBaseDir('/tmp/out.txt', unixRoot);
+    expect(normalizeLexicalPath(remapped).replace(/\\/g, '/')).toMatch(/\/tmp\/out\.txt$/);
+  });
 });

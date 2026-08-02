@@ -46,9 +46,14 @@ class AgentMemoryHandler implements ToolHandler<'agent_memory'> {
       if (action === 'add' || action === 'replace') {
         if (!args.content?.trim()) throw ToolError.missingParam('content');
       }
-      if (action === 'replace' || action === 'remove') {
+      if (action === 'replace') {
         if (!args.old_text?.trim()) throw ToolError.missingParam('old_text');
       }
+
+      const removeNeedle =
+        action === 'remove'
+          ? (args.old_text?.trim() || args.content?.trim() || '')
+          : undefined;
 
       const flags = readFlags();
       if (!flags.enableAgentMemory) {
@@ -72,6 +77,26 @@ class AgentMemoryHandler implements ToolHandler<'agent_memory'> {
           error: 'Agent notes memory is disabled in settings',
         };
       }
+
+      if (action === 'remove' && !removeNeedle) {
+        const entries = await loadAgentMemoryEntries(target);
+        return {
+          tool_call_id: '',
+          output: '',
+          error: [
+            'old_text (or content) is required for action=remove — pass a unique substring of the entry to delete.',
+            formatLiveEntriesSummary(target, entries),
+            entries.length
+              ? `current_entries:\n${entries.map((e, i) => `${i + 1}. ${e}`).join('\n')}`
+              : '',
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+        };
+      }
+
+      const oldTextForWrite =
+        action === 'remove' ? removeNeedle : args.old_text;
 
       // Write-approval: probe add for exact/near-dup before staging; other actions stage as-is.
       if (useSettingsStore.getState().agentMemoryWriteApproval) {
@@ -102,7 +127,7 @@ class AgentMemoryHandler implements ToolHandler<'agent_memory'> {
           action,
           target,
           content: args.content,
-          oldText: args.old_text,
+          oldText: oldTextForWrite,
           reason: 'tool',
         });
         return {
@@ -119,7 +144,7 @@ class AgentMemoryHandler implements ToolHandler<'agent_memory'> {
 
       const result = await mutateAgentMemoryStore(target, action, {
         content: args.content,
-        oldText: args.old_text,
+        oldText: oldTextForWrite,
         flags,
       });
 

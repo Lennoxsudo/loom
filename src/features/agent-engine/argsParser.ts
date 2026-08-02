@@ -9,7 +9,7 @@
  * @module aiTools/argsParser
  */
 
-import { isAbsolutePath, resolveContainedPath } from '../../shared/lib/pathUtils';
+import { isAbsolutePath, remapUnixTempPath, resolveContainedPath } from '../../shared/lib/pathUtils';
 
 /**
  * 将相对路径解析为绝对路径，并在提供 baseDir 时强制收口到工作区内。
@@ -35,7 +35,9 @@ export function resolvePathWithBaseDir(
   baseDir?: string,
   allowExternalPaths?: boolean
 ): string {
-  if (!baseDir) return path;
+  if (!baseDir) {
+    return remapUnixTempPath(path.trim()) ?? path;
+  }
   const p = path.trim();
   if (!p) return path;
   return resolveContainedPath(p, baseDir, { allowExternalPaths });

@@ -97,4 +97,35 @@ describe('agentMemoryHandlers', () => {
     );
     expect(result.error).toMatch(/disabled/i);
   });
+
+  it('remove accepts content as old_text substring', async () => {
+    vi.mocked(mutateAgentMemoryStore).mockResolvedValue({
+      ok: true,
+      entries: [],
+      usage: '0/2200',
+      message: 'Removed entry.',
+      liveSummary: 'Live memory entries (0)',
+    });
+    const handler = getToolHandler('agent_memory');
+    const result = await handler!.execute(
+      { action: 'remove', target: 'memory', content: 'prefers dark' },
+      undefined
+    );
+    expect(result.error).toBeUndefined();
+    expect(mutateAgentMemoryStore).toHaveBeenCalledWith(
+      'memory',
+      'remove',
+      expect.objectContaining({ oldText: 'prefers dark' })
+    );
+  });
+
+  it('remove without needle lists current entries', async () => {
+    const { loadAgentMemoryEntries } = await import('../../../utils/agentMemory');
+    vi.mocked(loadAgentMemoryEntries).mockResolvedValueOnce(['keep me', 'delete me']);
+    const handler = getToolHandler('agent_memory');
+    const result = await handler!.execute({ action: 'remove', target: 'memory' }, undefined);
+    expect(result.error).toMatch(/old_text/i);
+    expect(result.error).toContain('keep me');
+    expect(mutateAgentMemoryStore).not.toHaveBeenCalled();
+  });
 });

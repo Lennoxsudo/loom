@@ -138,10 +138,37 @@ export function normalizeLexicalPath(path: string): string {
 }
 
 /**
+ * On Windows, map Unix temp paths (`/tmp`, `/var/tmp`) to `<drive>:\tmp\...`.
+ * Drive comes from baseDir when available, otherwise D: (common Loom convention).
+ * No-op on non-Windows hosts.
+ */
+export function remapUnixTempPath(path: string, baseDir?: string): string | null {
+  const trimmed = path.trim().replace(/\\/g, '/');
+  const match = trimmed.match(/^\/((?:var\/)?tmp)(?:\/(.*))?$/i);
+  if (!match) return null;
+
+  const base = baseDir?.trim() ?? '';
+  if (base) {
+    // Unix-style workspace roots keep /tmp as a normal unix absolute path.
+    const baseLooksWindows = /^[A-Za-z]:/.test(base) || base.includes('\\');
+    if (!baseLooksWindows) return null;
+  } else if (typeof process === 'undefined' || process.platform !== 'win32') {
+    return null;
+  }
+
+  const driveMatch = base.match(/^([A-Za-z]):/);
+  const drive = (driveMatch?.[1] ?? 'D').toUpperCase();
+  const rest = (match[2] ?? '').replace(/^\/+|\/+$/g, '');
+  if (!rest) return `${drive}:\\tmp`;
+  return `${drive}:\\tmp\\${rest.replace(/\//g, '\\')}`;
+}
+
+/**
  * 在 baseDir 下安全解析路径：拒绝盘符/UNC 越界与 `../` 逃逸。
  *
  * 对以 `/` 开头的「伪绝对路径」（模型常写成 `/project/...`）会尽量映射回工作区，
  * 而不是一律拒绝——例如 `/loom` + base=`D:\...\loom` → 工作区根。
+ * Windows 上 `/tmp/...` 先映射到 `<drive>:\tmp\...`（与 shell 侧常见约定一致）。
  */
 export function resolveContainedPath(
   path: string,
@@ -153,10 +180,12 @@ export function resolveContainedPath(
   if (!base) {
     throw new Error('baseDir is required for path containment');
   }
-  const p = path.trim();
-  if (!p) {
+  const raw = path.trim();
+  if (!raw) {
     throw new Error('path cannot be empty');
   }
+
+  const p = remapUnixTempPath(raw, base) ?? raw;
 
   let candidate: string;
   if (isAbsolutePath(p)) {

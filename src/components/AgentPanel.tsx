@@ -64,7 +64,7 @@ import {
   loadAllProjectThreadSummaries,
   type ProjectThreadSummary,
 } from '../utils/agentPersistence';
-import { getSkillsList, type SkillEntry } from '../utils/skills';
+import { getSkillsList, SKILLS_CHANGED_EVENT, type SkillEntry } from '../utils/skills';
 import { parseMcpToolName, stripMcpToolPrefix } from './agent/toolResultLayout';
 import type { SideResourceGroup } from './agent/AgentComposer';
 import {
@@ -375,29 +375,36 @@ export default function AgentPanel({
 
   useEffect(() => {
     let cancelled = false;
-    getSkillsList(projectPath || '')
-      .then(({ global: globalSkills, project: projectSkills }) => {
-        if (!cancelled) {
-          const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
-          const merged = [
-            ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
-            ...projectSkills,
-          ].sort((a, b) => a.name.localeCompare(b.name));
-          const names = merged.map((skill) => skill.name);
-          setSkillNames(names);
-          setSkillsCount(names.length);
-          setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSkillNames([]);
-          setSkillsCount(0);
-          setInvocableSkills([]);
-        }
-      });
+
+    const refreshSkills = () => {
+      getSkillsList(projectPath || '')
+        .then(({ global: globalSkills, project: projectSkills }) => {
+          if (!cancelled) {
+            const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
+            const merged = [
+              ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
+              ...projectSkills,
+            ].sort((a, b) => a.name.localeCompare(b.name));
+            const names = merged.map((skill) => skill.name);
+            setSkillNames(names);
+            setSkillsCount(names.length);
+            setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSkillNames([]);
+            setSkillsCount(0);
+            setInvocableSkills([]);
+          }
+        });
+    };
+
+    refreshSkills();
+    window.addEventListener(SKILLS_CHANGED_EVENT, refreshSkills);
     return () => {
       cancelled = true;
+      window.removeEventListener(SKILLS_CHANGED_EVENT, refreshSkills);
     };
   }, [projectPath]);
 

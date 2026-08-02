@@ -44,6 +44,9 @@ describe('executeToolCall', () => {
     expect(isKnownToolName('read')).toBe(true);
     expect(isKnownToolName('read_file')).toBe(true);
     expect(isKnownToolName('graph_query')).toBe(true);
+    expect(isKnownToolName('copy_file')).toBe(true);
+    expect(isKnownToolName('move_file')).toBe(true);
+    expect(isKnownToolName('delete_file')).toBe(true);
     // Merged
     expect(isKnownToolName('term')).toBe(true);
     expect(isKnownToolName('finfo')).toBe(true);
@@ -247,7 +250,6 @@ describe('executeToolCall', () => {
         duration_ms: 1,
         skipped: false,
       })
-      .mockResolvedValueOnce('new content')
       .mockResolvedValueOnce({
         is_binary: false,
         content: 'new content',

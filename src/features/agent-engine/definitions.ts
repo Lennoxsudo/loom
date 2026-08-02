@@ -297,17 +297,20 @@ export const AI_TOOLS: ToolDefinition[] = [
     name: 'move_file',
     description:
       'Move a file or folder to a new location. Use this to rename or relocate files. ' +
+      'Prefer workspace absolute paths (Windows drive paths). On Windows, /tmp maps to <drive>:\\tmp. ' +
       'This action modifies files, so it requires user confirmation before execution.',
     parameters: {
       type: 'object',
       properties: {
         source: {
           type: 'string',
-          description: 'Absolute path to the source file or folder.',
+          description:
+            'Source path. Prefer absolute workspace paths; on Windows /tmp/... is remapped to <drive>:\\tmp\\...',
         },
         destination: {
           type: 'string',
-          description: 'Absolute path to the destination file or folder.',
+          description:
+            'Destination path. Prefer absolute workspace paths; on Windows /tmp/... is remapped to <drive>:\\tmp\\...',
         },
         overwrite: {
           type: 'boolean',
@@ -893,7 +896,7 @@ export const AI_TOOLS: ToolDefinition[] = [
       'Manage user-scoped Agent Memory (USER.md / MEMORY.md). Use for durable preferences, corrections, ' +
       'and environment facts that should apply across projects and sessions. ' +
       'Targets: user (profile/preferences), memory (notes/environment). ' +
-      'Actions: add, replace (old_text unique substring), remove (old_text). ' +
+      'Actions: add, replace (old_text unique substring), remove (old_text or content unique substring). ' +
       'Do not store task progress or temporary paths. Content is injected as a frozen system-prompt block at session start.',
     parameters: {
       type: 'object',
@@ -901,7 +904,8 @@ export const AI_TOOLS: ToolDefinition[] = [
         action: {
           type: 'string',
           enum: ['add', 'replace', 'remove'],
-          description: 'add a new entry; replace or remove an existing entry via old_text.',
+          description:
+            'add a new entry; replace via old_text; remove via old_text (or content as the matching substring).',
         },
         target: {
           type: 'string',
@@ -910,11 +914,13 @@ export const AI_TOOLS: ToolDefinition[] = [
         },
         content: {
           type: 'string',
-          description: 'Entry text. Required for add and replace. Keep compact.',
+          description:
+            'Entry text. Required for add and replace. For remove, may be used instead of old_text as the unique substring.',
         },
         old_text: {
           type: 'string',
-          description: 'Unique substring identifying one entry. Required for replace and remove.',
+          description:
+            'Unique substring identifying one entry. Required for replace; for remove use old_text or content.',
         },
       },
       required: ['action', 'target'],

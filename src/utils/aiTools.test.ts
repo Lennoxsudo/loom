@@ -91,7 +91,7 @@ test('search_files uses glob_search_files with baseDir', async () => {
   expect(result.output).toContain('D:\\proj/src/App.tsx');
 });
 
-test('delete_file invokes delete_file_or_folder with root', async () => {
+test('delete_file invokes delete_file_or_folder without rootPath', async () => {
   invokeMock.mockResolvedValue(undefined);
 
   const toolCall: ToolCall = {
@@ -108,10 +108,86 @@ test('delete_file invokes delete_file_or_folder with root', async () => {
   expect(invokeMock).toHaveBeenCalledWith('delete_file_or_folder', {
     path: 'D:\\proj\\a.txt',
     permanent: false,
-    rootPath: 'D:\\proj',
     opSource: 'ai',
   });
   expect(result.output).toContain('回收站');
+  expect(result.files_changed).toEqual(['D:\\proj\\a.txt']);
+});
+
+test('delete_file allows absolute paths outside workspace', async () => {
+  invokeMock.mockResolvedValue(undefined);
+
+  const toolCall: ToolCall = {
+    id: 'tool-delete-external',
+    type: 'function',
+    function: {
+      name: 'delete_file',
+      arguments: JSON.stringify({ path: 'D:\\tmp\\outside.txt', permanent: true }),
+    },
+  };
+
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
+
+  expect(invokeMock).toHaveBeenCalledWith('delete_file_or_folder', {
+    path: 'D:\\tmp\\outside.txt',
+    permanent: true,
+    opSource: 'ai',
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.files_changed).toEqual(['D:\\tmp\\outside.txt']);
+});
+
+test('move_file allows absolute paths outside workspace', async () => {
+  invokeMock.mockResolvedValue(undefined);
+
+  const toolCall: ToolCall = {
+    id: 'tool-move-external',
+    type: 'function',
+    function: {
+      name: 'move_file',
+      arguments: JSON.stringify({
+        source: 'D:\\tmp\\a.txt',
+        destination: 'D:\\tmp\\b.txt',
+      }),
+    },
+  };
+
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
+
+  expect(invokeMock).toHaveBeenCalledWith('move_file_or_folder', {
+    oldPath: 'D:\\tmp\\a.txt',
+    newPath: 'D:\\tmp\\b.txt',
+    overwrite: false,
+    opSource: 'ai',
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.files_changed).toEqual(['D:\\tmp\\a.txt', 'D:\\tmp\\b.txt']);
+});
+
+test('copy_file allows absolute paths outside workspace', async () => {
+  invokeMock.mockResolvedValue(undefined);
+
+  const toolCall: ToolCall = {
+    id: 'tool-copy-external',
+    type: 'function',
+    function: {
+      name: 'copy_file',
+      arguments: JSON.stringify({
+        source: 'D:\\tmp\\a.txt',
+        destination: 'D:\\proj\\a.txt',
+      }),
+    },
+  };
+
+  const result = await executeToolCall(toolCall, { baseDir: 'D:\\proj' });
+
+  expect(invokeMock).toHaveBeenCalledWith('copy_file_or_folder', {
+    source: 'D:\\tmp\\a.txt',
+    destination: 'D:\\proj\\a.txt',
+    overwrite: false,
+    opSource: 'ai',
+  });
+  expect(result.error).toBeUndefined();
   expect(result.files_changed).toEqual(['D:\\proj\\a.txt']);
 });
 

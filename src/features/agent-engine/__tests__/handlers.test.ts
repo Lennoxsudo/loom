@@ -69,6 +69,7 @@ describe('ToolHandler Registry', () => {
 
   it('should register file operation handlers', () => {
     expect(hasToolHandler('move_file')).toBe(true);
+    expect(hasToolHandler('copy_file')).toBe(true);
     expect(hasToolHandler('delete_file')).toBe(true);
   });
 

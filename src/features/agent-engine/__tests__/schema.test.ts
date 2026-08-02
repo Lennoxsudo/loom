@@ -408,12 +408,27 @@ describe('schema validation', () => {
           old_text: 'dark',
         }).success
       ).toBe(true);
+      expect(
+        validateToolParameters('agent_memory', {
+          action: 'remove',
+          target: 'memory',
+          content: 'dark',
+        }).success
+      ).toBe(true);
+      // Missing needle is allowed at schema level; handler returns entry list.
+      expect(
+        validateToolParameters('agent_memory', { action: 'remove', target: 'user' }).success
+      ).toBe(true);
 
       expect(
         validateToolParameters('agent_memory', { action: 'add', target: 'user' }).success
       ).toBe(false);
       expect(
-        validateToolParameters('agent_memory', { action: 'remove', target: 'user' }).success
+        validateToolParameters('agent_memory', {
+          action: 'replace',
+          target: 'memory',
+          content: 'light',
+        }).success
       ).toBe(false);
     });
 

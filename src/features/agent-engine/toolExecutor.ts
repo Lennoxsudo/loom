@@ -182,6 +182,7 @@ const KNOWN_TOOL_NAMES: readonly string[] = [
   'get_file_tree',
   'get_file_info',
   'move_file',
+  'copy_file',
   'delete_file',
   'run_command',
   'read_terminal_output',
@@ -319,6 +320,7 @@ function clearCacheForChangedFiles(
     'edit_file',
     'create_folder',
     'move_file',
+    'copy_file',
     'delete_file',
   ]);
   if (!writeTools.has(toolName)) return;

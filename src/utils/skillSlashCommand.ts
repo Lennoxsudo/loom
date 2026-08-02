@@ -139,11 +139,12 @@ export async function expandSkillSlashCommand(
     };
   }
 
-  const linkedText = formatSkillLinkMessage(invocation.name, invocation.args);
+  const resolvedName = loaded.resolvedName;
+  const linkedText = formatSkillLinkMessage(resolvedName, invocation.args);
   return {
     kind: 'linked',
     original,
-    skillName: invocation.name,
+    skillName: resolvedName,
     args: invocation.args,
     linkedText,
     description: loaded.description,

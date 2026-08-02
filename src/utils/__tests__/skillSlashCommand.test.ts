@@ -157,6 +157,7 @@ describe('expandSkillSlashCommand', () => {
       userInvocable: true,
       argumentHint: '[summary]',
       description: 'review',
+      resolvedName: 'pr',
     });
     const result = await expandSkillSlashCommand('/pr fix login', '/repo');
     expect(result.kind).toBe('linked');
@@ -168,6 +169,23 @@ describe('expandSkillSlashCommand', () => {
     expect(result.linkedText).not.toContain('FULL SKILL BODY');
     expect(result.linkedText).not.toContain('Review:');
     expect(mockedLoad).toHaveBeenCalledWith('pr', '/repo');
+  });
+
+  it('uses resolvedName in link when query casing differs', async () => {
+    mockedLoad.mockResolvedValue({
+      content: 'body',
+      scope: 'global',
+      userInvocable: true,
+      argumentHint: '',
+      description: 'review',
+      resolvedName: 'code-review',
+    });
+    const result = await expandSkillSlashCommand('/Code-Review please', '/repo');
+    expect(result.kind).toBe('linked');
+    if (result.kind !== 'linked') return;
+    expect(result.skillName).toBe('code-review');
+    expect(result.linkedText).toContain('skill_name="code-review"');
+    expect(result.linkedText).toContain('/code-review please');
   });
 
   it('returns unknown when skill missing', async () => {

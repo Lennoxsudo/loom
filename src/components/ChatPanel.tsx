@@ -83,7 +83,7 @@ import type { PlanDocument } from '../features/agent-engine/planStore';
 import { setPlan } from '../features/agent-engine/planStore';
 import { usePlanDocumentVisible } from '../features/agent-engine/usePlanDocumentVisible';
 import { PlusIcon } from './shared/Icons';
-import { getSkillsList, type SkillEntry } from '../utils/skills';
+import { getSkillsList, SKILLS_CHANGED_EVENT, type SkillEntry } from '../utils/skills';
 
 export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPanelProps) {
   const t = useTranslation();
@@ -278,21 +278,28 @@ export default function ChatPanel({ width, projectPath, onFilesChanged }: ChatPa
 
   useEffect(() => {
     let cancelled = false;
-    getSkillsList(projectPath || '')
-      .then(({ global: globalSkills, project: projectSkills }) => {
-        if (cancelled) return;
-        const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
-        const merged = [
-          ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
-          ...projectSkills,
-        ].sort((a, b) => a.name.localeCompare(b.name));
-        setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
-      })
-      .catch(() => {
-        if (!cancelled) setInvocableSkills([]);
-      });
+
+    const refreshSkills = () => {
+      getSkillsList(projectPath || '')
+        .then(({ global: globalSkills, project: projectSkills }) => {
+          if (cancelled) return;
+          const projectNameSet = new Set(projectSkills.map((skill) => skill.name));
+          const merged = [
+            ...globalSkills.filter((skill) => !projectNameSet.has(skill.name)),
+            ...projectSkills,
+          ].sort((a, b) => a.name.localeCompare(b.name));
+          setInvocableSkills(merged.filter((skill) => skill.userInvocable !== false));
+        })
+        .catch(() => {
+          if (!cancelled) setInvocableSkills([]);
+        });
+    };
+
+    refreshSkills();
+    window.addEventListener(SKILLS_CHANGED_EVENT, refreshSkills);
     return () => {
       cancelled = true;
+      window.removeEventListener(SKILLS_CHANGED_EVENT, refreshSkills);
     };
   }, [projectPath]);
 
