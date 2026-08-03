@@ -1,6 +1,10 @@
 import { memo } from 'react';
 import { useTranslation } from '../../i18n';
-import type { BlastRadiusResult } from '../../utils/changeBlastRadius';
+import {
+  formatBlastCallerPath,
+  type BlastRadiusCaller,
+  type BlastRadiusResult,
+} from '../../utils/changeBlastRadius';
 import { getShortFileName } from './utils';
 import styles from './ChangeReviewPanel.module.css';
 
@@ -8,6 +12,39 @@ export interface ChangeBlastRadiusPanelProps {
   result: BlastRadiusResult | null;
   error: string | null;
   loading: boolean;
+}
+
+function CallerList({
+  callers,
+  highRisk,
+}: {
+  callers: BlastRadiusCaller[];
+  highRisk?: boolean;
+}) {
+  if (callers.length === 0) {
+    return <div className={styles.blastNoCallers}>—</div>;
+  }
+  return (
+    <ul className={styles.blastCallerList}>
+      {callers.map((caller, index) => (
+        <li
+          key={`${caller.name}-${caller.file ?? ''}-${caller.line ?? index}`}
+          className={highRisk ? styles.blastCallerHighRisk : undefined}
+        >
+          <code>{caller.name}</code>
+          {caller.kind === 'imports' ? (
+            <span className={styles.blastEdgeKind}>import</span>
+          ) : null}
+          {caller.file ? (
+            <span className={styles.blastCallerMeta}>
+              {formatBlastCallerPath(caller.file)}
+              {caller.line != null ? `:${caller.line}` : ''}
+            </span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 const ChangeBlastRadiusPanel = memo(function ChangeBlastRadiusPanel({
@@ -22,7 +59,7 @@ const ChangeBlastRadiusPanel = memo(function ChangeBlastRadiusPanel({
     return <div className={styles.empty}>{cr.viewImpactLoading}</div>;
   }
 
-  if (error && !result?.symbols.length) {
+  if (error && !result?.symbols.length && !result?.fileImporters.length) {
     return (
       <div className={styles.empty} data-testid="blast-radius-error">
         {cr.impactError.replace('{error}', error)}
@@ -43,6 +80,22 @@ const ChangeBlastRadiusPanel = memo(function ChangeBlastRadiusPanel({
       <div className={styles.blastFileHint} title={result.filePath}>
         {getShortFileName(result.filePath)}
       </div>
+
+      {result.fileImporters.length > 0 ? (
+        <div
+          className={styles.blastSymbolBlock}
+          data-testid="blast-radius-file-importers"
+        >
+          <div className={styles.blastSymbolHeader}>
+            <span className={styles.blastSymbolName}>{cr.impactFileImporters.replace(
+              '{count}',
+              String(result.fileImporters.length)
+            )}</span>
+          </div>
+          <CallerList callers={result.fileImporters} />
+        </div>
+      ) : null}
+
       {result.symbols.map((sym) => (
         <div
           key={sym.symbol}
@@ -59,26 +112,7 @@ const ChangeBlastRadiusPanel = memo(function ChangeBlastRadiusPanel({
               {cr.impactCallers.replace('{count}', String(sym.callers.length))}
             </span>
           </div>
-          {sym.callers.length === 0 ? (
-            <div className={styles.blastNoCallers}>—</div>
-          ) : (
-            <ul className={styles.blastCallerList}>
-              {sym.callers.map((caller, index) => (
-                <li
-                  key={`${caller.name}-${caller.file ?? ''}-${caller.line ?? index}`}
-                  className={sym.highRisk ? styles.blastCallerHighRisk : undefined}
-                >
-                  <code>{caller.name}</code>
-                  {caller.file ? (
-                    <span className={styles.blastCallerMeta}>
-                      {getShortFileName(caller.file)}
-                      {caller.line != null ? `:${caller.line}` : ''}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
+          <CallerList callers={sym.callers} highRisk={sym.highRisk} />
         </div>
       ))}
     </div>

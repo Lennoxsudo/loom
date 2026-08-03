@@ -747,6 +747,7 @@ export const enUS: I18nMessages = {
         'No callers found. Confirm the project is indexed, or that symbols in this file have inbound edges.',
       impactHighRisk: 'High risk',
       impactCallers: 'Callers ({count})',
+      impactFileImporters: 'Files importing this ({count})',
       impactClose: 'Close impact preview',
       impactError: 'Impact analysis failed: {error}',
     },

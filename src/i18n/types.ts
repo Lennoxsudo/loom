@@ -732,6 +732,7 @@ export interface I18nMessages {
       impactEmpty: string;
       impactHighRisk: string;
       impactCallers: string;
+      impactFileImporters: string;
       impactClose: string;
       impactError: string;
     };

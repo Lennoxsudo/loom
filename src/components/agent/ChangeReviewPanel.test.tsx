@@ -64,6 +64,7 @@ beforeEach(() => {
   vi.mocked(loadChangeBlastRadius).mockResolvedValue({
     filePath: pendingChange.filePath,
     empty: false,
+    fileImporters: [{ name: 'OtherView', file: 'src/OtherView.vue', kind: 'imports' }],
     symbols: [
       {
         symbol: 'demo',

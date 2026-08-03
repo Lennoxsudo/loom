@@ -735,6 +735,7 @@ export const zhCN: I18nMessages = {
       impactEmpty: '未找到调用方。请确认项目已索引，或该文件符号尚无 inbound 边。',
       impactHighRisk: '高风险',
       impactCallers: '调用方 ({count})',
+      impactFileImporters: '引用本文件 ({count})',
       impactClose: '关闭影响预览',
       impactError: '影响分析失败: {error}',
     },
